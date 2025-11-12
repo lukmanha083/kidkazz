@@ -1,0 +1,7 @@
+# Copy this file to .dev.vars for local development
+# These values are only used in local development
+
+ENVIRONMENT=development
+CLOUDFLARE_ACCOUNT_ID=your_account_id
+CLOUDFLARE_DATABASE_ID=your_database_id
+CLOUDFLARE_D1_TOKEN=your_token

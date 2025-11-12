@@ -1,0 +1,27 @@
+{
+  "name": "wholesale-ecommerce",
+  "version": "1.0.0",
+  "description": "Wholesale E-Commerce Platform on Cloudflare",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter \"./apps/**\" dev",
+    "build": "pnpm --filter \"./apps/**\" build",
+    "deploy": "pnpm --filter \"./apps/**\" deploy",
+    "type-check": "pnpm --filter \"./apps/**\" type-check"
+  },
+  "keywords": [
+    "wholesale",
+    "ecommerce",
+    "cloudflare",
+    "tanstack",
+    "hono"
+  ],
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "@types/node": "^22.0.0"
+  },
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
