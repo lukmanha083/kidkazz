@@ -1,5 +1,15 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 export const Route = createFileRoute('/admin/users')({
   component: UsersPage,
@@ -25,6 +35,32 @@ function UsersPage() {
     return <div className="text-destructive">Error loading users</div>;
   }
 
+  const getRoleVariant = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return 'destructive';
+      case 'supplier':
+        return 'info';
+      case 'buyer':
+        return 'secondary';
+      default:
+        return 'outline';
+    }
+  };
+
+  const getStatusVariant = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'success';
+      case 'pending':
+        return 'warning';
+      case 'inactive':
+        return 'secondary';
+      default:
+        return 'outline';
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -32,59 +68,53 @@ function UsersPage() {
         <p className="text-muted-foreground">Manage buyers and suppliers</p>
       </div>
 
-      <div className="bg-card rounded-lg border border-border overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-muted">
-            <tr>
-              <th className="text-left p-4 font-semibold">Name</th>
-              <th className="text-left p-4 font-semibold">Email</th>
-              <th className="text-left p-4 font-semibold">Role</th>
-              <th className="text-left p-4 font-semibold">Status</th>
-              <th className="text-left p-4 font-semibold">Joined</th>
-              <th className="text-left p-4 font-semibold">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Joined</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {data?.users?.length > 0 ? (
               data.users.map((user: any) => (
-                <tr key={user.id} className="border-t border-border">
-                  <td className="p-4 font-medium">
+                <TableRow key={user.id}>
+                  <TableCell className="font-medium">
                     {user.firstName} {user.lastName}
-                  </td>
-                  <td className="p-4">{user.email}</td>
-                  <td className="p-4">
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
-                      user.role === 'supplier' ? 'bg-blue-100 text-blue-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
+                  </TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>
+                    <Badge variant={getRoleVariant(user.role)}>
                       {user.role}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      user.status === 'active' ? 'bg-green-100 text-green-800' :
-                      user.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={getStatusVariant(user.status)}>
                       {user.status}
-                    </span>
-                  </td>
-                  <td className="p-4">{new Date(user.createdAt * 1000).toLocaleDateString()}</td>
-                  <td className="p-4">
-                    <button className="text-primary hover:underline text-sm">Edit</button>
-                  </td>
-                </tr>
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{new Date(user.createdAt * 1000).toLocaleDateString()}</TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="sm">
+                      Edit
+                    </Button>
+                  </TableCell>
+                </TableRow>
               ))
             ) : (
-              <tr>
-                <td colSpan={6} className="p-8 text-center text-muted-foreground">
+              <TableRow>
+                <TableCell colSpan={6} className="h-24 text-center">
                   No users found.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

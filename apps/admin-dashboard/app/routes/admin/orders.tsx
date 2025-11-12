@@ -1,5 +1,15 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 export const Route = createFileRoute('/admin/orders')({
   component: OrdersPage,
@@ -25,6 +35,32 @@ function OrdersPage() {
     return <div className="text-destructive">Error loading orders</div>;
   }
 
+  const getOrderStatusVariant = (status: string) => {
+    switch (status) {
+      case 'delivered':
+        return 'success';
+      case 'shipped':
+        return 'info';
+      case 'processing':
+        return 'warning';
+      case 'cancelled':
+        return 'destructive';
+      default:
+        return 'secondary';
+    }
+  };
+
+  const getPaymentStatusVariant = (status: string) => {
+    switch (status) {
+      case 'paid':
+        return 'success';
+      case 'failed':
+        return 'destructive';
+      default:
+        return 'secondary';
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -32,61 +68,53 @@ function OrdersPage() {
         <p className="text-muted-foreground">Manage customer orders</p>
       </div>
 
-      <div className="bg-card rounded-lg border border-border overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-muted">
-            <tr>
-              <th className="text-left p-4 font-semibold">Order #</th>
-              <th className="text-left p-4 font-semibold">Date</th>
-              <th className="text-left p-4 font-semibold">Customer</th>
-              <th className="text-left p-4 font-semibold">Total</th>
-              <th className="text-left p-4 font-semibold">Status</th>
-              <th className="text-left p-4 font-semibold">Payment</th>
-              <th className="text-left p-4 font-semibold">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Order #</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead>Total</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Payment</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {data?.orders?.length > 0 ? (
               data.orders.map((order: any) => (
-                <tr key={order.id} className="border-t border-border">
-                  <td className="p-4 font-medium">{order.orderNumber}</td>
-                  <td className="p-4">{new Date(order.orderDate * 1000).toLocaleDateString()}</td>
-                  <td className="p-4">{order.buyerId}</td>
-                  <td className="p-4 font-semibold">${order.totalAmount}</td>
-                  <td className="p-4">
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                      order.status === 'shipped' ? 'bg-blue-100 text-blue-800' :
-                      order.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                      order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
+                <TableRow key={order.id}>
+                  <TableCell className="font-mono font-medium">{order.orderNumber}</TableCell>
+                  <TableCell>{new Date(order.orderDate * 1000).toLocaleDateString()}</TableCell>
+                  <TableCell>{order.buyerId}</TableCell>
+                  <TableCell className="font-semibold">${order.totalAmount.toFixed(2)}</TableCell>
+                  <TableCell>
+                    <Badge variant={getOrderStatusVariant(order.status)}>
                       {order.status}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      order.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' :
-                      order.paymentStatus === 'failed' ? 'bg-red-100 text-red-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={getPaymentStatusVariant(order.paymentStatus)}>
                       {order.paymentStatus}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <button className="text-primary hover:underline text-sm">View</button>
-                  </td>
-                </tr>
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="sm">
+                      View
+                    </Button>
+                  </TableCell>
+                </TableRow>
               ))
             ) : (
-              <tr>
-                <td colSpan={7} className="p-8 text-center text-muted-foreground">
+              <TableRow>
+                <TableCell colSpan={7} className="h-24 text-center">
                   No orders yet.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

@@ -1,5 +1,16 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Plus } from 'lucide-react';
 
 export const Route = createFileRoute('/admin/products')({
   component: ProductsPage,
@@ -25,6 +36,19 @@ function ProductsPage() {
     return <div className="text-destructive">Error loading products</div>;
   }
 
+  const getStatusVariant = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'success';
+      case 'draft':
+        return 'warning';
+      case 'inactive':
+        return 'secondary';
+      default:
+        return 'outline';
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -32,54 +56,53 @@ function ProductsPage() {
           <h1 className="text-3xl font-bold text-foreground">Products</h1>
           <p className="text-muted-foreground">Manage your product catalog</p>
         </div>
-        <button className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90">
+        <Button>
+          <Plus className="mr-2 h-4 w-4" />
           Add Product
-        </button>
+        </Button>
       </div>
 
-      <div className="bg-card rounded-lg border border-border overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-muted">
-            <tr>
-              <th className="text-left p-4 font-semibold">SKU</th>
-              <th className="text-left p-4 font-semibold">Name</th>
-              <th className="text-left p-4 font-semibold">Price</th>
-              <th className="text-left p-4 font-semibold">Stock</th>
-              <th className="text-left p-4 font-semibold">Status</th>
-              <th className="text-left p-4 font-semibold">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>SKU</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Price</TableHead>
+              <TableHead>Stock</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {data?.products?.length > 0 ? (
               data.products.map((product: any) => (
-                <tr key={product.id} className="border-t border-border">
-                  <td className="p-4">{product.sku}</td>
-                  <td className="p-4 font-medium">{product.name}</td>
-                  <td className="p-4">${product.basePrice}</td>
-                  <td className="p-4">{product.stockQuantity}</td>
-                  <td className="p-4">
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      product.status === 'active' ? 'bg-green-100 text-green-800' :
-                      product.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
+                <TableRow key={product.id}>
+                  <TableCell className="font-mono text-sm">{product.sku}</TableCell>
+                  <TableCell className="font-medium">{product.name}</TableCell>
+                  <TableCell>${product.basePrice.toFixed(2)}</TableCell>
+                  <TableCell>{product.stockQuantity}</TableCell>
+                  <TableCell>
+                    <Badge variant={getStatusVariant(product.status)}>
                       {product.status}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <button className="text-primary hover:underline text-sm">Edit</button>
-                  </td>
-                </tr>
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="sm">
+                      Edit
+                    </Button>
+                  </TableCell>
+                </TableRow>
               ))
             ) : (
-              <tr>
-                <td colSpan={6} className="p-8 text-center text-muted-foreground">
+              <TableRow>
+                <TableCell colSpan={6} className="h-24 text-center">
                   No products found. Create your first product to get started.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

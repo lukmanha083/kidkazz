@@ -17,9 +17,11 @@ wholesale-ecommerce/
 
 ### Frontend (Admin Dashboard)
 - **Framework**: TanStack Start (React)
+- **UI Components**: shadcn/ui (Radix UI + Tailwind)
 - **Styling**: Tailwind CSS
 - **Data Fetching**: TanStack Query
 - **Routing**: TanStack Router
+- **Icons**: Lucide React
 - **Deployment**: Cloudflare Pages
 
 ### Backend (API)

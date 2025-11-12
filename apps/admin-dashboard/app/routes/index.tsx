@@ -1,4 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { Button } from '@/components/ui/button';
+import { ArrowRight } from 'lucide-react';
 
 export const Route = createFileRoute('/')({
   component: Home,
@@ -14,12 +16,12 @@ function Home() {
         <p className="text-muted-foreground mb-8">
           Welcome to your admin dashboard
         </p>
-        <Link
-          to="/admin"
-          className="inline-flex items-center justify-center rounded-md bg-primary px-8 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          Go to Dashboard
-        </Link>
+        <Button asChild size="lg">
+          <Link to="/admin">
+            Go to Dashboard
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        </Button>
       </div>
     </div>
   );
