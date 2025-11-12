@@ -10,6 +10,8 @@ import { authRoutes } from './routes/auth';
 import { productsRoutes } from './routes/products';
 import { ordersRoutes } from './routes/orders';
 import { quotesRoutes } from './routes/quotes';
+import { paymentsRoutes } from './routes/payments';
+import { webhooksRoutes } from './routes/webhooks';
 
 // Types
 export type Env = {
@@ -17,6 +19,9 @@ export type Env = {
   IMAGES: R2Bucket;
   CACHE: KVNamespace;
   ENVIRONMENT: string;
+  XENDIT_SECRET_KEY: string;
+  XENDIT_WEBHOOK_TOKEN: string;
+  API_BASE_URL: string;
 };
 
 const app = new Hono<{ Bindings: Env }>();
@@ -49,6 +54,8 @@ app.route('/api/admin', adminRoutes);
 app.route('/api/products', productsRoutes);
 app.route('/api/orders', ordersRoutes);
 app.route('/api/quotes', quotesRoutes);
+app.route('/api/payments', paymentsRoutes);
+app.route('/api/webhooks', webhooksRoutes);
 
 // 404 handler
 app.notFound((c) => {

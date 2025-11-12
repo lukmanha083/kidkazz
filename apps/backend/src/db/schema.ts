@@ -154,6 +154,16 @@ export const orders = sqliteTable('orders', {
     enum: ['pending', 'paid', 'failed', 'refunded', 'partial']
   }).notNull().default('pending'),
 
+  // Payment info (Xendit integration)
+  paymentMethod: text('payment_method', {
+    enum: ['qris', 'virtual_account', 'manual', 'cod']
+  }), // null for unpaid orders
+  paymentProvider: text('payment_provider').default('xendit'), // xendit, stripe, manual
+  paymentProviderId: text('payment_provider_id'), // Xendit QR ID or VA ID
+  paymentDetails: text('payment_details'), // JSON: QR string, VA number, bank_code, etc.
+  paymentExpiresAt: integer('payment_expires_at', { mode: 'timestamp' }),
+  paidAt: integer('paid_at', { mode: 'timestamp' }),
+
   // Shipping info
   shippingAddress: text('shipping_address').notNull(), // JSON
   billingAddress: text('billing_address').notNull(), // JSON

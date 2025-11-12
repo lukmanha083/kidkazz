@@ -54,8 +54,11 @@ wholesale-ecommerce/
 - ✅ Order management endpoints
 - ✅ Quote/RFQ system endpoints
 - ✅ Authentication routes (placeholder)
+- ✅ Payment integration (Xendit for Indonesia)
+  - QRIS payment (0.63% fee)
+  - Virtual Accounts (BCA, Mandiri, BNI, BRI, Permata)
+  - Webhook handlers for payment confirmation
 - 🚧 JWT authentication middleware
-- 🚧 Payment integration (Stripe)
 
 ### Database Schema
 - ✅ Users & Companies
