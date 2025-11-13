@@ -213,9 +213,54 @@ npx wrangler d1 create wholesale-db
 
 ---
 
-## Phase 5: Optimization & Launch (Weeks 13-16)
+## Phase 5: Retail & Wholesale Frontends (Weeks 13-18)
 
-### 5.1 Performance Optimization
+### 5.1 Retail Frontend Development
+- [ ] Initialize TanStack Start app for retail customers
+- [ ] Implement product catalog (retail pricing only)
+  - Product listing with search & filtering
+  - Product detail pages
+  - Category navigation
+- [ ] Shopping cart & checkout
+  - Add to cart functionality
+  - Cart management
+  - Simple checkout flow
+- [ ] User authentication (retail_buyer role)
+- [ ] Payment integration (QRIS, Virtual Account, Credit Card)
+- [ ] Order tracking & history
+- [ ] Customer account management
+- [ ] shadcn/ui components integration
+
+### 5.2 Wholesale Frontend Development
+- [ ] Initialize TanStack Start app for wholesale buyers
+- [ ] Implement wholesale product catalog
+  - Tiered pricing display
+  - MOQ enforcement
+  - Bulk discount calculator
+- [ ] Request for Quote (RFQ) system
+- [ ] Wholesale shopping cart with MOQ validation
+- [ ] Company profile management
+- [ ] Wholesale checkout flow
+  - Payment terms (Net-30/60)
+  - Purchase order upload
+- [ ] Invoice management
+- [ ] Order history & reordering
+- [ ] shadcn/ui components integration
+
+### 5.3 Admin Dashboard Enhancements
+- [ ] Dual-pricing management UI
+  - Set retail prices
+  - Configure wholesale tiered pricing
+- [ ] Product availability toggles (retail/wholesale)
+- [ ] User role management (retail_buyer vs wholesale_buyer)
+- [ ] Separate order views (retail vs wholesale)
+- [ ] Analytics dashboard (revenue by market type)
+
+---
+
+## Phase 6: Optimization & Launch (Weeks 19-22)
+
+### 6.1 Performance Optimization
 - [ ] Edge caching strategies (Cloudflare Cache API)
 - [ ] Image optimization (Cloudflare Images)
 - [ ] Code splitting & lazy loading
@@ -255,7 +300,7 @@ npx wrangler d1 create wholesale-db
   - Error tracking (Sentry)
   - Uptime monitoring
 
-### 5.6 Launch Preparation
+### 6.6 Launch Preparation
 - [ ] Beta testing with select users
 - [ ] Documentation (API docs, user guides)
 - [ ] Customer support system
@@ -264,40 +309,112 @@ npx wrangler d1 create wholesale-db
 
 ---
 
+## Phase 7: Mobile Apps (Weeks 23-34) 📱
+
+**Note**: Mobile development is the FINAL phase after web frontends are complete.
+
+### 7.1 Retail Mobile App (Android & iOS)
+- [ ] Initialize Expo project for retail customers
+- [ ] Set up development environment
+  - Install Expo CLI
+  - Configure EAS Build
+  - Set up app.json configuration
+- [ ] Implement core features
+  - Product browsing (retail pricing)
+  - Shopping cart
+  - Checkout flow with payment integration
+  - Order tracking
+  - Push notifications for order updates
+- [ ] Payment integration
+  - Xendit QRIS (scan & pay)
+  - Virtual Account (generate payment codes)
+  - Credit card payments
+- [ ] User authentication
+  - JWT token storage (expo-secure-store)
+  - Biometric authentication
+- [ ] Testing & deployment
+  - Test on Android devices
+  - Test on iOS devices
+  - Submit to Google Play Store
+  - Submit to Apple App Store
+
+### 7.2 Wholesale Mobile App (Android & iOS)
+- [ ] Initialize Expo project for wholesale buyers
+- [ ] Implement wholesale-specific features
+  - Product catalog with tiered pricing
+  - MOQ validation
+  - Bulk order calculator
+  - RFQ (Request for Quote) system
+- [ ] Company account management
+  - Company profile
+  - Multiple user accounts per company
+  - Purchase history
+- [ ] Advanced features
+  - Barcode scanner for quick ordering
+  - Offline mode support
+  - Invoice downloads
+  - Push notifications for quote approvals
+- [ ] Testing & deployment
+  - Enterprise distribution (if needed)
+  - App store submissions
+
+### 7.3 Mobile Backend Integration
+- [ ] Update API for mobile-specific needs
+  - Push notification endpoints
+  - Mobile-optimized responses
+  - Image size optimization for mobile
+- [ ] Implement push notifications
+  - Expo Push Notification service
+  - Order status updates
+  - Payment confirmations
+  - Quote approvals (wholesale)
+- [ ] Analytics integration
+  - Track mobile user behavior
+  - Monitor app performance
+  - Crash reporting
+
+**See**: `MOBILE_APP_EXPO_GUIDE.md` for complete implementation details.
+
+---
+
 ## Recommended Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Cloudflare CDN/Edge                  │
-├─────────────────────────────────────────────────────────┤
-│                                                         │
-│  ┌──────────────────┐      ┌─────────────────────┐    │
-│  │  Cloudflare      │      │  Cloudflare Workers │    │
-│  │  Pages           │◄────►│  (Hono Backend)     │    │
-│  │  (Next.js)       │ API  │  + tRPC/RPC         │    │
-│  └──────────────────┘      └─────────────────────┘    │
-│         │                            │                 │
-│         │                            ▼                 │
-│         │                   ┌─────────────────┐        │
-│         │                   │  Cloudflare D1  │        │
-│         │                   │  (SQLite)       │        │
-│         │                   └─────────────────┘        │
-│         │                                               │
-│         ▼                                               │
-│  ┌─────────────┐     ┌──────────┐    ┌──────────┐    │
-│  │ Cloudflare  │     │ KV Store │    │ R2 Bucket│    │
-│  │ Images      │     │ (Cache)  │    │ (Images) │    │
-│  └─────────────┘     └──────────┘    └──────────┘    │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
-         │
-         ▼
-┌─────────────────────┐
-│  External Services  │
-│  - Stripe Payments  │
-│  - Email (Resend)   │
-│  - SMS (Twilio)     │
-└─────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                      Cloudflare CDN/Edge                         │
+├──────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌───────────────┐  ┌──────────────┐  ┌──────────────┐         │
+│  │  Retail Web   │  │ Wholesale Web│  │    Admin     │         │
+│  │  (TanStack)   │  │  (TanStack)  │  │  Dashboard   │         │
+│  │  Pages        │  │  Pages       │  │  (TanStack)  │         │
+│  └───────┬───────┘  └──────┬───────┘  └──────┬───────┘         │
+│          │                 │                  │                  │
+│          └─────────────────┴──────────────────┘                  │
+│                            │                                     │
+│                   ┌────────▼────────┐                           │
+│                   │  Hono Backend   │                           │
+│                   │  (Workers API)  │                           │
+│                   └────────┬────────┘                           │
+│                            │                                     │
+│            ┌───────────────┼───────────────┐                   │
+│            │               │               │                    │
+│       ┌────▼───┐    ┌─────▼────┐    ┌────▼────┐              │
+│       │   D1   │    │    KV    │    │   R2    │              │
+│       │Database│    │  Cache   │    │ Images  │              │
+│       └────────┘    └──────────┘    └─────────┘              │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+           │                                      │
+           │                                      │
+    ┌──────▼───────┐                    ┌────────▼────────┐
+    │ Mobile Apps  │                    │ External APIs   │
+    │ (Expo)       │                    │                 │
+    ├──────────────┤                    │ - Xendit        │
+    │ - Retail App │                    │ - Email Service │
+    │ - Wholesale  │                    │ - Push Notifs   │
+    │   App        │                    │ - SMS (Twilio)  │
+    └──────────────┘                    └─────────────────┘
 ```
 
 ---
@@ -501,16 +618,35 @@ bucket_name = "wholesale-images"
 
 ## Resources & Documentation
 
+### Backend & Infrastructure
 - [Hono Documentation](https://hono.dev/)
 - [Cloudflare Workers Docs](https://developers.cloudflare.com/workers/)
 - [Cloudflare D1 Docs](https://developers.cloudflare.com/d1/)
-- [TanStack Query](https://tanstack.com/query/latest)
-- [shadcn/ui](https://ui.shadcn.com/)
 - [Drizzle ORM](https://orm.drizzle.team/)
 - [tRPC](https://trpc.io/)
 
+### Frontend (Web)
+- [TanStack Start](https://tanstack.com/start/latest)
+- [TanStack Query](https://tanstack.com/query/latest)
+- [TanStack Router](https://tanstack.com/router/latest)
+- [shadcn/ui](https://ui.shadcn.com/)
+- [Tailwind CSS](https://tailwindcss.com/)
+
+### Mobile Development
+- [Expo Documentation](https://docs.expo.dev/)
+- [React Native](https://reactnative.dev/)
+- [Expo Router](https://docs.expo.dev/router/introduction/)
+- [EAS Build](https://docs.expo.dev/build/introduction/)
+- [expo-secure-store](https://docs.expo.dev/versions/latest/sdk/securestore/)
+
+### Payments
+- [Xendit Documentation](https://developers.xendit.co/)
+- [Xendit QRIS](https://developers.xendit.co/api-reference/qr-code/qr-code-object)
+- [Xendit Virtual Accounts](https://developers.xendit.co/api-reference/virtual-account/virtual-account-object)
+
 ---
 
-**Document Version**: 1.0
-**Last Updated**: 2025-11-12
+**Document Version**: 2.0
+**Last Updated**: 2025-11-13
 **Status**: Ready for Implementation
+**Latest Addition**: Phase 7 - Mobile Apps (Expo)
