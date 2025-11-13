@@ -92,7 +92,7 @@ export class XenditClient {
     });
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = await response.json() as { message?: string };
       throw new Error(`Xendit QRIS Error: ${error.message || response.statusText}`);
     }
 
@@ -110,7 +110,7 @@ export class XenditClient {
     });
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = await response.json() as { message?: string };
       throw new Error(`Xendit VA Error: ${error.message || response.statusText}`);
     }
 
@@ -126,7 +126,7 @@ export class XenditClient {
     });
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = await response.json() as { message?: string };
       throw new Error(`Xendit Get QRIS Error: ${error.message || response.statusText}`);
     }
 
@@ -142,7 +142,7 @@ export class XenditClient {
     });
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = await response.json() as { message?: string };
       throw new Error(`Xendit Get VA Error: ${error.message || response.statusText}`);
     }
 

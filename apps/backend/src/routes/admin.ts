@@ -128,7 +128,7 @@ adminRoutes.get('/users/:id', async (c) => {
 
 const updateUserSchema = z.object({
   status: z.enum(['active', 'inactive', 'pending']).optional(),
-  role: z.enum(['admin', 'supplier', 'buyer']).optional(),
+  role: z.enum(['admin', 'supplier', 'retail_buyer', 'wholesale_buyer']).optional(),
 });
 
 adminRoutes.patch('/users/:id', zValidator('json', updateUserSchema), async (c) => {

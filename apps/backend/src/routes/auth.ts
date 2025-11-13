@@ -22,7 +22,7 @@ const registerSchema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   phone: z.string().optional(),
-  role: z.enum(['buyer', 'supplier']),
+  role: z.enum(['retail_buyer', 'wholesale_buyer', 'supplier']),
   companyName: z.string().min(1),
   taxId: z.string().optional(),
 });
