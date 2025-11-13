@@ -1,18 +1,36 @@
-# E-Commerce Wholesale Platform Roadmap
+# E-Commerce Dual-Market Platform Roadmap
+
+## 🎯 Updated Strategy: Retail + Wholesale
+
+**IMPORTANT CHANGE:** The platform now supports **TWO markets**:
+1. **Retail (B2C)** - Direct-to-consumer sales with standard pricing
+2. **Wholesale (B2B)** - Bulk orders with tiered pricing and MOQ requirements
+
+This dual-market approach allows the platform to:
+- ✅ Maximize revenue streams (retail margins + wholesale volume)
+- ✅ Serve broader customer base
+- ✅ Flexible product availability (retail-only, wholesale-only, or both)
+- ✅ Separate user experiences tailored to each market
+
+**See:** `RETAIL_WHOLESALE_ARCHITECTURE.md` for complete architecture details.
 
 ## Executive Summary
-This roadmap outlines the development plan for a wholesale E-Commerce platform built on Cloudflare's serverless infrastructure, utilizing modern web technologies for optimal performance and scalability.
+This roadmap outlines the development plan for a dual-market E-Commerce platform (Retail + Wholesale) built on Cloudflare's serverless infrastructure, utilizing modern web technologies for optimal performance and scalability.
 
 ---
 
 ## Technology Stack
 
-### Frontend
-- **Framework**: React/Next.js (Cloudflare Pages compatible)
+### Frontend (3 Applications)
+- **Framework**: TanStack Start (React) - Cloudflare native
 - **Data Fetching**: TanStack Query (React Query)
 - **UI Components**: shadcn/ui
-- **Styling**: Tailwind CSS (included with shadcn/ui)
+- **Styling**: Tailwind CSS
 - **Type Safety**: TypeScript
+- **Applications**:
+  1. **Retail Frontend** - For retail customers (B2C)
+  2. **Wholesale Frontend** - For wholesale buyers (B2B)
+  3. **Admin Dashboard** - For admin/suppliers ✅ (Already built)
 
 ### Backend
 - **Runtime**: Cloudflare Workers (Edge Computing)

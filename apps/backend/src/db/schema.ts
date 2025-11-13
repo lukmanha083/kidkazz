@@ -9,7 +9,7 @@ export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
-  role: text('role', { enum: ['admin', 'supplier', 'buyer'] }).notNull().default('buyer'),
+  role: text('role', { enum: ['admin', 'supplier', 'wholesale_buyer', 'retail_buyer'] }).notNull().default('retail_buyer'),
   firstName: text('first_name'),
   lastName: text('last_name'),
   phone: text('phone'),
@@ -61,15 +61,23 @@ export const products = sqliteTable('products', {
   shortDescription: text('short_description'),
 
   // Pricing
-  basePrice: real('base_price').notNull(),
+  basePrice: real('base_price').notNull(), // Base wholesale price
   currency: text('currency').notNull().default('USD'),
+
+  // Retail/Wholesale Availability
+  availableForRetail: integer('available_for_retail', { mode: 'boolean' }).notNull().default(true),
+  availableForWholesale: integer('available_for_wholesale', { mode: 'boolean' }).notNull().default(true),
+
+  // Retail Pricing (for retail customers)
+  retailPrice: real('retail_price'), // Can be null if not available for retail
+  retailDiscountPercent: real('retail_discount_percent').default(0),
 
   // Inventory
   stockQuantity: integer('stock_quantity').notNull().default(0),
   lowStockThreshold: integer('low_stock_threshold').notNull().default(10),
 
   // Wholesale specific
-  minimumOrderQuantity: integer('minimum_order_quantity').notNull().default(1),
+  minimumOrderQuantity: integer('minimum_order_quantity').notNull().default(1), // MOQ for wholesale only
   packagingUnit: text('packaging_unit').notNull().default('unit'), // unit, box, pallet, etc.
   unitsPerPackage: integer('units_per_package').notNull().default(1),
 

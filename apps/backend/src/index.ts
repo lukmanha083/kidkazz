@@ -12,6 +12,8 @@ import { ordersRoutes } from './routes/orders';
 import { quotesRoutes } from './routes/quotes';
 import { paymentsRoutes } from './routes/payments';
 import { webhooksRoutes } from './routes/webhooks';
+import { retailRoutes } from './routes/retail';
+import { wholesaleRoutes } from './routes/wholesale';
 
 // Types
 export type Env = {
@@ -51,6 +53,8 @@ app.get('/health', (c) => {
 // Routes
 app.route('/api/auth', authRoutes);
 app.route('/api/admin', adminRoutes);
+app.route('/api/retail', retailRoutes);
+app.route('/api/wholesale', wholesaleRoutes);
 app.route('/api/products', productsRoutes);
 app.route('/api/orders', ordersRoutes);
 app.route('/api/quotes', quotesRoutes);
