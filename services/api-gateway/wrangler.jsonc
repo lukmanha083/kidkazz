@@ -1,0 +1,40 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "api-gateway",
+  "main": "src/index.ts",
+  "compatibility_date": "2024-11-14",
+
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+
+  // Service Bindings to all microservices (FREE - Zero cost!)
+  "services": [
+    {
+      "binding": "PRODUCT_SERVICE",
+      "service": "product-service"
+    },
+    {
+      "binding": "ORDER_SERVICE",
+      "service": "order-service"
+    },
+    {
+      "binding": "PAYMENT_SERVICE",
+      "service": "payment-service"
+    },
+    {
+      "binding": "USER_SERVICE",
+      "service": "user-service"
+    },
+    {
+      "binding": "INVENTORY_SERVICE",
+      "service": "inventory-service"
+    }
+  ],
+
+  // Development settings
+  "dev": {
+    "port": 8787
+  }
+}

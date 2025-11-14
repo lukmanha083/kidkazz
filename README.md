@@ -4,13 +4,32 @@ A modern dual-market e-commerce platform supporting both **retail (B2C)** and **
 
 ## 📊 Project Status
 
-**Current Phase**: Phase 1 (Microservices Foundation) - 🚀 **Starting from Scratch**
+**Current Phase**: Phase 1 (Microservices Foundation) - 🚀 **Days 1-8 Completed**
 
 **ARCHITECTURE DECISION**: ✅ **Option A Chosen - Microservices from Day 1**
 
-We've decided to build with microservices architecture from the start for long-term maintainability and scalability.
+We're building with microservices architecture from the start for long-term maintainability and scalability.
 
-### ✅ Completed (Previous Monolithic PoC)
+### ✅ Phase 1 Progress (Days 1-8 Complete)
+- ✅ Development environment setup (Node.js 22, pnpm 9, Wrangler 4.48)
+- ✅ Monorepo structure with pnpm workspaces
+- ✅ Shared libraries (@kidkazz/domain-events, @kidkazz/types, @kidkazz/utils)
+- ✅ API Gateway with Service Bindings (FREE zero-cost RPC!)
+- ✅ Product Service foundation (Hexagonal Architecture)
+  - Domain layer with rich business logic
+  - Database schema (products, pricing_tiers, custom_pricing)
+  - Value objects (Price, SKU, ProductAvailability)
+- ✅ Converted to wrangler.jsonc format (latest Cloudflare standard)
+
+### 🚧 Remaining Phase 1 (Days 9-21)
+- ⏳ Complete Product Service (repository, use cases, HTTP layer)
+- ⏳ Create Order, Payment, User, Inventory services
+- ⏳ Set up D1 databases for each service
+- ⏳ Configure Cloudflare Queues for async communication
+- ⏳ Implement Saga Pattern with Cloudflare Workflows
+- ⏳ Add development tooling (Vitest, ESLint, Prettier)
+
+### 📦 Previous Monolithic PoC (Archived)
 - ✅ Phase 1: Foundation & Setup
   - Project structure initialized (pnpm monorepo)
   - Backend API with Hono framework
@@ -52,17 +71,18 @@ This platform is designed with a **modern microservices architecture** following
 
 ### Architectural Patterns
 - **Hexagonal Architecture (Ports & Adapters)** - Clean separation between domain logic and infrastructure
-- **Domain-Driven Design (DDD)** - 6 bounded contexts aligned with business domains
+- **Domain-Driven Design (DDD)** - 5 bounded contexts aligned with business domains
 - **Event-Driven Architecture** - Asynchronous communication via Cloudflare Queues
 - **Saga Pattern** - Distributed transactions with compensating actions (Cloudflare Workflows)
 
-### 6 Bounded Contexts (Microservices)
-1. **Product Service** - Product catalog, pricing, and availability
-2. **Order Service** - Order management and orchestration
-3. **Payment Service** - Payment processing (Xendit integration)
-4. **User Service** - Authentication and user management
-5. **Quote Service** - Request for Quote (RFQ) system
-6. **Inventory Service** - Multi-warehouse inventory management
+### 5 Bounded Contexts (Microservices)
+1. **Product Service** - Product catalog, dual pricing (retail + wholesale), and availability
+2. **Order Service** - Order management, orchestration, and Saga coordination
+3. **Payment Service** - Payment processing (Xendit integration for Indonesia)
+4. **User Service** - Authentication, user management, and JWT tokens
+5. **Inventory Service** - Multi-warehouse inventory management with reservation pattern
+
+**Note**: Wholesale frontend handles RFQ (Request for Quote) directly without separate service, as it requires custom business rules and workflows per wholesale customer.
 
 ### Communication Patterns
 - **Service Bindings** - Synchronous RPC between Workers (FREE, ~μs latency)
@@ -101,42 +121,59 @@ This platform serves **TWO distinct markets**:
 
 ## 🏗️ Project Structure
 
-### Current Structure (Phase 1-4)
+### Current Microservices Structure (Phase 1 - In Progress)
 ```
 kidkazz/
-├── apps/
-│   ├── backend/              # ✅ Monolithic API (Current)
+├── services/                 # 🚀 Microservices (Active Development)
+│   ├── api-gateway/          # ✅ API Gateway Worker
 │   │   ├── src/
-│   │   │   ├── db/
-│   │   │   │   └── schema.ts           # Complete database schema
-│   │   │   ├── lib/
-│   │   │   │   ├── xendit.ts          # Xendit payment client
-│   │   │   │   ├── db.ts              # Database client
-│   │   │   │   └── utils.ts           # Helper functions
-│   │   │   ├── routes/
-│   │   │   │   ├── admin.ts           # Admin dashboard API
-│   │   │   │   ├── retail.ts          # ✅ Retail customer API
-│   │   │   │   ├── wholesale.ts       # ✅ Wholesale buyer API
-│   │   │   │   ├── auth.ts            # Authentication
-│   │   │   │   ├── payments.ts        # ✅ Xendit integration
-│   │   │   │   └── webhooks.ts        # ✅ Payment webhooks
-│   │   │   └── index.ts               # Main Hono app
-│   │   └── wrangler.toml              # Cloudflare config
+│   │   │   └── index.ts      # Routes via Service Bindings (FREE!)
+│   │   ├── wrangler.jsonc    # Cloudflare config (new format)
+│   │   ├── package.json
+│   │   └── tsconfig.json
 │   │
-│   └── admin-dashboard/      # ✅ Admin panel (TanStack Start)
-│       ├── app/
-│       │   ├── routes/admin/          # Admin pages
-│       │   │   ├── index.tsx          # Dashboard
-│       │   │   ├── products.tsx       # Product management
-│       │   │   ├── orders.tsx         # Order management
-│       │   │   └── users.tsx          # User management
-│       │   └── components/ui/         # ✅ shadcn/ui components
-│       │       ├── button.tsx
-│       │       ├── badge.tsx
-│       │       ├── card.tsx
-│       │       ├── table.tsx
-│       │       └── input.tsx
-│       └── app.config.ts
+│   ├── product-service/      # ✅ Product bounded context (Partial)
+│   │   ├── src/
+│   │   │   ├── domain/       # ✅ Business logic (entities, value objects)
+│   │   │   │   └── entities/Product.ts  # Rich domain model
+│   │   │   ├── application/  # ⏳ Use cases (pending)
+│   │   │   └── infrastructure/
+│   │   │       └── db/schema.ts  # ✅ Database schema
+│   │   ├── wrangler.jsonc    # D1 + Queue config
+│   │   ├── package.json
+│   │   └── tsconfig.json
+│   │
+│   ├── order-service/        # ⏳ Order bounded context (pending)
+│   │   └── src/
+│   │       └── sagas/        # Cloudflare Workflows for distributed transactions
+│   │
+│   ├── payment-service/      # ⏳ Payment bounded context (pending)
+│   │   └── src/
+│   │       └── infrastructure/ # Xendit integration
+│   │
+│   ├── user-service/         # ⏳ User bounded context (pending)
+│   │   └── src/
+│   │       └── domain/       # Authentication & JWT
+│   │
+│   └── inventory-service/    # ⏳ Inventory bounded context (pending)
+│       └── src/
+│           └── domain/       # Multi-warehouse support
+│
+├── shared/                   # ✅ Shared libraries (Complete)
+│   ├── domain-events/        # ✅ Domain event definitions
+│   │   ├── src/index.ts      # Product, Order, Payment, Inventory, User events
+│   │   └── package.json
+│   ├── types/                # ✅ Value objects & common types
+│   │   ├── src/index.ts      # Price, SKU, Email, Quantity, Result
+│   │   └── package.json
+│   └── utils/                # ✅ Utility functions
+│       ├── src/index.ts      # ID generation, retry, formatters
+│       └── package.json
+│
+├── apps/                     # Frontend applications
+│   ├── admin-dashboard/      # ✅ Admin panel (Previous PoC)
+│   ├── retail-frontend/      # ⏳ Retail customer frontend (Phase 5)
+│   └── wholesale-frontend/   # ⏳ Wholesale buyer frontend with RFQ (Phase 5)
 │
 ├── docs/
 │   ├── ARCHITECTURE.md                     # ✨ Comprehensive architecture guide
@@ -146,67 +183,15 @@ kidkazz/
 │   ├── MOBILE_APP_EXPO_GUIDE.md            # Mobile app guide (Phase 7)
 │   ├── ARCHITECTURE_PROPOSAL_HEXAGONAL_DDD.md  # Hexagonal Architecture proposal
 │   ├── EVENT_DRIVEN_ARCHITECTURE_CLOUDFLARE.md # Event-Driven Architecture guide
-│   ├── SAGA_PATTERN_DISTRIBUTED_TRANSACTIONS.md # Saga Pattern guide
-│   └── DATABASE_MIGRATION_*.md             # Migration guides
+│   └── SAGA_PATTERN_DISTRIBUTED_TRANSACTIONS.md # Saga Pattern guide
 │
-└── SETUP.md                   # Quick setup guide
+├── package.json              # Root monorepo config
+├── pnpm-workspace.yaml       # Workspace configuration
+├── tsconfig.json             # Root TypeScript config
+└── SETUP.md                  # Quick setup guide
 ```
 
-### Planned Microservices Structure (Phase 5+)
-```
-kidkazz/
-├── services/                 # ⏳ Microservices (Planned)
-│   ├── product-service/      # Product bounded context
-│   │   ├── src/
-│   │   │   ├── domain/       # Business logic (entities, value objects)
-│   │   │   ├── application/  # Use cases, services
-│   │   │   └── infrastructure/ # DB, external APIs
-│   │   └── wrangler.toml
-│   │
-│   ├── order-service/        # Order bounded context
-│   │   ├── src/
-│   │   │   ├── domain/
-│   │   │   ├── application/
-│   │   │   ├── infrastructure/
-│   │   │   └── sagas/        # Cloudflare Workflows for distributed transactions
-│   │   └── wrangler.toml
-│   │
-│   ├── payment-service/      # Payment bounded context
-│   │   ├── src/
-│   │   │   ├── domain/
-│   │   │   ├── application/
-│   │   │   └── infrastructure/ # Xendit integration
-│   │   └── wrangler.toml
-│   │
-│   ├── user-service/         # User bounded context
-│   │   ├── src/
-│   │   │   ├── domain/
-│   │   │   ├── application/
-│   │   │   └── infrastructure/
-│   │   └── wrangler.toml
-│   │
-│   ├── quote-service/        # Quote bounded context
-│   │   └── ...
-│   │
-│   ├── inventory-service/    # Inventory bounded context (multi-warehouse)
-│   │   └── ...
-│   │
-│   └── api-gateway/          # API Gateway Worker
-│       └── src/
-│           └── index.ts      # Routes requests via Service Bindings
-│
-├── apps/
-│   ├── admin-dashboard/      # Admin panel
-│   ├── retail-frontend/      # ⏳ Retail customer frontend (Planned)
-│   └── wholesale-frontend/   # ⏳ Wholesale buyer frontend (Planned)
-│
-└── shared/                   # ⏳ Shared code (Planned)
-    ├── domain-events/        # Domain event definitions
-    ├── types/                # Shared TypeScript types
-    └── utils/                # Common utilities
-```
-
-**Migration Strategy**: See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed migration roadmap (Week 3-8 or hybrid approach).
+**Configuration**: All services use **wrangler.jsonc** (Cloudflare's new standard format) instead of TOML.
 
 ## 🚀 Technology Stack
 
@@ -245,6 +230,7 @@ kidkazz/
   - **Durable Objects** - Stateful coordination ($0.15/M requests)
 - **Package Manager**: pnpm (monorepo-friendly)
 - **Language**: TypeScript (full type safety)
+- **Configuration**: wrangler.jsonc (Cloudflare's new JSON-with-comments format)
 - **Architecture**: Microservices with Hexagonal Architecture + DDD
 
 ### Payment Integration
@@ -592,9 +578,9 @@ Set these in Cloudflare dashboard:
   - Hexagonal Architecture + DDD patterns
   - Event-Driven Architecture with Cloudflare Queues
   - Saga Pattern for distributed transactions
-  - 6 bounded contexts (microservices)
+  - 5 bounded contexts (microservices)
   - Migration roadmap (Week 3-8 or hybrid approach)
-  - Cost analysis ($5-6/month vs AWS $154/month)
+  - Cost analysis ($5-6/month vs AWS $170/month)
 - **[ECOMMERCE_WHOLESALE_ROADMAP.md](./ECOMMERCE_WHOLESALE_ROADMAP.md)** - Complete 34-week roadmap (7 phases)
 - **[SETUP.md](./SETUP.md)** - Step-by-step setup guide
 - **[RETAIL_WHOLESALE_ARCHITECTURE.md](./RETAIL_WHOLESALE_ARCHITECTURE.md)** - Dual-market architecture details
@@ -628,7 +614,7 @@ Our Cloudflare-based microservices architecture is **extremely cost-effective** 
 ### Cloudflare Costs (10K orders/month)
 | Service | Usage | Cost |
 |---------|-------|------|
-| **Workers** (6 services) | 6M requests | $0.30/month |
+| **Workers** (5 services + 1 gateway) | 6M requests | $0.30/month |
 | **Service Bindings** | Unlimited RPC | **FREE** |
 | **D1 Database** | 10M reads, 1M writes | $1.50/month |
 | **Cloudflare Queues** | 500K operations | $0.20/month |
@@ -681,15 +667,14 @@ Our Cloudflare-based microservices architecture is **extremely cost-effective** 
 - [ ] Set up shared libraries (domain-events, types, utils)
 
 **Week 2** - Service Architecture Setup
-- [ ] Create API Gateway with Service Bindings
-- [ ] Set up 6 microservices with Hexagonal Architecture scaffolding
-  - Product Service
-  - Order Service
-  - Payment Service
-  - User Service
-  - Quote Service
-  - Inventory Service
-- [ ] Configure 6 D1 databases (one per service)
+- [x] Create API Gateway with Service Bindings ✅
+- [ ] Set up 5 microservices with Hexagonal Architecture scaffolding
+  - [x] Product Service ✅ (Partial - domain layer complete)
+  - [ ] Order Service
+  - [ ] Payment Service
+  - [ ] User Service
+  - [ ] Inventory Service
+- [ ] Configure 5 D1 databases (one per service)
 - [ ] Set up Drizzle ORM for each service
 
 **Week 3** - Event-Driven & Saga Pattern Setup
@@ -711,13 +696,13 @@ Our Cloudflare-based microservices architecture is **extremely cost-effective** 
 
 ### Phase 4 (Weeks 9-12) - Advanced Features
 - Complete all microservices features
-- Implement Quote Service RFQ system
+- Implement multi-warehouse inventory allocation
 - Add analytics and reporting
 
 ### Phase 5 (Weeks 13-18) - Frontend Development
 - Build Admin Dashboard (TanStack Start)
 - Build Retail Frontend (TanStack Start)
-- Build Wholesale Frontend (TanStack Start)
+- Build Wholesale Frontend with RFQ system (TanStack Start)
 
 ### Phase 6 (Weeks 19-22) - Optimization & Launch
 - Performance optimization

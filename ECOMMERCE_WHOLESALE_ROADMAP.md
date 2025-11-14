@@ -18,12 +18,12 @@ This dual-market approach allows the platform to:
 
 **NEW**: The platform architecture has evolved to include modern microservices patterns:
 - **Hexagonal Architecture (Ports & Adapters)** - Clean separation of concerns
-- **Domain-Driven Design (DDD)** - 6 bounded contexts
+- **Domain-Driven Design (DDD)** - 5 bounded contexts
 - **Event-Driven Architecture** - Async communication via Cloudflare Queues
 - **Saga Pattern** - Distributed transactions with Cloudflare Workflows
 
 **See:** `ARCHITECTURE.md` for comprehensive architecture guide including:
-- Microservices design with 6 bounded contexts
+- Microservices design with 5 bounded contexts
 - Communication patterns (Service Bindings, Queues, Workflows)
 - Migration strategies and implementation roadmap
 - Cost analysis ($5-6/month vs AWS $154/month)
@@ -82,7 +82,7 @@ This roadmap outlines the development plan for a dual-market E-Commerce platform
 
 ### Architecture Patterns
 - **Hexagonal Architecture**: Clean separation between domain logic and infrastructure
-- **Domain-Driven Design (DDD)**: 6 bounded contexts (Product, Order, Payment, User, Quote, Inventory)
+- **Domain-Driven Design (DDD)**: 5 bounded contexts (Product, Order, Payment, User, Inventory)
 - **Event-Driven Architecture**: Async communication via Cloudflare Queues
 - **Saga Pattern**: Distributed transactions with compensating actions
 
@@ -129,7 +129,7 @@ mkdir kidkazz && cd kidkazz
 pnpm init
 
 # Create folder structure
-mkdir -p services/{product-service,order-service,payment-service,user-service,quote-service,inventory-service,api-gateway}/src
+mkdir -p services/{product-service,order-service,payment-service,user-service,inventory-service,api-gateway}/src
 mkdir -p apps/{admin-dashboard,retail-frontend,wholesale-frontend}
 mkdir -p shared/{domain-events,types,utils}
 mkdir -p docs
@@ -347,36 +347,48 @@ export class SKU {
 }
 ```
 
-**`services/api-gateway/wrangler.toml`**:
-```toml
-name = "api-gateway"
-main = "src/index.ts"
-compatibility_date = "2024-11-14"
+**`services/api-gateway/wrangler.jsonc`**:
+```jsonc
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "api-gateway",
+  "main": "src/index.ts",
+  "compatibility_date": "2024-11-14",
 
-# Service Bindings to all microservices
-[[services]]
-binding = "PRODUCT_SERVICE"
-service = "product-service"
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
 
-[[services]]
-binding = "ORDER_SERVICE"
-service = "order-service"
+  // Service Bindings to all microservices (FREE - Zero cost!)
+  "services": [
+    {
+      "binding": "PRODUCT_SERVICE",
+      "service": "product-service"
+    },
+    {
+      "binding": "ORDER_SERVICE",
+      "service": "order-service"
+    },
+    {
+      "binding": "PAYMENT_SERVICE",
+      "service": "payment-service"
+    },
+    {
+      "binding": "USER_SERVICE",
+      "service": "user-service"
+    },
+    {
+      "binding": "INVENTORY_SERVICE",
+      "service": "inventory-service"
+    }
+  ],
 
-[[services]]
-binding = "PAYMENT_SERVICE"
-service = "payment-service"
-
-[[services]]
-binding = "USER_SERVICE"
-service = "user-service"
-
-[[services]]
-binding = "QUOTE_SERVICE"
-service = "quote-service"
-
-[[services]]
-binding = "INVENTORY_SERVICE"
-service = "inventory-service"
+  // Development settings
+  "dev": {
+    "port": 8787
+  }
+}
 ```
 
 **`services/api-gateway/src/index.ts`**:
@@ -389,7 +401,6 @@ type Bindings = {
   ORDER_SERVICE: Fetcher;
   PAYMENT_SERVICE: Fetcher;
   USER_SERVICE: Fetcher;
-  QUOTE_SERVICE: Fetcher;
   INVENTORY_SERVICE: Fetcher;
 };
 
@@ -423,11 +434,6 @@ app.all('/api/auth/*', async (c) => {
   return c.env.USER_SERVICE.fetch(c.req.raw);
 });
 
-// Route to Quote Service
-app.all('/api/quotes/*', async (c) => {
-  return c.env.QUOTE_SERVICE.fetch(c.req.raw);
-});
-
 // Route to Inventory Service
 app.all('/api/inventory/*', async (c) => {
   return c.env.INVENTORY_SERVICE.fetch(c.req.raw);
@@ -440,7 +446,7 @@ export default app;
 
 Create a **Hexagonal Architecture template** that will be copied for each service:
 
-**Template structure** (applies to all 6 services):
+**Template structure** (applies to all 5 services):
 ```
 services/{service-name}/
 ├── src/
@@ -535,9 +541,6 @@ wrangler d1 create payment-db
 
 # User Service database
 wrangler d1 create user-db
-
-# Quote Service database
-wrangler d1 create quote-db
 
 # Inventory Service database
 wrangler d1 create inventory-db
@@ -785,9 +788,6 @@ cd services/payment-service && pnpm dev &
 echo "Starting User Service..."
 cd services/user-service && pnpm dev &
 
-echo "Starting Quote Service..."
-cd services/quote-service && pnpm dev &
-
 echo "Starting Inventory Service..."
 cd services/inventory-service && pnpm dev &
 
@@ -804,10 +804,10 @@ chmod +x scripts/dev-all.sh
 
 **Phase 1 Deliverables**:
 - ✅ Complete monorepo structure with pnpm workspaces
-- ✅ 6 microservices with Hexagonal Architecture scaffolding
+- ✅ 5 microservices with Hexagonal Architecture scaffolding
 - ✅ API Gateway with Service Bindings configured
 - ✅ Shared libraries for types and domain events
-- ✅ Database setup (6 D1 databases, one per service)
+- ✅ Database setup (5 D1 databases, one per service)
 - ✅ Cloudflare Queues for event-driven communication
 - ✅ Cloudflare Workflows for Saga Pattern
 - ✅ Development tooling (testing, linting, scripts)
@@ -863,7 +863,7 @@ chmod +x scripts/dev-all.sh
 **DECISION MADE**: **Option A - Microservices Architecture from the Start**
 
 This roadmap reflects the decision to implement a **full microservices architecture** with:
-- ✅ 6 bounded contexts as separate Workers from Day 1
+- ✅ 5 bounded contexts as separate Workers from Day 1
 - ✅ Hexagonal Architecture (domain/application/infrastructure) for each service
 - ✅ Service Bindings for zero-cost, zero-latency communication
 - ✅ Event-Driven Architecture via Cloudflare Queues

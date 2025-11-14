@@ -6,7 +6,6 @@ export type UserId = string;
 export type ProductId = string;
 export type OrderId = string;
 export type PaymentId = string;
-export type QuoteId = string;
 export type WarehouseId = string;
 export type ReservationId = string;
 

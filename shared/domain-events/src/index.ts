@@ -150,37 +150,6 @@ export interface UserStatusChanged extends DomainEvent {
 }
 
 // ========================================
-// QUOTE EVENTS
-// ========================================
-
-export interface QuoteRequested extends DomainEvent {
-  eventType: 'QuoteRequested';
-  quoteId: string;
-  userId: string;
-  items: Array<{ productId: string; quantity: number }>;
-}
-
-export interface QuoteProvided extends DomainEvent {
-  eventType: 'QuoteProvided';
-  quoteId: string;
-  items: Array<{ productId: string; quantity: number; unitPrice: number }>;
-  totalAmount: number;
-  validUntil: string;
-}
-
-export interface QuoteAccepted extends DomainEvent {
-  eventType: 'QuoteAccepted';
-  quoteId: string;
-  orderId: string;
-}
-
-export interface QuoteRejected extends DomainEvent {
-  eventType: 'QuoteRejected';
-  quoteId: string;
-  reason: string;
-}
-
-// ========================================
 // HELPER TYPES
 // ========================================
 
@@ -200,8 +169,4 @@ export type AllDomainEvents =
   | InventoryConfirmed
   | InventoryAdjusted
   | UserRegistered
-  | UserStatusChanged
-  | QuoteRequested
-  | QuoteProvided
-  | QuoteAccepted
-  | QuoteRejected;
+  | UserStatusChanged;

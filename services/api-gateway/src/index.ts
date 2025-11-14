@@ -8,7 +8,6 @@ type Bindings = {
   ORDER_SERVICE: Fetcher;
   PAYMENT_SERVICE: Fetcher;
   USER_SERVICE: Fetcher;
-  QUOTE_SERVICE: Fetcher;
   INVENTORY_SERVICE: Fetcher;
 };
 
@@ -74,14 +73,6 @@ app.all('/api/auth/*', async (c) => {
 });
 
 // ========================================
-// QUOTE SERVICE ROUTES
-// ========================================
-// Route all /api/quotes/* requests to Quote Service
-app.all('/api/quotes/*', async (c) => {
-  return c.env.QUOTE_SERVICE.fetch(c.req.raw);
-});
-
-// ========================================
 // INVENTORY SERVICE ROUTES
 // ========================================
 // Route all /api/inventory/* requests to Inventory Service
@@ -107,16 +98,13 @@ app.all('/api/retail/*', async (c) => {
 });
 
 app.all('/api/wholesale/*', async (c) => {
-  // Wholesale routes
+  // Wholesale routes - handled by dedicated wholesale frontend with special rules
   const path = new URL(c.req.url).pathname;
   if (path.includes('/products')) {
     return c.env.PRODUCT_SERVICE.fetch(c.req.raw);
   }
   if (path.includes('/orders')) {
     return c.env.ORDER_SERVICE.fetch(c.req.raw);
-  }
-  if (path.includes('/quotes')) {
-    return c.env.QUOTE_SERVICE.fetch(c.req.raw);
   }
   return c.json({ error: 'Not found' }, 404);
 });
@@ -139,9 +127,6 @@ app.all('/api/admin/*', async (c) => {
   }
   if (path.includes('/inventory')) {
     return c.env.INVENTORY_SERVICE.fetch(c.req.raw);
-  }
-  if (path.includes('/quotes')) {
-    return c.env.QUOTE_SERVICE.fetch(c.req.raw);
   }
   if (path.includes('/payments')) {
     return c.env.PAYMENT_SERVICE.fetch(c.req.raw);
