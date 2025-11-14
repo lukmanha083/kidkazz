@@ -9,6 +9,7 @@ type Bindings = {
   PAYMENT_SERVICE: Fetcher;
   USER_SERVICE: Fetcher;
   INVENTORY_SERVICE: Fetcher;
+  SHIPPING_SERVICE: Fetcher;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -81,6 +82,14 @@ app.all('/api/inventory/*', async (c) => {
 });
 
 // ========================================
+// SHIPPING SERVICE ROUTES
+// ========================================
+// Route all /api/shipping/* requests to Shipping Service
+app.all('/api/shipping/*', async (c) => {
+  return c.env.SHIPPING_SERVICE.fetch(c.req.raw);
+});
+
+// ========================================
 // RETAIL & WHOLESALE ROUTES
 // ========================================
 // These could go to different services or be routed based on user role
@@ -130,6 +139,9 @@ app.all('/api/admin/*', async (c) => {
   }
   if (path.includes('/payments')) {
     return c.env.PAYMENT_SERVICE.fetch(c.req.raw);
+  }
+  if (path.includes('/shipping')) {
+    return c.env.SHIPPING_SERVICE.fetch(c.req.raw);
   }
 
   return c.json({ error: 'Not found' }, 404);

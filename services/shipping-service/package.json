@@ -1,0 +1,31 @@
+{
+  "name": "shipping-service",
+  "version": "1.0.0",
+  "description": "Shipping Service - Shipping rate calculation and order tracking with JET integration",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "type-check": "tsc --noEmit",
+    "db:create": "wrangler d1 create shipping-db",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "wrangler d1 migrations apply shipping-db",
+    "db:migrate:local": "wrangler d1 migrations apply shipping-db --local"
+  },
+  "dependencies": {
+    "hono": "^4.0.0",
+    "@hono/zod-validator": "^0.2.0",
+    "drizzle-orm": "^0.36.4",
+    "zod": "^3.22.0",
+    "nanoid": "^5.0.0",
+    "@kidkazz/domain-events": "workspace:*",
+    "@kidkazz/types": "workspace:*",
+    "@kidkazz/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.0.0",
+    "wrangler": "^4.0.0",
+    "typescript": "^5.6.0",
+    "drizzle-kit": "^0.29.1"
+  }
+}

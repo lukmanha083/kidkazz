@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
+import routes from './infrastructure/http/routes';
 
 type Bindings = {
   DB: D1Database;
@@ -30,14 +31,8 @@ app.get('/health', (c) => {
   });
 });
 
-// Placeholder routes - will be implemented later
-app.post('/api/orders', (c) => {
-  return c.json({ message: 'Create order - coming soon' }, 501);
-});
-
-app.get('/api/orders/:id', (c) => {
-  return c.json({ message: 'Get order - coming soon' }, 501);
-});
+// Mount routes
+app.route('/', routes);
 
 // 404 handler
 app.notFound((c) => {
