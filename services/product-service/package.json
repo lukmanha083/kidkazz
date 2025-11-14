@@ -1,0 +1,28 @@
+{
+  "name": "product-service",
+  "version": "1.0.0",
+  "description": "Product Service - Product catalog, pricing, and availability",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "type-check": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "wrangler d1 migrations apply product-db --local",
+    "db:migrate:prod": "wrangler d1 migrations apply product-db --remote"
+  },
+  "dependencies": {
+    "hono": "^4.0.0",
+    "drizzle-orm": "^0.30.0",
+    "zod": "^3.22.0",
+    "@kidkazz/domain-events": "workspace:*",
+    "@kidkazz/types": "workspace:*",
+    "@kidkazz/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.0.0",
+    "wrangler": "^3.0.0",
+    "typescript": "^5.6.0",
+    "drizzle-kit": "^0.20.0"
+  }
+}

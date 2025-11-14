@@ -1,24 +1,37 @@
 {
-  "name": "wholesale-ecommerce",
+  "name": "kidkazz-platform",
   "version": "1.0.0",
-  "description": "Wholesale E-Commerce Platform on Cloudflare",
+  "description": "Dual-Market E-Commerce Platform (Retail + Wholesale) on Cloudflare",
   "private": true,
   "scripts": {
-    "dev": "pnpm --filter \"./apps/**\" dev",
-    "build": "pnpm --filter \"./apps/**\" build",
-    "deploy": "pnpm --filter \"./apps/**\" deploy",
-    "type-check": "pnpm --filter \"./apps/**\" type-check"
+    "dev": "pnpm --parallel -r dev",
+    "dev:gateway": "pnpm --filter api-gateway dev",
+    "dev:services": "pnpm --filter \"./services/**\" dev",
+    "build": "pnpm -r build",
+    "deploy": "pnpm -r deploy",
+    "type-check": "pnpm -r type-check",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "clean": "pnpm -r clean"
   },
   "keywords": [
     "wholesale",
+    "retail",
     "ecommerce",
     "cloudflare",
+    "microservices",
+    "hexagonal-architecture",
+    "ddd",
     "tanstack",
     "hono"
   ],
   "devDependencies": {
     "typescript": "^5.6.0",
-    "@types/node": "^24.10.0"
+    "@types/node": "^24.10.0",
+    "prettier": "^3.0.0",
+    "eslint": "^8.50.0",
+    "vitest": "^1.0.0",
+    "@vitest/coverage-v8": "^1.0.0"
   },
   "packageManager": "pnpm@9.0.0",
   "engines": {

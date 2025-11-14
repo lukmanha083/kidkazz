@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "lib": ["ES2022"],
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "paths": {
+      "@shared/domain-events": ["./shared/domain-events/src/index.ts"],
+      "@shared/types": ["./shared/types/src/index.ts"],
+      "@shared/utils": ["./shared/utils/src/index.ts"]
+    }
+  },
+  "exclude": ["node_modules", "dist", ".wrangler", "wrangler-dist"]
+}
