@@ -1,42 +1,22 @@
 {
-  "name": "@wholesale/admin-dashboard",
+  "name": "admin-dashboard",
   "version": "1.0.0",
-  "private": true,
+  "description": "KidKazz Admin Dashboard - Test all microservices",
   "type": "module",
   "scripts": {
-    "dev": "vinxi dev",
-    "build": "vinxi build",
-    "start": "vinxi start",
-    "deploy": "wrangler pages deploy .output/public"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "@radix-ui/react-dialog": "^1.1.0",
-    "@radix-ui/react-dropdown-menu": "^2.1.0",
-    "@radix-ui/react-label": "^2.1.0",
-    "@radix-ui/react-select": "^2.1.0",
-    "@radix-ui/react-slot": "^1.1.0",
-    "@tanstack/react-query": "^5.59.0",
-    "@tanstack/react-router": "^1.77.0",
-    "@tanstack/start": "^1.77.0",
-    "class-variance-authority": "^0.7.0",
-    "clsx": "^2.1.0",
-    "crossws": "^0.4.1",
-    "lucide-react": "^0.445.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "tailwind-merge": "^2.5.0",
-    "vinxi": "^0.4.3"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "@types/react": "^18.3.0",
-    "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^4.3.0",
-    "autoprefixer": "^10.4.0",
-    "postcss": "^8.4.0",
-    "tailwindcss": "^3.4.0",
-    "tailwindcss-animate": "^1.0.7",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^4.2.0",
     "typescript": "^5.6.0",
-    "vite": "^6.0.0",
-    "wrangler": "^3.78.0"
+    "vite": "^5.0.0"
   }
 }
