@@ -100,48 +100,722 @@ This roadmap outlines the development plan for a dual-market E-Commerce platform
 
 ---
 
-## Phase 1: Foundation & Setup (Weeks 1-2)
+## Phase 1: Microservices Foundation & Setup (Weeks 1-3)
 
-### 1.1 Development Environment Setup
-- [ ] Install Node.js on FreeBSD (`pkg install node npm`)
+**Goal**: Set up complete microservices architecture from Day 1 with proper tooling, structure, and development environment.
+
+### 1.1 Development Environment Setup (Day 1-2)
+
+#### System Requirements
+- [ ] Install Node.js 20+ on FreeBSD (`pkg install node npm`)
 - [ ] Install pnpm globally (`npm install -g pnpm`)
+- [ ] Install Wrangler CLI (`pnpm add -g wrangler`)
+- [ ] Login to Cloudflare (`wrangler login`)
 - [ ] Set up Git repository
-- [ ] Initialize monorepo structure (optional: Turborepo or pnpm workspaces)
+- [ ] Configure IDE (VSCode recommended with extensions):
+  - ESLint
+  - Prettier
+  - TypeScript
+  - Cloudflare Workers
 
-### 1.2 Project Initialization
+### 1.2 Monorepo Structure Initialization (Day 3-4)
+
+Create the following structure from scratch:
+
 ```bash
-# Frontend (Next.js + Cloudflare Pages)
-pnpm create next-app@latest wholesale-frontend
-cd wholesale-frontend
-pnpm add @tanstack/react-query
-pnpx shadcn-ui@latest init
+mkdir kidkazz && cd kidkazz
 
-# Backend (Hono + Cloudflare Workers)
-pnpm create hono@latest wholesale-backend
-cd wholesale-backend
-# Select "cloudflare-workers" template
+# Initialize root package.json
+pnpm init
+
+# Create folder structure
+mkdir -p services/{product-service,order-service,payment-service,user-service,quote-service,inventory-service,api-gateway}/src
+mkdir -p apps/{admin-dashboard,retail-frontend,wholesale-frontend}
+mkdir -p shared/{domain-events,types,utils}
+mkdir -p docs
 ```
 
-### 1.3 Database Setup
-- [ ] Create Cloudflare D1 database
-```bash
-npx wrangler d1 create wholesale-db
-```
-- [ ] Set up Drizzle ORM or Prisma (edge-compatible)
-- [ ] Design initial schema:
-  - Users (buyers, suppliers)
-  - Products (bulk items)
-  - Categories
-  - Inventory
-  - Orders
-  - Pricing tiers (bulk pricing)
+#### Root Configuration Files
 
-### 1.4 Authentication & Authorization
-- [ ] Implement auth strategy:
-  - Option A: Cloudflare Access + JWT
-  - Option B: Auth.js (NextAuth) with edge adapter
-  - Option C: Clerk (managed auth)
-- [ ] Set up role-based access (wholesale buyers, suppliers, admin)
+**`package.json` (root)**:
+```json
+{
+  "name": "kidkazz-platform",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --parallel -r dev",
+    "build": "pnpm -r build",
+    "deploy": "pnpm -r deploy",
+    "type-check": "pnpm -r type-check",
+    "test": "pnpm -r test",
+    "clean": "pnpm -r clean"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "@types/node": "^24.10.0",
+    "prettier": "^3.0.0",
+    "eslint": "^8.50.0"
+  }
+}
+```
+
+**`pnpm-workspace.yaml`**:
+```yaml
+packages:
+  - 'services/*'
+  - 'apps/*'
+  - 'shared/*'
+```
+
+**`tsconfig.json` (root)**:
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "lib": ["ES2022"],
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "paths": {
+      "@shared/*": ["./shared/*"]
+    }
+  }
+}
+```
+
+### 1.3 Shared Libraries Setup (Day 5-6)
+
+#### 1.3.1 Domain Events Library (`shared/domain-events`)
+
+**`shared/domain-events/package.json`**:
+```json
+{
+  "name": "@kidkazz/domain-events",
+  "version": "1.0.0",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts"
+}
+```
+
+**`shared/domain-events/src/index.ts`**:
+```typescript
+// Base domain event
+export interface DomainEvent {
+  eventId: string;
+  eventType: string;
+  aggregateId: string;
+  timestamp: string;
+  version: number;
+}
+
+// Product events
+export interface ProductCreated extends DomainEvent {
+  eventType: 'ProductCreated';
+  productId: string;
+  name: string;
+  retailPrice: number | null;
+  wholesalePrice: number;
+}
+
+export interface ProductPriceUpdated extends DomainEvent {
+  eventType: 'ProductPriceUpdated';
+  productId: string;
+  newPrice: number;
+  priceType: 'retail' | 'wholesale';
+}
+
+// Order events
+export interface OrderCreated extends DomainEvent {
+  eventType: 'OrderCreated';
+  orderId: string;
+  userId: string;
+  items: Array<{ productId: string; quantity: number }>;
+  totalAmount: number;
+}
+
+export interface OrderConfirmed extends DomainEvent {
+  eventType: 'OrderConfirmed';
+  orderId: string;
+}
+
+// Payment events
+export interface PaymentProcessed extends DomainEvent {
+  eventType: 'PaymentProcessed';
+  paymentId: string;
+  orderId: string;
+  amount: number;
+  status: 'succeeded' | 'failed';
+}
+
+// Inventory events
+export interface InventoryReserved extends DomainEvent {
+  eventType: 'InventoryReserved';
+  reservationId: string;
+  productId: string;
+  quantity: number;
+  warehouseId: string;
+}
+
+export interface InventoryReleased extends DomainEvent {
+  eventType: 'InventoryReleased';
+  reservationId: string;
+}
+```
+
+#### 1.3.2 Shared Types Library (`shared/types`)
+
+**`shared/types/package.json`**:
+```json
+{
+  "name": "@kidkazz/types",
+  "version": "1.0.0",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts"
+}
+```
+
+**`shared/types/src/index.ts`**:
+```typescript
+// Common types
+export type UserId = string;
+export type ProductId = string;
+export type OrderId = string;
+export type PaymentId = string;
+
+export type UserRole = 'admin' | 'supplier' | 'retail_buyer' | 'wholesale_buyer';
+
+export interface Result<T, E = Error> {
+  isSuccess: boolean;
+  value?: T;
+  error?: E;
+}
+
+// Value Objects
+export class Price {
+  private constructor(private readonly value: number) {}
+
+  static create(value: number): Price {
+    if (value < 0) throw new Error('Price cannot be negative');
+    return new Price(value);
+  }
+
+  getValue(): number {
+    return this.value;
+  }
+}
+
+export class SKU {
+  private constructor(private readonly value: string) {}
+
+  static create(value: string): SKU {
+    if (!/^[A-Z0-9-]+$/.test(value)) {
+      throw new Error('Invalid SKU format');
+    }
+    return new SKU(value);
+  }
+
+  getValue(): string {
+    return this.value;
+  }
+}
+```
+
+### 1.4 API Gateway Setup (Day 7-8)
+
+**`services/api-gateway/package.json`**:
+```json
+{
+  "name": "@kidkazz/api-gateway",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "hono": "^4.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.0.0",
+    "wrangler": "^3.0.0"
+  }
+}
+```
+
+**`services/api-gateway/wrangler.toml`**:
+```toml
+name = "api-gateway"
+main = "src/index.ts"
+compatibility_date = "2024-11-14"
+
+# Service Bindings to all microservices
+[[services]]
+binding = "PRODUCT_SERVICE"
+service = "product-service"
+
+[[services]]
+binding = "ORDER_SERVICE"
+service = "order-service"
+
+[[services]]
+binding = "PAYMENT_SERVICE"
+service = "payment-service"
+
+[[services]]
+binding = "USER_SERVICE"
+service = "user-service"
+
+[[services]]
+binding = "QUOTE_SERVICE"
+service = "quote-service"
+
+[[services]]
+binding = "INVENTORY_SERVICE"
+service = "inventory-service"
+```
+
+**`services/api-gateway/src/index.ts`**:
+```typescript
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+
+type Bindings = {
+  PRODUCT_SERVICE: Fetcher;
+  ORDER_SERVICE: Fetcher;
+  PAYMENT_SERVICE: Fetcher;
+  USER_SERVICE: Fetcher;
+  QUOTE_SERVICE: Fetcher;
+  INVENTORY_SERVICE: Fetcher;
+};
+
+const app = new Hono<{ Bindings: Bindings }>();
+
+app.use('/*', cors());
+
+// Health check
+app.get('/health', (c) => c.json({ status: 'healthy' }));
+
+// Route to Product Service (FREE via Service Bindings!)
+app.all('/api/products/*', async (c) => {
+  return c.env.PRODUCT_SERVICE.fetch(c.req.raw);
+});
+
+// Route to Order Service
+app.all('/api/orders/*', async (c) => {
+  return c.env.ORDER_SERVICE.fetch(c.req.raw);
+});
+
+// Route to Payment Service
+app.all('/api/payments/*', async (c) => {
+  return c.env.PAYMENT_SERVICE.fetch(c.req.raw);
+});
+
+// Route to User Service
+app.all('/api/users/*', async (c) => {
+  return c.env.USER_SERVICE.fetch(c.req.raw);
+});
+app.all('/api/auth/*', async (c) => {
+  return c.env.USER_SERVICE.fetch(c.req.raw);
+});
+
+// Route to Quote Service
+app.all('/api/quotes/*', async (c) => {
+  return c.env.QUOTE_SERVICE.fetch(c.req.raw);
+});
+
+// Route to Inventory Service
+app.all('/api/inventory/*', async (c) => {
+  return c.env.INVENTORY_SERVICE.fetch(c.req.raw);
+});
+
+export default app;
+```
+
+### 1.5 Service Template Setup (Day 9-12)
+
+Create a **Hexagonal Architecture template** that will be copied for each service:
+
+**Template structure** (applies to all 6 services):
+```
+services/{service-name}/
+├── src/
+│   ├── domain/              # Business logic (NO dependencies)
+│   │   ├── entities/        # Domain entities (Product, Order, etc.)
+│   │   ├── value-objects/   # Value objects (Price, SKU, etc.)
+│   │   ├── events/          # Domain events
+│   │   ├── repositories/    # Repository interfaces (ports)
+│   │   └── errors/          # Domain-specific errors
+│   ├── application/         # Use cases
+│   │   ├── use-cases/       # Application services
+│   │   ├── commands/        # Command handlers
+│   │   ├── queries/         # Query handlers
+│   │   └── ports/           # External service interfaces
+│   ├── infrastructure/      # Adapters
+│   │   ├── db/              # Database implementation
+│   │   ├── repositories/    # Repository implementation
+│   │   ├── http/            # HTTP routes (Hono)
+│   │   └── external/        # External API clients
+│   └── index.ts             # Entry point
+├── wrangler.toml
+├── package.json
+└── tsconfig.json
+```
+
+**Example: Product Service** (`services/product-service/src/index.ts`):
+```typescript
+import { Hono } from 'hono';
+
+type Bindings = {
+  DB: D1Database;
+  PRODUCT_EVENTS_QUEUE: Queue;
+};
+
+const app = new Hono<{ Bindings: Bindings }>();
+
+// Domain layer imports
+import { Product } from './domain/entities/Product';
+import { ProductRepository } from './domain/repositories/ProductRepository';
+
+// Infrastructure layer
+import { D1ProductRepository } from './infrastructure/repositories/D1ProductRepository';
+
+// Application layer
+import { CreateProduct } from './application/use-cases/CreateProduct';
+import { GetProduct } from './application/use-cases/GetProduct';
+
+app.get('/health', (c) => c.json({ service: 'product-service', status: 'healthy' }));
+
+// Create product endpoint
+app.post('/api/products', async (c) => {
+  const body = await c.req.json();
+
+  // Hexagonal Architecture in action:
+  // 1. Infrastructure creates repository
+  const productRepo = new D1ProductRepository(c.env.DB);
+
+  // 2. Application use case
+  const createProduct = new CreateProduct(productRepo, c.env.PRODUCT_EVENTS_QUEUE);
+
+  // 3. Execute use case
+  const result = await createProduct.execute({
+    name: body.name,
+    retailPrice: body.retailPrice,
+    wholesalePrice: body.wholesalePrice,
+    availableForRetail: body.availableForRetail,
+    availableForWholesale: body.availableForWholesale
+  });
+
+  if (!result.isSuccess) {
+    return c.json({ error: result.error?.message }, 400);
+  }
+
+  return c.json({ product: result.value }, 201);
+});
+
+export default app;
+```
+
+### 1.6 Database Setup (Day 13-15)
+
+#### Create D1 Databases (one per service):
+```bash
+# Product Service database
+wrangler d1 create product-db
+
+# Order Service database
+wrangler d1 create order-db
+
+# Payment Service database
+wrangler d1 create payment-db
+
+# User Service database
+wrangler d1 create user-db
+
+# Quote Service database
+wrangler d1 create quote-db
+
+# Inventory Service database
+wrangler d1 create inventory-db
+```
+
+#### Set up Drizzle ORM for each service
+
+**Example: Product Service** (`services/product-service/src/infrastructure/db/schema.ts`):
+```typescript
+import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
+
+export const products = sqliteTable('products', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  sku: text('sku').unique().notNull(),
+  description: text('description'),
+  retailPrice: real('retail_price'),
+  basePrice: real('base_price').notNull(),
+  availableForRetail: integer('available_for_retail', { mode: 'boolean' }).default(false),
+  availableForWholesale: integer('available_for_wholesale', { mode: 'boolean' }).default(true),
+  minimumOrderQuantity: integer('minimum_order_quantity').default(1),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull()
+});
+
+export const pricingTiers = sqliteTable('pricing_tiers', {
+  id: text('id').primaryKey(),
+  productId: text('product_id').notNull().references(() => products.id),
+  minQuantity: integer('min_quantity').notNull(),
+  discountPercentage: real('discount_percentage').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull()
+});
+```
+
+### 1.7 Cloudflare Queues Setup (Day 16-17)
+
+Set up async communication between services:
+
+```bash
+# Create queues for event-driven architecture
+wrangler queues create order-events-queue
+wrangler queues create payment-events-queue
+wrangler queues create inventory-events-queue
+```
+
+Update each service's `wrangler.toml` to include queue producers and consumers:
+
+**Example: Order Service** (`services/order-service/wrangler.toml`):
+```toml
+name = "order-service"
+main = "src/index.ts"
+compatibility_date = "2024-11-14"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "order-db"
+database_id = "<your-database-id>"
+
+# Producer: Send events to queue
+[[queues.producers]]
+queue = "order-events-queue"
+binding = "ORDER_EVENTS_QUEUE"
+
+# Consumer: Receive events from other services
+[[queues.consumers]]
+queue = "payment-events-queue"
+max_batch_size = 10
+max_batch_timeout = 30
+```
+
+### 1.8 Cloudflare Workflows Setup (Day 18-19)
+
+Set up Saga Pattern orchestration using Workflows:
+
+**`services/order-service/src/workflows/OrderCreationSaga.ts`**:
+```typescript
+import { WorkflowEntrypoint, WorkflowEvent, WorkflowStep } from 'cloudflare:workers';
+
+interface OrderSagaParams {
+  orderId: string;
+  userId: string;
+  items: Array<{ productId: string; quantity: number }>;
+  paymentAmount: number;
+}
+
+export class OrderCreationSaga extends WorkflowEntrypoint {
+  async run(event: WorkflowEvent<OrderSagaParams>, step: WorkflowStep) {
+    const { orderId, userId, items, paymentAmount } = event.payload;
+
+    const sagaState = {
+      reservationIds: [] as string[],
+      paymentId: null as string | null
+    };
+
+    try {
+      // Step 1: Reserve inventory
+      sagaState.reservationIds = await step.do('reserve-inventory', async () => {
+        // Call Inventory Service via Service Binding
+        const results = await Promise.all(
+          items.map(item =>
+            this.env.INVENTORY_SERVICE.fetch(
+              new Request('http://inventory/api/inventory/reserve', {
+                method: 'POST',
+                body: JSON.stringify({
+                  productId: item.productId,
+                  quantity: item.quantity
+                })
+              })
+            ).then(r => r.json())
+          )
+        );
+        return results.map((r: any) => r.reservationId);
+      });
+
+      // Step 2: Process payment
+      sagaState.paymentId = await step.do('process-payment', async () => {
+        const response = await this.env.PAYMENT_SERVICE.fetch(
+          new Request('http://payment/api/payments/process', {
+            method: 'POST',
+            body: JSON.stringify({ orderId, amount: paymentAmount })
+          })
+        );
+        if (!response.ok) throw new Error('Payment failed');
+        const result = await response.json();
+        return result.paymentId;
+      });
+
+      // Step 3: Confirm inventory
+      await step.do('confirm-inventory', async () => {
+        await Promise.all(
+          sagaState.reservationIds.map(id =>
+            this.env.INVENTORY_SERVICE.fetch(
+              new Request(`http://inventory/api/inventory/reservations/${id}/confirm`, {
+                method: 'POST'
+              })
+            )
+          )
+        );
+      });
+
+      return { success: true, orderId };
+
+    } catch (error) {
+      // COMPENSATION: Rollback
+      if (sagaState.paymentId) {
+        await step.do('compensate-payment', async () => {
+          await this.env.PAYMENT_SERVICE.fetch(
+            new Request(`http://payment/api/payments/${sagaState.paymentId}/refund`, {
+              method: 'POST'
+            })
+          );
+        });
+      }
+
+      if (sagaState.reservationIds.length > 0) {
+        await step.do('compensate-inventory', async () => {
+          await Promise.all(
+            sagaState.reservationIds.map(id =>
+              this.env.INVENTORY_SERVICE.fetch(
+                new Request(`http://inventory/api/inventory/reservations/${id}/release`, {
+                  method: 'POST'
+                })
+              )
+            )
+          );
+        });
+      }
+
+      return { success: false, error: (error as Error).message };
+    }
+  }
+}
+```
+
+### 1.9 Development Tooling (Day 20-21)
+
+#### Testing Setup
+
+**Root** (`package.json` - add test script):
+```json
+{
+  "scripts": {
+    "test": "vitest",
+    "test:coverage": "vitest --coverage"
+  },
+  "devDependencies": {
+    "vitest": "^1.0.0",
+    "@vitest/coverage-v8": "^1.0.0"
+  }
+}
+```
+
+**Example test** (`services/product-service/src/domain/entities/Product.test.ts`):
+```typescript
+import { describe, it, expect } from 'vitest';
+import { Product } from './Product';
+
+describe('Product Entity', () => {
+  it('should create a valid wholesale product', () => {
+    const result = Product.create({
+      name: 'Bulk Rice 50kg',
+      retailPrice: null,
+      wholesalePrice: 250000,
+      availability: { retail: false, wholesale: true }
+    });
+
+    expect(result.isSuccess).toBe(true);
+    expect(result.value?.getName()).toBe('Bulk Rice 50kg');
+  });
+
+  it('should fail to create product with invalid wholesale price', () => {
+    const result = Product.create({
+      name: 'Bulk Rice 50kg',
+      retailPrice: null,
+      wholesalePrice: -100,
+      availability: { retail: false, wholesale: true }
+    });
+
+    expect(result.isSuccess).toBe(false);
+    expect(result.error?.message).toContain('price');
+  });
+});
+```
+
+#### Local Development Script
+
+**`scripts/dev-all.sh`**:
+```bash
+#!/bin/bash
+
+# Start all services in parallel using tmux or parallel terminals
+
+echo "Starting API Gateway..."
+cd services/api-gateway && pnpm dev &
+
+echo "Starting Product Service..."
+cd services/product-service && pnpm dev &
+
+echo "Starting Order Service..."
+cd services/order-service && pnpm dev &
+
+echo "Starting Payment Service..."
+cd services/payment-service && pnpm dev &
+
+echo "Starting User Service..."
+cd services/user-service && pnpm dev &
+
+echo "Starting Quote Service..."
+cd services/quote-service && pnpm dev &
+
+echo "Starting Inventory Service..."
+cd services/inventory-service && pnpm dev &
+
+echo "All services starting..."
+echo "API Gateway: http://localhost:8787"
+
+wait
+```
+
+**Make it executable**:
+```bash
+chmod +x scripts/dev-all.sh
+```
+
+**Phase 1 Deliverables**:
+- ✅ Complete monorepo structure with pnpm workspaces
+- ✅ 6 microservices with Hexagonal Architecture scaffolding
+- ✅ API Gateway with Service Bindings configured
+- ✅ Shared libraries for types and domain events
+- ✅ Database setup (6 D1 databases, one per service)
+- ✅ Cloudflare Queues for event-driven communication
+- ✅ Cloudflare Workflows for Saga Pattern
+- ✅ Development tooling (testing, linting, scripts)
+- ✅ All services deployable to Cloudflare Workers
+
+**Time Investment**: 3 weeks (21 days) for complete microservices foundation
+
+**Next Phase**: Phase 2 - Implement core features in each service (Product, User, Inventory)
 
 ---
 
@@ -184,162 +858,31 @@ npx wrangler d1 create wholesale-db
 
 ---
 
-## 🏛️ DECISION POINT: Architecture Refactoring Strategy
+## 🏛️ ARCHITECTURE DECISION: Option A Chosen ✅
 
-**After Phase 2**, you must decide on your architecture approach. Three options available:
+**DECISION MADE**: **Option A - Microservices Architecture from the Start**
 
-### Option A: Refactor to Microservices Now (Week 3-8)
-**Best for**: Long-term maintainability, team scaling, complex business logic
+This roadmap reflects the decision to implement a **full microservices architecture** with:
+- ✅ 6 bounded contexts as separate Workers from Day 1
+- ✅ Hexagonal Architecture (domain/application/infrastructure) for each service
+- ✅ Service Bindings for zero-cost, zero-latency communication
+- ✅ Event-Driven Architecture via Cloudflare Queues
+- ✅ Saga Pattern using Cloudflare Workflows
 
-**Pros:**
-- ✅ Clean architecture from the start
-- ✅ Better testability and maintainability
-- ✅ Easier to scale team (one service per developer)
-- ✅ Prevents technical debt accumulation
+**Benefits of this approach**:
+- Clean architecture from the start
+- No technical debt accumulation
+- Better testability and maintainability
+- Easy team scaling (one service per developer)
+- Prevents future refactoring pain
 
-**Cons:**
-- ❌ Slower time to market (adds 5-6 weeks)
-- ❌ More complex initial setup
+**Trade-off accepted**: Adds 2-3 weeks to initial setup (Phase 1 extended to 3 weeks)
 
-**Timeline Impact**: +5-6 weeks before proceeding to Phase 3
-
-### Option B: Keep Monolith, Refactor After Frontends (Week 19+)
-**Best for**: Speed to market, MVP validation, small team
-
-**Pros:**
-- ✅ Fastest path to market
-- ✅ Validate business model first
-- ✅ Simpler initial development
-
-**Cons:**
-- ❌ Technical debt accumulates
-- ❌ Harder to refactor later (more code)
-- ❌ May need to pause feature development for refactoring
-
-**Timeline Impact**: No delay, refactor happens in Week 19-26
-
-### Option C: Hybrid Approach (Recommended)
-**Best for**: Balance between speed and quality
-
-**Phase 2b (Weeks 7-9)**: Apply Hexagonal Architecture to existing monolith
-- Restructure code into domain/application/infrastructure layers
-- Implement repository pattern
-- Extract domain logic
-- Set up bounded contexts (as modules, not separate services)
-
-**Phase 6b (Week 19+)**: Split into microservices when needed
-- Extract one service at a time
-- Use Service Bindings for communication
-- Implement Saga Pattern as complexity grows
-
-**Pros:**
-- ✅ Better code organization now
-- ✅ Easier to test
-- ✅ Smooth migration path to microservices
-- ✅ No major timeline delay
-
-**Timeline Impact**: +2-3 weeks for Hexagonal refactoring
-
-**See**: `ARCHITECTURE.md` Section 10 for detailed decision matrix and cost analysis.
+**See**: `ARCHITECTURE.md` for complete architecture details.
 
 ---
 
-## Phase 2b (Optional): Hexagonal Architecture Refactoring (Weeks 7-9)
-
-**Only if Option A or C chosen** - Refactor backend to Hexagonal Architecture:
-
-### 2b.1 Domain Layer Setup
-- [ ] Create domain entities (Product, Order, Payment, User, Quote, Inventory)
-- [ ] Implement value objects (Price, SKU, ProductId)
-- [ ] Define domain events (ProductCreated, OrderPlaced, PaymentCompleted)
-- [ ] Add business rule validation
-
-### 2b.2 Application Layer
-- [ ] Create use cases (CreateProduct, PlaceOrder, ProcessPayment)
-- [ ] Implement application services
-- [ ] Define ports (interfaces) for repositories and external services
-- [ ] Add command/query handlers
-
-### 2b.3 Infrastructure Layer
-- [ ] Implement repository adapters (D1Database implementation)
-- [ ] Create external service adapters (Xendit payment adapter)
-- [ ] Set up dependency injection
-- [ ] Configure service bindings
-
-### 2b.4 Testing Infrastructure
-- [ ] Unit tests for domain logic
-- [ ] Integration tests for repositories
-- [ ] Mock implementations for testing
-- [ ] E2E test suite
-
-**Deliverable**: Clean, testable, maintainable codebase ready for either monolith continuation or microservices split.
-
----
-
-## Phase 2c (Optional): Microservices Split (Weeks 7-12)
-
-**Only if Option A chosen** - Full microservices architecture:
-
-### 2c.1 Infrastructure Setup
-- [ ] Create 6 Worker services (Product, Order, Payment, User, Quote, Inventory)
-- [ ] Set up API Gateway Worker
-- [ ] Configure Service Bindings between services
-- [ ] Set up Cloudflare Queues for async communication
-- [ ] Configure Cloudflare Workflows for saga orchestration
-
-### 2c.2 Service Migration
-- [ ] **Week 7**: Product Service
-  - Extract product domain logic
-  - Implement Hexagonal Architecture (domain/application/infrastructure)
-  - Deploy as separate Worker
-- [ ] **Week 8**: User Service
-  - Extract authentication and user management
-  - Implement JWT token generation
-  - Deploy as separate Worker
-- [ ] **Week 9**: Inventory Service
-  - Extract inventory management
-  - Implement multi-warehouse support
-  - Implement reservation/release pattern
-- [ ] **Week 10**: Payment Service
-  - Extract Xendit integration
-  - Implement payment processing saga
-  - Set up webhook handlers
-- [ ] **Week 11**: Order Service
-  - Extract order management
-  - Implement order creation saga (inventory → payment → confirmation)
-  - Set up Cloudflare Workflows
-- [ ] **Week 12**: Quote Service
-  - Extract RFQ system
-  - Implement quote workflow
-
-### 2c.3 Communication Setup
-- [ ] Implement Service Bindings for sync operations
-- [ ] Set up Cloudflare Queues for async events
-  - OrderEvents queue
-  - PaymentEvents queue
-  - InventoryEvents queue
-- [ ] Configure Durable Objects for stateful operations (if needed)
-
-### 2c.4 Saga Implementation
-- [ ] Create OrderCreationSaga (Cloudflare Workflows)
-  - Step 1: Reserve inventory
-  - Step 2: Process payment
-  - Step 3: Confirm order
-  - Compensation: Refund payment, release inventory
-- [ ] Create PaymentRefundSaga
-- [ ] Add retry logic and dead letter queues
-
-### 2c.5 Testing & Deployment
-- [ ] Integration tests between services
-- [ ] End-to-end workflow tests
-- [ ] Load testing with Service Bindings
-- [ ] Deploy all services to production
-
-**Deliverable**: 6 independent microservices with event-driven communication and saga orchestration.
-
----
-
-## Phase 3: Payment & Checkout (Weeks 7-8 or 13-14 depending on architecture choice)
+## Phase 3: Payment & Checkout (Weeks 7-8)
 
 ### 3.1 Payment Integration
 - [ ] Integrate payment gateway (Stripe recommended for Cloudflare)
@@ -825,7 +1368,7 @@ bucket_name = "wholesale-images"
 
 ---
 
-**Document Version**: 3.0
+**Document Version**: 4.0
 **Last Updated**: 2025-11-14
-**Status**: Ready for Implementation
-**Latest Addition**: Architecture Evolution - Hexagonal Architecture, DDD, Event-Driven, Saga Pattern (Phase 2b/2c)
+**Status**: Ready for Implementation - Option A Chosen
+**Latest Addition**: Complete Phase 1 rewrite for microservices architecture from scratch (3-week foundation setup)

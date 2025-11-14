@@ -4,9 +4,13 @@ A modern dual-market e-commerce platform supporting both **retail (B2C)** and **
 
 ## 📊 Project Status
 
-**Current Phase**: Phase 4 (Advanced Features) - ✅ **70% Complete**
+**Current Phase**: Phase 1 (Microservices Foundation) - 🚀 **Starting from Scratch**
 
-### ✅ Completed (Phase 1-4)
+**ARCHITECTURE DECISION**: ✅ **Option A Chosen - Microservices from Day 1**
+
+We've decided to build with microservices architecture from the start for long-term maintainability and scalability.
+
+### ✅ Completed (Previous Monolithic PoC)
 - ✅ Phase 1: Foundation & Setup
   - Project structure initialized (pnpm monorepo)
   - Backend API with Hono framework
@@ -660,43 +664,70 @@ Our Cloudflare-based microservices architecture is **extremely cost-effective** 
 
 ## 🎯 Next Steps
 
-### 🏛️ Architecture Decision (NEW)
-**Choose your refactoring path** - See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed analysis:
-- **Option A**: Refactor to microservices now (Week 3-8) - Best for long-term maintainability
-- **Option B**: Keep monolith, refactor after frontends (Week 19+) - Faster to market
-- **Option C**: Hybrid approach - Apply Hexagonal Architecture now, split services later
+### ✅ Architecture Decision Made: Option A
+**Building microservices architecture from the start** for:
+- Clean architecture from Day 1
+- No technical debt accumulation
+- Better testability and maintainability
+- Easy team scaling
 
-### Immediate Priorities (Phase 4 Completion)
-1. 🔄 **Decide on architecture refactoring approach** (see ARCHITECTURE.md)
-2. 🔄 Implement JWT authentication middleware
-3. 🔄 Add password hashing
-4. 🔄 Set up Cloudflare R2 for image uploads
-5. 🔄 Create image upload endpoints
-6. 🔄 Test end-to-end payment flow
+**See**: [ECOMMERCE_WHOLESALE_ROADMAP.md](./ECOMMERCE_WHOLESALE_ROADMAP.md) for complete 3-week Phase 1 plan.
 
-### Phase 5 (Weeks 13-18)
+### 🚀 Phase 1: Microservices Foundation (Weeks 1-3)
+**Week 1** - Development Environment & Monorepo Setup
+- [ ] Install Node.js 20+, pnpm, Wrangler CLI
+- [ ] Create complete monorepo structure (services/, apps/, shared/)
+- [ ] Configure pnpm workspaces
+- [ ] Set up shared libraries (domain-events, types, utils)
+
+**Week 2** - Service Architecture Setup
+- [ ] Create API Gateway with Service Bindings
+- [ ] Set up 6 microservices with Hexagonal Architecture scaffolding
+  - Product Service
+  - Order Service
+  - Payment Service
+  - User Service
+  - Quote Service
+  - Inventory Service
+- [ ] Configure 6 D1 databases (one per service)
+- [ ] Set up Drizzle ORM for each service
+
+**Week 3** - Event-Driven & Saga Pattern Setup
+- [ ] Configure Cloudflare Queues for async communication
+- [ ] Set up Cloudflare Workflows for Saga orchestration
+- [ ] Implement OrderCreationSaga (Reserve → Pay → Confirm)
+- [ ] Add development tooling (Vitest, ESLint, Prettier)
+- [ ] Create local development scripts
+
+### Phase 2 (Weeks 4-6) - Core Features Implementation
+- Implement Product Service domain logic
+- Implement User Service with authentication
+- Implement Inventory Service with multi-warehouse support
+- Build initial use cases for each service
+
+### Phase 3 (Weeks 7-8) - Payment Integration
+- Integrate Xendit payment gateway in Payment Service
+- Implement payment saga with compensation
+
+### Phase 4 (Weeks 9-12) - Advanced Features
+- Complete all microservices features
+- Implement Quote Service RFQ system
+- Add analytics and reporting
+
+### Phase 5 (Weeks 13-18) - Frontend Development
+- Build Admin Dashboard (TanStack Start)
 - Build Retail Frontend (TanStack Start)
 - Build Wholesale Frontend (TanStack Start)
-- Enhance Admin Dashboard with dual-pricing UI
 
-### Phase 5b (Optional - If Option A chosen)
-- Refactor backend to microservices (Week 3-8)
-- Implement 6 bounded contexts
-- Set up Service Bindings and API Gateway
-- Migrate to Event-Driven Architecture
-- Implement Saga Pattern with Cloudflare Workflows
-
-### Phase 6 (Weeks 19-22)
+### Phase 6 (Weeks 19-22) - Optimization & Launch
 - Performance optimization
-- SEO implementation
 - Security hardening
 - Testing (unit, integration, e2e)
 - Beta launch
 
-### Phase 7 (Weeks 23-34)
+### Phase 7 (Weeks 23-34) - Mobile Apps
 - Build Retail mobile app (Expo)
 - Build Wholesale mobile app (Expo)
-- Push notifications
 - App store deployment
 
 ## 🌍 FreeBSD Compatibility
@@ -783,6 +814,7 @@ This is a private wholesale/retail platform. For questions or support, contact t
 - Xendit Payments
 - TypeScript
 
-**Document Version**: 2.0
-**Last Updated**: 2025-11-13
-**Status**: Active Development - Phase 4
+**Document Version**: 3.0
+**Last Updated**: 2025-11-14
+**Status**: Architecture Decision Made - Starting Phase 1 (Microservices Foundation)
+**Architecture**: Option A - Microservices from Day 1
