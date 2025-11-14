@@ -1,16 +1,16 @@
 {
-  "name": "product-service",
+  "name": "inventory-service",
   "version": "1.0.0",
-  "description": "Product Service - Product catalog, pricing, and availability",
+  "description": "Inventory Service - Multi-warehouse inventory management and reservations",
   "main": "src/index.ts",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
     "type-check": "tsc --noEmit",
-    "db:create": "wrangler d1 create product-db",
+    "db:create": "wrangler d1 create inventory-db",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "wrangler d1 migrations apply product-db",
-    "db:migrate:local": "wrangler d1 migrations apply product-db --local"
+    "db:migrate": "wrangler d1 migrations apply inventory-db",
+    "db:migrate:local": "wrangler d1 migrations apply inventory-db --local"
   },
   "dependencies": {
     "hono": "^4.0.0",

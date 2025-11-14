@@ -1,0 +1,42 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "user-service",
+  "main": "src/index.ts",
+  "compatibility_date": "2024-11-14",
+
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+
+  // D1 Database binding
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "user-db",
+      "database_id": "PLACEHOLDER" // Run: wrangler d1 create user-db
+    }
+  ],
+
+  // Queue for publishing user events
+  "queues": {
+    "producers": [
+      {
+        "queue": "user-events-queue",
+        "binding": "USER_EVENTS_QUEUE"
+      }
+    ]
+  },
+
+  // Environment variables (set via wrangler secret)
+  "vars": {
+    "JWT_ALGORITHM": "HS256",
+    "ACCESS_TOKEN_EXPIRY": "1h",
+    "REFRESH_TOKEN_EXPIRY": "7d"
+  },
+
+  // Development settings
+  "dev": {
+    "port": 8791
+  }
+}

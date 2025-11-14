@@ -1,0 +1,47 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "payment-service",
+  "main": "src/index.ts",
+  "compatibility_date": "2024-11-14",
+
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+
+  // D1 Database binding
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "payment-db",
+      "database_id": "PLACEHOLDER" // Run: wrangler d1 create payment-db
+    }
+  ],
+
+  // Queue for publishing payment events
+  "queues": {
+    "producers": [
+      {
+        "queue": "payment-events-queue",
+        "binding": "PAYMENT_EVENTS_QUEUE"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "payment-events-queue",
+        "max_batch_size": 10,
+        "max_batch_timeout": 30
+      }
+    ]
+  },
+
+  // Environment variables (set via wrangler secret)
+  "vars": {
+    "XENDIT_MODE": "test"
+  },
+
+  // Development settings
+  "dev": {
+    "port": 8790
+  }
+}

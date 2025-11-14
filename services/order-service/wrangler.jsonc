@@ -1,0 +1,67 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "order-service",
+  "main": "src/index.ts",
+  "compatibility_date": "2024-11-14",
+
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+
+  // D1 Database binding
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "order-db",
+      "database_id": "PLACEHOLDER" // Run: wrangler d1 create order-db
+    }
+  ],
+
+  // Queue for publishing order events
+  "queues": {
+    "producers": [
+      {
+        "queue": "order-events-queue",
+        "binding": "ORDER_EVENTS_QUEUE"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "order-events-queue",
+        "max_batch_size": 10,
+        "max_batch_timeout": 30
+      }
+    ]
+  },
+
+  // Workflows for Saga orchestration
+  "workflows": [
+    {
+      "name": "create-order-saga",
+      "binding": "CREATE_ORDER_SAGA",
+      "class_name": "CreateOrderSaga"
+    }
+  ],
+
+  // Service bindings to other services
+  "services": [
+    {
+      "binding": "PRODUCT_SERVICE",
+      "service": "product-service"
+    },
+    {
+      "binding": "PAYMENT_SERVICE",
+      "service": "payment-service"
+    },
+    {
+      "binding": "INVENTORY_SERVICE",
+      "service": "inventory-service"
+    }
+  ],
+
+  // Development settings
+  "dev": {
+    "port": 8789
+  }
+}
