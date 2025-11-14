@@ -1,6 +1,7 @@
 {
   "name": "kidkazz-platform",
   "version": "1.0.0",
+  "type": "module",
   "description": "Dual-Market E-Commerce Platform (Retail + Wholesale) on Cloudflare",
   "private": true,
   "scripts": {
@@ -12,6 +13,10 @@
     "type-check": "pnpm -r type-check",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "clean": "pnpm -r clean"
   },
   "keywords": [
@@ -29,7 +34,9 @@
     "typescript": "^5.6.0",
     "@types/node": "^24.10.0",
     "prettier": "^3.0.0",
-    "eslint": "^8.50.0",
+    "eslint": "^9.15.0",
+    "@eslint/js": "^9.15.0",
+    "typescript-eslint": "^8.15.0",
     "vitest": "^1.0.0",
     "@vitest/coverage-v8": "^1.0.0"
   },

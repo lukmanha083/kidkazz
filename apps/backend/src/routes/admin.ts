@@ -79,7 +79,7 @@ adminRoutes.get('/users', async (c) => {
   const offset = (page - 1) * limit;
 
   let query = db.select().from(users);
-  let conditions = [];
+  const conditions = [];
 
   if (role) conditions.push(eq(users.role, role as any));
   if (status) conditions.push(eq(users.status, status as any));
@@ -164,7 +164,7 @@ adminRoutes.get('/products', async (c) => {
   const offset = (page - 1) * limit;
 
   let query = db.select().from(products);
-  let conditions = [];
+  const conditions = [];
 
   if (status) conditions.push(eq(products.status, status as any));
   if (categoryId) conditions.push(eq(products.categoryId, categoryId));
@@ -309,7 +309,7 @@ adminRoutes.get('/orders', async (c) => {
   const offset = (page - 1) * limit;
 
   let query = db.select().from(orders);
-  let conditions = [];
+  const conditions = [];
 
   if (status) conditions.push(eq(orders.status, status as any));
   if (paymentStatus) conditions.push(eq(orders.paymentStatus, paymentStatus as any));

@@ -1,0 +1,42 @@
+# Prettier Ignore
+# Files and directories to ignore for formatting
+
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+dist
+build
+.wrangler
+*.tsbuildinfo
+
+# Databases and migrations
+*.db
+*.sqlite
+migrations/*.sql
+
+# Generated files
+coverage
+.turbo
+
+# Lock files
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode
+.idea
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
