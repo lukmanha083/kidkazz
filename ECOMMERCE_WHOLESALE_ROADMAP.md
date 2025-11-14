@@ -12,10 +12,24 @@ This dual-market approach allows the platform to:
 - ✅ Flexible product availability (retail-only, wholesale-only, or both)
 - ✅ Separate user experiences tailored to each market
 
-**See:** `RETAIL_WHOLESALE_ARCHITECTURE.md` for complete architecture details.
+**See:** `RETAIL_WHOLESALE_ARCHITECTURE.md` for complete dual-market architecture details.
+
+## 🏛️ Architecture Evolution
+
+**NEW**: The platform architecture has evolved to include modern microservices patterns:
+- **Hexagonal Architecture (Ports & Adapters)** - Clean separation of concerns
+- **Domain-Driven Design (DDD)** - 6 bounded contexts
+- **Event-Driven Architecture** - Async communication via Cloudflare Queues
+- **Saga Pattern** - Distributed transactions with Cloudflare Workflows
+
+**See:** `ARCHITECTURE.md` for comprehensive architecture guide including:
+- Microservices design with 6 bounded contexts
+- Communication patterns (Service Bindings, Queues, Workflows)
+- Migration strategies and implementation roadmap
+- Cost analysis ($5-6/month vs AWS $154/month)
 
 ## Executive Summary
-This roadmap outlines the development plan for a dual-market E-Commerce platform (Retail + Wholesale) built on Cloudflare's serverless infrastructure, utilizing modern web technologies for optimal performance and scalability.
+This roadmap outlines the development plan for a dual-market E-Commerce platform (Retail + Wholesale) built on Cloudflare's serverless infrastructure, utilizing modern web technologies and microservices architecture for optimal performance, scalability, and maintainability.
 
 ---
 
@@ -57,10 +71,20 @@ This roadmap outlines the development plan for a dual-market E-Commerce platform
 
 **Note**: MySQL is not recommended for Cloudflare Workers. PostgreSQL (via Neon) or SQLite (D1/Turso) are the best options.
 
-### Storage
+### Storage & Communication
 - **Images/Assets**: Cloudflare R2 (S3-compatible)
 - **Cache**: Cloudflare KV (Key-Value store)
 - **Sessions**: Cloudflare Durable Objects or KV
+- **Service Bindings**: Zero-cost RPC between Workers (FREE, ~μs latency)
+- **Cloudflare Queues**: Asynchronous messaging ($0.40/M operations)
+- **Cloudflare Workflows**: Saga orchestration for distributed transactions (GA Nov 2024)
+- **Durable Objects**: Stateful coordination ($0.15/M requests)
+
+### Architecture Patterns
+- **Hexagonal Architecture**: Clean separation between domain logic and infrastructure
+- **Domain-Driven Design (DDD)**: 6 bounded contexts (Product, Order, Payment, User, Quote, Inventory)
+- **Event-Driven Architecture**: Async communication via Cloudflare Queues
+- **Saga Pattern**: Distributed transactions with compensating actions
 
 ### Package Manager
 - **pnpm** (monorepo-friendly, fast, efficient)
@@ -160,7 +184,162 @@ npx wrangler d1 create wholesale-db
 
 ---
 
-## Phase 3: Payment & Checkout (Weeks 7-8)
+## 🏛️ DECISION POINT: Architecture Refactoring Strategy
+
+**After Phase 2**, you must decide on your architecture approach. Three options available:
+
+### Option A: Refactor to Microservices Now (Week 3-8)
+**Best for**: Long-term maintainability, team scaling, complex business logic
+
+**Pros:**
+- ✅ Clean architecture from the start
+- ✅ Better testability and maintainability
+- ✅ Easier to scale team (one service per developer)
+- ✅ Prevents technical debt accumulation
+
+**Cons:**
+- ❌ Slower time to market (adds 5-6 weeks)
+- ❌ More complex initial setup
+
+**Timeline Impact**: +5-6 weeks before proceeding to Phase 3
+
+### Option B: Keep Monolith, Refactor After Frontends (Week 19+)
+**Best for**: Speed to market, MVP validation, small team
+
+**Pros:**
+- ✅ Fastest path to market
+- ✅ Validate business model first
+- ✅ Simpler initial development
+
+**Cons:**
+- ❌ Technical debt accumulates
+- ❌ Harder to refactor later (more code)
+- ❌ May need to pause feature development for refactoring
+
+**Timeline Impact**: No delay, refactor happens in Week 19-26
+
+### Option C: Hybrid Approach (Recommended)
+**Best for**: Balance between speed and quality
+
+**Phase 2b (Weeks 7-9)**: Apply Hexagonal Architecture to existing monolith
+- Restructure code into domain/application/infrastructure layers
+- Implement repository pattern
+- Extract domain logic
+- Set up bounded contexts (as modules, not separate services)
+
+**Phase 6b (Week 19+)**: Split into microservices when needed
+- Extract one service at a time
+- Use Service Bindings for communication
+- Implement Saga Pattern as complexity grows
+
+**Pros:**
+- ✅ Better code organization now
+- ✅ Easier to test
+- ✅ Smooth migration path to microservices
+- ✅ No major timeline delay
+
+**Timeline Impact**: +2-3 weeks for Hexagonal refactoring
+
+**See**: `ARCHITECTURE.md` Section 10 for detailed decision matrix and cost analysis.
+
+---
+
+## Phase 2b (Optional): Hexagonal Architecture Refactoring (Weeks 7-9)
+
+**Only if Option A or C chosen** - Refactor backend to Hexagonal Architecture:
+
+### 2b.1 Domain Layer Setup
+- [ ] Create domain entities (Product, Order, Payment, User, Quote, Inventory)
+- [ ] Implement value objects (Price, SKU, ProductId)
+- [ ] Define domain events (ProductCreated, OrderPlaced, PaymentCompleted)
+- [ ] Add business rule validation
+
+### 2b.2 Application Layer
+- [ ] Create use cases (CreateProduct, PlaceOrder, ProcessPayment)
+- [ ] Implement application services
+- [ ] Define ports (interfaces) for repositories and external services
+- [ ] Add command/query handlers
+
+### 2b.3 Infrastructure Layer
+- [ ] Implement repository adapters (D1Database implementation)
+- [ ] Create external service adapters (Xendit payment adapter)
+- [ ] Set up dependency injection
+- [ ] Configure service bindings
+
+### 2b.4 Testing Infrastructure
+- [ ] Unit tests for domain logic
+- [ ] Integration tests for repositories
+- [ ] Mock implementations for testing
+- [ ] E2E test suite
+
+**Deliverable**: Clean, testable, maintainable codebase ready for either monolith continuation or microservices split.
+
+---
+
+## Phase 2c (Optional): Microservices Split (Weeks 7-12)
+
+**Only if Option A chosen** - Full microservices architecture:
+
+### 2c.1 Infrastructure Setup
+- [ ] Create 6 Worker services (Product, Order, Payment, User, Quote, Inventory)
+- [ ] Set up API Gateway Worker
+- [ ] Configure Service Bindings between services
+- [ ] Set up Cloudflare Queues for async communication
+- [ ] Configure Cloudflare Workflows for saga orchestration
+
+### 2c.2 Service Migration
+- [ ] **Week 7**: Product Service
+  - Extract product domain logic
+  - Implement Hexagonal Architecture (domain/application/infrastructure)
+  - Deploy as separate Worker
+- [ ] **Week 8**: User Service
+  - Extract authentication and user management
+  - Implement JWT token generation
+  - Deploy as separate Worker
+- [ ] **Week 9**: Inventory Service
+  - Extract inventory management
+  - Implement multi-warehouse support
+  - Implement reservation/release pattern
+- [ ] **Week 10**: Payment Service
+  - Extract Xendit integration
+  - Implement payment processing saga
+  - Set up webhook handlers
+- [ ] **Week 11**: Order Service
+  - Extract order management
+  - Implement order creation saga (inventory → payment → confirmation)
+  - Set up Cloudflare Workflows
+- [ ] **Week 12**: Quote Service
+  - Extract RFQ system
+  - Implement quote workflow
+
+### 2c.3 Communication Setup
+- [ ] Implement Service Bindings for sync operations
+- [ ] Set up Cloudflare Queues for async events
+  - OrderEvents queue
+  - PaymentEvents queue
+  - InventoryEvents queue
+- [ ] Configure Durable Objects for stateful operations (if needed)
+
+### 2c.4 Saga Implementation
+- [ ] Create OrderCreationSaga (Cloudflare Workflows)
+  - Step 1: Reserve inventory
+  - Step 2: Process payment
+  - Step 3: Confirm order
+  - Compensation: Refund payment, release inventory
+- [ ] Create PaymentRefundSaga
+- [ ] Add retry logic and dead letter queues
+
+### 2c.5 Testing & Deployment
+- [ ] Integration tests between services
+- [ ] End-to-end workflow tests
+- [ ] Load testing with Service Bindings
+- [ ] Deploy all services to production
+
+**Deliverable**: 6 independent microservices with event-driven communication and saga orchestration.
+
+---
+
+## Phase 3: Payment & Checkout (Weeks 7-8 or 13-14 depending on architecture choice)
 
 ### 3.1 Payment Integration
 - [ ] Integrate payment gateway (Stripe recommended for Cloudflare)
@@ -646,7 +825,7 @@ bucket_name = "wholesale-images"
 
 ---
 
-**Document Version**: 2.0
-**Last Updated**: 2025-11-13
+**Document Version**: 3.0
+**Last Updated**: 2025-11-14
 **Status**: Ready for Implementation
-**Latest Addition**: Phase 7 - Mobile Apps (Expo)
+**Latest Addition**: Architecture Evolution - Hexagonal Architecture, DDD, Event-Driven, Saga Pattern (Phase 2b/2c)

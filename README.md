@@ -42,6 +42,32 @@ A modern dual-market e-commerce platform supporting both **retail (B2C)** and **
 - ⏳ Phase 6: Optimization & launch
 - ⏳ Phase 7: Mobile apps (Expo) - Final phase
 
+## 🏛️ Architecture Overview
+
+This platform is designed with a **modern microservices architecture** following industry best practices:
+
+### Architectural Patterns
+- **Hexagonal Architecture (Ports & Adapters)** - Clean separation between domain logic and infrastructure
+- **Domain-Driven Design (DDD)** - 6 bounded contexts aligned with business domains
+- **Event-Driven Architecture** - Asynchronous communication via Cloudflare Queues
+- **Saga Pattern** - Distributed transactions with compensating actions (Cloudflare Workflows)
+
+### 6 Bounded Contexts (Microservices)
+1. **Product Service** - Product catalog, pricing, and availability
+2. **Order Service** - Order management and orchestration
+3. **Payment Service** - Payment processing (Xendit integration)
+4. **User Service** - Authentication and user management
+5. **Quote Service** - Request for Quote (RFQ) system
+6. **Inventory Service** - Multi-warehouse inventory management
+
+### Communication Patterns
+- **Service Bindings** - Synchronous RPC between Workers (FREE, ~μs latency)
+- **Cloudflare Queues** - Asynchronous messaging ($0.40/M operations)
+- **Durable Objects** - Stateful coordination ($0.15/M requests)
+- **Cloudflare Workflows** - Saga orchestration for distributed transactions
+
+**See**: [ARCHITECTURE.md](./ARCHITECTURE.md) for comprehensive architecture guide.
+
 ## 🎯 Dual-Market Strategy
 
 This platform serves **TWO distinct markets**:
@@ -60,21 +86,22 @@ This platform serves **TWO distinct markets**:
 - Company accounts
 - Separate wholesale frontend
 
-### Key Architecture Features
+### Key Business Features
 - ✅ Two separate user logins (retail_buyer vs wholesale_buyer)
 - ✅ Products can be retail-only, wholesale-only, or both
 - ✅ **Retail users CANNOT see wholesale prices** (enforced at API level)
 - ✅ Separate API endpoints (`/api/retail/*` vs `/api/wholesale/*`)
 - ✅ Admin can manage both markets from single dashboard
 
-**See**: [RETAIL_WHOLESALE_ARCHITECTURE.md](./RETAIL_WHOLESALE_ARCHITECTURE.md) for detailed architecture.
+**See**: [RETAIL_WHOLESALE_ARCHITECTURE.md](./RETAIL_WHOLESALE_ARCHITECTURE.md) for dual-market details.
 
 ## 🏗️ Project Structure
 
+### Current Structure (Phase 1-4)
 ```
 kidkazz/
 ├── apps/
-│   ├── backend/              # ✅ Hono API on Cloudflare Workers
+│   ├── backend/              # ✅ Monolithic API (Current)
 │   │   ├── src/
 │   │   │   ├── db/
 │   │   │   │   └── schema.ts           # Complete database schema
@@ -108,14 +135,74 @@ kidkazz/
 │       └── app.config.ts
 │
 ├── docs/
+│   ├── ARCHITECTURE.md                     # ✨ Comprehensive architecture guide
 │   ├── ECOMMERCE_WHOLESALE_ROADMAP.md      # Complete implementation roadmap
 │   ├── RETAIL_WHOLESALE_ARCHITECTURE.md    # Dual-market architecture
 │   ├── XENDIT_INTEGRATION.md               # Payment integration guide
 │   ├── MOBILE_APP_EXPO_GUIDE.md            # Mobile app guide (Phase 7)
+│   ├── ARCHITECTURE_PROPOSAL_HEXAGONAL_DDD.md  # Hexagonal Architecture proposal
+│   ├── EVENT_DRIVEN_ARCHITECTURE_CLOUDFLARE.md # Event-Driven Architecture guide
+│   ├── SAGA_PATTERN_DISTRIBUTED_TRANSACTIONS.md # Saga Pattern guide
 │   └── DATABASE_MIGRATION_*.md             # Migration guides
 │
 └── SETUP.md                   # Quick setup guide
 ```
+
+### Planned Microservices Structure (Phase 5+)
+```
+kidkazz/
+├── services/                 # ⏳ Microservices (Planned)
+│   ├── product-service/      # Product bounded context
+│   │   ├── src/
+│   │   │   ├── domain/       # Business logic (entities, value objects)
+│   │   │   ├── application/  # Use cases, services
+│   │   │   └── infrastructure/ # DB, external APIs
+│   │   └── wrangler.toml
+│   │
+│   ├── order-service/        # Order bounded context
+│   │   ├── src/
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   ├── infrastructure/
+│   │   │   └── sagas/        # Cloudflare Workflows for distributed transactions
+│   │   └── wrangler.toml
+│   │
+│   ├── payment-service/      # Payment bounded context
+│   │   ├── src/
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   └── infrastructure/ # Xendit integration
+│   │   └── wrangler.toml
+│   │
+│   ├── user-service/         # User bounded context
+│   │   ├── src/
+│   │   │   ├── domain/
+│   │   │   ├── application/
+│   │   │   └── infrastructure/
+│   │   └── wrangler.toml
+│   │
+│   ├── quote-service/        # Quote bounded context
+│   │   └── ...
+│   │
+│   ├── inventory-service/    # Inventory bounded context (multi-warehouse)
+│   │   └── ...
+│   │
+│   └── api-gateway/          # API Gateway Worker
+│       └── src/
+│           └── index.ts      # Routes requests via Service Bindings
+│
+├── apps/
+│   ├── admin-dashboard/      # Admin panel
+│   ├── retail-frontend/      # ⏳ Retail customer frontend (Planned)
+│   └── wholesale-frontend/   # ⏳ Wholesale buyer frontend (Planned)
+│
+└── shared/                   # ⏳ Shared code (Planned)
+    ├── domain-events/        # Domain event definitions
+    ├── types/                # Shared TypeScript types
+    └── utils/                # Common utilities
+```
+
+**Migration Strategy**: See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed migration roadmap (Week 3-8 or hybrid approach).
 
 ## 🚀 Technology Stack
 
@@ -143,13 +230,18 @@ kidkazz/
 
 ### Infrastructure
 - **Platform**: Cloudflare
-  - Workers (Edge computing)
-  - D1 (SQLite database)
-  - R2 (S3-compatible storage)
-  - KV (Key-value cache)
-  - Pages (Frontend hosting)
+  - **Workers** - Edge computing (serverless functions)
+  - **D1** - SQLite database at the edge
+  - **R2** - S3-compatible object storage
+  - **KV** - Key-value cache
+  - **Pages** - Frontend hosting
+  - **Service Bindings** - Zero-cost RPC between Workers (FREE)
+  - **Queues** - Asynchronous messaging ($0.40/M operations)
+  - **Workflows** - Durable execution for saga orchestration (GA Nov 2024)
+  - **Durable Objects** - Stateful coordination ($0.15/M requests)
 - **Package Manager**: pnpm (monorepo-friendly)
 - **Language**: TypeScript (full type safety)
+- **Architecture**: Microservices with Hexagonal Architecture + DDD
 
 ### Payment Integration
 - **Provider**: Xendit (Indonesia market)
@@ -492,9 +584,21 @@ Set these in Cloudflare dashboard:
 ## 📚 Documentation
 
 ### Primary Documentation
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - ✨ **NEW** Comprehensive architecture guide
+  - Hexagonal Architecture + DDD patterns
+  - Event-Driven Architecture with Cloudflare Queues
+  - Saga Pattern for distributed transactions
+  - 6 bounded contexts (microservices)
+  - Migration roadmap (Week 3-8 or hybrid approach)
+  - Cost analysis ($5-6/month vs AWS $154/month)
 - **[ECOMMERCE_WHOLESALE_ROADMAP.md](./ECOMMERCE_WHOLESALE_ROADMAP.md)** - Complete 34-week roadmap (7 phases)
 - **[SETUP.md](./SETUP.md)** - Step-by-step setup guide
 - **[RETAIL_WHOLESALE_ARCHITECTURE.md](./RETAIL_WHOLESALE_ARCHITECTURE.md)** - Dual-market architecture details
+
+### Architecture Deep Dives
+- **[docs/ARCHITECTURE_PROPOSAL_HEXAGONAL_DDD.md](./docs/ARCHITECTURE_PROPOSAL_HEXAGONAL_DDD.md)** - Hexagonal Architecture proposal
+- **[docs/EVENT_DRIVEN_ARCHITECTURE_CLOUDFLARE.md](./docs/EVENT_DRIVEN_ARCHITECTURE_CLOUDFLARE.md)** - Event-Driven patterns
+- **[docs/SAGA_PATTERN_DISTRIBUTED_TRANSACTIONS.md](./docs/SAGA_PATTERN_DISTRIBUTED_TRANSACTIONS.md)** - Saga Pattern implementation
 
 ### Integration Guides
 - **[XENDIT_INTEGRATION.md](./XENDIT_INTEGRATION.md)** - Payment integration guide
@@ -513,19 +617,74 @@ Set these in Cloudflare dashboard:
 - [Xendit API](https://developers.xendit.co/)
 - [Drizzle ORM](https://orm.drizzle.team/)
 
+## 💰 Cost Analysis (Microservices Architecture)
+
+Our Cloudflare-based microservices architecture is **extremely cost-effective** compared to traditional cloud providers:
+
+### Cloudflare Costs (10K orders/month)
+| Service | Usage | Cost |
+|---------|-------|------|
+| **Workers** (6 services) | 6M requests | $0.30/month |
+| **Service Bindings** | Unlimited RPC | **FREE** |
+| **D1 Database** | 10M reads, 1M writes | $1.50/month |
+| **Cloudflare Queues** | 500K operations | $0.20/month |
+| **Cloudflare Workflows** | 50K runs | $2.50/month |
+| **Durable Objects** | Minimal usage | $0.50/month |
+| **KV Storage** | Session/cache | FREE (1GB) |
+| **R2 Storage** | Images | $0.50/month |
+| **Pages** | 3 frontends | FREE |
+| **TOTAL** | | **~$5-6/month** |
+
+### Comparison: AWS Alternative (Same Scale)
+| Service | Cost |
+|---------|------|
+| EC2 (t3.medium × 3) | $75/month |
+| RDS PostgreSQL | $45/month |
+| Lambda invocations | $15/month |
+| SQS messages | $5/month |
+| S3 storage | $2/month |
+| CloudFront | $10/month |
+| Load Balancer | $18/month |
+| **TOTAL** | **~$170/month** |
+
+**Savings**: 97% reduction in infrastructure costs ($5 vs $170/month)
+
+**Additional Benefits**:
+- Zero cold starts (edge computing)
+- Global distribution (300+ cities)
+- No server management
+- Automatic scaling
+- Service Bindings are FREE (vs AWS PrivateLink $7.50/month per endpoint)
+
+**See**: [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed cost breakdown and scaling analysis.
+
 ## 🎯 Next Steps
 
+### 🏛️ Architecture Decision (NEW)
+**Choose your refactoring path** - See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed analysis:
+- **Option A**: Refactor to microservices now (Week 3-8) - Best for long-term maintainability
+- **Option B**: Keep monolith, refactor after frontends (Week 19+) - Faster to market
+- **Option C**: Hybrid approach - Apply Hexagonal Architecture now, split services later
+
 ### Immediate Priorities (Phase 4 Completion)
-1. 🔄 Implement JWT authentication middleware
-2. 🔄 Add password hashing
-3. 🔄 Set up Cloudflare R2 for image uploads
-4. 🔄 Create image upload endpoints
-5. 🔄 Test end-to-end payment flow
+1. 🔄 **Decide on architecture refactoring approach** (see ARCHITECTURE.md)
+2. 🔄 Implement JWT authentication middleware
+3. 🔄 Add password hashing
+4. 🔄 Set up Cloudflare R2 for image uploads
+5. 🔄 Create image upload endpoints
+6. 🔄 Test end-to-end payment flow
 
 ### Phase 5 (Weeks 13-18)
 - Build Retail Frontend (TanStack Start)
 - Build Wholesale Frontend (TanStack Start)
 - Enhance Admin Dashboard with dual-pricing UI
+
+### Phase 5b (Optional - If Option A chosen)
+- Refactor backend to microservices (Week 3-8)
+- Implement 6 bounded contexts
+- Set up Service Bindings and API Gateway
+- Migrate to Event-Driven Architecture
+- Implement Saga Pattern with Cloudflare Workflows
 
 ### Phase 6 (Weeks 19-22)
 - Performance optimization
