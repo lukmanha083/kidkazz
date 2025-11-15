@@ -36,15 +36,6 @@
     ]
   },
 
-  // Workflows for Saga orchestration
-  "workflows": [
-    {
-      "name": "create-order-saga",
-      "binding": "CREATE_ORDER_SAGA",
-      "class_name": "CreateOrderSaga"
-    }
-  ],
-
   // Service bindings to other services
   "services": [
     {

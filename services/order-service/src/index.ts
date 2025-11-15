@@ -6,7 +6,7 @@ import routes from './infrastructure/http/routes';
 type Bindings = {
   DB: D1Database;
   ORDER_EVENTS_QUEUE: Queue;
-  CREATE_ORDER_SAGA: Workflow;
+  // Workflow bindings will be added in Phase 2 for saga orchestration
   PRODUCT_SERVICE: Fetcher;
   PAYMENT_SERVICE: Fetcher;
   INVENTORY_SERVICE: Fetcher;
