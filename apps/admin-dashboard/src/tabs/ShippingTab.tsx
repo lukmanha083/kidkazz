@@ -1,10 +1,11 @@
 import { useState } from 'react';
+import type { ShippingRateResponse } from '../types';
 
 export default function ShippingTab() {
   const [originCity, setOriginCity] = useState('Jakarta');
   const [destinationCity, setDestinationCity] = useState('Bandung');
   const [weight, setWeight] = useState('1000');
-  const [response, setResponse] = useState<any>(null);
+  const [response, setResponse] = useState<ShippingRateResponse | { success: false; error: string } | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleGetRates = async () => {

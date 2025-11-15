@@ -1,9 +1,9 @@
 import { DrizzleD1Database } from 'drizzle-orm/d1';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { IProductRepository } from '../../domain/repositories/IProductRepository';
-import { Product, ProductAvailability } from '../../domain/entities/Product';
+import { Product } from '../../domain/entities/Product';
 import { products } from '../db/schema';
-import { Result, ResultFactory, Price, SKU, NotFoundError } from '@kidkazz/types';
+import { Result, ResultFactory } from '@kidkazz/types';
 
 /**
  * Drizzle Product Repository (Adapter)
@@ -142,7 +142,18 @@ export class DrizzleProductRepository implements IProductRepository {
   /**
    * Map database row to domain entity
    */
-  private toDomain(row: any): Product {
+  private toDomain(row: {
+    id: string;
+    name: string;
+    sku: string;
+    description: string | null;
+    retailPrice: number | null;
+    basePrice: number;
+    availableForRetail: number;
+    availableForWholesale: number;
+    minimumOrderQuantity: number;
+    status: string;
+  }): Product {
     // Using a workaround since we can't directly instantiate Product
     // In production, we'd add a reconstitute factory method to Product entity
     const productResult = Product.create({
@@ -162,6 +173,12 @@ export class DrizzleProductRepository implements IProductRepository {
       throw new Error('Failed to reconstitute product from database');
     }
 
-    return productResult.value!;
+    // At this point we know value exists because isSuccess is true
+    const product = productResult.value;
+    if (!product) {
+      throw new Error('Failed to reconstitute product from database');
+    }
+
+    return product;
   }
 }

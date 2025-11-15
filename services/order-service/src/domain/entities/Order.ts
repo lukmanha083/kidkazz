@@ -1,7 +1,25 @@
 import { OrderId, UserId, ProductId, Result, ResultFactory, InvalidOperationError, Price } from '@kidkazz/types';
 import { OrderCreated, OrderConfirmed, OrderCancelled } from '@kidkazz/domain-events';
 import { generateId, generateTimestamp } from '@kidkazz/utils';
-import { OrderStatus, OrderStatusType } from '../value-objects/OrderStatus';
+import { OrderStatus } from '../value-objects/OrderStatus';
+
+/**
+ * Domain Event base type
+ */
+export type DomainEvent = OrderCreated | OrderConfirmed | OrderCancelled;
+
+/**
+ * Shipping Address Value Object
+ */
+export interface ShippingAddress {
+  recipientName: string;
+  phone: string;
+  address: string;
+  city: string;
+  postalCode: string;
+  province?: string;
+  country?: string;
+}
 
 /**
  * Order Item Value Object
@@ -79,7 +97,7 @@ export class OrderItem {
  * Rich domain object with business logic
  */
 export class Order {
-  private domainEvents: any[] = [];
+  private domainEvents: DomainEvent[] = [];
 
   private constructor(
     private readonly id: OrderId,
@@ -89,7 +107,7 @@ export class Order {
     private items: OrderItem[],
     private status: OrderStatus,
     private paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded',
-    private readonly shippingAddress: any,
+    private readonly shippingAddress: ShippingAddress,
     private shippingCost: number
   ) {}
 
@@ -100,7 +118,7 @@ export class Order {
     userId: UserId;
     customerType: 'retail' | 'wholesale';
     items: OrderItem[];
-    shippingAddress: any;
+    shippingAddress: ShippingAddress;
     shippingCost?: number;
   }): Result<Order> {
     // Business Rule: Order must have at least one item
@@ -232,7 +250,7 @@ export class Order {
     return this.items;
   }
 
-  getShippingAddress(): any {
+  getShippingAddress(): ShippingAddress {
     return this.shippingAddress;
   }
 
@@ -241,11 +259,11 @@ export class Order {
   }
 
   // Domain Events Management
-  private addDomainEvent(event: any): void {
+  private addDomainEvent(event: DomainEvent): void {
     this.domainEvents.push(event);
   }
 
-  getDomainEvents(): any[] {
+  getDomainEvents(): DomainEvent[] {
     return this.domainEvents;
   }
 

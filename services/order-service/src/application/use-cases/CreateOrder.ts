@@ -1,4 +1,4 @@
-import { Order, OrderItem } from '../../domain/entities/Order';
+import { Order, OrderItem, ShippingAddress } from '../../domain/entities/Order';
 import { IOrderRepository } from '../../domain/repositories/IOrderRepository';
 import { Result, ResultFactory, ValidationError } from '@kidkazz/types';
 
@@ -12,7 +12,8 @@ export class CreateOrderUseCase {
     // Validate input
     const validation = this.validate(input);
     if (!validation.isSuccess) {
-      return ResultFactory.fail(validation.error!);
+      const error = validation.error || new ValidationError('Validation failed');
+      return ResultFactory.fail(error);
     }
 
     // Create order items
@@ -28,10 +29,15 @@ export class CreateOrderUseCase {
       });
 
       if (!orderItemResult.isSuccess) {
-        return ResultFactory.fail(orderItemResult.error!);
+        const error = orderItemResult.error || new ValidationError('Failed to create order item');
+        return ResultFactory.fail(error);
       }
 
-      orderItems.push(orderItemResult.value!);
+      const orderItem = orderItemResult.value;
+      if (!orderItem) {
+        return ResultFactory.fail(new ValidationError('Failed to create order item'));
+      }
+      orderItems.push(orderItem);
     }
 
     // Create order entity
@@ -44,15 +50,20 @@ export class CreateOrderUseCase {
     });
 
     if (!orderResult.isSuccess) {
-      return ResultFactory.fail(orderResult.error!);
+      const error = orderResult.error || new ValidationError('Failed to create order');
+      return ResultFactory.fail(error);
     }
 
-    const order = orderResult.value!;
+    const order = orderResult.value;
+    if (!order) {
+      return ResultFactory.fail(new ValidationError('Failed to create order'));
+    }
 
     // Persist order
     const saveResult = await this.orderRepository.save(order);
     if (!saveResult.isSuccess) {
-      return ResultFactory.fail(saveResult.error!);
+      const error = saveResult.error || new Error('Failed to save order');
+      return ResultFactory.fail(error);
     }
 
     // TODO: Publish domain events
@@ -95,7 +106,7 @@ export interface CreateOrderInput {
     quantity: number;
     discount?: number;
   }>;
-  shippingAddress: any;
+  shippingAddress: ShippingAddress;
   shippingCost?: number;
 }
 
@@ -104,5 +115,13 @@ export interface CreateOrderOutput {
   orderNumber: string;
   status: string;
   totalAmount: number;
-  items: any[];
+  items: Array<{
+    productId: string;
+    productName: string;
+    sku: string;
+    unitPrice: number;
+    quantity: number;
+    discount: number;
+    totalPrice: number;
+  }>;
 }

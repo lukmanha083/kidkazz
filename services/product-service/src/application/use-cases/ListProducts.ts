@@ -16,10 +16,12 @@ export class ListProductsUseCase {
     });
 
     if (!result.isSuccess) {
-      return ResultFactory.fail(result.error!);
+      const error = result.error || new Error('Failed to list products');
+      return ResultFactory.fail(error);
     }
 
-    const products = result.value!.map((product) => ({
+    const productList = result.value || [];
+    const products = productList.map((product) => ({
       productId: product.getId(),
       name: product.getName(),
       sku: product.getSKU().getValue(),

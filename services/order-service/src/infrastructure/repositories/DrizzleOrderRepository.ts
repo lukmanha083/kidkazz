@@ -1,7 +1,7 @@
 import { DrizzleD1Database } from 'drizzle-orm/d1';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { IOrderRepository } from '../../domain/repositories/IOrderRepository';
-import { Order, OrderItem } from '../../domain/entities/Order';
+import { Order } from '../../domain/entities/Order';
 import { orders } from '../db/schema';
 import { Result, ResultFactory } from '@kidkazz/types';
 
@@ -53,22 +53,22 @@ export class DrizzleOrderRepository implements IOrderRepository {
     }
   }
 
-  async findById(id: string): Promise<Result<Order | null>> {
+  async findById(_id: string): Promise<Result<Order | null>> {
     // PLACEHOLDER - Returns null for now
     return ResultFactory.ok(null);
   }
 
-  async findByOrderNumber(orderNumber: string): Promise<Result<Order | null>> {
+  async findByOrderNumber(_orderNumber: string): Promise<Result<Order | null>> {
     // PLACEHOLDER
     return ResultFactory.ok(null);
   }
 
-  async findByUserId(userId: string): Promise<Result<Order[]>> {
+  async findByUserId(_userId: string): Promise<Result<Order[]>> {
     // PLACEHOLDER
     return ResultFactory.ok([]);
   }
 
-  async findAll(filters?: {
+  async findAll(_filters?: {
     status?: string;
     customerType?: 'retail' | 'wholesale';
   }): Promise<Result<Order[]>> {

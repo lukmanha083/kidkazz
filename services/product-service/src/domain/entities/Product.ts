@@ -3,6 +3,11 @@ import { ProductCreated, ProductPriceUpdated, ProductAvailabilityChanged } from 
 import { generateId, generateTimestamp } from '@kidkazz/utils';
 
 /**
+ * Domain Event base type for Product
+ */
+export type ProductDomainEvent = ProductCreated | ProductPriceUpdated | ProductAvailabilityChanged;
+
+/**
  * Product Availability Value Object
  */
 export class ProductAvailability {
@@ -36,7 +41,7 @@ export class ProductAvailability {
  * Rich domain object with business logic
  */
 export class Product {
-  private domainEvents: any[] = [];
+  private domainEvents: ProductDomainEvent[] = [];
 
   private constructor(
     private readonly id: ProductId,
@@ -233,11 +238,11 @@ export class Product {
   }
 
   // Domain Events Management
-  private addDomainEvent(event: any): void {
+  private addDomainEvent(event: ProductDomainEvent): void {
     this.domainEvents.push(event);
   }
 
-  getDomainEvents(): any[] {
+  getDomainEvents(): ProductDomainEvent[] {
     return this.domainEvents;
   }
 

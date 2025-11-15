@@ -61,10 +61,11 @@ app.post('/api/products', zValidator('json', createProductSchema), async (c) => 
     const result = await useCase.execute(input);
 
     if (!result.isSuccess) {
+      const error = result.error || new Error('Unknown error');
       return c.json(
         {
-          error: result.error!.name,
-          message: result.error!.message,
+          error: error.name,
+          message: error.message,
         },
         400
       );
@@ -97,10 +98,11 @@ app.get('/api/products/:id', async (c) => {
     const result = await useCase.execute(productId);
 
     if (!result.isSuccess) {
+      const error = result.error || new Error('Unknown error');
       return c.json(
         {
-          error: result.error!.name,
-          message: result.error!.message,
+          error: error.name,
+          message: error.message,
         },
         404
       );
@@ -141,10 +143,11 @@ app.get('/api/products', async (c) => {
     });
 
     if (!result.isSuccess) {
+      const error = result.error || new Error('Unknown error');
       return c.json(
         {
-          error: result.error!.name,
-          message: result.error!.message,
+          error: error.name,
+          message: error.message,
         },
         400
       );
@@ -182,10 +185,11 @@ app.patch('/api/products/:id/price', zValidator('json', updatePriceSchema), asyn
     });
 
     if (!result.isSuccess) {
+      const error = result.error || new Error('Unknown error');
       return c.json(
         {
-          error: result.error!.name,
-          message: result.error!.message,
+          error: error.name,
+          message: error.message,
         },
         400
       );

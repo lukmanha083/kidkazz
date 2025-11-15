@@ -19,13 +19,15 @@ export class RegisterUserUseCase {
     // Validate input
     const validation = this.validate(input);
     if (!validation.isSuccess) {
-      return ResultFactory.fail(validation.error!);
+      const error = validation.error || new ValidationError('Validation failed');
+      return ResultFactory.fail(error);
     }
 
     // Check if user already exists
     const existingUser = await this.userRepository.findByEmail(input.email);
     if (!existingUser.isSuccess) {
-      return ResultFactory.fail(existingUser.error!);
+      const error = existingUser.error || new Error('Failed to check existing user');
+      return ResultFactory.fail(error);
     }
 
     if (existingUser.value) {
@@ -50,15 +52,20 @@ export class RegisterUserUseCase {
     });
 
     if (!userResult.isSuccess) {
-      return ResultFactory.fail(userResult.error!);
+      const error = userResult.error || new ValidationError('Failed to create user');
+      return ResultFactory.fail(error);
     }
 
-    const user = userResult.value!;
+    const user = userResult.value;
+    if (!user) {
+      return ResultFactory.fail(new ValidationError('Failed to create user'));
+    }
 
     // Persist user
     const saveResult = await this.userRepository.save(user);
     if (!saveResult.isSuccess) {
-      return ResultFactory.fail(saveResult.error!);
+      const error = saveResult.error || new Error('Failed to save user');
+      return ResultFactory.fail(error);
     }
 
     // TODO: Publish domain events

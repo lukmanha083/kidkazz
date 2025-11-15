@@ -1,8 +1,11 @@
 import { useState } from 'react';
+import type { ApiResponse, CreateProductResponse, ProductListResponse } from '../types';
 
 interface ProductsTabProps {
   token: string;
 }
+
+type ProductResponse = ApiResponse<CreateProductResponse | ProductListResponse>;
 
 export default function ProductsTab({ token }: ProductsTabProps) {
   const [name, setName] = useState('Premium T-Shirt');
@@ -13,7 +16,7 @@ export default function ProductsTab({ token }: ProductsTabProps) {
   const [availableForRetail, setAvailableForRetail] = useState(true);
   const [availableForWholesale, setAvailableForWholesale] = useState(true);
   const [minimumOrderQuantity, setMinimumOrderQuantity] = useState('1');
-  const [response, setResponse] = useState<any>(null);
+  const [response, setResponse] = useState<ProductResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleCreateProduct = async () => {

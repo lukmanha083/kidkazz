@@ -1,4 +1,5 @@
 import { IOrderRepository } from '../../domain/repositories/IOrderRepository';
+import { ShippingAddress } from '../../domain/entities/Order';
 import { Result, ResultFactory, NotFoundError } from '@kidkazz/types';
 
 /**
@@ -11,7 +12,8 @@ export class GetOrderUseCase {
     const result = await this.orderRepository.findById(orderId);
 
     if (!result.isSuccess) {
-      return ResultFactory.fail(result.error!);
+      const error = result.error || new Error('Failed to find order');
+      return ResultFactory.fail(error);
     }
 
     if (!result.value) {
@@ -44,6 +46,14 @@ export interface GetOrderOutput {
   paymentStatus: string;
   totalAmount: number;
   shippingCost: number;
-  shippingAddress: any;
-  items: any[];
+  shippingAddress: ShippingAddress;
+  items: Array<{
+    productId: string;
+    productName: string;
+    sku: string;
+    unitPrice: number;
+    quantity: number;
+    discount: number;
+    totalPrice: number;
+  }>;
 }

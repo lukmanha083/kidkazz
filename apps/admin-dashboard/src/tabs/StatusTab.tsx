@@ -27,7 +27,8 @@ export default function StatusTab() {
           ...service,
           status: data.status === 'healthy' ? 'healthy' : 'error',
         } as ServiceStatus;
-      } catch (error) {
+      } catch {
+        // Service is offline or unreachable
         return {
           ...service,
           status: 'error',

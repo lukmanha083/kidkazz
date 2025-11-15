@@ -1,13 +1,16 @@
 import { useState } from 'react';
+import type { ApiResponse, CreateOrderResponse, OrderListResponse } from '../types';
 
 interface OrdersTabProps {
   token: string;
 }
 
+type OrderResponse = ApiResponse<CreateOrderResponse | OrderListResponse>;
+
 export default function OrdersTab({ token }: OrdersTabProps) {
   const [userId, setUserId] = useState('');
   const [customerType, setCustomerType] = useState<'retail' | 'wholesale'>('retail');
-  const [response, setResponse] = useState<any>(null);
+  const [response, setResponse] = useState<OrderResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleCreateOrder = async () => {

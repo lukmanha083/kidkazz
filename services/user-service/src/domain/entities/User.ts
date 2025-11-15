@@ -6,11 +6,16 @@ export type UserType = 'retail' | 'wholesale' | 'admin';
 export type UserStatus = 'active' | 'inactive' | 'suspended';
 
 /**
+ * Domain Event base type for User
+ */
+export type UserDomainEvent = UserRegistered | UserStatusChanged;
+
+/**
  * User Entity (Domain Model)
  * Represents a user account in the system
  */
 export class User {
-  private domainEvents: any[] = [];
+  private domainEvents: UserDomainEvent[] = [];
 
   private constructor(
     private readonly id: UserId,
@@ -218,11 +223,11 @@ export class User {
   }
 
   // Domain Events Management
-  private addDomainEvent(event: any): void {
+  private addDomainEvent(event: UserDomainEvent): void {
     this.domainEvents.push(event);
   }
 
-  getDomainEvents(): any[] {
+  getDomainEvents(): UserDomainEvent[] {
     return this.domainEvents;
   }
 

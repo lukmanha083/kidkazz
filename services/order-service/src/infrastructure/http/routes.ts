@@ -57,10 +57,11 @@ app.post('/api/orders', zValidator('json', createOrderSchema), async (c) => {
     const result = await useCase.execute(input);
 
     if (!result.isSuccess) {
+      const error = result.error || new Error('Unknown error');
       return c.json(
         {
-          error: result.error!.name,
-          message: result.error!.message,
+          error: error.name,
+          message: error.message,
         },
         400
       );
@@ -90,7 +91,8 @@ app.get('/api/orders/:id', async (c) => {
     const result = await useCase.execute(orderId);
 
     if (!result.isSuccess) {
-      return c.json({ error: result.error!.name, message: result.error!.message }, 404);
+      const error = result.error || new Error('Unknown error');
+      return c.json({ error: error.name, message: error.message }, 404);
     }
 
     return c.json(result.value);
@@ -119,7 +121,8 @@ app.get('/api/orders', async (c) => {
     const result = await useCase.execute({ status, customerType });
 
     if (!result.isSuccess) {
-      return c.json({ error: result.error!.name, message: result.error!.message }, 400);
+      const error = result.error || new Error('Unknown error');
+      return c.json({ error: error.name, message: error.message }, 400);
     }
 
     return c.json(result.value);

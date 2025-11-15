@@ -21,7 +21,8 @@ export class UpdateProductPriceUseCase {
     // Find product
     const productResult = await this.productRepository.findById(input.productId);
     if (!productResult.isSuccess) {
-      return ResultFactory.fail(productResult.error!);
+      const error = productResult.error || new Error('Failed to find product');
+      return ResultFactory.fail(error);
     }
 
     if (!productResult.value) {
@@ -39,13 +40,15 @@ export class UpdateProductPriceUseCase {
     }
 
     if (!updateResult.isSuccess) {
-      return ResultFactory.fail(updateResult.error!);
+      const error = updateResult.error || new ValidationError('Failed to update price');
+      return ResultFactory.fail(error);
     }
 
     // Persist changes
     const saveResult = await this.productRepository.save(product);
     if (!saveResult.isSuccess) {
-      return ResultFactory.fail(saveResult.error!);
+      const error = saveResult.error || new Error('Failed to save product');
+      return ResultFactory.fail(error);
     }
 
     // TODO: Publish domain events

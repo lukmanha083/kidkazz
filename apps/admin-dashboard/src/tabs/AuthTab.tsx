@@ -1,16 +1,19 @@
 import { useState } from 'react';
+import type { ApiResponse, LoginResponse, RegisterResponse, UserProfile } from '../types';
 
 interface AuthTabProps {
   token: string;
   setToken: (token: string) => void;
 }
 
+type AuthResponse = ApiResponse<LoginResponse | RegisterResponse | UserProfile>;
+
 export default function AuthTab({ token, setToken }: AuthTabProps) {
   const [email, setEmail] = useState('admin@kidkazz.com');
   const [password, setPassword] = useState('Admin123!');
   const [fullName, setFullName] = useState('Admin User');
   const [userType, setUserType] = useState<'retail' | 'wholesale' | 'admin'>('admin');
-  const [response, setResponse] = useState<any>(null);
+  const [response, setResponse] = useState<AuthResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
@@ -100,7 +103,7 @@ export default function AuthTab({ token, setToken }: AuthTabProps) {
         </div>
         <div className="form-group">
           <label>User Type</label>
-          <select value={userType} onChange={(e) => setUserType(e.target.value as any)}>
+          <select value={userType} onChange={(e) => setUserType(e.target.value as 'retail' | 'wholesale' | 'admin')}>
             <option value="admin">Admin</option>
             <option value="retail">Retail Customer</option>
             <option value="wholesale">Wholesale Customer</option>

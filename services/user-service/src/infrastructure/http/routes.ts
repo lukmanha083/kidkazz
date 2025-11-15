@@ -54,10 +54,11 @@ app.post('/api/auth/register', zValidator('json', registerSchema), async (c) => 
     const result = await useCase.execute(input);
 
     if (!result.isSuccess) {
+      const error = result.error || new Error('Unknown error');
       return c.json(
         {
-          error: result.error!.name,
-          message: result.error!.message,
+          error: error.name,
+          message: error.message,
         },
         400
       );
@@ -102,11 +103,12 @@ app.post('/api/auth/login', zValidator('json', loginSchema), async (c) => {
     const result = await useCase.execute(input);
 
     if (!result.isSuccess) {
-      const statusCode = result.error!.name === 'UnauthorizedError' ? 401 : 400;
+      const error = result.error || new Error('Unknown error');
+      const statusCode = error.name === 'UnauthorizedError' ? 401 : 400;
       return c.json(
         {
-          error: result.error!.name,
-          message: result.error!.message,
+          error: error.name,
+          message: error.message,
         },
         statusCode
       );

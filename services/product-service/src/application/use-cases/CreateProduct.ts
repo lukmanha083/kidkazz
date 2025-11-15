@@ -13,13 +13,15 @@ export class CreateProductUseCase {
     // Validate input
     const validation = this.validate(input);
     if (!validation.isSuccess) {
-      return ResultFactory.fail(validation.error!);
+      const error = validation.error || new ValidationError('Validation failed');
+      return ResultFactory.fail(error);
     }
 
     // Check if SKU already exists
     const existingProduct = await this.productRepository.findBySKU(input.sku);
     if (!existingProduct.isSuccess) {
-      return ResultFactory.fail(existingProduct.error!);
+      const error = existingProduct.error || new Error('Failed to check SKU');
+      return ResultFactory.fail(error);
     }
 
     if (existingProduct.value) {
@@ -43,15 +45,20 @@ export class CreateProductUseCase {
     });
 
     if (!productResult.isSuccess) {
-      return ResultFactory.fail(productResult.error!);
+      const error = productResult.error || new ValidationError('Failed to create product');
+      return ResultFactory.fail(error);
     }
 
-    const product = productResult.value!;
+    const product = productResult.value;
+    if (!product) {
+      return ResultFactory.fail(new ValidationError('Failed to create product'));
+    }
 
     // Persist product
     const saveResult = await this.productRepository.save(product);
     if (!saveResult.isSuccess) {
-      return ResultFactory.fail(saveResult.error!);
+      const error = saveResult.error || new Error('Failed to save product');
+      return ResultFactory.fail(error);
     }
 
     // TODO: Publish domain events to queue

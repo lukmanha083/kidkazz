@@ -12,7 +12,8 @@ export class GetProductUseCase {
     const result = await this.productRepository.findById(productId);
 
     if (!result.isSuccess) {
-      return ResultFactory.fail(result.error!);
+      const error = result.error || new Error('Failed to find product');
+      return ResultFactory.fail(error);
     }
 
     if (!result.value) {

@@ -14,10 +14,12 @@ export class ListOrdersUseCase {
     });
 
     if (!result.isSuccess) {
-      return ResultFactory.fail(result.error!);
+      const error = result.error || new Error('Failed to list orders');
+      return ResultFactory.fail(error);
     }
 
-    const orders = result.value!.map((order) => ({
+    const orderList = result.value || [];
+    const orders = orderList.map((order) => ({
       orderId: order.getId(),
       orderNumber: order.getOrderNumber(),
       userId: order.getUserId(),

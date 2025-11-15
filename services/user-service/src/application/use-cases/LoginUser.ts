@@ -1,6 +1,6 @@
 import { compare } from 'bcryptjs';
 import { IUserRepository } from './RegisterUser';
-import { JWTService, TokenPair } from '../../infrastructure/auth/JWTService';
+import { JWTService } from '../../infrastructure/auth/JWTService';
 import { Result, ResultFactory, ValidationError, UnauthorizedError } from '@kidkazz/types';
 
 /**
@@ -24,7 +24,8 @@ export class LoginUserUseCase {
     // Find user by email
     const userResult = await this.userRepository.findByEmail(input.email);
     if (!userResult.isSuccess) {
-      return ResultFactory.fail(userResult.error!);
+      const error = userResult.error || new Error('Failed to find user');
+      return ResultFactory.fail(error);
     }
 
     if (!userResult.value) {

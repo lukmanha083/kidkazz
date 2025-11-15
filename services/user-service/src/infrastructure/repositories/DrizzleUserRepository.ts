@@ -1,9 +1,9 @@
 import { DrizzleD1Database } from 'drizzle-orm/d1';
 import { eq } from 'drizzle-orm';
 import { IUserRepository } from '../../application/use-cases/RegisterUser';
-import { User, UserType, UserStatus } from '../../domain/entities/User';
+import { User, UserType } from '../../domain/entities/User';
 import { users } from '../db/schema';
-import { Result, ResultFactory, Email } from '@kidkazz/types';
+import { Result, ResultFactory } from '@kidkazz/types';
 
 /**
  * Drizzle User Repository (Adapter)
@@ -101,7 +101,19 @@ export class DrizzleUserRepository implements IUserRepository {
   /**
    * Map database row to domain entity
    */
-  private toDomain(row: any): User {
+  private toDomain(row: {
+    id: string;
+    email: string;
+    passwordHash: string;
+    fullName: string;
+    phoneNumber: string | null;
+    userType: string;
+    companyName: string | null;
+    businessLicense: string | null;
+    taxId: string | null;
+    emailVerified: number;
+    status: string;
+  }): User {
     const userResult = User.create({
       email: row.email,
       passwordHash: row.passwordHash,
@@ -117,7 +129,10 @@ export class DrizzleUserRepository implements IUserRepository {
       throw new Error('Failed to reconstitute user from database');
     }
 
-    const user = userResult.value!;
+    const user = userResult.value;
+    if (!user) {
+      throw new Error('Failed to reconstitute user from database');
+    }
 
     // Restore state that can't be set via constructor
     if (row.emailVerified) {
