@@ -12,9 +12,9 @@
   // D1 Database binding
   "d1_databases": [
     {
-      "binding": "DB",
+      "binding": "order_db",
       "database_name": "order-db",
-      "database_id": "PLACEHOLDER" // Run: wrangler d1 create order-db
+      "database_id": "862f659f-7416-4e19-9a31-0a6ebdd90469" // Run: wrangler d1 create order-db
     }
   ],
 

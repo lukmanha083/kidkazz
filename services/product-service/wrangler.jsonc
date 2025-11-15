@@ -12,9 +12,9 @@
   // D1 Database binding
   "d1_databases": [
     {
-      "binding": "DB",
+      "binding": "product_db",
       "database_name": "product-db",
-      "database_id": "PLACEHOLDER" // Run: wrangler d1 create product-db
+      "database_id": "43857977-dffc-4978-bbc9-b64d0f60bc69" // Run: wrangler d1 create product-db
     }
   ],
 

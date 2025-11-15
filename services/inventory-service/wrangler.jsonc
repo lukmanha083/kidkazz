@@ -12,9 +12,9 @@
   // D1 Database binding
   "d1_databases": [
     {
-      "binding": "DB",
+      "binding": "inventory_db",
       "database_name": "inventory-db",
-      "database_id": "PLACEHOLDER" // Run: wrangler d1 create inventory-db
+      "database_id": "904fdb02-3a8f-4bb6-9117-5008f6deb3ae" // Run: wrangler d1 create inventory-db
     }
   ],
 

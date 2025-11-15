@@ -14,7 +14,7 @@
     {
       "binding": "DB",
       "database_name": "payment-db",
-      "database_id": "PLACEHOLDER" // Run: wrangler d1 create payment-db
+      "database_id": "83a5f9b4-797f-4945-8e87-d204abb11a3f" // Run: wrangler d1 create payment-db
     }
   ],
 

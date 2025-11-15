@@ -12,9 +12,9 @@
   // D1 Database binding
   "d1_databases": [
     {
-      "binding": "DB",
+      "binding": "user_db",
       "database_name": "user-db",
-      "database_id": "PLACEHOLDER" // Run: wrangler d1 create user-db
+      "database_id": "d026d924-c884-4390-90e3-d82f36f50617" // Run: wrangler d1 create user-db
     }
   ],
 
