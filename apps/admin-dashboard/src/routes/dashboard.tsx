@@ -10,10 +10,10 @@ import {
   X,
   Bell,
   Search,
-  ShoppingBag
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Logo } from '@/components/Logo';
 import { useState } from 'react';
 
 export const Route = createFileRoute('/dashboard')({
@@ -65,15 +65,8 @@ function DashboardLayout() {
           </Button>
 
           {/* Logo */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center w-8 h-8 bg-black rounded-lg">
-              <ShoppingBag className="w-5 h-5 text-white" strokeWidth={2.5} />
-            </div>
-            <div className="hidden sm:block">
-              <h1 className="text-lg font-bold tracking-tight">KidKazz</h1>
-              <p className="text-[10px] text-muted-foreground leading-none">Admin Dashboard</p>
-            </div>
-          </div>
+          <Logo size="md" showText={true} className="hidden sm:flex" />
+          <Logo size="md" showText={false} className="sm:hidden" />
 
           {/* Search */}
           <div className="flex-1 max-w-md hidden md:block">
