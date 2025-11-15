@@ -96,8 +96,9 @@ function DashboardLayout() {
 
       <div className="flex">
         {/* Sidebar - Desktop */}
-        <aside className="hidden lg:block w-64 border-r bg-card min-h-[calc(100vh-4rem)]">
-          <nav className="p-4 space-y-1">
+        <aside className="hidden lg:flex lg:flex-col w-64 border-r bg-card h-[calc(100vh-4rem)] sticky top-16">
+          {/* Navigation */}
+          <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.href);
@@ -120,8 +121,8 @@ function DashboardLayout() {
             })}
           </nav>
 
-          {/* Sidebar Footer */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 border-t">
+          {/* Sidebar Footer - Sticky at Bottom */}
+          <div className="p-4 border-t bg-card">
             <div className="bg-muted/50 rounded-lg p-3 space-y-1">
               <p className="text-xs font-medium">Admin User</p>
               <p className="text-[10px] text-muted-foreground">admin@kidkazz.com</p>

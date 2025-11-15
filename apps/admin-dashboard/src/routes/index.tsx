@@ -33,12 +33,14 @@ function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="w-full max-w-md px-4">
         {/* Logo & Brand */}
-        <div className="flex flex-col items-center mb-8">
-          <Logo size="lg" showText={false} className="mb-4" />
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">kidkazz</h1>
-          <p className="text-sm text-muted-foreground mt-2">
-            Sign in to manage your e-commerce platform
-          </p>
+        <div className="flex flex-col items-center mb-8 space-y-3">
+          <Logo size="lg" showText={false} />
+          <div className="flex flex-col items-center space-y-1">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">kidkazz</h1>
+            <p className="text-sm text-muted-foreground text-center">
+              Sign in to manage your e-commerce platform
+            </p>
+          </div>
         </div>
 
         {/* Login Card */}
