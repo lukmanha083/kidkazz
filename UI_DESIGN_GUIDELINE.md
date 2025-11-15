@@ -83,6 +83,165 @@
 
 ---
 
+## 🖤 Admin Dashboard - Black & White Theme
+
+### Overview
+The admin dashboard uses a **professional black and white theme** leveraging shadcn/ui's ready-made components. This monochrome approach ensures:
+- **Focus on data:** No color distractions from analytics and content
+- **Professional appearance:** Clean, modern, corporate-friendly
+- **Accessibility:** Maximum contrast for readability
+- **Consistency:** All shadcn/ui components work seamlessly
+
+### Color Palette (Admin Only)
+
+```css
+/* Base Colors */
+--background: 0 0% 100%;           /* #FFFFFF - White background */
+--foreground: 0 0% 3.9%;           /* #0A0A0A - Almost black text */
+
+/* Card & Elevated Surfaces */
+--card: 0 0% 100%;                 /* #FFFFFF - White cards */
+--card-foreground: 0 0% 3.9%;      /* #0A0A0A - Card text */
+
+/* Borders & Dividers */
+--border: 0 0% 89.8%;              /* #E5E5E5 - Light gray borders */
+--input: 0 0% 89.8%;               /* #E5E5E5 - Input borders */
+
+/* Primary Actions (Black) */
+--primary: 0 0% 9%;                /* #171717 - Black buttons */
+--primary-foreground: 0 0% 98%;    /* #FAFAFA - White text on black */
+
+/* Secondary Actions (Gray) */
+--secondary: 0 0% 96.1%;           /* #F5F5F5 - Light gray */
+--secondary-foreground: 0 0% 9%;   /* #171717 - Dark text */
+
+/* Muted / Subtle Elements */
+--muted: 0 0% 96.1%;               /* #F5F5F5 - Muted background */
+--muted-foreground: 0 0% 45.1%;    /* #737373 - Muted text */
+
+/* Accent (Minimal use) */
+--accent: 0 0% 96.1%;              /* #F5F5F5 - Subtle accent */
+--accent-foreground: 0 0% 9%;      /* #171717 - Accent text */
+
+/* Destructive Actions */
+--destructive: 0 0% 9%;            /* #171717 - Black for delete */
+--destructive-foreground: 0 0% 98%; /* #FAFAFA - White text */
+
+/* Focus Ring */
+--ring: 0 0% 3.9%;                 /* #0A0A0A - Black focus ring */
+```
+
+### Component Styling (shadcn/ui)
+
+**Buttons:**
+```tsx
+// Primary action - Black with white text
+<Button variant="default">Save Changes</Button>
+
+// Secondary action - Light gray with dark text
+<Button variant="secondary">Cancel</Button>
+
+// Outline - White with border
+<Button variant="outline">Edit</Button>
+
+// Ghost - Transparent hover
+<Button variant="ghost">Delete</Button>
+```
+
+**Cards:**
+```tsx
+<Card className="border shadow-sm">
+  <CardHeader>
+    <CardTitle>Dashboard Stats</CardTitle>
+    <CardDescription className="text-muted-foreground">
+      Overview of key metrics
+    </CardDescription>
+  </CardHeader>
+  <CardContent>
+    {/* White background, black text, gray borders */}
+  </CardContent>
+</Card>
+```
+
+**Tables:**
+```tsx
+<Table>
+  <TableHeader>
+    <TableRow className="border-b">
+      <TableHead className="font-medium">Product</TableHead>
+    </TableRow>
+  </TableHeader>
+  <TableBody>
+    <TableRow className="hover:bg-muted/50">
+      <TableCell>Baby Bottle</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>
+```
+
+**Forms:**
+```tsx
+<div className="space-y-2">
+  <Label>Product Name</Label>
+  <Input
+    placeholder="Enter name..."
+    className="border-input focus:ring-ring"
+  />
+</div>
+```
+
+### Design Principles
+
+1. **Hierarchy through typography** - Use font weight and size, not color
+2. **Spacing for clarity** - Generous whitespace between sections
+3. **Subtle shadows** - Minimal elevation for cards and dropdowns
+4. **Consistent borders** - Use `border` color for all dividers
+5. **Hover states** - Light gray backgrounds (`muted`) on interaction
+
+### Typography Contrast
+
+```tsx
+// Page titles - Large, bold, black
+<h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+
+// Section headings - Medium, semibold
+<h2 className="text-xl font-semibold">Recent Orders</h2>
+
+// Labels - Small, medium weight
+<p className="text-sm font-medium">Status</p>
+
+// Body text - Regular, foreground
+<p className="text-base text-foreground">Product description</p>
+
+// Muted text - Regular, muted-foreground
+<p className="text-sm text-muted-foreground">Last updated 2 hours ago</p>
+```
+
+### Layout Components
+
+**Sidebar:**
+```tsx
+<aside className="w-64 border-r bg-card">
+  {/* Navigation links with hover:bg-muted */}
+</aside>
+```
+
+**Header:**
+```tsx
+<header className="border-b bg-card">
+  {/* Logo, search, user menu */}
+</header>
+```
+
+**Main Content:**
+```tsx
+<main className="flex-1 bg-background p-6">
+  {/* White background with cards */}
+</main>
+```
+
+---
+
 ## 📝 Typography
 
 ### Font Families
@@ -598,7 +757,12 @@ className="animate-in slide-in-from-bottom duration-500"
 ### Admin Dashboard (Current)
 - [x] shadcn/ui components installed
 - [x] Tailwind CSS configured
-- [x] Primary purple/blue theme applied
+- [x] **Black and White Theme** - Professional monochrome design
+  - **Primary approach:** Uses shadcn/ui's ready-made components
+  - **Base colors:** Black (`#000000`), White (`#FFFFFF`), and grayscale
+  - **Accent:** Subtle use of zinc/slate for hierarchy
+  - **Benefits:** Clean, professional, focuses on data and functionality
+  - **Components:** All shadcn/ui components work out of the box
 - [ ] Replace Inter with Nunito for headings
 - [ ] Add Fredoka font for playful elements
 - [ ] Implement Lucide icons throughout
