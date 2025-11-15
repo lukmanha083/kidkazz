@@ -3,6 +3,7 @@
   "name": "product-service",
   "main": "src/index.ts",
   "compatibility_date": "2024-11-14",
+  "compatibility_flags": ["nodejs_compat"],
 
   "observability": {
     "enabled": true,
