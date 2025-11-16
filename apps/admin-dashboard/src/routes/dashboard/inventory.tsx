@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Warehouse, Package, AlertCircle } from 'lucide-react';
 
-export const Route = createFileRoute('/dashboard/inventory/')({
+export const Route = createFileRoute('/dashboard/inventory')({
   component: InventoryPage,
 });
 
