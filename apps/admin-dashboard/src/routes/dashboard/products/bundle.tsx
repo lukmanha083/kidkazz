@@ -47,8 +47,8 @@ import {
   X
 } from 'lucide-react';
 
-export const Route = createFileRoute('/dashboard/products')({
-  component: ProductsPage,
+export const Route = createFileRoute('/dashboard/products/bundle')({
+  component: ProductBundlePage,
 });
 
 interface ProductVariant {
@@ -293,7 +293,7 @@ const availableColumns = [
   { id: 'rating', label: 'Rating', default: false },
 ];
 
-function ProductsPage() {
+function ProductBundlePage() {
   const [products, setProducts] = useState<Product[]>(mockProducts);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -450,14 +450,14 @@ function ProductsPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Products</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Product Bundles</h1>
           <p className="text-muted-foreground mt-1">
-            Manage your product inventory and catalog
+            Manage your product bundles and packages
           </p>
         </div>
         <Button onClick={handleAddProduct} className="gap-2">
           <Plus className="h-4 w-4" />
-          Add Product
+          Add Bundle
         </Button>
       </div>
 
@@ -466,9 +466,9 @@ function ProductsPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>All Products</CardTitle>
+              <CardTitle>All Product Bundles</CardTitle>
               <CardDescription>
-                {filteredProducts.length} of {products.length} products
+                {filteredProducts.length} of {products.length} bundles
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -924,7 +924,7 @@ function ProductsPage() {
           <DrawerFooter>
             <Button onClick={() => selectedProduct && handleEditProduct(selectedProduct)}>
               <Edit className="h-4 w-4 mr-2" />
-              Edit Product
+              Edit Bundle
             </Button>
             <DrawerClose asChild>
               <Button variant="outline">Close</Button>
@@ -940,12 +940,12 @@ function ProductsPage() {
             <div className="flex items-start justify-between">
               <div>
                 <DrawerTitle>
-                  {formMode === 'add' ? 'Add New Product' : 'Edit Product'}
+                  {formMode === 'add' ? 'Add New Bundle' : 'Edit Bundle'}
                 </DrawerTitle>
                 <DrawerDescription>
                   {formMode === 'add'
-                    ? 'Fill in the details to create a new product'
-                    : 'Update product information'}
+                    ? 'Fill in the details to create a new product bundle'
+                    : 'Update bundle information'}
                 </DrawerDescription>
               </div>
               <DrawerClose asChild>
@@ -1079,7 +1079,7 @@ function ProductsPage() {
 
             <DrawerFooter className="px-0">
               <Button type="submit" className="w-full">
-                {formMode === 'add' ? 'Create Product' : 'Update Product'}
+                {formMode === 'add' ? 'Create Bundle' : 'Update Bundle'}
               </Button>
               <DrawerClose asChild>
                 <Button type="button" variant="outline" className="w-full">
