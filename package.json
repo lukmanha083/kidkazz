@@ -43,5 +43,12 @@
   "packageManager": "pnpm@10.22.0",
   "engines": {
     "node": ">=20.0.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "glob@<8": "^10.4.0",
+      "inflight@<2": "npm:@zkochan/inflight@^1.0.0",
+      "esbuild": "^0.21.5"
+    }
   }
 }
