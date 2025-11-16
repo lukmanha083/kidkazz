@@ -30,8 +30,13 @@ function LoginPage() {
       {/* Left Side - Branding */}
       <div className="hidden lg:flex lg:flex-1 bg-background items-center justify-center p-12 border-r">
         <div className="flex flex-col items-center space-y-6">
-          <Logo size="lg" showText={false} />
-          <h1 className="text-5xl font-bold tracking-tight">KIDKAZZ</h1>
+          <Logo size="xl" showText={false} />
+          <div className="text-center space-y-2">
+            <h1 className="text-5xl font-bold tracking-tight">KIDKAZZ</h1>
+            <p className="text-sm text-muted-foreground uppercase tracking-widest font-medium">
+              Best Price Excellent Service
+            </p>
+          </div>
         </div>
       </div>
 
@@ -40,8 +45,13 @@ function LoginPage() {
         <div className="w-full max-w-sm space-y-8">
           {/* Mobile Logo */}
           <div className="lg:hidden flex flex-col items-center space-y-4 mb-8">
-            <Logo size="md" showText={false} />
-            <h1 className="text-2xl font-bold">KIDKAZZ</h1>
+            <Logo size="lg" showText={false} />
+            <div className="text-center space-y-1">
+              <h1 className="text-2xl font-bold">KIDKAZZ</h1>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium">
+                Best Price Excellent Service
+              </p>
+            </div>
           </div>
 
           {/* Header */}

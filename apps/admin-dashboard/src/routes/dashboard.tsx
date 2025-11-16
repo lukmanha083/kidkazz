@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -142,14 +142,7 @@ function DashboardLayout() {
       <div className="w-56 border-r border-border flex flex-col bg-card">
         {/* Store Header */}
         <div className="p-4 border-b border-border flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Avatar className="h-8 w-8">
-              <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white text-sm font-bold">
-                K
-              </AvatarFallback>
-            </Avatar>
-            <span className="font-semibold text-foreground">kidkazz</span>
-          </div>
+          <Logo size="sm" showText={true} />
           <Button
             variant="ghost"
             size="icon"
@@ -244,14 +237,7 @@ function DashboardLayout() {
           />
           <aside className="absolute left-0 top-0 bottom-0 w-64 bg-card border-r">
             <div className="p-4 border-b border-border flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white text-sm font-bold">
-                    K
-                  </AvatarFallback>
-                </Avatar>
-                <span className="font-semibold text-foreground">kidkazz</span>
-              </div>
+              <Logo size="sm" showText={true} />
               <Button
                 variant="ghost"
                 size="icon"
