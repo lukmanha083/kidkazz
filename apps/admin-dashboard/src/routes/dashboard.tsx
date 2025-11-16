@@ -35,6 +35,7 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { Logo } from '@/components/Logo';
+import { SystemStatus } from '@/components/SystemStatus';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -142,7 +143,7 @@ function DashboardLayout() {
       <div className="w-56 border-r border-border flex flex-col bg-card">
         {/* Store Header */}
         <div className="p-4 border-b border-border flex items-center justify-between">
-          <Logo size="sm" showText={true} />
+          <Logo size="md" showText={true} />
           <Button
             variant="ghost"
             size="icon"
@@ -237,7 +238,7 @@ function DashboardLayout() {
           />
           <aside className="absolute left-0 top-0 bottom-0 w-64 bg-card border-r">
             <div className="p-4 border-b border-border flex items-center justify-between">
-              <Logo size="sm" showText={true} />
+              <Logo size="md" showText={true} />
               <Button
                 variant="ghost"
                 size="icon"
@@ -298,6 +299,9 @@ function DashboardLayout() {
 
           {/* Right Actions */}
           <div className="flex items-center gap-2">
+            {/* System Status */}
+            <SystemStatus />
+
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-4 w-4" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
