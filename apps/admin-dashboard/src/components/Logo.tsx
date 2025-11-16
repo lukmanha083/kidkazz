@@ -24,6 +24,7 @@ export function Logo({ size = 'md', showText = true, showTagline = false, classN
         viewBox="0 0 80 80"
         xmlns="http://www.w3.org/2000/svg"
         className="flex-shrink-0"
+        style={{ display: 'block' }}
       >
         <rect width="80" height="80" fill="#000000"/>
 
@@ -67,6 +68,7 @@ export function LogoIcon({ size = 32, className = '' }: { size?: number; classNa
       viewBox="0 0 80 80"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
+      style={{ display: 'block' }}
     >
       <rect width="80" height="80" fill="#000000"/>
 
