@@ -15,6 +15,7 @@ import {
   Sun,
   Tag,
   DollarSign,
+  Warehouse,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -83,6 +84,15 @@ const navItems: NavItem[] = [
     ]
   },
   {
+    id: 'inventory',
+    title: 'Inventory',
+    href: '/dashboard/inventory',
+    icon: Warehouse,
+    submenu: [
+      { title: 'Warehouse', href: '/dashboard/inventory/warehouse' },
+    ]
+  },
+  {
     id: 'customers',
     title: 'Customers',
     href: '/dashboard/customers',
@@ -121,6 +131,7 @@ function DashboardLayout() {
     if (path === '/dashboard') return 'Dashboard';
     if (path.includes('/products')) return 'Products';
     if (path.includes('/orders')) return 'Orders';
+    if (path.includes('/inventory')) return 'Inventory';
     if (path.includes('/customers')) return 'Customers';
     if (path.includes('/settings')) return 'Settings';
     if (path.includes('/promotions')) return 'Promotions';
