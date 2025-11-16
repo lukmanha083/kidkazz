@@ -31,6 +31,71 @@ app.get('/health', (c) => {
   });
 });
 
+// Health check for all services
+app.get('/health/all', async (c) => {
+  const services = [
+    { name: 'API Gateway', key: null },
+    { name: 'Product Service', key: 'PRODUCT_SERVICE' },
+    { name: 'Order Service', key: 'ORDER_SERVICE' },
+    { name: 'Payment Service', key: 'PAYMENT_SERVICE' },
+    { name: 'User Service', key: 'USER_SERVICE' },
+    { name: 'Inventory Service', key: 'INVENTORY_SERVICE' },
+    { name: 'Shipping Service', key: 'SHIPPING_SERVICE' },
+  ];
+
+  const healthChecks = await Promise.all(
+    services.map(async (service) => {
+      try {
+        if (service.key === null) {
+          // API Gateway itself
+          return {
+            name: service.name,
+            status: 'online',
+            timestamp: new Date().toISOString(),
+          };
+        }
+
+        // Check other services via service bindings
+        const serviceBinding = c.env[service.key as keyof Bindings] as Fetcher;
+        const response = await serviceBinding.fetch(
+          new Request('http://internal/health', { method: 'GET' })
+        );
+
+        if (response.ok) {
+          const data = await response.json() as { status: string };
+          return {
+            name: service.name,
+            status: data.status === 'healthy' ? 'online' : 'degraded',
+            timestamp: new Date().toISOString(),
+          };
+        } else {
+          return {
+            name: service.name,
+            status: 'offline',
+            timestamp: new Date().toISOString(),
+          };
+        }
+      } catch (error) {
+        return {
+          name: service.name,
+          status: 'offline',
+          error: error instanceof Error ? error.message : 'Unknown error',
+          timestamp: new Date().toISOString(),
+        };
+      }
+    })
+  );
+
+  const allOnline = healthChecks.every((hc) => hc.status === 'online');
+  const anyOffline = healthChecks.some((hc) => hc.status === 'offline');
+
+  return c.json({
+    overall: allOnline ? 'operational' : anyOffline ? 'offline' : 'degraded',
+    services: healthChecks,
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // ========================================
 // PRODUCT SERVICE ROUTES
 // ========================================

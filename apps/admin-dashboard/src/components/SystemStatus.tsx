@@ -5,49 +5,93 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Circle, RefreshCw } from 'lucide-react';
+import { Circle, RefreshCw, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Service {
   name: string;
   status: 'online' | 'offline' | 'degraded';
-  endpoint?: string;
+  timestamp?: string;
+  error?: string;
 }
 
-const SERVICES: Service[] = [
-  { name: 'API Gateway', status: 'online', endpoint: '/api/gateway' },
-  { name: 'User Service', status: 'online', endpoint: '/api/users' },
-  { name: 'Product Service', status: 'online', endpoint: '/api/products' },
-  { name: 'Order Service', status: 'online', endpoint: '/api/orders' },
-  { name: 'Payment Service', status: 'online', endpoint: '/api/payments' },
-  { name: 'Inventory Service', status: 'online', endpoint: '/api/inventory' },
-  { name: 'Shipping Service', status: 'online', endpoint: '/api/shipping' },
+interface HealthCheckResponse {
+  overall: 'operational' | 'offline' | 'degraded';
+  services: Service[];
+  timestamp: string;
+}
+
+// Default/fallback services list
+const DEFAULT_SERVICES: Service[] = [
+  { name: 'API Gateway', status: 'offline' },
+  { name: 'User Service', status: 'offline' },
+  { name: 'Product Service', status: 'offline' },
+  { name: 'Order Service', status: 'offline' },
+  { name: 'Payment Service', status: 'offline' },
+  { name: 'Inventory Service', status: 'offline' },
+  { name: 'Shipping Service', status: 'offline' },
 ];
 
+// API Gateway URL - configure this based on your environment
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787';
+
 export function SystemStatus() {
-  const [services, setServices] = useState<Service[]>(SERVICES);
+  const [services, setServices] = useState<Service[]>(DEFAULT_SERVICES);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastChecked, setLastChecked] = useState<Date>(new Date());
+  const [lastChecked, setLastChecked] = useState<Date | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const checkServiceStatus = async () => {
     setIsRefreshing(true);
+    setError(null);
 
-    // Simulate health check (in production, this would call actual health endpoints)
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
-    // For demo purposes, randomly set some services as online/offline
-    const updatedServices = services.map(service => ({
-      ...service,
-      // Simulate 95% uptime
-      status: Math.random() > 0.05 ? 'online' : 'offline'
-    } as Service));
+      const response = await fetch(`${API_BASE_URL}/health/all`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        signal: controller.signal,
+      });
 
-    setServices(updatedServices);
-    setLastChecked(new Date());
-    setIsRefreshing(false);
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`Health check failed: ${response.status}`);
+      }
+
+      const data: HealthCheckResponse = await response.json();
+      setServices(data.services);
+      setLastChecked(new Date());
+    } catch (err) {
+      console.error('Health check error:', err);
+
+      if (err instanceof Error) {
+        if (err.name === 'AbortError') {
+          setError('Health check timed out');
+        } else {
+          setError(err.message);
+        }
+      } else {
+        setError('Failed to check service status');
+      }
+
+      // Keep existing services or set to default offline state
+      setServices(prev =>
+        prev.map(service => ({ ...service, status: 'offline' as const }))
+      );
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   useEffect(() => {
+    // Initial check
+    checkServiceStatus();
+
     // Auto-refresh every 30 seconds
     const interval = setInterval(() => {
       checkServiceStatus();
@@ -73,6 +117,7 @@ export function SystemStatus() {
   };
 
   const getOverallStatus = () => {
+    if (error) return { text: 'Unable to Check Status', color: 'text-gray-500' };
     if (allServicesOnline) return { text: 'All Systems Operational', color: 'text-green-500' };
     if (anyServiceOffline) return { text: 'System Offline', color: 'text-red-500' };
     return { text: 'Degraded Performance', color: 'text-yellow-500' };
@@ -111,6 +156,17 @@ export function SystemStatus() {
             </Button>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="flex items-start gap-2 p-2 bg-destructive/10 rounded-md">
+              <AlertCircle className="h-4 w-4 text-destructive mt-0.5" />
+              <div className="flex-1">
+                <p className="text-xs text-destructive font-medium">Error</p>
+                <p className="text-xs text-muted-foreground">{error}</p>
+              </div>
+            </div>
+          )}
+
           {/* Services List */}
           <div className="space-y-2">
             {services.map((service) => (
@@ -136,7 +192,11 @@ export function SystemStatus() {
 
           {/* Last Checked */}
           <div className="text-xs text-muted-foreground text-center pt-2 border-t">
-            Last checked: {lastChecked.toLocaleTimeString()}
+            {lastChecked ? (
+              <>Last checked: {lastChecked.toLocaleTimeString()}</>
+            ) : (
+              <>Checking status...</>
+            )}
           </div>
         </div>
       </DropdownMenuContent>
