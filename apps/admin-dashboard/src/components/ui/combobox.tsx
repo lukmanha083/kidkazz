@@ -3,14 +3,7 @@ import { Check, ChevronsUpDown } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command"
+import { Input } from "@/components/ui/input"
 import {
   Popover,
   PopoverContent,
@@ -61,6 +54,12 @@ export function Combobox({
     });
   }, [options, searchValue]);
 
+  const handleSelect = (selectedValue: string) => {
+    onValueChange?.(selectedValue === value ? "" : selectedValue)
+    setSearchValue("")
+    setOpen(false)
+  }
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -76,51 +75,56 @@ export function Combobox({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0">
-        <Command shouldFilter={false}>
-          <CommandInput
-            placeholder={searchPlaceholder}
-            value={searchValue}
-            onValueChange={setSearchValue}
-          />
-          <CommandList>
-            <CommandEmpty>{emptyText}</CommandEmpty>
-            <CommandGroup>
-              {filteredOptions.map((option) => {
-                return (
-                  <CommandItem
-                    key={option.value}
-                    value={option.value}
-                    onSelect={(selectedValue) => {
-                      // Find the actual option by value to ensure we pass the correct SKU
-                      const selectedOption = options.find(opt => opt.value.toLowerCase() === selectedValue.toLowerCase());
-                      if (selectedOption) {
-                        onValueChange?.(selectedOption.value === value ? "" : selectedOption.value)
-                      }
-                      setSearchValue("")
-                      setOpen(false)
-                    }}
-                  >
-                    <Check
+      <PopoverContent className="w-full p-0" align="start">
+        <div className="flex flex-col">
+          <div className="border-b px-3 py-2">
+            <Input
+              placeholder={searchPlaceholder}
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+              className="h-9"
+            />
+          </div>
+          <div className="max-h-[300px] overflow-y-auto">
+            {filteredOptions.length === 0 ? (
+              <div className="py-6 text-center text-sm text-muted-foreground">
+                {emptyText}
+              </div>
+            ) : (
+              <div className="p-1">
+                {filteredOptions.map((option) => {
+                  const isSelected = value === option.value;
+                  return (
+                    <div
+                      key={option.value}
                       className={cn(
-                        "mr-2 h-4 w-4",
-                        value === option.value ? "opacity-100" : "opacity-0"
+                        "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none",
+                        "hover:bg-accent hover:text-accent-foreground",
+                        isSelected && "bg-accent"
                       )}
-                    />
-                    <div className="flex flex-col">
-                      <span>{option.label}</span>
-                      {option.barcode && (
-                        <span className="text-xs text-muted-foreground">
-                          Barcode: {option.barcode}
-                        </span>
-                      )}
+                      onClick={() => handleSelect(option.value)}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          isSelected ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      <div className="flex flex-col gap-0.5">
+                        <span>{option.label}</span>
+                        {option.barcode && (
+                          <span className="text-xs text-muted-foreground">
+                            Barcode: {option.barcode}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </CommandItem>
-                );
-              })}
-            </CommandGroup>
-          </CommandList>
-        </Command>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
       </PopoverContent>
     </Popover>
   )
