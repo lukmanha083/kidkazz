@@ -83,6 +83,7 @@ const navItems: NavItem[] = [
       { title: 'Category', href: '/dashboard/products/category' },
       { title: 'Product Bundle', href: '/dashboard/products/bundle' },
       { title: 'Product Variant', href: '/dashboard/products/variant' },
+      { title: 'Unit of Measure', href: '/dashboard/products/uom' },
     ]
   },
   {

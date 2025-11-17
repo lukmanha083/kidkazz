@@ -431,7 +431,6 @@ function AllProductsPage() {
     warehouseId: '',
     baseUnit: 'PCS',
     wholesaleThreshold: '12',
-    isBundle: false,
   });
 
   // Filter products based on search
@@ -483,7 +482,6 @@ function AllProductsPage() {
       warehouseId: '',
       baseUnit: 'PCS',
       wholesaleThreshold: '12',
-      isBundle: false,
     });
     setFormDrawerOpen(true);
   };
@@ -503,7 +501,6 @@ function AllProductsPage() {
       warehouseId: product.warehouseId,
       baseUnit: product.baseUnit,
       wholesaleThreshold: product.wholesaleThreshold.toString(),
-      isBundle: product.isBundle,
     });
     setFormDrawerOpen(true);
   };
@@ -526,7 +523,21 @@ function AllProductsPage() {
         reviews: 0,
         warehouse: formData.warehouse,
         warehouseId: formData.warehouseId,
-        isBundle: formData.isBundle,
+        isBundle: false,
+        baseUnit: formData.baseUnit,
+        alternateUnits: standardUOMs,
+        wholesaleThreshold: parseInt(formData.wholesaleThreshold),
+        warehouseStock: [
+          {
+            warehouseId: formData.warehouseId,
+            warehouseName: formData.warehouse,
+            stockQuantity: parseInt(formData.stock),
+            retailPrice: parseFloat(formData.price),
+            wholesalePrice: parseInt(formData.stock) >= parseInt(formData.wholesaleThreshold)
+              ? parseFloat(formData.price) * 0.85
+              : null,
+          },
+        ],
       };
       setProducts([...products, newProduct]);
     } else if (formMode === 'edit' && selectedProduct) {
@@ -543,7 +554,8 @@ function AllProductsPage() {
               stock: parseInt(formData.stock),
               warehouse: formData.warehouse,
               warehouseId: formData.warehouseId,
-              isBundle: formData.isBundle,
+              baseUnit: formData.baseUnit,
+              wholesaleThreshold: parseInt(formData.wholesaleThreshold),
             }
           : p
       ));
@@ -1231,19 +1243,6 @@ function AllProductsPage() {
                   Minimum {formData.baseUnit} for wholesale
                 </p>
               </div>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="isBundle"
-                checked={formData.isBundle}
-                onChange={(e) => setFormData({ ...formData, isBundle: e.target.checked })}
-                className="h-4 w-4"
-              />
-              <Label htmlFor="isBundle" className="cursor-pointer">
-                This is a bundle product
-              </Label>
             </div>
 
             <DrawerFooter className="px-0">
