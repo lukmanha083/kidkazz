@@ -17,6 +17,7 @@ import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settin
 import { Route as DashboardOrdersRouteImport } from './routes/dashboard/orders'
 import { Route as DashboardInventoryRouteImport } from './routes/dashboard/inventory'
 import { Route as DashboardCustomersRouteImport } from './routes/dashboard/customers'
+import { Route as DashboardProductsIndexRouteImport } from './routes/dashboard/products/index'
 import { Route as DashboardProductsVariantRouteImport } from './routes/dashboard/products/variant'
 import { Route as DashboardProductsCategoryRouteImport } from './routes/dashboard/products/category'
 import { Route as DashboardProductsBundleRouteImport } from './routes/dashboard/products/bundle'
@@ -63,6 +64,11 @@ const DashboardCustomersRoute = DashboardCustomersRouteImport.update({
   path: '/customers',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardProductsIndexRoute = DashboardProductsIndexRouteImport.update({
+  id: '/products/',
+  path: '/products/',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardProductsVariantRoute =
   DashboardProductsVariantRouteImport.update({
     id: '/products/variant',
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/products/bundle': typeof DashboardProductsBundleRoute
   '/dashboard/products/category': typeof DashboardProductsCategoryRoute
   '/dashboard/products/variant': typeof DashboardProductsVariantRoute
+  '/dashboard/products': typeof DashboardProductsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/dashboard/products/bundle': typeof DashboardProductsBundleRoute
   '/dashboard/products/category': typeof DashboardProductsCategoryRoute
   '/dashboard/products/variant': typeof DashboardProductsVariantRoute
+  '/dashboard/products': typeof DashboardProductsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -136,6 +144,7 @@ export interface FileRoutesById {
   '/dashboard/products/bundle': typeof DashboardProductsBundleRoute
   '/dashboard/products/category': typeof DashboardProductsCategoryRoute
   '/dashboard/products/variant': typeof DashboardProductsVariantRoute
+  '/dashboard/products/': typeof DashboardProductsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -153,6 +162,7 @@ export interface FileRouteTypes {
     | '/dashboard/products/bundle'
     | '/dashboard/products/category'
     | '/dashboard/products/variant'
+    | '/dashboard/products'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -167,6 +177,7 @@ export interface FileRouteTypes {
     | '/dashboard/products/bundle'
     | '/dashboard/products/category'
     | '/dashboard/products/variant'
+    | '/dashboard/products'
   id:
     | '__root__'
     | '/'
@@ -182,6 +193,7 @@ export interface FileRouteTypes {
     | '/dashboard/products/bundle'
     | '/dashboard/products/category'
     | '/dashboard/products/variant'
+    | '/dashboard/products/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -247,6 +259,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardCustomersRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/products/': {
+      id: '/dashboard/products/'
+      path: '/products'
+      fullPath: '/dashboard/products'
+      preLoaderRoute: typeof DashboardProductsIndexRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/products/variant': {
       id: '/dashboard/products/variant'
       path: '/products/variant'
@@ -307,6 +326,7 @@ interface DashboardRouteChildren {
   DashboardProductsBundleRoute: typeof DashboardProductsBundleRoute
   DashboardProductsCategoryRoute: typeof DashboardProductsCategoryRoute
   DashboardProductsVariantRoute: typeof DashboardProductsVariantRoute
+  DashboardProductsIndexRoute: typeof DashboardProductsIndexRoute
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
@@ -320,6 +340,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardProductsBundleRoute: DashboardProductsBundleRoute,
   DashboardProductsCategoryRoute: DashboardProductsCategoryRoute,
   DashboardProductsVariantRoute: DashboardProductsVariantRoute,
+  DashboardProductsIndexRoute: DashboardProductsIndexRoute,
 }
 
 const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
