@@ -45,6 +45,21 @@ export function Combobox({
   className,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
+  const [searchValue, setSearchValue] = React.useState("")
+
+  const filteredOptions = React.useMemo(() => {
+    if (!searchValue) return options;
+
+    const search = searchValue.toLowerCase();
+    return options.filter((option) => {
+      return (
+        option.label.toLowerCase().includes(search) ||
+        option.barcode?.toLowerCase().includes(search) ||
+        option.sku?.toLowerCase().includes(search) ||
+        option.name?.toLowerCase().includes(search)
+      );
+    });
+  }, [options, searchValue]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -62,30 +77,27 @@ export function Combobox({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-full p-0">
-        <Command>
-          <CommandInput placeholder={searchPlaceholder} />
+        <Command shouldFilter={false}>
+          <CommandInput
+            placeholder={searchPlaceholder}
+            value={searchValue}
+            onValueChange={setSearchValue}
+          />
           <CommandList>
             <CommandEmpty>{emptyText}</CommandEmpty>
             <CommandGroup>
-              {options.map((option) => {
-                // Build keywords array for multi-field search (barcode, SKU, name)
-                const keywords = [
-                  option.barcode,
-                  option.sku,
-                  option.name,
-                ].filter(Boolean);
-
+              {filteredOptions.map((option) => {
                 return (
                   <CommandItem
                     key={option.value}
                     value={option.value}
-                    keywords={keywords}
                     onSelect={(selectedValue) => {
                       // Find the actual option by value to ensure we pass the correct SKU
                       const selectedOption = options.find(opt => opt.value.toLowerCase() === selectedValue.toLowerCase());
                       if (selectedOption) {
                         onValueChange?.(selectedOption.value === value ? "" : selectedOption.value)
                       }
+                      setSearchValue("")
                       setOpen(false)
                     }}
                   >
