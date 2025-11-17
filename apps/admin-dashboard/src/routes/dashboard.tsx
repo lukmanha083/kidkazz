@@ -16,6 +16,7 @@ import {
   Tag,
   DollarSign,
   Warehouse,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -94,6 +95,12 @@ const navItems: NavItem[] = [
     submenu: [
       { title: 'Warehouse', href: '/dashboard/warehouse' },
     ]
+  },
+  {
+    id: 'transfer-stock',
+    title: 'Transfer Stock',
+    href: '/dashboard/transfer-stock',
+    icon: ArrowRightLeft
   },
   {
     id: 'customers',

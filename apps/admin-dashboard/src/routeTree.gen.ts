@@ -13,6 +13,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardWarehouseRouteImport } from './routes/dashboard/warehouse'
+import { Route as DashboardTransferStockRouteImport } from './routes/dashboard/transfer-stock'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings'
 import { Route as DashboardOrdersRouteImport } from './routes/dashboard/orders'
 import { Route as DashboardInventoryRouteImport } from './routes/dashboard/inventory'
@@ -43,6 +44,11 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
 const DashboardWarehouseRoute = DashboardWarehouseRouteImport.update({
   id: '/warehouse',
   path: '/warehouse',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardTransferStockRoute = DashboardTransferStockRouteImport.update({
+  id: '/transfer-stock',
+  path: '/transfer-stock',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
@@ -111,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/inventory': typeof DashboardInventoryRouteWithChildren
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/transfer-stock': typeof DashboardTransferStockRoute
   '/dashboard/warehouse': typeof DashboardWarehouseRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/inventory/warehouse': typeof DashboardInventoryWarehouseRoute
@@ -127,6 +134,7 @@ export interface FileRoutesByTo {
   '/dashboard/inventory': typeof DashboardInventoryRouteWithChildren
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/transfer-stock': typeof DashboardTransferStockRoute
   '/dashboard/warehouse': typeof DashboardWarehouseRoute
   '/dashboard': typeof DashboardIndexRoute
   '/dashboard/inventory/warehouse': typeof DashboardInventoryWarehouseRoute
@@ -145,6 +153,7 @@ export interface FileRoutesById {
   '/dashboard/inventory': typeof DashboardInventoryRouteWithChildren
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/transfer-stock': typeof DashboardTransferStockRoute
   '/dashboard/warehouse': typeof DashboardWarehouseRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/inventory/warehouse': typeof DashboardInventoryWarehouseRoute
@@ -164,6 +173,7 @@ export interface FileRouteTypes {
     | '/dashboard/inventory'
     | '/dashboard/orders'
     | '/dashboard/settings'
+    | '/dashboard/transfer-stock'
     | '/dashboard/warehouse'
     | '/dashboard/'
     | '/dashboard/inventory/warehouse'
@@ -180,6 +190,7 @@ export interface FileRouteTypes {
     | '/dashboard/inventory'
     | '/dashboard/orders'
     | '/dashboard/settings'
+    | '/dashboard/transfer-stock'
     | '/dashboard/warehouse'
     | '/dashboard'
     | '/dashboard/inventory/warehouse'
@@ -197,6 +208,7 @@ export interface FileRouteTypes {
     | '/dashboard/inventory'
     | '/dashboard/orders'
     | '/dashboard/settings'
+    | '/dashboard/transfer-stock'
     | '/dashboard/warehouse'
     | '/dashboard/'
     | '/dashboard/inventory/warehouse'
@@ -241,6 +253,13 @@ declare module '@tanstack/react-router' {
       path: '/warehouse'
       fullPath: '/dashboard/warehouse'
       preLoaderRoute: typeof DashboardWarehouseRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/transfer-stock': {
+      id: '/dashboard/transfer-stock'
+      path: '/transfer-stock'
+      fullPath: '/dashboard/transfer-stock'
+      preLoaderRoute: typeof DashboardTransferStockRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/settings': {
@@ -339,6 +358,7 @@ interface DashboardRouteChildren {
   DashboardInventoryRoute: typeof DashboardInventoryRouteWithChildren
   DashboardOrdersRoute: typeof DashboardOrdersRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
+  DashboardTransferStockRoute: typeof DashboardTransferStockRoute
   DashboardWarehouseRoute: typeof DashboardWarehouseRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   DashboardProductsAllRoute: typeof DashboardProductsAllRoute
@@ -354,6 +374,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardInventoryRoute: DashboardInventoryRouteWithChildren,
   DashboardOrdersRoute: DashboardOrdersRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,
+  DashboardTransferStockRoute: DashboardTransferStockRoute,
   DashboardWarehouseRoute: DashboardWarehouseRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   DashboardProductsAllRoute: DashboardProductsAllRoute,

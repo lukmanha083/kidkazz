@@ -36,7 +36,6 @@ import {
   Phone,
   Mail,
   User,
-  ArrowRightLeft,
 } from 'lucide-react';
 
 export const Route = createFileRoute('/dashboard/warehouse')({
@@ -116,20 +115,6 @@ const mockWarehouses: WarehouseData[] = [
   },
 ];
 
-// Mock products for transfer (simplified from products page)
-const mockProducts = [
-  { id: '1', name: 'Baby Bottle Set', sku: 'BB-001', warehouseId: 'WH-001', stock: 145 },
-  { id: '2', name: 'Kids Backpack', sku: 'BP-002', warehouseId: 'WH-002', stock: 89 },
-  { id: '3', name: 'Toy Car Collection', sku: 'TC-003', warehouseId: 'WH-001', stock: 234 },
-  { id: '4', name: 'Children Books Set', sku: 'BK-004', warehouseId: 'WH-003', stock: 67 },
-  { id: '5', name: 'Baby Crib', sku: 'CR-005', warehouseId: 'WH-001', stock: 12 },
-  { id: '6', name: 'Toddler Shoes', sku: 'SH-006', warehouseId: 'WH-002', stock: 78 },
-  { id: '7', name: 'Educational Puzzle', sku: 'PZ-007', warehouseId: 'WH-001', stock: 156 },
-  { id: '8', name: 'Baby Monitor', sku: 'BM-008', warehouseId: 'WH-002', stock: 34 },
-  { id: '9', name: 'Diaper Bag', sku: 'DB-009', warehouseId: 'WH-003', stock: 91 },
-  { id: '10', name: 'Kids Lunch Box', sku: 'LB-010', warehouseId: 'WH-001', stock: 203 },
-];
-
 function WarehousePage() {
   const [warehouses, setWarehouses] = useState<WarehouseData[]>(mockWarehouses);
   const [searchTerm, setSearchTerm] = useState('');
@@ -139,7 +124,6 @@ function WarehousePage() {
   // Drawer states
   const [viewDrawerOpen, setViewDrawerOpen] = useState(false);
   const [formDrawerOpen, setFormDrawerOpen] = useState(false);
-  const [transferDrawerOpen, setTransferDrawerOpen] = useState(false);
   const [selectedWarehouse, setSelectedWarehouse] = useState<WarehouseData | null>(null);
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
 
@@ -156,15 +140,6 @@ function WarehousePage() {
     email: '',
     manager: '',
     capacity: '',
-  });
-
-  // Transfer form data
-  const [transferData, setTransferData] = useState({
-    sourceWarehouseId: '',
-    destinationWarehouseId: '',
-    productId: '',
-    productName: '',
-    quantity: '',
   });
 
   // Filter warehouses based on search
@@ -284,61 +259,6 @@ function WarehousePage() {
     setFormDrawerOpen(false);
   };
 
-  const handleOpenTransfer = () => {
-    setTransferData({
-      sourceWarehouseId: '',
-      destinationWarehouseId: '',
-      productId: '',
-      productName: '',
-      quantity: '',
-    });
-    setTransferDrawerOpen(true);
-  };
-
-  const handleSubmitTransfer = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const sourceWarehouse = warehouses.find(w => w.id === transferData.sourceWarehouseId);
-    const destinationWarehouse = warehouses.find(w => w.id === transferData.destinationWarehouseId);
-    const product = mockProducts.find(p => p.id === transferData.productId);
-    const quantity = parseInt(transferData.quantity);
-
-    // Validate transfer
-    if (!sourceWarehouse || !destinationWarehouse || !product) {
-      alert('Invalid warehouse or product selection');
-      return;
-    }
-
-    if (product.warehouseId !== sourceWarehouse.id) {
-      alert(`Product is not in ${sourceWarehouse.name}`);
-      return;
-    }
-
-    if (product.stock < quantity) {
-      alert(`Insufficient stock. Available: ${product.stock} units`);
-      return;
-    }
-
-    if (quantity <= 0) {
-      alert('Quantity must be greater than 0');
-      return;
-    }
-
-    // Update warehouse stock levels
-    setWarehouses(warehouses.map(w => {
-      if (w.id === sourceWarehouse.id) {
-        return { ...w, currentStock: w.currentStock - quantity };
-      }
-      if (w.id === destinationWarehouse.id) {
-        return { ...w, currentStock: w.currentStock + quantity };
-      }
-      return w;
-    }));
-
-    alert(`Successfully transferred ${quantity} units of ${product.name} from ${sourceWarehouse.name} to ${destinationWarehouse.name}`);
-    setTransferDrawerOpen(false);
-  };
-
   const calculateUtilization = (current: number, capacity: number): number => {
     return Math.round((current / capacity) * 100);
   };
@@ -353,16 +273,10 @@ function WarehousePage() {
             Manage warehouse locations, capacity, and inventory
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={handleOpenTransfer} variant="outline" className="gap-2">
-            <ArrowRightLeft className="h-4 w-4" />
-            Transfer Stock
-          </Button>
-          <Button onClick={handleAddWarehouse} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Add Warehouse
-          </Button>
-        </div>
+        <Button onClick={handleAddWarehouse} className="gap-2">
+          <Plus className="h-4 w-4" />
+          Add Warehouse
+        </Button>
       </div>
 
       {/* Summary Stats */}
@@ -910,173 +824,6 @@ function WarehousePage() {
             <DrawerFooter className="px-0">
               <Button type="submit" className="w-full">
                 {formMode === 'add' ? 'Create Warehouse' : 'Update Warehouse'}
-              </Button>
-              <DrawerClose asChild>
-                <Button type="button" variant="outline" className="w-full">
-                  Cancel
-                </Button>
-              </DrawerClose>
-            </DrawerFooter>
-          </form>
-        </DrawerContent>
-      </Drawer>
-
-      {/* Stock Transfer Drawer (Left Side) */}
-      <Drawer open={transferDrawerOpen} onOpenChange={setTransferDrawerOpen}>
-        <DrawerContent side="left">
-          <DrawerHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <DrawerTitle>Transfer Stock Between Warehouses</DrawerTitle>
-                <DrawerDescription>
-                  Move inventory items from one warehouse to another
-                </DrawerDescription>
-              </div>
-              <DrawerClose asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <X className="h-4 w-4" />
-                </Button>
-              </DrawerClose>
-            </div>
-          </DrawerHeader>
-
-          <form onSubmit={handleSubmitTransfer} className="flex-1 overflow-y-auto p-4 space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="sourceWarehouse">Source Warehouse</Label>
-              <select
-                id="sourceWarehouse"
-                value={transferData.sourceWarehouseId}
-                onChange={(e) => {
-                  setTransferData({ ...transferData, sourceWarehouseId: e.target.value });
-                }}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                required
-              >
-                <option value="">Select source warehouse...</option>
-                {warehouses.map(warehouse => (
-                  <option key={warehouse.id} value={warehouse.id}>
-                    {warehouse.name} ({warehouse.currentStock.toLocaleString()} units)
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-muted-foreground">
-                Warehouse to transfer items from
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="destinationWarehouse">Destination Warehouse</Label>
-              <select
-                id="destinationWarehouse"
-                value={transferData.destinationWarehouseId}
-                onChange={(e) => {
-                  setTransferData({ ...transferData, destinationWarehouseId: e.target.value });
-                }}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                required
-              >
-                <option value="">Select destination warehouse...</option>
-                {warehouses
-                  .filter(w => w.id !== transferData.sourceWarehouseId)
-                  .map(warehouse => (
-                    <option key={warehouse.id} value={warehouse.id}>
-                      {warehouse.name} ({warehouse.currentStock.toLocaleString()} units)
-                    </option>
-                  ))}
-              </select>
-              <p className="text-xs text-muted-foreground">
-                Warehouse to transfer items to
-              </p>
-            </div>
-
-            <Separator />
-
-            <div className="space-y-2">
-              <Label htmlFor="product">Product</Label>
-              <select
-                id="product"
-                value={transferData.productId}
-                onChange={(e) => {
-                  const product = mockProducts.find(p => p.id === e.target.value);
-                  setTransferData({
-                    ...transferData,
-                    productId: e.target.value,
-                    productName: product?.name || '',
-                  });
-                }}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                required
-                disabled={!transferData.sourceWarehouseId}
-              >
-                <option value="">Select product...</option>
-                {mockProducts
-                  .filter(p => p.warehouseId === transferData.sourceWarehouseId)
-                  .map(product => (
-                    <option key={product.id} value={product.id}>
-                      {product.name} - {product.sku} ({product.stock} available)
-                    </option>
-                  ))}
-              </select>
-              <p className="text-xs text-muted-foreground">
-                {transferData.sourceWarehouseId
-                  ? 'Products available in source warehouse'
-                  : 'Select source warehouse first'}
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="quantity">Quantity</Label>
-              <Input
-                id="quantity"
-                type="number"
-                min="1"
-                placeholder="Enter quantity to transfer"
-                value={transferData.quantity}
-                onChange={(e) => setTransferData({ ...transferData, quantity: e.target.value })}
-                required
-                disabled={!transferData.productId}
-              />
-              {transferData.productId && (() => {
-                const product = mockProducts.find(p => p.id === transferData.productId);
-                return product ? (
-                  <p className="text-xs text-muted-foreground">
-                    Available stock: {product.stock} units
-                  </p>
-                ) : null;
-              })()}
-            </div>
-
-            {transferData.sourceWarehouseId &&
-             transferData.destinationWarehouseId &&
-             transferData.productId &&
-             transferData.quantity && (
-              <div className="rounded-md bg-muted p-3">
-                <p className="text-sm font-medium mb-2">Transfer Summary</p>
-                <div className="space-y-1 text-xs">
-                  <p>
-                    <span className="text-muted-foreground">From:</span>{' '}
-                    {warehouses.find(w => w.id === transferData.sourceWarehouseId)?.name}
-                  </p>
-                  <p>
-                    <span className="text-muted-foreground">To:</span>{' '}
-                    {warehouses.find(w => w.id === transferData.destinationWarehouseId)?.name}
-                  </p>
-                  <p>
-                    <span className="text-muted-foreground">Product:</span>{' '}
-                    {transferData.productName}
-                  </p>
-                  <p>
-                    <span className="text-muted-foreground">Quantity:</span>{' '}
-                    {transferData.quantity} units
-                  </p>
-                </div>
-              </div>
-            )}
-
-            <DrawerFooter className="px-0">
-              <Button type="submit" className="w-full">
-                <ArrowRightLeft className="h-4 w-4 mr-2" />
-                Execute Transfer
               </Button>
               <DrawerClose asChild>
                 <Button type="button" variant="outline" className="w-full">
