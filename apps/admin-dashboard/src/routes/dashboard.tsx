@@ -16,7 +16,6 @@ import {
   Tag,
   DollarSign,
   Warehouse,
-  ArrowRightLeft,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -94,13 +93,8 @@ const navItems: NavItem[] = [
     icon: Warehouse,
     submenu: [
       { title: 'Warehouse', href: '/dashboard/warehouse' },
+      { title: 'Transfer Stock', href: '/dashboard/transfer-stock' },
     ]
-  },
-  {
-    id: 'transfer-stock',
-    title: 'Transfer Stock',
-    href: '/dashboard/transfer-stock',
-    icon: ArrowRightLeft
   },
   {
     id: 'customers',
@@ -141,7 +135,7 @@ function DashboardLayout() {
     if (path === '/dashboard') return 'Dashboard';
     if (path.includes('/products')) return 'Products';
     if (path.includes('/orders')) return 'Orders';
-    if (path.includes('/inventory')) return 'Inventory';
+    if (path.includes('/inventory') || path.includes('/warehouse') || path.includes('/transfer-stock')) return 'Inventory';
     if (path.includes('/customers')) return 'Customers';
     if (path.includes('/settings')) return 'Settings';
     if (path.includes('/promotions')) return 'Promotions';
