@@ -175,7 +175,7 @@ function ProductBundlePage() {
     bundleName: '',
     bundleSKU: '',
     description: '',
-    bundlePrice: '',
+    discountPercentage: '',
     startDate: '',
     endDate: '',
   });
@@ -205,6 +205,12 @@ function ProductBundlePage() {
   const calculateDiscount = (originalPrice: number, bundlePrice: number): number => {
     if (originalPrice === 0) return 0;
     return Math.round(((originalPrice - bundlePrice) / originalPrice) * 100);
+  };
+
+  // Helper function: Calculate bundle price from original price and discount percentage
+  const calculateBundlePrice = (originalPrice: number, discountPercentage: number): number => {
+    if (originalPrice === 0 || discountPercentage < 0 || discountPercentage > 100) return 0;
+    return originalPrice * (1 - discountPercentage / 100);
   };
 
   // Helper function: Calculate available bundle stock based on individual product stocks
@@ -261,7 +267,7 @@ function ProductBundlePage() {
       bundleName: '',
       bundleSKU: '',
       description: '',
-      bundlePrice: '',
+      discountPercentage: '',
       startDate: '',
       endDate: '',
     });
@@ -274,11 +280,16 @@ function ProductBundlePage() {
   const handleEditBundle = (bundle: ProductBundle) => {
     setFormMode('edit');
     setSelectedBundle(bundle);
+
+    // Calculate discount percentage from bundle price and original price
+    const originalPrice = calculateOriginalPrice(bundle.products);
+    const discount = calculateDiscount(originalPrice, bundle.bundlePrice);
+
     setFormData({
       bundleName: bundle.bundleName,
       bundleSKU: bundle.bundleSKU,
       description: bundle.description,
-      bundlePrice: bundle.bundlePrice.toString(),
+      discountPercentage: discount.toString(),
       startDate: bundle.startDate,
       endDate: bundle.endDate,
     });
@@ -313,7 +324,11 @@ function ProductBundlePage() {
 
   const handleSubmitForm = (e: React.FormEvent) => {
     e.preventDefault();
-    const bundlePrice = parseFloat(formData.bundlePrice);
+
+    // Calculate bundle price from original price and discount percentage
+    const originalPrice = calculateOriginalPrice(selectedProducts);
+    const discountPercentage = parseFloat(formData.discountPercentage);
+    const bundlePrice = calculateBundlePrice(originalPrice, discountPercentage);
 
     if (formMode === 'add') {
       const newBundle: ProductBundle = {
@@ -812,43 +827,49 @@ function ProductBundlePage() {
                       ${calculateOriginalPrice(selectedProducts).toFixed(2)}
                     </p>
                   </div>
-                  {formData.bundlePrice && (
-                    <>
-                      <div className="flex justify-between items-center mt-2">
-                        <Label className="text-xs text-muted-foreground">Discount</Label>
-                        <p className="text-sm font-semibold text-orange-600">
-                          {calculateDiscount(
-                            calculateOriginalPrice(selectedProducts),
-                            parseFloat(formData.bundlePrice)
-                          )}% OFF
-                        </p>
-                      </div>
-                      <div className="flex justify-between items-center mt-2">
-                        <Label className="text-xs text-muted-foreground">Savings</Label>
-                        <p className="text-sm font-semibold text-green-600">
-                          ${(calculateOriginalPrice(selectedProducts) - parseFloat(formData.bundlePrice)).toFixed(2)}
-                        </p>
-                      </div>
-                    </>
-                  )}
                 </div>
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="bundlePrice">Bundle Price ($)</Label>
+                <Label htmlFor="discountPercentage">Discount Percentage (%)</Label>
                 <Input
-                  id="bundlePrice"
+                  id="discountPercentage"
                   type="number"
-                  step="0.01"
-                  placeholder="59.98"
-                  value={formData.bundlePrice}
-                  onChange={(e) => setFormData({ ...formData, bundlePrice: e.target.value })}
+                  min="0"
+                  max="100"
+                  step="1"
+                  placeholder="20"
+                  value={formData.discountPercentage}
+                  onChange={(e) => setFormData({ ...formData, discountPercentage: e.target.value })}
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  Set the promotional price for this bundle
+                  Enter discount percentage (0-100%)
                 </p>
               </div>
+
+              {selectedProducts.length > 0 && formData.discountPercentage && (
+                <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-xs text-muted-foreground">Bundle Price</Label>
+                    <p className="text-lg font-bold text-green-600">
+                      ${calculateBundlePrice(
+                        calculateOriginalPrice(selectedProducts),
+                        parseFloat(formData.discountPercentage)
+                      ).toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="flex justify-between items-center mt-2">
+                    <Label className="text-xs text-muted-foreground">You Save</Label>
+                    <p className="text-sm font-semibold text-orange-600">
+                      ${(calculateOriginalPrice(selectedProducts) - calculateBundlePrice(
+                        calculateOriginalPrice(selectedProducts),
+                        parseFloat(formData.discountPercentage)
+                      )).toFixed(2)} ({formData.discountPercentage}% OFF)
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {selectedProducts.length > 0 && (
                 <div className="p-3 bg-muted/50 rounded-md">

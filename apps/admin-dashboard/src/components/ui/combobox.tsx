@@ -73,16 +73,19 @@ export function Combobox({
                   option.barcode,
                   option.sku,
                   option.name,
-                  option.label,
-                ].filter(Boolean).join(' ');
+                ].filter(Boolean);
 
                 return (
                   <CommandItem
                     key={option.value}
                     value={option.value}
-                    keywords={[keywords]}
-                    onSelect={(currentValue) => {
-                      onValueChange?.(currentValue === value ? "" : currentValue)
+                    keywords={keywords}
+                    onSelect={(selectedValue) => {
+                      // Find the actual option by value to ensure we pass the correct SKU
+                      const selectedOption = options.find(opt => opt.value.toLowerCase() === selectedValue.toLowerCase());
+                      if (selectedOption) {
+                        onValueChange?.(selectedOption.value === value ? "" : selectedOption.value)
+                      }
                       setOpen(false)
                     }}
                   >
