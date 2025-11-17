@@ -32,8 +32,10 @@ import {
   Eye,
   X,
   Gift,
-  Tag
+  Tag,
+  Minus
 } from 'lucide-react';
+import { Combobox } from '@/components/ui/combobox';
 
 export const Route = createFileRoute('/dashboard/products/bundle')({
   component: ProductBundlePage,
@@ -195,6 +197,25 @@ function ProductBundlePage() {
     stock: '',
   });
 
+  // Available products (from All Products page)
+  const availableProducts = [
+    { value: 'BB-001', label: 'Baby Bottle Set (BB-001)' },
+    { value: 'BP-002', label: 'Kids Backpack (BP-002)' },
+    { value: 'TC-003', label: 'Toy Car Collection (TC-003)' },
+    { value: 'BK-004', label: 'Children Books Set (BK-004)' },
+    { value: 'CR-005', label: 'Baby Crib (CR-005)' },
+    { value: 'SH-006', label: 'Toddler Shoes (SH-006)' },
+    { value: 'PZ-007', label: 'Educational Puzzle (PZ-007)' },
+    { value: 'BM-008', label: 'Baby Monitor (BM-008)' },
+    { value: 'DB-009', label: 'Diaper Bag (DB-009)' },
+    { value: 'LB-010', label: 'Kids Lunch Box (LB-010)' },
+  ];
+
+  // Selected products for the bundle
+  const [selectedProducts, setSelectedProducts] = useState<BundleProduct[]>([]);
+  const [selectedProductSKU, setSelectedProductSKU] = useState('');
+  const [productQuantity, setProductQuantity] = useState('1');
+
   // Filter bundles based on search
   const filteredBundles = useMemo(() => {
     return bundles.filter((bundle) =>
@@ -242,6 +263,9 @@ function ProductBundlePage() {
       endDate: '',
       stock: '',
     });
+    setSelectedProducts([]);
+    setSelectedProductSKU('');
+    setProductQuantity('1');
     setFormDrawerOpen(true);
   };
 
@@ -259,7 +283,31 @@ function ProductBundlePage() {
       endDate: bundle.endDate,
       stock: bundle.stock.toString(),
     });
+    setSelectedProducts(bundle.products);
+    setSelectedProductSKU('');
+    setProductQuantity('1');
     setFormDrawerOpen(true);
+  };
+
+  const handleAddProductToBundle = () => {
+    if (!selectedProductSKU || !productQuantity) return;
+
+    const product = availableProducts.find(p => p.value === selectedProductSKU);
+    if (!product) return;
+
+    const newProduct: BundleProduct = {
+      productName: product.label.split(' (')[0],
+      productSKU: selectedProductSKU,
+      quantity: parseInt(productQuantity),
+    };
+
+    setSelectedProducts([...selectedProducts, newProduct]);
+    setSelectedProductSKU('');
+    setProductQuantity('1');
+  };
+
+  const handleRemoveProductFromBundle = (sku: string) => {
+    setSelectedProducts(selectedProducts.filter(p => p.productSKU !== sku));
   };
 
   const handleSubmitForm = (e: React.FormEvent) => {
@@ -275,7 +323,7 @@ function ProductBundlePage() {
         bundleSKU: formData.bundleSKU,
         description: formData.description,
         bundleType: formData.bundleType,
-        products: [],
+        products: selectedProducts,
         originalPrice,
         bundlePrice,
         discount,
@@ -294,6 +342,7 @@ function ProductBundlePage() {
               bundleSKU: formData.bundleSKU,
               description: formData.description,
               bundleType: formData.bundleType,
+              products: selectedProducts,
               originalPrice,
               bundlePrice,
               discount,
@@ -305,6 +354,7 @@ function ProductBundlePage() {
       ));
     }
     setFormDrawerOpen(false);
+    setSelectedProducts([]);
   };
 
   // Get bundle type badge color
@@ -365,11 +415,9 @@ function ProductBundlePage() {
                 <TableRow>
                   <TableHead className="w-[200px]">Bundle Name</TableHead>
                   <TableHead className="w-[120px]">SKU</TableHead>
-                  <TableHead className="min-w-[200px]">Description</TableHead>
-                  <TableHead className="w-[140px]">Type</TableHead>
-                  <TableHead className="w-[100px] text-right">Original</TableHead>
-                  <TableHead className="w-[100px] text-right">Bundle Price</TableHead>
-                  <TableHead className="w-[80px] text-right">Discount</TableHead>
+                  <TableHead className="w-[150px]">Type</TableHead>
+                  <TableHead className="w-[120px] text-right">Bundle Price</TableHead>
+                  <TableHead className="w-[100px] text-right">Discount</TableHead>
                   <TableHead className="w-[80px] text-right">Stock</TableHead>
                   <TableHead className="w-[100px]">Status</TableHead>
                   <TableHead className="w-[140px] text-right">Actions</TableHead>
@@ -385,25 +433,29 @@ function ProductBundlePage() {
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         <Gift className="h-4 w-4 text-muted-foreground" />
-                        {bundle.bundleName}
+                        <div>
+                          <div>{bundle.bundleName}</div>
+                          <div className="text-xs text-muted-foreground line-clamp-1">
+                            {bundle.description}
+                          </div>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell className="font-mono text-sm text-muted-foreground">
                       {bundle.bundleSKU}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {bundle.description}
                     </TableCell>
                     <TableCell>
                       <Badge className={getBundleTypeBadge(bundle.bundleType)}>
                         {bundle.bundleType}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right text-muted-foreground line-through">
-                      ${bundle.originalPrice.toFixed(2)}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold text-green-600">
-                      ${bundle.bundlePrice.toFixed(2)}
+                    <TableCell className="text-right">
+                      <div className="font-semibold text-green-600">
+                        ${bundle.bundlePrice.toFixed(2)}
+                      </div>
+                      <div className="text-xs text-muted-foreground line-through">
+                        ${bundle.originalPrice.toFixed(2)}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <Badge variant="outline" className="font-semibold">
@@ -703,6 +755,68 @@ function ProductBundlePage() {
                 <option value="Buy 3 Get 1">Buy 3 Get 1</option>
                 <option value="Custom Bundle">Custom Bundle</option>
               </select>
+            </div>
+
+            <Separator />
+
+            {/* Product Selection */}
+            <div className="space-y-3">
+              <Label>Bundle Products</Label>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Combobox
+                    options={availableProducts}
+                    value={selectedProductSKU}
+                    onValueChange={setSelectedProductSKU}
+                    placeholder="Select product..."
+                    searchPlaceholder="Search products..."
+                    emptyText="No product found."
+                  />
+                </div>
+                <Input
+                  type="number"
+                  min="1"
+                  placeholder="Qty"
+                  value={productQuantity}
+                  onChange={(e) => setProductQuantity(e.target.value)}
+                  className="w-20"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={handleAddProductToBundle}
+                  disabled={!selectedProductSKU}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Selected Products List */}
+              {selectedProducts.length > 0 && (
+                <div className="space-y-2 mt-3">
+                  {selectedProducts.map((product, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 border rounded">
+                      <div>
+                        <p className="text-sm font-medium">{product.productName}</p>
+                        <p className="text-xs text-muted-foreground">{product.productSKU}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">Qty: {product.quantity}</Badge>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => handleRemoveProductFromBundle(product.productSKU)}
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <Separator />
