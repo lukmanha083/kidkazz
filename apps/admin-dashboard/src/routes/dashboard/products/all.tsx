@@ -33,6 +33,7 @@ import { Pagination } from '@/components/ui/pagination';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Combobox } from '@/components/ui/combobox';
 import {
   Plus,
   Search,
@@ -105,6 +106,25 @@ const standardUOMs: UnitOfMeasure[] = [
   { code: 'PCS', name: 'Pieces', conversionFactor: 1, isBaseUnit: true },
   { code: 'DOZEN', name: 'Dozen', conversionFactor: 12, isBaseUnit: false },
   { code: 'BOX6', name: 'Box of 6', conversionFactor: 6, isBaseUnit: false },
+];
+
+// Mock Categories
+const mockCategories = [
+  { id: 'cat-001', name: 'Feeding' },
+  { id: 'cat-002', name: 'School' },
+  { id: 'cat-003', name: 'Toys' },
+  { id: 'cat-004', name: 'Education' },
+  { id: 'cat-005', name: 'Furniture' },
+  { id: 'cat-006', name: 'Clothing' },
+  { id: 'cat-007', name: 'Electronics' },
+  { id: 'cat-008', name: 'Accessories' },
+];
+
+// Mock Warehouses
+const mockWarehouses = [
+  { id: 'WH-001', name: 'Main Warehouse' },
+  { id: 'WH-002', name: 'Secondary Warehouse' },
+  { id: 'WH-003', name: 'Regional Hub Jakarta' },
 ];
 
 const mockProducts: Product[] = [
@@ -204,7 +224,13 @@ const mockProducts: Product[] = [
     warehouse: 'Regional Hub Jakarta',
     warehouseId: 'WH-003',
     isBundle: true,
-    bundleItems: ['ABC Book', 'Numbers Book', 'Colors Book', 'Shapes Book', 'Animals Book']
+    bundleItems: ['ABC Book', 'Numbers Book', 'Colors Book', 'Shapes Book', 'Animals Book'],
+    baseUnit: 'PCS',
+    alternateUnits: standardUOMs,
+    wholesaleThreshold: 12,
+    warehouseStock: [
+      { warehouseId: 'WH-003', warehouseName: 'Regional Hub Jakarta', stockQuantity: 67, retailPrice: 34.50, wholesalePrice: 30.00 },
+    ],
   },
   {
     id: '5',
@@ -225,7 +251,13 @@ const mockProducts: Product[] = [
     variants: [
       { id: 'v1', name: 'White Oak', sku: 'CR-005-WOK', price: 299.99, stock: 7 },
       { id: 'v2', name: 'Walnut', sku: 'CR-005-WNT', price: 319.99, stock: 5 }
-    ]
+    ],
+    baseUnit: 'PCS',
+    alternateUnits: standardUOMs,
+    wholesaleThreshold: 12,
+    warehouseStock: [
+      { warehouseId: 'WH-001', warehouseName: 'Main Warehouse', stockQuantity: 12, retailPrice: 299.99, wholesalePrice: 270.00 },
+    ],
   },
   {
     id: '6',
@@ -247,7 +279,13 @@ const mockProducts: Product[] = [
       { id: 'v1', name: 'Size 3', sku: 'SH-006-S3', price: 35.50, stock: 20 },
       { id: 'v2', name: 'Size 4', sku: 'SH-006-S4', price: 35.50, stock: 28 },
       { id: 'v3', name: 'Size 5', sku: 'SH-006-S5', price: 35.50, stock: 30 }
-    ]
+    ],
+    baseUnit: 'PCS',
+    alternateUnits: standardUOMs,
+    wholesaleThreshold: 12,
+    warehouseStock: [
+      { warehouseId: 'WH-002', warehouseName: 'Secondary Warehouse', stockQuantity: 78, retailPrice: 35.50, wholesalePrice: 32.00 },
+    ],
   },
   {
     id: '7',
@@ -264,7 +302,13 @@ const mockProducts: Product[] = [
     reviews: 134,
     warehouse: 'Regional Hub Jakarta',
     warehouseId: 'WH-003',
-    isBundle: false
+    isBundle: false,
+    baseUnit: 'PCS',
+    alternateUnits: standardUOMs,
+    wholesaleThreshold: 12,
+    warehouseStock: [
+      { warehouseId: 'WH-003', warehouseName: 'Regional Hub Jakarta', stockQuantity: 156, retailPrice: 19.99, wholesalePrice: 17.00 },
+    ],
   },
   {
     id: '8',
@@ -281,7 +325,13 @@ const mockProducts: Product[] = [
     reviews: 78,
     warehouse: 'Main Warehouse',
     warehouseId: 'WH-001',
-    isBundle: false
+    isBundle: false,
+    baseUnit: 'PCS',
+    alternateUnits: standardUOMs,
+    wholesaleThreshold: 12,
+    warehouseStock: [
+      { warehouseId: 'WH-001', warehouseName: 'Main Warehouse', stockQuantity: 34, retailPrice: 129.99, wholesalePrice: 115.00 },
+    ],
   },
   {
     id: '9',
@@ -302,7 +352,13 @@ const mockProducts: Product[] = [
     variants: [
       { id: 'v1', name: 'Black', sku: 'DB-009-BLK', price: 49.99, stock: 45 },
       { id: 'v2', name: 'Gray', sku: 'DB-009-GRY', price: 49.99, stock: 47 }
-    ]
+    ],
+    baseUnit: 'PCS',
+    alternateUnits: standardUOMs,
+    wholesaleThreshold: 12,
+    warehouseStock: [
+      { warehouseId: 'WH-002', warehouseName: 'Secondary Warehouse', stockQuantity: 92, retailPrice: 49.99, wholesalePrice: 45.00 },
+    ],
   },
   {
     id: '10',
@@ -319,7 +375,13 @@ const mockProducts: Product[] = [
     reviews: 234,
     warehouse: 'Regional Hub Jakarta',
     warehouseId: 'WH-003',
-    isBundle: false
+    isBundle: false,
+    baseUnit: 'PCS',
+    alternateUnits: standardUOMs,
+    wholesaleThreshold: 12,
+    warehouseStock: [
+      { warehouseId: 'WH-003', warehouseName: 'Regional Hub Jakarta', stockQuantity: 203, retailPrice: 15.99, wholesalePrice: 14.00 },
+    ],
   },
 ];
 
@@ -347,6 +409,7 @@ function AllProductsPage() {
   // Drawer states
   const [viewDrawerOpen, setViewDrawerOpen] = useState(false);
   const [formDrawerOpen, setFormDrawerOpen] = useState(false);
+  const [productDetailDrawerOpen, setProductDetailDrawerOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
 
@@ -366,6 +429,8 @@ function AllProductsPage() {
     stock: '',
     warehouse: '',
     warehouseId: '',
+    baseUnit: 'PCS',
+    wholesaleThreshold: '12',
     isBundle: false,
   });
 
@@ -401,7 +466,7 @@ function AllProductsPage() {
 
   const handleViewProduct = (product: Product) => {
     setSelectedProduct(product);
-    setViewDrawerOpen(true);
+    setProductDetailDrawerOpen(true);
   };
 
   const handleAddProduct = () => {
@@ -416,6 +481,8 @@ function AllProductsPage() {
       stock: '',
       warehouse: '',
       warehouseId: '',
+      baseUnit: 'PCS',
+      wholesaleThreshold: '12',
       isBundle: false,
     });
     setFormDrawerOpen(true);
@@ -434,6 +501,8 @@ function AllProductsPage() {
       stock: product.stock.toString(),
       warehouse: product.warehouse,
       warehouseId: product.warehouseId,
+      baseUnit: product.baseUnit,
+      wholesaleThreshold: product.wholesaleThreshold.toString(),
       isBundle: product.isBundle,
     });
     setFormDrawerOpen(true);
@@ -1056,13 +1125,18 @@ function AllProductsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
-                <Input
+                <select
                   id="category"
-                  placeholder="Feeding"
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
                   required
-                />
+                >
+                  <option value="">Select category...</option>
+                  {mockCategories.map(cat => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -1094,26 +1168,68 @@ function AllProductsPage() {
 
             <Separator />
 
+            <div className="space-y-2">
+              <Label htmlFor="warehouseId">Warehouse</Label>
+              <select
+                id="warehouseId"
+                value={formData.warehouseId}
+                onChange={(e) => {
+                  const warehouse = mockWarehouses.find(w => w.id === e.target.value);
+                  setFormData({
+                    ...formData,
+                    warehouseId: e.target.value,
+                    warehouse: warehouse?.name || ''
+                  });
+                }}
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                required
+              >
+                <option value="">Select warehouse...</option>
+                {mockWarehouses.map(wh => (
+                  <option key={wh.id} value={wh.id}>{wh.name}</option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">
+                Stock will be added to this warehouse
+              </p>
+            </div>
+
+            <Separator />
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="warehouse">Warehouse</Label>
-                <Input
-                  id="warehouse"
-                  placeholder="Main Warehouse"
-                  value={formData.warehouse}
-                  onChange={(e) => setFormData({ ...formData, warehouse: e.target.value })}
+                <Label htmlFor="baseUnit">Base Unit (UOM)</Label>
+                <select
+                  id="baseUnit"
+                  value={formData.baseUnit}
+                  onChange={(e) => setFormData({ ...formData, baseUnit: e.target.value })}
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
                   required
-                />
+                >
+                  {standardUOMs
+                    .filter(uom => uom.isBaseUnit)
+                    .map(uom => (
+                      <option key={uom.code} value={uom.code}>{uom.name} ({uom.code})</option>
+                    ))}
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  All inventory stored in this unit
+                </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="warehouseId">Warehouse ID</Label>
+                <Label htmlFor="wholesaleThreshold">Wholesale Threshold</Label>
                 <Input
-                  id="warehouseId"
-                  placeholder="WH-001"
-                  value={formData.warehouseId}
-                  onChange={(e) => setFormData({ ...formData, warehouseId: e.target.value })}
+                  id="wholesaleThreshold"
+                  type="number"
+                  min="1"
+                  placeholder="12"
+                  value={formData.wholesaleThreshold}
+                  onChange={(e) => setFormData({ ...formData, wholesaleThreshold: e.target.value })}
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  Minimum {formData.baseUnit} for wholesale
+                </p>
               </div>
             </div>
 
@@ -1141,6 +1257,245 @@ function AllProductsPage() {
               </DrawerClose>
             </DrawerFooter>
           </form>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Product Detail Report Drawer (Right Side) */}
+      <Drawer open={productDetailDrawerOpen} onOpenChange={setProductDetailDrawerOpen}>
+        <DrawerContent side="right">
+          <DrawerHeader>
+            <div className="flex items-start justify-between">
+              <div>
+                <DrawerTitle>{selectedProduct?.name}</DrawerTitle>
+                <DrawerDescription>Product Details & Inventory Report</DrawerDescription>
+              </div>
+              <DrawerClose asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <X className="h-4 w-4" />
+                </Button>
+              </DrawerClose>
+            </div>
+          </DrawerHeader>
+
+          {selectedProduct && (
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="space-y-4">
+                {/* Basic Product Info */}
+                <div>
+                  <Label className="text-xs text-muted-foreground">Product Name</Label>
+                  <p className="text-sm font-medium mt-1">{selectedProduct.name}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">SKU</Label>
+                    <p className="text-sm font-mono mt-1">{selectedProduct.sku}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Barcode</Label>
+                    <p className="text-sm font-mono mt-1">{selectedProduct.barcode}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Category</Label>
+                    <p className="text-sm mt-1">{selectedProduct.category}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Status</Label>
+                    <div className="mt-1">
+                      <Badge
+                        variant={selectedProduct.status === 'Active' ? 'default' : 'secondary'}
+                        className={
+                          selectedProduct.status === 'Active'
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-500'
+                            : ''
+                        }
+                      >
+                        {selectedProduct.status}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* UOM Information */}
+                <div>
+                  <Label className="text-xs text-muted-foreground">Base Unit</Label>
+                  <p className="text-sm font-medium mt-1">{selectedProduct.baseUnit}</p>
+                  <p className="text-xs text-muted-foreground">All inventory stored in this unit</p>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-muted-foreground">Unit of Measure Conversions</Label>
+                  <div className="mt-2 space-y-2">
+                    {selectedProduct.alternateUnits.map((uom) => (
+                      <div key={uom.code} className="flex items-center justify-between p-2 border rounded">
+                        <div>
+                          <p className="text-sm font-medium">{uom.name}</p>
+                          <p className="text-xs text-muted-foreground">Code: {uom.code}</p>
+                        </div>
+                        <Badge variant={uom.isBaseUnit ? 'default' : 'secondary'}>
+                          {uom.isBaseUnit ? 'Base' : `1 = ${uom.conversionFactor} ${selectedProduct.baseUnit}`}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Wholesale Threshold */}
+                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                  <Label className="text-xs text-muted-foreground">Wholesale Threshold Rule</Label>
+                  <p className="text-sm font-medium mt-1">
+                    {selectedProduct.wholesaleThreshold} {selectedProduct.baseUnit} minimum
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Warehouses with stock ≥ {selectedProduct.wholesaleThreshold} can sell retail AND wholesale
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Warehouses with stock &lt; {selectedProduct.wholesaleThreshold} can only sell retail
+                  </p>
+                </div>
+
+                <Separator />
+
+                {/* Total Stock */}
+                <div>
+                  <Label className="text-xs text-muted-foreground">Total Stock (All Warehouses)</Label>
+                  <p className="text-2xl font-bold mt-1">
+                    {selectedProduct.stock} {selectedProduct.baseUnit}
+                  </p>
+                  <div className="grid grid-cols-3 gap-2 mt-2 text-xs">
+                    {selectedProduct.alternateUnits
+                      .filter(uom => !uom.isBaseUnit)
+                      .map(uom => (
+                        <div key={uom.code} className="p-2 bg-muted rounded">
+                          <p className="text-muted-foreground">{uom.name}</p>
+                          <p className="font-semibold">
+                            {Math.floor(selectedProduct.stock / uom.conversionFactor)}
+                          </p>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Warehouse-Specific Stock */}
+                <div>
+                  <Label className="text-xs text-muted-foreground">Stock by Warehouse</Label>
+                  <div className="mt-2 space-y-2">
+                    {selectedProduct.warehouseStock.map((ws) => {
+                      const canWholesale = ws.stockQuantity >= selectedProduct.wholesaleThreshold;
+
+                      return (
+                        <div key={ws.warehouseId} className="p-3 border rounded-md">
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <p className="text-sm font-medium">{ws.warehouseName}</p>
+                              <p className="text-xs text-muted-foreground font-mono">{ws.warehouseId}</p>
+                            </div>
+                            <Badge variant={canWholesale ? 'default' : 'secondary'}>
+                              {canWholesale ? 'Retail & Wholesale' : 'Retail Only'}
+                            </Badge>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div>
+                              <Label className="text-xs text-muted-foreground">Stock Quantity</Label>
+                              <p className="text-lg font-bold">
+                                {ws.stockQuantity} {selectedProduct.baseUnit}
+                              </p>
+                              <div className="flex gap-2 mt-1">
+                                {selectedProduct.alternateUnits
+                                  .filter(uom => !uom.isBaseUnit)
+                                  .map(uom => (
+                                    <span key={uom.code} className="text-xs text-muted-foreground">
+                                      ≈ {Math.floor(ws.stockQuantity / uom.conversionFactor)} {uom.code}
+                                    </span>
+                                  ))}
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 pt-2 border-t">
+                              <div>
+                                <Label className="text-xs text-muted-foreground">Retail Price</Label>
+                                <p className="text-sm font-semibold text-green-600">
+                                  ${ws.retailPrice.toFixed(2)}
+                                </p>
+                              </div>
+                              <div>
+                                <Label className="text-xs text-muted-foreground">Wholesale Price</Label>
+                                <p className="text-sm font-semibold">
+                                  {ws.wholesalePrice !== null ? (
+                                    <span className="text-blue-600">${ws.wholesalePrice.toFixed(2)}</span>
+                                  ) : (
+                                    <span className="text-muted-foreground">Not Available</span>
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+
+                            {!canWholesale && (
+                              <div className="p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded text-xs">
+                                <p className="text-yellow-700 dark:text-yellow-500">
+                                  Need {selectedProduct.wholesaleThreshold - ws.stockQuantity} more {selectedProduct.baseUnit} for wholesale
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {selectedProduct.warehouseStock.length === 0 && (
+                  <div className="p-4 text-center text-sm text-muted-foreground">
+                    No warehouse stock information available
+                  </div>
+                )}
+
+                {/* Variants Section */}
+                {selectedProduct.variants && selectedProduct.variants.length > 0 && (
+                  <>
+                    <Separator />
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Product Variants</Label>
+                      <div className="mt-2 space-y-2">
+                        {selectedProduct.variants.map((variant) => (
+                          <div key={variant.id} className="flex items-center justify-between p-2 border rounded">
+                            <div>
+                              <p className="text-sm font-medium">{variant.name}</p>
+                              <p className="text-xs text-muted-foreground">SKU: {variant.sku}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-semibold">${variant.price.toFixed(2)}</p>
+                              <p className="text-xs text-muted-foreground">Stock: {variant.stock}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          <DrawerFooter>
+            <Button onClick={() => selectedProduct && handleEditProduct(selectedProduct)}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Product
+            </Button>
+            <DrawerClose asChild>
+              <Button variant="outline">Close</Button>
+            </DrawerClose>
+          </DrawerFooter>
         </DrawerContent>
       </Drawer>
     </div>
