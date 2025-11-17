@@ -41,12 +41,31 @@ export const Route = createFileRoute('/dashboard/products/bundle')({
   component: ProductBundlePage,
 });
 
+interface UnitOfMeasure {
+  code: string;
+  name: string;
+  conversionFactor: number;
+  isBaseUnit: boolean;
+}
+
+interface WarehouseStock {
+  warehouseId: string;
+  warehouseName: string;
+  stockQuantity: number; // Always in base unit (PCS)
+  retailPrice: number;
+  wholesalePrice: number | null; // null if stock < threshold
+}
+
 interface Product {
   barcode: string;
   sku: string;
   name: string;
   price: number;
-  stock: number;
+  stock: number; // Total stock across all warehouses (base unit)
+  baseUnit: string; // e.g., "PCS"
+  alternateUnits: UnitOfMeasure[];
+  wholesaleThreshold: number; // e.g., 12 pcs
+  warehouseStock: WarehouseStock[];
 }
 
 interface BundleProduct {
@@ -62,6 +81,8 @@ interface ProductBundle {
   bundleName: string;
   bundleSKU: string;
   description: string;
+  warehouseId: string;
+  warehouseName: string;
   products: BundleProduct[];
   bundlePrice: number;
   status: 'Active' | 'Inactive';
@@ -69,20 +90,180 @@ interface ProductBundle {
   endDate: string;
 }
 
+// Mock warehouses
+const mockWarehouses = [
+  { id: 'WH-001', name: 'Main Warehouse' },
+  { id: 'WH-002', name: 'North Branch' },
+  { id: 'WH-003', name: 'South Branch' },
+];
+
+// Standard UOM for all products
+const standardUOMs: UnitOfMeasure[] = [
+  { code: 'PCS', name: 'Pieces', conversionFactor: 1, isBaseUnit: true },
+  { code: 'DOZEN', name: 'Dozen', conversionFactor: 12, isBaseUnit: false },
+  { code: 'BOX6', name: 'Box of 6', conversionFactor: 6, isBaseUnit: false },
+];
+
 // Mock individual products with stock and prices
 const mockProducts: Product[] = [
-  { barcode: '1234567890001', sku: 'BB-001', name: 'Baby Bottle Set', price: 29.99, stock: 50 },
-  { barcode: '1234567890002', sku: 'BP-002', name: 'Kids Backpack', price: 39.99, stock: 35 },
-  { barcode: '1234567890003', sku: 'TC-003', name: 'Toy Car Collection', price: 89.99, stock: 20 },
-  { barcode: '1234567890004', sku: 'BK-004', name: 'Children Books Set', price: 24.99, stock: 60 },
-  { barcode: '1234567890005', sku: 'CR-005', name: 'Baby Crib', price: 299.99, stock: 8 },
-  { barcode: '1234567890006', sku: 'SH-006', name: 'Toddler Shoes', price: 34.99, stock: 45 },
-  { barcode: '1234567890007', sku: 'PZ-007', name: 'Educational Puzzle', price: 19.99, stock: 100 },
-  { barcode: '1234567890008', sku: 'BM-008', name: 'Baby Monitor', price: 149.99, stock: 15 },
-  { barcode: '1234567890009', sku: 'DB-009', name: 'Diaper Bag', price: 49.99, stock: 30 },
-  { barcode: '1234567890010', sku: 'LB-010', name: 'Kids Lunch Box', price: 21.00, stock: 80 },
-  { barcode: '1234567890011', sku: 'BIB-001', name: 'Baby Bibs Pack', price: 15.99, stock: 120 },
-  { barcode: '1234567890012', sku: 'UTN-001', name: 'Baby Utensils Set', price: 12.99, stock: 95 },
+  {
+    barcode: '1234567890001',
+    sku: 'BB-001',
+    name: 'Baby Bottle Set',
+    price: 29.99,
+    stock: 74, // Total: WH-001(24) + WH-002(50)
+    baseUnit: 'PCS',
+    alternateUnits: standardUOMs,
+    wholesaleThreshold: 12,
+    warehouseStock: [
+      { warehouseId: 'WH-001', warehouseName: 'Main Warehouse', stockQuantity: 24, retailPrice: 29.99, wholesalePrice: 25.00 },
+      { warehouseId: 'WH-002', warehouseName: 'North Branch', stockQuantity: 50, retailPrice: 29.99, wholesalePrice: 25.00 },
+    ],
+  },
+  {
+    barcode: '1234567890002',
+    sku: 'BP-002',
+    name: 'Kids Backpack',
+    price: 39.99,
+    stock: 43, // Total: WH-001(35) + WH-003(8)
+    baseUnit: 'PCS',
+    alternateUnits: standardUOMs,
+    wholesaleThreshold: 12,
+    warehouseStock: [
+      { warehouseId: 'WH-001', warehouseName: 'Main Warehouse', stockQuantity: 35, retailPrice: 39.99, wholesalePrice: 35.00 },
+      { warehouseId: 'WH-003', warehouseName: 'South Branch', stockQuantity: 8, retailPrice: 39.99, wholesalePrice: null }, // Can't wholesale (< 12)
+    ],
+  },
+  {
+    barcode: '1234567890003',
+    sku: 'TC-003',
+    name: 'Toy Car Collection',
+    price: 89.99,
+    stock: 20,
+    baseUnit: 'PCS',
+    alternateUnits: standardUOMs,
+    wholesaleThreshold: 12,
+    warehouseStock: [
+      { warehouseId: 'WH-001', warehouseName: 'Main Warehouse', stockQuantity: 20, retailPrice: 89.99, wholesalePrice: 80.00 },
+    ],
+  },
+  {
+    barcode: '1234567890004',
+    sku: 'BK-004',
+    name: 'Children Books Set',
+    price: 24.99,
+    stock: 60,
+    baseUnit: 'PCS',
+    alternateUnits: standardUOMs,
+    wholesaleThreshold: 12,
+    warehouseStock: [
+      { warehouseId: 'WH-002', warehouseName: 'North Branch', stockQuantity: 60, retailPrice: 24.99, wholesalePrice: 22.00 },
+    ],
+  },
+  {
+    barcode: '1234567890005',
+    sku: 'CR-005',
+    name: 'Baby Crib',
+    price: 299.99,
+    stock: 8,
+    baseUnit: 'PCS',
+    alternateUnits: standardUOMs,
+    wholesaleThreshold: 12,
+    warehouseStock: [
+      { warehouseId: 'WH-001', warehouseName: 'Main Warehouse', stockQuantity: 8, retailPrice: 299.99, wholesalePrice: null }, // Can't wholesale
+    ],
+  },
+  {
+    barcode: '1234567890006',
+    sku: 'SH-006',
+    name: 'Toddler Shoes',
+    price: 34.99,
+    stock: 45,
+    baseUnit: 'PCS',
+    alternateUnits: standardUOMs,
+    wholesaleThreshold: 12,
+    warehouseStock: [
+      { warehouseId: 'WH-001', warehouseName: 'Main Warehouse', stockQuantity: 45, retailPrice: 34.99, wholesalePrice: 30.00 },
+    ],
+  },
+  {
+    barcode: '1234567890007',
+    sku: 'PZ-007',
+    name: 'Educational Puzzle',
+    price: 19.99,
+    stock: 100,
+    baseUnit: 'PCS',
+    alternateUnits: standardUOMs,
+    wholesaleThreshold: 12,
+    warehouseStock: [
+      { warehouseId: 'WH-001', warehouseName: 'Main Warehouse', stockQuantity: 100, retailPrice: 19.99, wholesalePrice: 17.00 },
+    ],
+  },
+  {
+    barcode: '1234567890008',
+    sku: 'BM-008',
+    name: 'Baby Monitor',
+    price: 149.99,
+    stock: 15,
+    baseUnit: 'PCS',
+    alternateUnits: standardUOMs,
+    wholesaleThreshold: 12,
+    warehouseStock: [
+      { warehouseId: 'WH-002', warehouseName: 'North Branch', stockQuantity: 15, retailPrice: 149.99, wholesalePrice: 135.00 },
+    ],
+  },
+  {
+    barcode: '1234567890009',
+    sku: 'DB-009',
+    name: 'Diaper Bag',
+    price: 49.99,
+    stock: 30,
+    baseUnit: 'PCS',
+    alternateUnits: standardUOMs,
+    wholesaleThreshold: 12,
+    warehouseStock: [
+      { warehouseId: 'WH-001', warehouseName: 'Main Warehouse', stockQuantity: 30, retailPrice: 49.99, wholesalePrice: 45.00 },
+    ],
+  },
+  {
+    barcode: '1234567890010',
+    sku: 'LB-010',
+    name: 'Kids Lunch Box',
+    price: 21.00,
+    stock: 80,
+    baseUnit: 'PCS',
+    alternateUnits: standardUOMs,
+    wholesaleThreshold: 12,
+    warehouseStock: [
+      { warehouseId: 'WH-003', warehouseName: 'South Branch', stockQuantity: 80, retailPrice: 21.00, wholesalePrice: 18.50 },
+    ],
+  },
+  {
+    barcode: '1234567890011',
+    sku: 'BIB-001',
+    name: 'Baby Bibs Pack',
+    price: 15.99,
+    stock: 120,
+    baseUnit: 'PCS',
+    alternateUnits: standardUOMs,
+    wholesaleThreshold: 12,
+    warehouseStock: [
+      { warehouseId: 'WH-001', warehouseName: 'Main Warehouse', stockQuantity: 120, retailPrice: 15.99, wholesalePrice: 14.00 },
+    ],
+  },
+  {
+    barcode: '1234567890012',
+    sku: 'UTN-001',
+    name: 'Baby Utensils Set',
+    price: 12.99,
+    stock: 95,
+    baseUnit: 'PCS',
+    alternateUnits: standardUOMs,
+    wholesaleThreshold: 12,
+    warehouseStock: [
+      { warehouseId: 'WH-002', warehouseName: 'North Branch', stockQuantity: 95, retailPrice: 12.99, wholesalePrice: 11.50 },
+    ],
+  },
 ];
 
 const mockBundles: ProductBundle[] = [
@@ -91,6 +272,8 @@ const mockBundles: ProductBundle[] = [
     bundleName: 'Baby Bottle Starter Pack',
     bundleSKU: 'BUNDLE-001',
     description: 'Perfect starter set for new parents - 3 bottles at special price',
+    warehouseId: 'WH-001',
+    warehouseName: 'Main Warehouse',
     products: [
       { productName: 'Baby Bottle Set', productSKU: 'BB-001', barcode: '1234567890001', quantity: 3, price: 29.99 },
     ],
@@ -104,6 +287,8 @@ const mockBundles: ProductBundle[] = [
     bundleName: 'Back to School Bundle',
     bundleSKU: 'BUNDLE-002',
     description: 'Backpack + Lunch Box combo deal for students',
+    warehouseId: 'WH-001',
+    warehouseName: 'Main Warehouse',
     products: [
       { productName: 'Kids Backpack', productSKU: 'BP-002', barcode: '1234567890002', quantity: 1, price: 39.99 },
       { productName: 'Kids Lunch Box', productSKU: 'LB-010', barcode: '1234567890010', quantity: 1, price: 21.00 },
@@ -118,6 +303,8 @@ const mockBundles: ProductBundle[] = [
     bundleName: 'Educational Toy Set',
     bundleSKU: 'BUNDLE-003',
     description: 'Two puzzles for learning and fun at a great price',
+    warehouseId: 'WH-001',
+    warehouseName: 'Main Warehouse',
     products: [
       { productName: 'Educational Puzzle', productSKU: 'PZ-007', barcode: '1234567890007', quantity: 2, price: 19.99 },
     ],
@@ -131,6 +318,8 @@ const mockBundles: ProductBundle[] = [
     bundleName: 'Complete Feeding Set',
     bundleSKU: 'BUNDLE-004',
     description: 'Bottles, bibs, and utensils - everything for feeding time',
+    warehouseId: 'WH-001',
+    warehouseName: 'Main Warehouse',
     products: [
       { productName: 'Baby Bottle Set', productSKU: 'BB-001', barcode: '1234567890001', quantity: 1, price: 29.99 },
       { productName: 'Baby Bibs Pack', productSKU: 'BIB-001', barcode: '1234567890011', quantity: 1, price: 15.99 },
@@ -146,6 +335,8 @@ const mockBundles: ProductBundle[] = [
     bundleName: 'Twin Baby Essentials',
     bundleSKU: 'BUNDLE-005',
     description: 'Double everything for twins - bottles and diaper bags',
+    warehouseId: 'WH-002',
+    warehouseName: 'North Branch',
     products: [
       { productName: 'Baby Bottle Set', productSKU: 'BB-001', barcode: '1234567890001', quantity: 2, price: 29.99 },
       { productName: 'Diaper Bag', productSKU: 'DB-009', barcode: '1234567890009', quantity: 2, price: 49.99 },
@@ -167,7 +358,9 @@ function ProductBundlePage() {
   // Drawer states
   const [viewDrawerOpen, setViewDrawerOpen] = useState(false);
   const [formDrawerOpen, setFormDrawerOpen] = useState(false);
+  const [productDetailDrawerOpen, setProductDetailDrawerOpen] = useState(false);
   const [selectedBundle, setSelectedBundle] = useState<ProductBundle | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
 
   // Form data
@@ -175,6 +368,7 @@ function ProductBundlePage() {
     bundleName: '',
     bundleSKU: '',
     description: '',
+    warehouseId: '',
     discountPercentage: '',
     startDate: '',
     endDate: '',
@@ -213,14 +407,22 @@ function ProductBundlePage() {
     return originalPrice * (1 - discountPercentage / 100);
   };
 
-  // Helper function: Calculate available bundle stock based on individual product stocks
-  const calculateBundleStock = (bundleProducts: BundleProduct[]): number => {
+  // Helper function: Calculate available bundle stock based on warehouse product stocks
+  const calculateBundleStock = (bundleProducts: BundleProduct[], warehouseId?: string): number => {
     if (bundleProducts.length === 0) return 0;
 
     const availablePerProduct = bundleProducts.map(bp => {
       const product = products.find(p => p.sku === bp.productSKU);
       if (!product) return 0;
-      return Math.floor(product.stock / bp.quantity);
+
+      // If warehouse specified, use that warehouse stock; otherwise use total stock
+      if (warehouseId) {
+        const warehouseStock = product.warehouseStock.find(ws => ws.warehouseId === warehouseId);
+        if (!warehouseStock) return 0;
+        return Math.floor(warehouseStock.stockQuantity / bp.quantity);
+      } else {
+        return Math.floor(product.stock / bp.quantity);
+      }
     });
 
     // Return the minimum - that's the constraint
@@ -261,12 +463,21 @@ function ProductBundlePage() {
     setViewDrawerOpen(true);
   };
 
+  const handleViewProduct = (productSKU: string) => {
+    const product = products.find(p => p.sku === productSKU);
+    if (product) {
+      setSelectedProduct(product);
+      setProductDetailDrawerOpen(true);
+    }
+  };
+
   const handleAddBundle = () => {
     setFormMode('add');
     setFormData({
       bundleName: '',
       bundleSKU: '',
       description: '',
+      warehouseId: '',
       discountPercentage: '',
       startDate: '',
       endDate: '',
@@ -289,6 +500,7 @@ function ProductBundlePage() {
       bundleName: bundle.bundleName,
       bundleSKU: bundle.bundleSKU,
       description: bundle.description,
+      warehouseId: bundle.warehouseId,
       discountPercentage: discount.toString(),
       startDate: bundle.startDate,
       endDate: bundle.endDate,
@@ -330,12 +542,18 @@ function ProductBundlePage() {
     const discountPercentage = parseFloat(formData.discountPercentage);
     const bundlePrice = calculateBundlePrice(originalPrice, discountPercentage);
 
+    // Get warehouse name from ID
+    const warehouse = mockWarehouses.find(w => w.id === formData.warehouseId);
+    const warehouseName = warehouse?.name || '';
+
     if (formMode === 'add') {
       const newBundle: ProductBundle = {
         id: String(bundles.length + 1),
         bundleName: formData.bundleName,
         bundleSKU: formData.bundleSKU,
         description: formData.description,
+        warehouseId: formData.warehouseId,
+        warehouseName,
         products: selectedProducts,
         bundlePrice,
         status: 'Active',
@@ -351,6 +569,8 @@ function ProductBundlePage() {
               bundleName: formData.bundleName,
               bundleSKU: formData.bundleSKU,
               description: formData.description,
+              warehouseId: formData.warehouseId,
+              warehouseName,
               products: selectedProducts,
               bundlePrice,
               startDate: formData.startDate,
@@ -409,12 +629,13 @@ function ProductBundlePage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[250px]">Bundle Name</TableHead>
+                  <TableHead className="w-[200px]">Bundle Name</TableHead>
                   <TableHead className="w-[120px]">SKU</TableHead>
-                  <TableHead className="w-[140px] text-right">Prices</TableHead>
-                  <TableHead className="w-[100px] text-right">Discount</TableHead>
+                  <TableHead className="w-[130px]">Warehouse</TableHead>
+                  <TableHead className="w-[120px] text-right">Prices</TableHead>
+                  <TableHead className="w-[90px] text-right">Discount</TableHead>
                   <TableHead className="w-[100px] text-right">Available</TableHead>
-                  <TableHead className="w-[100px]">Status</TableHead>
+                  <TableHead className="w-[90px]">Status</TableHead>
                   <TableHead className="w-[140px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -422,7 +643,7 @@ function ProductBundlePage() {
                 {paginatedBundles.map((bundle) => {
                   const originalPrice = calculateOriginalPrice(bundle.products);
                   const discount = calculateDiscount(originalPrice, bundle.bundlePrice);
-                  const availableStock = calculateBundleStock(bundle.products);
+                  const availableStock = calculateBundleStock(bundle.products, bundle.warehouseId);
 
                   return (
                     <TableRow
@@ -443,6 +664,9 @@ function ProductBundlePage() {
                       </TableCell>
                       <TableCell className="font-mono text-sm text-muted-foreground">
                         {bundle.bundleSKU}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {bundle.warehouseName}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="font-semibold text-green-600">
@@ -567,7 +791,7 @@ function ProductBundlePage() {
           {selectedBundle && (() => {
             const originalPrice = calculateOriginalPrice(selectedBundle.products);
             const discount = calculateDiscount(originalPrice, selectedBundle.bundlePrice);
-            const availableStock = calculateBundleStock(selectedBundle.products);
+            const availableStock = calculateBundleStock(selectedBundle.products, selectedBundle.warehouseId);
 
             return (
               <div className="flex-1 overflow-y-auto p-4">
@@ -587,6 +811,12 @@ function ProductBundlePage() {
                     <p className="text-sm mt-1">{selectedBundle.description}</p>
                   </div>
 
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Warehouse</Label>
+                    <p className="text-sm font-medium mt-1">{selectedBundle.warehouseName}</p>
+                    <p className="text-xs text-muted-foreground">ID: {selectedBundle.warehouseId}</p>
+                  </div>
+
                   <Separator />
 
                   <div>
@@ -595,7 +825,14 @@ function ProductBundlePage() {
                       {selectedBundle.products.map((product, index) => {
                         const productData = products.find(p => p.sku === product.productSKU);
                         return (
-                          <div key={index} className="flex items-center justify-between p-2 border rounded">
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-2 border rounded cursor-pointer hover:bg-muted/50 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewProduct(product.productSKU);
+                            }}
+                          >
                             <div>
                               <p className="text-sm font-medium">{product.productName}</p>
                               <p className="text-xs text-muted-foreground">
@@ -606,6 +843,7 @@ function ProductBundlePage() {
                                   Stock: {productData.stock} units • ${product.price.toFixed(2)} each
                                 </p>
                               )}
+                              <p className="text-xs text-blue-600 mt-1">Click to view details →</p>
                             </div>
                             <Badge variant="secondary">Qty: {product.quantity}</Badge>
                           </div>
@@ -753,6 +991,25 @@ function ProductBundlePage() {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="warehouseId">Warehouse</Label>
+              <select
+                id="warehouseId"
+                value={formData.warehouseId}
+                onChange={(e) => setFormData({ ...formData, warehouseId: e.target.value })}
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                required
+              >
+                <option value="">Select warehouse...</option>
+                {mockWarehouses.map(wh => (
+                  <option key={wh.id} value={wh.id}>{wh.name}</option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">
+                Bundle will use stock from this warehouse
+              </p>
+            </div>
+
             <Separator />
 
             {/* Product Selection */}
@@ -876,11 +1133,13 @@ function ProductBundlePage() {
                   <div className="flex justify-between items-center">
                     <Label className="text-xs text-muted-foreground">Available Bundles</Label>
                     <p className="text-sm font-semibold">
-                      {calculateBundleStock(selectedProducts)} {calculateBundleStock(selectedProducts) === 1 ? 'bundle' : 'bundles'}
+                      {calculateBundleStock(selectedProducts, formData.warehouseId || undefined)} {calculateBundleStock(selectedProducts, formData.warehouseId || undefined) === 1 ? 'bundle' : 'bundles'}
                     </p>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Based on current individual product stock
+                    {formData.warehouseId
+                      ? `Based on stock in ${mockWarehouses.find(w => w.id === formData.warehouseId)?.name}`
+                      : 'Select a warehouse to see available bundles'}
                   </p>
                 </div>
               )}
@@ -922,6 +1181,195 @@ function ProductBundlePage() {
               </DrawerClose>
             </DrawerFooter>
           </form>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Product Detail Report Drawer (Right Side) */}
+      <Drawer open={productDetailDrawerOpen} onOpenChange={setProductDetailDrawerOpen}>
+        <DrawerContent side="right">
+          <DrawerHeader>
+            <div className="flex items-start justify-between">
+              <div>
+                <DrawerTitle>{selectedProduct?.name}</DrawerTitle>
+                <DrawerDescription>Product Details & Inventory Report</DrawerDescription>
+              </div>
+              <DrawerClose asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <X className="h-4 w-4" />
+                </Button>
+              </DrawerClose>
+            </div>
+          </DrawerHeader>
+
+          {selectedProduct && (
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="space-y-4">
+                {/* Basic Product Info */}
+                <div>
+                  <Label className="text-xs text-muted-foreground">Product Name</Label>
+                  <p className="text-sm font-medium mt-1">{selectedProduct.name}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">SKU</Label>
+                    <p className="text-sm font-mono mt-1">{selectedProduct.sku}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Barcode</Label>
+                    <p className="text-sm font-mono mt-1">{selectedProduct.barcode}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-muted-foreground">Base Unit</Label>
+                  <p className="text-sm font-medium mt-1">{selectedProduct.baseUnit}</p>
+                  <p className="text-xs text-muted-foreground">All inventory stored in this unit</p>
+                </div>
+
+                <Separator />
+
+                {/* UOM Conversions */}
+                <div>
+                  <Label className="text-xs text-muted-foreground">Unit of Measure Conversions</Label>
+                  <div className="mt-2 space-y-2">
+                    {selectedProduct.alternateUnits.map((uom) => (
+                      <div key={uom.code} className="flex items-center justify-between p-2 border rounded">
+                        <div>
+                          <p className="text-sm font-medium">{uom.name}</p>
+                          <p className="text-xs text-muted-foreground">Code: {uom.code}</p>
+                        </div>
+                        <Badge variant={uom.isBaseUnit ? 'default' : 'secondary'}>
+                          {uom.isBaseUnit ? 'Base' : `1 = ${uom.conversionFactor} ${selectedProduct.baseUnit}`}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Wholesale Threshold */}
+                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                  <Label className="text-xs text-muted-foreground">Wholesale Threshold Rule</Label>
+                  <p className="text-sm font-medium mt-1">
+                    {selectedProduct.wholesaleThreshold} {selectedProduct.baseUnit} minimum
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Warehouses with stock ≥ {selectedProduct.wholesaleThreshold} can sell retail AND wholesale
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Warehouses with stock &lt; {selectedProduct.wholesaleThreshold} can only sell retail
+                  </p>
+                </div>
+
+                <Separator />
+
+                {/* Total Stock */}
+                <div>
+                  <Label className="text-xs text-muted-foreground">Total Stock (All Warehouses)</Label>
+                  <p className="text-2xl font-bold mt-1">
+                    {selectedProduct.stock} {selectedProduct.baseUnit}
+                  </p>
+                  <div className="grid grid-cols-3 gap-2 mt-2 text-xs">
+                    {selectedProduct.alternateUnits
+                      .filter(uom => !uom.isBaseUnit)
+                      .map(uom => (
+                        <div key={uom.code} className="p-2 bg-muted rounded">
+                          <p className="text-muted-foreground">{uom.name}</p>
+                          <p className="font-semibold">
+                            {Math.floor(selectedProduct.stock / uom.conversionFactor)}
+                          </p>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Warehouse-Specific Stock */}
+                <div>
+                  <Label className="text-xs text-muted-foreground">Stock by Warehouse</Label>
+                  <div className="mt-2 space-y-2">
+                    {selectedProduct.warehouseStock.map((ws) => {
+                      const canWholesale = ws.stockQuantity >= selectedProduct.wholesaleThreshold;
+
+                      return (
+                        <div key={ws.warehouseId} className="p-3 border rounded-md">
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <p className="text-sm font-medium">{ws.warehouseName}</p>
+                              <p className="text-xs text-muted-foreground font-mono">{ws.warehouseId}</p>
+                            </div>
+                            <Badge variant={canWholesale ? 'default' : 'secondary'}>
+                              {canWholesale ? 'Retail & Wholesale' : 'Retail Only'}
+                            </Badge>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div>
+                              <Label className="text-xs text-muted-foreground">Stock Quantity</Label>
+                              <p className="text-lg font-bold">
+                                {ws.stockQuantity} {selectedProduct.baseUnit}
+                              </p>
+                              <div className="flex gap-2 mt-1">
+                                {selectedProduct.alternateUnits
+                                  .filter(uom => !uom.isBaseUnit)
+                                  .map(uom => (
+                                    <span key={uom.code} className="text-xs text-muted-foreground">
+                                      ≈ {Math.floor(ws.stockQuantity / uom.conversionFactor)} {uom.code}
+                                    </span>
+                                  ))}
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 pt-2 border-t">
+                              <div>
+                                <Label className="text-xs text-muted-foreground">Retail Price</Label>
+                                <p className="text-sm font-semibold text-green-600">
+                                  ${ws.retailPrice.toFixed(2)}
+                                </p>
+                              </div>
+                              <div>
+                                <Label className="text-xs text-muted-foreground">Wholesale Price</Label>
+                                <p className="text-sm font-semibold">
+                                  {ws.wholesalePrice !== null ? (
+                                    <span className="text-blue-600">${ws.wholesalePrice.toFixed(2)}</span>
+                                  ) : (
+                                    <span className="text-muted-foreground">Not Available</span>
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+
+                            {!canWholesale && (
+                              <div className="p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded text-xs">
+                                <p className="text-yellow-700 dark:text-yellow-500">
+                                  Need {selectedProduct.wholesaleThreshold - ws.stockQuantity} more {selectedProduct.baseUnit} for wholesale
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {selectedProduct.warehouseStock.length === 0 && (
+                  <div className="p-4 text-center text-sm text-muted-foreground">
+                    No warehouse stock information available
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <DrawerFooter>
+            <DrawerClose asChild>
+              <Button variant="outline">Close</Button>
+            </DrawerClose>
+          </DrawerFooter>
         </DrawerContent>
       </Drawer>
     </div>
