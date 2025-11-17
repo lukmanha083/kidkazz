@@ -19,6 +19,7 @@ import { Route as DashboardCustomersRouteImport } from './routes/dashboard/custo
 import { Route as DashboardProductsVariantRouteImport } from './routes/dashboard/products/variant'
 import { Route as DashboardProductsCategoryRouteImport } from './routes/dashboard/products/category'
 import { Route as DashboardProductsBundleRouteImport } from './routes/dashboard/products/bundle'
+import { Route as DashboardProductsAllRouteImport } from './routes/dashboard/products/all'
 import { Route as DashboardInventoryWarehouseRouteImport } from './routes/dashboard/inventory/warehouse'
 
 const DashboardRoute = DashboardRouteImport.update({
@@ -73,6 +74,11 @@ const DashboardProductsBundleRoute = DashboardProductsBundleRouteImport.update({
   path: '/products/bundle',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardProductsAllRoute = DashboardProductsAllRouteImport.update({
+  id: '/products/all',
+  path: '/products/all',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardInventoryWarehouseRoute =
   DashboardInventoryWarehouseRouteImport.update({
     id: '/warehouse',
@@ -89,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/inventory/warehouse': typeof DashboardInventoryWarehouseRoute
+  '/dashboard/products/all': typeof DashboardProductsAllRoute
   '/dashboard/products/bundle': typeof DashboardProductsBundleRoute
   '/dashboard/products/category': typeof DashboardProductsCategoryRoute
   '/dashboard/products/variant': typeof DashboardProductsVariantRoute
@@ -101,6 +108,7 @@ export interface FileRoutesByTo {
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard': typeof DashboardIndexRoute
   '/dashboard/inventory/warehouse': typeof DashboardInventoryWarehouseRoute
+  '/dashboard/products/all': typeof DashboardProductsAllRoute
   '/dashboard/products/bundle': typeof DashboardProductsBundleRoute
   '/dashboard/products/category': typeof DashboardProductsCategoryRoute
   '/dashboard/products/variant': typeof DashboardProductsVariantRoute
@@ -115,6 +123,7 @@ export interface FileRoutesById {
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/inventory/warehouse': typeof DashboardInventoryWarehouseRoute
+  '/dashboard/products/all': typeof DashboardProductsAllRoute
   '/dashboard/products/bundle': typeof DashboardProductsBundleRoute
   '/dashboard/products/category': typeof DashboardProductsCategoryRoute
   '/dashboard/products/variant': typeof DashboardProductsVariantRoute
@@ -130,6 +139,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings'
     | '/dashboard/'
     | '/dashboard/inventory/warehouse'
+    | '/dashboard/products/all'
     | '/dashboard/products/bundle'
     | '/dashboard/products/category'
     | '/dashboard/products/variant'
@@ -142,6 +152,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings'
     | '/dashboard'
     | '/dashboard/inventory/warehouse'
+    | '/dashboard/products/all'
     | '/dashboard/products/bundle'
     | '/dashboard/products/category'
     | '/dashboard/products/variant'
@@ -155,6 +166,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings'
     | '/dashboard/'
     | '/dashboard/inventory/warehouse'
+    | '/dashboard/products/all'
     | '/dashboard/products/bundle'
     | '/dashboard/products/category'
     | '/dashboard/products/variant'
@@ -237,6 +249,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardProductsBundleRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/products/all': {
+      id: '/dashboard/products/all'
+      path: '/products/all'
+      fullPath: '/dashboard/products/all'
+      preLoaderRoute: typeof DashboardProductsAllRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/inventory/warehouse': {
       id: '/dashboard/inventory/warehouse'
       path: '/warehouse'
@@ -264,6 +283,7 @@ interface DashboardRouteChildren {
   DashboardOrdersRoute: typeof DashboardOrdersRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardProductsAllRoute: typeof DashboardProductsAllRoute
   DashboardProductsBundleRoute: typeof DashboardProductsBundleRoute
   DashboardProductsCategoryRoute: typeof DashboardProductsCategoryRoute
   DashboardProductsVariantRoute: typeof DashboardProductsVariantRoute
@@ -275,6 +295,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardOrdersRoute: DashboardOrdersRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
+  DashboardProductsAllRoute: DashboardProductsAllRoute,
   DashboardProductsBundleRoute: DashboardProductsBundleRoute,
   DashboardProductsCategoryRoute: DashboardProductsCategoryRoute,
   DashboardProductsVariantRoute: DashboardProductsVariantRoute,

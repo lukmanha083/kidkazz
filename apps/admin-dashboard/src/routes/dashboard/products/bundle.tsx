@@ -21,280 +21,157 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Pagination } from '@/components/ui/pagination';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Plus,
   Search,
   Edit,
   Trash2,
   Eye,
-  Star,
-  Image as ImageIcon,
-  Settings2,
-  Package,
-  Warehouse as WarehouseIcon,
-  X
+  X,
+  Gift,
+  Tag
 } from 'lucide-react';
 
 export const Route = createFileRoute('/dashboard/products/bundle')({
   component: ProductBundlePage,
 });
 
-interface ProductVariant {
-  id: string;
-  name: string;
-  sku: string;
-  price: number;
-  stock: number;
+interface BundleProduct {
+  productName: string;
+  productSKU: string;
+  quantity: number;
 }
 
-interface Product {
+interface ProductBundle {
   id: string;
-  barcode: string;
-  name: string;
+  bundleName: string;
+  bundleSKU: string;
   description: string;
-  sku: string;
-  image: string;
-  category: string;
-  price: number;
-  stock: number;
+  bundleType: 'Buy 1 Get 1' | 'Buy 2 Get 1' | 'Buy 3 Get 1' | 'Custom Bundle';
+  products: BundleProduct[];
+  originalPrice: number;
+  bundlePrice: number;
+  discount: number;
   status: 'Active' | 'Inactive';
-  rating: number;
-  reviews: number;
-  // New fields
-  warehouse: string;
-  warehouseId: string;
-  isBundle: boolean;
-  bundleItems?: string[];
-  variants?: ProductVariant[];
+  startDate: string;
+  endDate: string;
+  stock: number;
 }
 
-const mockProducts: Product[] = [
+const mockBundles: ProductBundle[] = [
   {
     id: '1',
-    barcode: '8901234567890',
-    name: 'Baby Bottle Set',
-    description: 'BPA-free baby bottles with anti-colic nipples, includes 3 different sizes',
-    sku: 'BB-001',
-    image: '/placeholder-product.jpg',
-    category: 'Feeding',
-    price: 29.99,
-    stock: 145,
+    bundleName: 'Baby Bottle Starter Pack',
+    bundleSKU: 'BUNDLE-001',
+    description: 'Buy 2 bottles, get 1 free - Perfect starter set for new parents',
+    bundleType: 'Buy 2 Get 1',
+    products: [
+      { productName: 'Baby Bottle 4oz', productSKU: 'BB-001-4OZ', quantity: 3 },
+    ],
+    originalPrice: 89.97,
+    bundlePrice: 59.98,
+    discount: 33,
     status: 'Active',
-    rating: 4.5,
-    reviews: 89,
-    warehouse: 'Main Warehouse',
-    warehouseId: 'WH-001',
-    isBundle: true,
-    bundleItems: ['4oz Bottle', '6oz Bottle', '9oz Bottle'],
-    variants: [
-      { id: 'v1', name: 'Pink', sku: 'BB-001-PNK', price: 29.99, stock: 50 },
-      { id: 'v2', name: 'Blue', sku: 'BB-001-BLU', price: 29.99, stock: 95 }
-    ]
+    startDate: '2024-11-01',
+    endDate: '2024-12-31',
+    stock: 45
   },
   {
     id: '2',
-    barcode: '8901234567891',
-    name: 'Kids Backpack',
-    description: 'Durable school backpack with ergonomic design and multiple compartments',
-    sku: 'BP-002',
-    image: '/placeholder-product.jpg',
-    category: 'School',
-    price: 45.00,
-    stock: 89,
+    bundleName: 'Back to School Bundle',
+    bundleSKU: 'BUNDLE-002',
+    description: 'Backpack + Lunch Box combo deal',
+    bundleType: 'Custom Bundle',
+    products: [
+      { productName: 'Kids Backpack', productSKU: 'BP-002', quantity: 1 },
+      { productName: 'Kids Lunch Box', productSKU: 'LB-010', quantity: 1 },
+    ],
+    originalPrice: 60.99,
+    bundlePrice: 49.99,
+    discount: 18,
     status: 'Active',
-    rating: 4.8,
-    reviews: 124,
-    warehouse: 'Secondary Warehouse',
-    warehouseId: 'WH-002',
-    isBundle: false,
-    variants: [
-      { id: 'v1', name: 'Red', sku: 'BP-002-RED', price: 45.00, stock: 30 },
-      { id: 'v2', name: 'Blue', sku: 'BP-002-BLU', price: 45.00, stock: 34 },
-      { id: 'v3', name: 'Green', sku: 'BP-002-GRN', price: 45.00, stock: 25 }
-    ]
+    startDate: '2024-08-01',
+    endDate: '2024-09-30',
+    stock: 78
   },
   {
     id: '3',
-    barcode: '8901234567892',
-    name: 'Toy Car Collection',
-    description: 'Set of 10 die-cast toy cars with realistic details and moving parts',
-    sku: 'TC-003',
-    image: '/placeholder-product.jpg',
-    category: 'Toys',
-    price: 89.99,
-    stock: 234,
+    bundleName: 'Educational Toy Set',
+    bundleSKU: 'BUNDLE-003',
+    description: 'Buy 1 puzzle, get another puzzle free',
+    bundleType: 'Buy 1 Get 1',
+    products: [
+      { productName: 'Educational Puzzle', productSKU: 'PZ-007', quantity: 2 },
+    ],
+    originalPrice: 39.98,
+    bundlePrice: 19.99,
+    discount: 50,
     status: 'Active',
-    rating: 4.3,
-    reviews: 67,
-    warehouse: 'Main Warehouse',
-    warehouseId: 'WH-001',
-    isBundle: true,
-    bundleItems: ['Police Car', 'Fire Truck', 'Ambulance', 'Taxi', 'Bus', 'Sports Car', 'SUV', 'Pickup Truck', 'Monster Truck', 'Race Car']
+    startDate: '2024-11-15',
+    endDate: '2024-12-15',
+    stock: 120
   },
   {
     id: '4',
-    barcode: '8901234567893',
-    name: 'Children Books Set',
-    description: 'Educational books for early learning with colorful illustrations',
-    sku: 'BK-004',
-    image: '/placeholder-product.jpg',
-    category: 'Education',
-    price: 34.50,
-    stock: 67,
+    bundleName: 'Complete Feeding Set',
+    bundleSKU: 'BUNDLE-004',
+    description: 'Bottles, bibs, and utensils - everything for feeding time',
+    bundleType: 'Custom Bundle',
+    products: [
+      { productName: 'Baby Bottle Set', productSKU: 'BB-001', quantity: 1 },
+      { productName: 'Baby Bibs Pack', productSKU: 'BIB-001', quantity: 1 },
+      { productName: 'Baby Utensils Set', productSKU: 'UTN-001', quantity: 1 },
+    ],
+    originalPrice: 75.97,
+    bundlePrice: 59.99,
+    discount: 21,
     status: 'Active',
-    rating: 4.9,
-    reviews: 201,
-    warehouse: 'Regional Hub Jakarta',
-    warehouseId: 'WH-003',
-    isBundle: true,
-    bundleItems: ['ABC Book', 'Numbers Book', 'Colors Book', 'Shapes Book', 'Animals Book']
+    startDate: '2024-10-01',
+    endDate: '2024-12-31',
+    stock: 34
   },
   {
     id: '5',
-    barcode: '8901234567894',
-    name: 'Baby Crib',
-    description: 'Solid wood convertible crib with adjustable mattress height settings',
-    sku: 'CR-005',
-    image: '/placeholder-product.jpg',
-    category: 'Furniture',
-    price: 299.99,
-    stock: 12,
+    bundleName: 'Toy Car Mega Deal',
+    bundleSKU: 'BUNDLE-005',
+    description: 'Buy 3 toy car sets, get 1 free',
+    bundleType: 'Buy 3 Get 1',
+    products: [
+      { productName: 'Toy Car Collection', productSKU: 'TC-003', quantity: 4 },
+    ],
+    originalPrice: 359.96,
+    bundlePrice: 269.97,
+    discount: 25,
     status: 'Inactive',
-    rating: 4.7,
-    reviews: 45,
-    warehouse: 'Main Warehouse',
-    warehouseId: 'WH-001',
-    isBundle: false,
-    variants: [
-      { id: 'v1', name: 'White Oak', sku: 'CR-005-WOK', price: 299.99, stock: 7 },
-      { id: 'v2', name: 'Walnut', sku: 'CR-005-WNT', price: 319.99, stock: 5 }
-    ]
+    startDate: '2024-07-01',
+    endDate: '2024-08-31',
+    stock: 0
   },
   {
     id: '6',
-    barcode: '8901234567895',
-    name: 'Toddler Shoes',
-    description: 'Comfortable first walker shoes with soft sole and breathable material',
-    sku: 'SH-006',
-    image: '/placeholder-product.jpg',
-    category: 'Clothing',
-    price: 35.50,
-    stock: 78,
+    bundleName: 'Twin Baby Essentials',
+    bundleSKU: 'BUNDLE-006',
+    description: 'Double everything for twins - bottles, diapers, and more',
+    bundleType: 'Custom Bundle',
+    products: [
+      { productName: 'Baby Bottle Set', productSKU: 'BB-001', quantity: 2 },
+      { productName: 'Diaper Bag', productSKU: 'DB-009', quantity: 2 },
+    ],
+    originalPrice: 159.96,
+    bundlePrice: 129.99,
+    discount: 19,
     status: 'Active',
-    rating: 4.6,
-    reviews: 92,
-    warehouse: 'Secondary Warehouse',
-    warehouseId: 'WH-002',
-    isBundle: false,
-    variants: [
-      { id: 'v1', name: 'Size 3', sku: 'SH-006-S3', price: 35.50, stock: 20 },
-      { id: 'v2', name: 'Size 4', sku: 'SH-006-S4', price: 35.50, stock: 28 },
-      { id: 'v3', name: 'Size 5', sku: 'SH-006-S5', price: 35.50, stock: 30 }
-    ]
+    startDate: '2024-11-01',
+    endDate: '2025-01-31',
+    stock: 23
   },
-  {
-    id: '7',
-    barcode: '8901234567896',
-    name: 'Educational Puzzle',
-    description: 'Wooden alphabet puzzle for cognitive development and motor skills',
-    sku: 'PZ-007',
-    image: '/placeholder-product.jpg',
-    category: 'Toys',
-    price: 19.99,
-    stock: 156,
-    status: 'Active',
-    rating: 4.8,
-    reviews: 134,
-    warehouse: 'Regional Hub Jakarta',
-    warehouseId: 'WH-003',
-    isBundle: false
-  },
-  {
-    id: '8',
-    barcode: '8901234567897',
-    name: 'Baby Monitor',
-    description: 'HD video monitor with night vision, two-way audio, and temperature sensor',
-    sku: 'BM-008',
-    image: '/placeholder-product.jpg',
-    category: 'Electronics',
-    price: 129.99,
-    stock: 34,
-    status: 'Active',
-    rating: 4.4,
-    reviews: 78,
-    warehouse: 'Main Warehouse',
-    warehouseId: 'WH-001',
-    isBundle: false
-  },
-  {
-    id: '9',
-    barcode: '8901234567898',
-    name: 'Diaper Bag',
-    description: 'Large capacity diaper bag with multiple pockets and insulated bottle holders',
-    sku: 'DB-009',
-    image: '/placeholder-product.jpg',
-    category: 'Accessories',
-    price: 49.99,
-    stock: 92,
-    status: 'Active',
-    rating: 4.5,
-    reviews: 156,
-    warehouse: 'Secondary Warehouse',
-    warehouseId: 'WH-002',
-    isBundle: false,
-    variants: [
-      { id: 'v1', name: 'Black', sku: 'DB-009-BLK', price: 49.99, stock: 45 },
-      { id: 'v2', name: 'Gray', sku: 'DB-009-GRY', price: 49.99, stock: 47 }
-    ]
-  },
-  {
-    id: '10',
-    barcode: '8901234567899',
-    name: 'Kids Lunch Box',
-    description: 'Insulated lunch box with compartments, leak-proof design',
-    sku: 'LB-010',
-    image: '/placeholder-product.jpg',
-    category: 'School',
-    price: 15.99,
-    stock: 203,
-    status: 'Active',
-    rating: 4.7,
-    reviews: 234,
-    warehouse: 'Regional Hub Jakarta',
-    warehouseId: 'WH-003',
-    isBundle: false
-  },
-];
-
-// Available columns configuration
-const availableColumns = [
-  { id: 'barcode', label: 'Barcode', default: true },
-  { id: 'name', label: 'Product Name', default: true },
-  { id: 'sku', label: 'SKU', default: true },
-  { id: 'category', label: 'Category', default: true },
-  { id: 'price', label: 'Price', default: true },
-  { id: 'stock', label: 'Stock', default: true },
-  { id: 'status', label: 'Status', default: true },
-  { id: 'warehouse', label: 'Warehouse', default: false },
-  { id: 'bundle', label: 'Bundle', default: false },
-  { id: 'variants', label: 'Variants', default: false },
-  { id: 'rating', label: 'Rating', default: false },
 ];
 
 function ProductBundlePage() {
-  const [products, setProducts] = useState<Product[]>(mockProducts);
+  const [bundles, setBundles] = useState<ProductBundle[]>(mockBundles);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -302,47 +179,40 @@ function ProductBundlePage() {
   // Drawer states
   const [viewDrawerOpen, setViewDrawerOpen] = useState(false);
   const [formDrawerOpen, setFormDrawerOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedBundle, setSelectedBundle] = useState<ProductBundle | null>(null);
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
-
-  // Column visibility state
-  const [visibleColumns, setVisibleColumns] = useState<string[]>(
-    availableColumns.filter(col => col.default).map(col => col.id)
-  );
 
   // Form data
   const [formData, setFormData] = useState({
-    barcode: '',
-    name: '',
+    bundleName: '',
+    bundleSKU: '',
     description: '',
-    sku: '',
-    category: '',
-    price: '',
+    bundleType: 'Custom Bundle' as 'Buy 1 Get 1' | 'Buy 2 Get 1' | 'Buy 3 Get 1' | 'Custom Bundle',
+    originalPrice: '',
+    bundlePrice: '',
+    startDate: '',
+    endDate: '',
     stock: '',
-    warehouse: '',
-    warehouseId: '',
-    isBundle: false,
   });
 
-  // Filter products based on search
-  const filteredProducts = useMemo(() => {
-    return products.filter((product) =>
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.barcode.includes(searchTerm) ||
-      product.category.toLowerCase().includes(searchTerm.toLowerCase())
+  // Filter bundles based on search
+  const filteredBundles = useMemo(() => {
+    return bundles.filter((bundle) =>
+      bundle.bundleName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      bundle.bundleSKU.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      bundle.description.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [products, searchTerm]);
+  }, [bundles, searchTerm]);
 
   // Calculate pagination
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-  const paginatedProducts = useMemo(() => {
+  const totalPages = Math.ceil(filteredBundles.length / itemsPerPage);
+  const paginatedBundles = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredProducts.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredProducts, currentPage, itemsPerPage]);
+    return filteredBundles.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredBundles, currentPage, itemsPerPage]);
 
   const handleDelete = (id: string) => {
-    setProducts(products.filter((p) => p.id !== id));
+    setBundles(bundles.filter((b) => b.id !== id));
   };
 
   const handlePageChange = (page: number) => {
@@ -354,95 +224,98 @@ function ProductBundlePage() {
     setCurrentPage(1);
   };
 
-  const handleViewProduct = (product: Product) => {
-    setSelectedProduct(product);
+  const handleViewBundle = (bundle: ProductBundle) => {
+    setSelectedBundle(bundle);
     setViewDrawerOpen(true);
   };
 
-  const handleAddProduct = () => {
+  const handleAddBundle = () => {
     setFormMode('add');
     setFormData({
-      barcode: '',
-      name: '',
+      bundleName: '',
+      bundleSKU: '',
       description: '',
-      sku: '',
-      category: '',
-      price: '',
+      bundleType: 'Custom Bundle',
+      originalPrice: '',
+      bundlePrice: '',
+      startDate: '',
+      endDate: '',
       stock: '',
-      warehouse: '',
-      warehouseId: '',
-      isBundle: false,
     });
     setFormDrawerOpen(true);
   };
 
-  const handleEditProduct = (product: Product) => {
+  const handleEditBundle = (bundle: ProductBundle) => {
     setFormMode('edit');
-    setSelectedProduct(product);
+    setSelectedBundle(bundle);
     setFormData({
-      barcode: product.barcode,
-      name: product.name,
-      description: product.description,
-      sku: product.sku,
-      category: product.category,
-      price: product.price.toString(),
-      stock: product.stock.toString(),
-      warehouse: product.warehouse,
-      warehouseId: product.warehouseId,
-      isBundle: product.isBundle,
+      bundleName: bundle.bundleName,
+      bundleSKU: bundle.bundleSKU,
+      description: bundle.description,
+      bundleType: bundle.bundleType,
+      originalPrice: bundle.originalPrice.toString(),
+      bundlePrice: bundle.bundlePrice.toString(),
+      startDate: bundle.startDate,
+      endDate: bundle.endDate,
+      stock: bundle.stock.toString(),
     });
     setFormDrawerOpen(true);
   };
 
   const handleSubmitForm = (e: React.FormEvent) => {
     e.preventDefault();
+    const originalPrice = parseFloat(formData.originalPrice);
+    const bundlePrice = parseFloat(formData.bundlePrice);
+    const discount = Math.round(((originalPrice - bundlePrice) / originalPrice) * 100);
+
     if (formMode === 'add') {
-      const newProduct: Product = {
-        id: String(products.length + 1),
-        barcode: formData.barcode,
-        name: formData.name,
+      const newBundle: ProductBundle = {
+        id: String(bundles.length + 1),
+        bundleName: formData.bundleName,
+        bundleSKU: formData.bundleSKU,
         description: formData.description,
-        sku: formData.sku,
-        image: '/placeholder-product.jpg',
-        category: formData.category,
-        price: parseFloat(formData.price),
-        stock: parseInt(formData.stock),
+        bundleType: formData.bundleType,
+        products: [],
+        originalPrice,
+        bundlePrice,
+        discount,
         status: 'Active',
-        rating: 0,
-        reviews: 0,
-        warehouse: formData.warehouse,
-        warehouseId: formData.warehouseId,
-        isBundle: formData.isBundle,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        stock: parseInt(formData.stock),
       };
-      setProducts([...products, newProduct]);
-    } else if (formMode === 'edit' && selectedProduct) {
-      setProducts(products.map(p =>
-        p.id === selectedProduct.id
+      setBundles([...bundles, newBundle]);
+    } else if (formMode === 'edit' && selectedBundle) {
+      setBundles(bundles.map(b =>
+        b.id === selectedBundle.id
           ? {
-              ...p,
-              barcode: formData.barcode,
-              name: formData.name,
+              ...b,
+              bundleName: formData.bundleName,
+              bundleSKU: formData.bundleSKU,
               description: formData.description,
-              sku: formData.sku,
-              category: formData.category,
-              price: parseFloat(formData.price),
+              bundleType: formData.bundleType,
+              originalPrice,
+              bundlePrice,
+              discount,
+              startDate: formData.startDate,
+              endDate: formData.endDate,
               stock: parseInt(formData.stock),
-              warehouse: formData.warehouse,
-              warehouseId: formData.warehouseId,
-              isBundle: formData.isBundle,
             }
-          : p
+          : b
       ));
     }
     setFormDrawerOpen(false);
   };
 
-  const toggleColumn = (columnId: string) => {
-    setVisibleColumns(prev =>
-      prev.includes(columnId)
-        ? prev.filter(id => id !== columnId)
-        : [...prev, columnId]
-    );
+  // Get bundle type badge color
+  const getBundleTypeBadge = (type: string) => {
+    const colors = {
+      'Buy 1 Get 1': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+      'Buy 2 Get 1': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+      'Buy 3 Get 1': 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+      'Custom Bundle': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+    };
+    return colors[type as keyof typeof colors] || '';
   };
 
   return (
@@ -452,23 +325,23 @@ function ProductBundlePage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Product Bundles</h1>
           <p className="text-muted-foreground mt-1">
-            Manage your product bundles and packages
+            Create promotional bundles like Buy 1 Get 1, Buy 2 Get 1, or custom combos
           </p>
         </div>
-        <Button onClick={handleAddProduct} className="gap-2">
+        <Button onClick={handleAddBundle} className="gap-2">
           <Plus className="h-4 w-4" />
           Add Bundle
         </Button>
       </div>
 
-      {/* Products Table */}
+      {/* Bundles Table */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>All Product Bundles</CardTitle>
+              <CardTitle>All Bundles</CardTitle>
               <CardDescription>
-                {filteredProducts.length} of {products.length} bundles
+                {filteredBundles.length} of {bundles.length} bundles
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -476,184 +349,99 @@ function ProductBundlePage() {
               <div className="relative w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search products..."
+                  placeholder="Search bundles..."
                   value={searchTerm}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   className="pl-10 h-9"
                 />
               </div>
-
-              {/* Column Chooser */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Settings2 className="h-4 w-4" />
-                    Columns
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {availableColumns.map((column) => (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      checked={visibleColumns.includes(column.id)}
-                      onCheckedChange={() => toggleColumn(column.id)}
-                    >
-                      {column.label}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          {/* Simplified Table */}
           <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  {visibleColumns.includes('barcode') && (
-                    <TableHead className="w-[140px]">Barcode</TableHead>
-                  )}
-                  {visibleColumns.includes('name') && (
-                    <TableHead className="min-w-[200px]">Product Name</TableHead>
-                  )}
-                  {visibleColumns.includes('sku') && (
-                    <TableHead className="w-[120px]">SKU</TableHead>
-                  )}
-                  {visibleColumns.includes('category') && (
-                    <TableHead className="w-[120px]">Category</TableHead>
-                  )}
-                  {visibleColumns.includes('price') && (
-                    <TableHead className="w-[100px] text-right">Price</TableHead>
-                  )}
-                  {visibleColumns.includes('stock') && (
-                    <TableHead className="w-[80px] text-right">Stock</TableHead>
-                  )}
-                  {visibleColumns.includes('status') && (
-                    <TableHead className="w-[100px]">Status</TableHead>
-                  )}
-                  {visibleColumns.includes('warehouse') && (
-                    <TableHead className="w-[150px]">Warehouse</TableHead>
-                  )}
-                  {visibleColumns.includes('bundle') && (
-                    <TableHead className="w-[80px]">Bundle</TableHead>
-                  )}
-                  {visibleColumns.includes('variants') && (
-                    <TableHead className="w-[80px]">Variants</TableHead>
-                  )}
-                  {visibleColumns.includes('rating') && (
-                    <TableHead className="w-[120px]">Rating</TableHead>
-                  )}
+                  <TableHead className="w-[200px]">Bundle Name</TableHead>
+                  <TableHead className="w-[120px]">SKU</TableHead>
+                  <TableHead className="min-w-[200px]">Description</TableHead>
+                  <TableHead className="w-[140px]">Type</TableHead>
+                  <TableHead className="w-[100px] text-right">Original</TableHead>
+                  <TableHead className="w-[100px] text-right">Bundle Price</TableHead>
+                  <TableHead className="w-[80px] text-right">Discount</TableHead>
+                  <TableHead className="w-[80px] text-right">Stock</TableHead>
+                  <TableHead className="w-[100px]">Status</TableHead>
                   <TableHead className="w-[140px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedProducts.map((product) => (
+                {paginatedBundles.map((bundle) => (
                   <TableRow
-                    key={product.id}
+                    key={bundle.id}
                     className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => handleViewProduct(product)}
+                    onClick={() => handleViewBundle(bundle)}
                   >
-                    {visibleColumns.includes('barcode') && (
-                      <TableCell className="font-mono text-sm">
-                        {product.barcode}
-                      </TableCell>
-                    )}
-                    {visibleColumns.includes('name') && (
-                      <TableCell className="font-medium">{product.name}</TableCell>
-                    )}
-                    {visibleColumns.includes('sku') && (
-                      <TableCell className="font-mono text-sm text-muted-foreground">
-                        {product.sku}
-                      </TableCell>
-                    )}
-                    {visibleColumns.includes('category') && (
-                      <TableCell>
-                        <Badge variant="secondary">{product.category}</Badge>
-                      </TableCell>
-                    )}
-                    {visibleColumns.includes('price') && (
-                      <TableCell className="text-right font-semibold">
-                        ${product.price.toFixed(2)}
-                      </TableCell>
-                    )}
-                    {visibleColumns.includes('stock') && (
-                      <TableCell className="text-right">
-                        <span
-                          className={
-                            product.stock < 20
-                              ? 'text-destructive font-medium'
-                              : product.stock < 50
-                              ? 'text-yellow-600 font-medium'
-                              : ''
-                          }
-                        >
-                          {product.stock}
-                        </span>
-                      </TableCell>
-                    )}
-                    {visibleColumns.includes('status') && (
-                      <TableCell>
-                        <Badge
-                          variant={product.status === 'Active' ? 'default' : 'secondary'}
-                          className={
-                            product.status === 'Active'
-                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-500'
-                              : ''
-                          }
-                        >
-                          {product.status}
-                        </Badge>
-                      </TableCell>
-                    )}
-                    {visibleColumns.includes('warehouse') && (
-                      <TableCell>
-                        <div className="flex items-center gap-1.5">
-                          <WarehouseIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span className="text-sm">{product.warehouse}</span>
-                        </div>
-                      </TableCell>
-                    )}
-                    {visibleColumns.includes('bundle') && (
-                      <TableCell>
-                        {product.isBundle && (
-                          <Badge variant="outline" className="gap-1">
-                            <Package className="h-3 w-3" />
-                            Bundle
-                          </Badge>
-                        )}
-                      </TableCell>
-                    )}
-                    {visibleColumns.includes('variants') && (
-                      <TableCell>
-                        {product.variants && product.variants.length > 0 && (
-                          <Badge variant="outline">
-                            {product.variants.length} variants
-                          </Badge>
-                        )}
-                      </TableCell>
-                    )}
-                    {visibleColumns.includes('rating') && (
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                          <span className="font-medium">{product.rating}</span>
-                          <span className="text-xs text-muted-foreground">
-                            ({product.reviews})
-                          </span>
-                        </div>
-                      </TableCell>
-                    )}
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <Gift className="h-4 w-4 text-muted-foreground" />
+                        {bundle.bundleName}
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-mono text-sm text-muted-foreground">
+                      {bundle.bundleSKU}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {bundle.description}
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getBundleTypeBadge(bundle.bundleType)}>
+                        {bundle.bundleType}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground line-through">
+                      ${bundle.originalPrice.toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold text-green-600">
+                      ${bundle.bundlePrice.toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant="outline" className="font-semibold">
+                        -{bundle.discount}%
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span
+                        className={
+                          bundle.stock === 0
+                            ? 'text-destructive font-medium'
+                            : bundle.stock < 30
+                            ? 'text-yellow-600 font-medium'
+                            : ''
+                        }
+                      >
+                        {bundle.stock}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={bundle.status === 'Active' ? 'default' : 'secondary'}
+                        className={
+                          bundle.status === 'Active'
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-500'
+                            : ''
+                        }
+                      >
+                        {bundle.status}
+                      </Badge>
+                    </TableCell>
                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1">
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => handleViewProduct(product)}
+                          onClick={() => handleViewBundle(bundle)}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -661,7 +449,7 @@ function ProductBundlePage() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => handleEditProduct(product)}
+                          onClick={() => handleEditBundle(bundle)}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -669,7 +457,7 @@ function ProductBundlePage() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => handleDelete(product.id)}
+                          onClick={() => handleDelete(bundle.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -705,20 +493,20 @@ function ProductBundlePage() {
               totalPages={totalPages}
               onPageChange={handlePageChange}
               itemsPerPage={itemsPerPage}
-              totalItems={filteredProducts.length}
+              totalItems={filteredBundles.length}
             />
           </div>
         </CardContent>
       </Card>
 
-      {/* View Product Drawer (Right Side) */}
+      {/* View Bundle Drawer (Right Side) */}
       <Drawer open={viewDrawerOpen} onOpenChange={setViewDrawerOpen}>
         <DrawerContent side="right">
           <DrawerHeader>
             <div className="flex items-start justify-between">
               <div>
-                <DrawerTitle>{selectedProduct?.name}</DrawerTitle>
-                <DrawerDescription>Product Details</DrawerDescription>
+                <DrawerTitle>{selectedBundle?.bundleName}</DrawerTitle>
+                <DrawerDescription>Bundle Details</DrawerDescription>
               </div>
               <DrawerClose asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -728,201 +516,113 @@ function ProductBundlePage() {
             </div>
           </DrawerHeader>
 
-          {selectedProduct && (
+          {selectedBundle && (
             <div className="flex-1 overflow-y-auto p-4">
-              <Tabs defaultValue="details" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="details">Details</TabsTrigger>
-                  <TabsTrigger value="variants">Variants</TabsTrigger>
-                  <TabsTrigger value="inventory">Inventory</TabsTrigger>
-                </TabsList>
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Bundle Name</Label>
+                  <p className="text-sm font-medium mt-1">{selectedBundle.bundleName}</p>
+                </div>
 
-                <TabsContent value="details" className="space-y-4 mt-4">
-                  {/* Image */}
-                  <div className="flex items-center justify-center h-48 bg-muted rounded-lg">
-                    <ImageIcon className="h-16 w-16 text-muted-foreground" />
+                <div>
+                  <Label className="text-xs text-muted-foreground">SKU</Label>
+                  <p className="text-sm font-mono mt-1">{selectedBundle.bundleSKU}</p>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-muted-foreground">Description</Label>
+                  <p className="text-sm mt-1">{selectedBundle.description}</p>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-muted-foreground">Bundle Type</Label>
+                  <div className="mt-1">
+                    <Badge className={getBundleTypeBadge(selectedBundle.bundleType)}>
+                      {selectedBundle.bundleType}
+                    </Badge>
                   </div>
+                </div>
 
-                  {/* Basic Info */}
-                  <div className="space-y-3">
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Product Name</Label>
-                      <p className="text-sm font-medium mt-1">{selectedProduct.name}</p>
-                    </div>
+                <Separator />
 
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Description</Label>
-                      <p className="text-sm mt-1">{selectedProduct.description}</p>
-                    </div>
-
-                    <Separator />
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Barcode</Label>
-                        <p className="text-sm font-mono mt-1">{selectedProduct.barcode}</p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">SKU</Label>
-                        <p className="text-sm font-mono mt-1">{selectedProduct.sku}</p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Category</Label>
-                        <p className="text-sm mt-1">{selectedProduct.category}</p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Status</Label>
-                        <div className="mt-1">
-                          <Badge variant={selectedProduct.status === 'Active' ? 'default' : 'secondary'}>
-                            {selectedProduct.status}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Price</Label>
-                        <p className="text-lg font-bold mt-1">${selectedProduct.price.toFixed(2)}</p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Stock</Label>
-                        <p className="text-lg font-bold mt-1">{selectedProduct.stock}</p>
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Warehouse</Label>
-                      <div className="flex items-center gap-2 mt-1">
-                        <WarehouseIcon className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-medium">{selectedProduct.warehouse}</span>
-                        <Badge variant="outline" className="text-xs">{selectedProduct.warehouseId}</Badge>
-                      </div>
-                    </div>
-
-                    {selectedProduct.isBundle && (
-                      <>
-                        <Separator />
+                <div>
+                  <Label className="text-xs text-muted-foreground">Products in Bundle</Label>
+                  <div className="mt-2 space-y-2">
+                    {selectedBundle.products.map((product, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 border rounded">
                         <div>
-                          <Label className="text-xs text-muted-foreground">Bundle Items</Label>
-                          <div className="mt-2 space-y-1">
-                            {selectedProduct.bundleItems?.map((item, index) => (
-                              <div key={index} className="flex items-center gap-2 text-sm">
-                                <Package className="h-3.5 w-3.5 text-muted-foreground" />
-                                <span>{item}</span>
-                              </div>
-                            ))}
-                          </div>
+                          <p className="text-sm font-medium">{product.productName}</p>
+                          <p className="text-xs text-muted-foreground">{product.productSKU}</p>
                         </div>
-                      </>
-                    )}
-
-                    <Separator />
-
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Rating</Label>
-                      <div className="flex items-center gap-2 mt-1">
-                        <div className="flex items-center gap-1">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`h-4 w-4 ${
-                                i < Math.floor(selectedProduct.rating)
-                                  ? 'fill-yellow-400 text-yellow-400'
-                                  : 'text-gray-300'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-sm font-medium">{selectedProduct.rating}</span>
-                        <span className="text-xs text-muted-foreground">({selectedProduct.reviews} reviews)</span>
+                        <Badge variant="secondary">Qty: {product.quantity}</Badge>
                       </div>
-                    </div>
+                    ))}
                   </div>
-                </TabsContent>
+                </div>
 
-                <TabsContent value="variants" className="space-y-4 mt-4">
-                  {selectedProduct.variants && selectedProduct.variants.length > 0 ? (
-                    <div className="space-y-3">
-                      {selectedProduct.variants.map((variant) => (
-                        <div key={variant.id} className="p-3 border rounded-lg">
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="font-medium">{variant.name}</h4>
-                            <Badge variant="outline">{variant.sku}</Badge>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2 text-sm">
-                            <div>
-                              <span className="text-muted-foreground">Price:</span>{' '}
-                              <span className="font-semibold">${variant.price.toFixed(2)}</span>
-                            </div>
-                            <div>
-                              <span className="text-muted-foreground">Stock:</span>{' '}
-                              <span className="font-semibold">{variant.stock}</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground text-center py-8">
-                      No variants available for this product
+                <Separator />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Original Price</Label>
+                    <p className="text-lg line-through text-muted-foreground mt-1">
+                      ${selectedBundle.originalPrice.toFixed(2)}
                     </p>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="inventory" className="space-y-4 mt-4">
-                  <div className="space-y-3">
-                    <div className="p-4 bg-muted rounded-lg">
-                      <Label className="text-xs text-muted-foreground">Total Stock</Label>
-                      <p className="text-2xl font-bold mt-1">{selectedProduct.stock}</p>
-                    </div>
-
-                    {selectedProduct.variants && selectedProduct.variants.length > 0 && (
-                      <>
-                        <Separator />
-                        <div>
-                          <Label className="text-sm font-medium">Stock by Variant</Label>
-                          <div className="mt-2 space-y-2">
-                            {selectedProduct.variants.map((variant) => (
-                              <div key={variant.id} className="flex items-center justify-between p-2 border rounded">
-                                <span className="text-sm">{variant.name}</span>
-                                <Badge variant="secondary">{variant.stock} units</Badge>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </>
-                    )}
-
-                    <Separator />
-
-                    <div>
-                      <Label className="text-sm font-medium">Warehouse Location</Label>
-                      <div className="mt-2 p-3 border rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <WarehouseIcon className="h-5 w-5 text-muted-foreground" />
-                          <div>
-                            <p className="font-medium">{selectedProduct.warehouse}</p>
-                            <p className="text-xs text-muted-foreground">{selectedProduct.warehouseId}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
                   </div>
-                </TabsContent>
-              </Tabs>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Bundle Price</Label>
+                    <p className="text-lg font-bold text-green-600 mt-1">
+                      ${selectedBundle.bundlePrice.toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-muted-foreground">Discount</Label>
+                  <p className="text-2xl font-bold text-orange-600 mt-1">
+                    {selectedBundle.discount}% OFF
+                  </p>
+                </div>
+
+                <Separator />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Start Date</Label>
+                    <p className="text-sm mt-1">{selectedBundle.startDate}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">End Date</Label>
+                    <p className="text-sm mt-1">{selectedBundle.endDate}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-muted-foreground">Stock</Label>
+                  <p className="text-lg font-bold mt-1">{selectedBundle.stock}</p>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-muted-foreground">Status</Label>
+                  <div className="mt-1">
+                    <Badge
+                      variant={selectedBundle.status === 'Active' ? 'default' : 'secondary'}
+                      className={
+                        selectedBundle.status === 'Active'
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-500'
+                          : ''
+                      }
+                    >
+                      {selectedBundle.status}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
           <DrawerFooter>
-            <Button onClick={() => selectedProduct && handleEditProduct(selectedProduct)}>
+            <Button onClick={() => selectedBundle && handleEditBundle(selectedBundle)}>
               <Edit className="h-4 w-4 mr-2" />
               Edit Bundle
             </Button>
@@ -933,7 +633,7 @@ function ProductBundlePage() {
         </DrawerContent>
       </Drawer>
 
-      {/* Add/Edit Product Form Drawer (Left Side) */}
+      {/* Add/Edit Bundle Form Drawer (Left Side) */}
       <Drawer open={formDrawerOpen} onOpenChange={setFormDrawerOpen}>
         <DrawerContent side="left">
           <DrawerHeader>
@@ -944,7 +644,7 @@ function ProductBundlePage() {
                 </DrawerTitle>
                 <DrawerDescription>
                   {formMode === 'add'
-                    ? 'Fill in the details to create a new product bundle'
+                    ? 'Create a new promotional bundle'
                     : 'Update bundle information'}
                 </DrawerDescription>
               </div>
@@ -958,23 +658,23 @@ function ProductBundlePage() {
 
           <form onSubmit={handleSubmitForm} className="flex-1 overflow-y-auto p-4 space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="barcode">Barcode</Label>
+              <Label htmlFor="bundleName">Bundle Name</Label>
               <Input
-                id="barcode"
-                placeholder="8901234567890"
-                value={formData.barcode}
-                onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+                id="bundleName"
+                placeholder="Baby Bottle Starter Pack"
+                value={formData.bundleName}
+                onChange={(e) => setFormData({ ...formData, bundleName: e.target.value })}
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="name">Product Name</Label>
+              <Label htmlFor="bundleSKU">Bundle SKU</Label>
               <Input
-                id="name"
-                placeholder="Baby Bottle Set"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                id="bundleSKU"
+                placeholder="BUNDLE-001"
+                value={formData.bundleSKU}
+                onChange={(e) => setFormData({ ...formData, bundleSKU: e.target.value })}
                 required
               />
             </div>
@@ -983,57 +683,52 @@ function ProductBundlePage() {
               <Label htmlFor="description">Description</Label>
               <Input
                 id="description"
-                placeholder="BPA-free baby bottles..."
+                placeholder="Buy 2 bottles, get 1 free..."
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 required
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="sku">SKU</Label>
-                <Input
-                  id="sku"
-                  placeholder="BB-001"
-                  value={formData.sku}
-                  onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
-                <Input
-                  id="category"
-                  placeholder="Feeding"
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  required
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="bundleType">Bundle Type</Label>
+              <select
+                id="bundleType"
+                value={formData.bundleType}
+                onChange={(e) => setFormData({ ...formData, bundleType: e.target.value as any })}
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                <option value="Buy 1 Get 1">Buy 1 Get 1</option>
+                <option value="Buy 2 Get 1">Buy 2 Get 1</option>
+                <option value="Buy 3 Get 1">Buy 3 Get 1</option>
+                <option value="Custom Bundle">Custom Bundle</option>
+              </select>
             </div>
+
+            <Separator />
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="price">Price ($)</Label>
+                <Label htmlFor="originalPrice">Original Price ($)</Label>
                 <Input
-                  id="price"
+                  id="originalPrice"
                   type="number"
                   step="0.01"
-                  placeholder="29.99"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                  placeholder="89.97"
+                  value={formData.originalPrice}
+                  onChange={(e) => setFormData({ ...formData, originalPrice: e.target.value })}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="stock">Stock</Label>
+                <Label htmlFor="bundlePrice">Bundle Price ($)</Label>
                 <Input
-                  id="stock"
+                  id="bundlePrice"
                   type="number"
-                  placeholder="100"
-                  value={formData.stock}
-                  onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                  step="0.01"
+                  placeholder="59.98"
+                  value={formData.bundlePrice}
+                  onChange={(e) => setFormData({ ...formData, bundlePrice: e.target.value })}
                   required
                 />
               </div>
@@ -1043,38 +738,37 @@ function ProductBundlePage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="warehouse">Warehouse</Label>
+                <Label htmlFor="startDate">Start Date</Label>
                 <Input
-                  id="warehouse"
-                  placeholder="Main Warehouse"
-                  value={formData.warehouse}
-                  onChange={(e) => setFormData({ ...formData, warehouse: e.target.value })}
+                  id="startDate"
+                  type="date"
+                  value={formData.startDate}
+                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="warehouseId">Warehouse ID</Label>
+                <Label htmlFor="endDate">End Date</Label>
                 <Input
-                  id="warehouseId"
-                  placeholder="WH-001"
-                  value={formData.warehouseId}
-                  onChange={(e) => setFormData({ ...formData, warehouseId: e.target.value })}
+                  id="endDate"
+                  type="date"
+                  value={formData.endDate}
+                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                   required
                 />
               </div>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="isBundle"
-                checked={formData.isBundle}
-                onChange={(e) => setFormData({ ...formData, isBundle: e.target.checked })}
-                className="h-4 w-4"
+            <div className="space-y-2">
+              <Label htmlFor="stock">Stock Quantity</Label>
+              <Input
+                id="stock"
+                type="number"
+                placeholder="100"
+                value={formData.stock}
+                onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                required
               />
-              <Label htmlFor="isBundle" className="cursor-pointer">
-                This is a bundle product
-              </Label>
             </div>
 
             <DrawerFooter className="px-0">

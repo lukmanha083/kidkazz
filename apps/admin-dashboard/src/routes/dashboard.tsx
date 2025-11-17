@@ -76,9 +76,10 @@ const navItems: NavItem[] = [
   {
     id: 'products',
     title: 'Products',
-    href: '/dashboard/products/category',
+    href: '/dashboard/products/all',
     icon: Package,
     submenu: [
+      { title: 'All Products', href: '/dashboard/products/all' },
       { title: 'Category', href: '/dashboard/products/category' },
       { title: 'Product Bundle', href: '/dashboard/products/bundle' },
       { title: 'Product Variant', href: '/dashboard/products/variant' },
