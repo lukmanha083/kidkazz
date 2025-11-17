@@ -17,7 +17,7 @@ export function Logo({ size = 'md', showText = true, showTagline = false, classN
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      {/* K Logo SVG */}
+      {/* K Logo SVG - No border, clean edges */}
       <svg
         width={width}
         height={height}
@@ -26,7 +26,8 @@ export function Logo({ size = 'md', showText = true, showTagline = false, classN
         className="flex-shrink-0"
         style={{ display: 'block' }}
       >
-        <rect width="80" height="80" fill="#000000"/>
+        {/* Black background - no border */}
+        <rect width="80" height="80" fill="#000000" rx="0"/>
 
         {/* Left vertical bar */}
         <rect x="8" y="8" width="11" height="64" fill="white"/>
@@ -70,7 +71,8 @@ export function LogoIcon({ size = 32, className = '' }: { size?: number; classNa
       className={className}
       style={{ display: 'block' }}
     >
-      <rect width="80" height="80" fill="#000000"/>
+      {/* Black background - no border */}
+      <rect width="80" height="80" fill="#000000" rx="0"/>
 
       {/* Left vertical bar */}
       <rect x="8" y="8" width="11" height="64" fill="white"/>
