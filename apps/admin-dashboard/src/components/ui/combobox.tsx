@@ -20,6 +20,9 @@ import {
 export interface ComboboxOption {
   value: string
   label: string
+  barcode?: string
+  name?: string
+  sku?: string
 }
 
 interface ComboboxProps {
@@ -64,24 +67,42 @@ export function Combobox({
           <CommandList>
             <CommandEmpty>{emptyText}</CommandEmpty>
             <CommandGroup>
-              {options.map((option) => (
-                <CommandItem
-                  key={option.value}
-                  value={option.value}
-                  onSelect={(currentValue) => {
-                    onValueChange?.(currentValue === value ? "" : currentValue)
-                    setOpen(false)
-                  }}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      value === option.value ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  {option.label}
-                </CommandItem>
-              ))}
+              {options.map((option) => {
+                // Build keywords array for multi-field search (barcode, SKU, name)
+                const keywords = [
+                  option.barcode,
+                  option.sku,
+                  option.name,
+                  option.label,
+                ].filter(Boolean).join(' ');
+
+                return (
+                  <CommandItem
+                    key={option.value}
+                    value={option.value}
+                    keywords={[keywords]}
+                    onSelect={(currentValue) => {
+                      onValueChange?.(currentValue === value ? "" : currentValue)
+                      setOpen(false)
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        value === option.value ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    <div className="flex flex-col">
+                      <span>{option.label}</span>
+                      {option.barcode && (
+                        <span className="text-xs text-muted-foreground">
+                          Barcode: {option.barcode}
+                        </span>
+                      )}
+                    </div>
+                  </CommandItem>
+                );
+              })}
             </CommandGroup>
           </CommandList>
         </Command>
