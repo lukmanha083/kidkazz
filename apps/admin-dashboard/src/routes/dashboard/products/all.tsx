@@ -59,6 +59,21 @@ interface ProductVariant {
   stock: number;
 }
 
+interface UnitOfMeasure {
+  code: string;
+  name: string;
+  conversionFactor: number;
+  isBaseUnit: boolean;
+}
+
+interface WarehouseStock {
+  warehouseId: string;
+  warehouseName: string;
+  stockQuantity: number;
+  retailPrice: number;
+  wholesalePrice: number | null;
+}
+
 interface Product {
   id: string;
   barcode: string;
@@ -72,13 +87,25 @@ interface Product {
   status: 'Active' | 'Inactive';
   rating: number;
   reviews: number;
-  // New fields
+  // Existing fields
   warehouse: string;
   warehouseId: string;
   isBundle: boolean;
   bundleItems?: string[];
   variants?: ProductVariant[];
+  // UOM fields
+  baseUnit: string;
+  alternateUnits: UnitOfMeasure[];
+  wholesaleThreshold: number;
+  warehouseStock: WarehouseStock[];
 }
+
+// Standard UOM for all products
+const standardUOMs: UnitOfMeasure[] = [
+  { code: 'PCS', name: 'Pieces', conversionFactor: 1, isBaseUnit: true },
+  { code: 'DOZEN', name: 'Dozen', conversionFactor: 12, isBaseUnit: false },
+  { code: 'BOX6', name: 'Box of 6', conversionFactor: 6, isBaseUnit: false },
+];
 
 const mockProducts: Product[] = [
   {
@@ -101,7 +128,13 @@ const mockProducts: Product[] = [
     variants: [
       { id: 'v1', name: 'Pink', sku: 'BB-001-PNK', price: 29.99, stock: 50 },
       { id: 'v2', name: 'Blue', sku: 'BB-001-BLU', price: 29.99, stock: 95 }
-    ]
+    ],
+    baseUnit: 'PCS',
+    alternateUnits: standardUOMs,
+    wholesaleThreshold: 12,
+    warehouseStock: [
+      { warehouseId: 'WH-001', warehouseName: 'Main Warehouse', stockQuantity: 145, retailPrice: 29.99, wholesalePrice: 25.00 },
+    ],
   },
   {
     id: '2',
@@ -123,7 +156,13 @@ const mockProducts: Product[] = [
       { id: 'v1', name: 'Red', sku: 'BP-002-RED', price: 45.00, stock: 30 },
       { id: 'v2', name: 'Blue', sku: 'BP-002-BLU', price: 45.00, stock: 34 },
       { id: 'v3', name: 'Green', sku: 'BP-002-GRN', price: 45.00, stock: 25 }
-    ]
+    ],
+    baseUnit: 'PCS',
+    alternateUnits: standardUOMs,
+    wholesaleThreshold: 12,
+    warehouseStock: [
+      { warehouseId: 'WH-002', warehouseName: 'Secondary Warehouse', stockQuantity: 89, retailPrice: 45.00, wholesalePrice: 40.00 },
+    ],
   },
   {
     id: '3',
@@ -141,7 +180,13 @@ const mockProducts: Product[] = [
     warehouse: 'Main Warehouse',
     warehouseId: 'WH-001',
     isBundle: true,
-    bundleItems: ['Police Car', 'Fire Truck', 'Ambulance', 'Taxi', 'Bus', 'Sports Car', 'SUV', 'Pickup Truck', 'Monster Truck', 'Race Car']
+    bundleItems: ['Police Car', 'Fire Truck', 'Ambulance', 'Taxi', 'Bus', 'Sports Car', 'SUV', 'Pickup Truck', 'Monster Truck', 'Race Car'],
+    baseUnit: 'PCS',
+    alternateUnits: standardUOMs,
+    wholesaleThreshold: 12,
+    warehouseStock: [
+      { warehouseId: 'WH-001', warehouseName: 'Main Warehouse', stockQuantity: 234, retailPrice: 89.99, wholesalePrice: 80.00 },
+    ],
   },
   {
     id: '4',
@@ -532,6 +577,9 @@ function AllProductsPage() {
                   {visibleColumns.includes('stock') && (
                     <TableHead className="w-[80px] text-right">Stock</TableHead>
                   )}
+                  {visibleColumns.includes('stock') && (
+                    <TableHead className="w-[70px]">UOM</TableHead>
+                  )}
                   {visibleColumns.includes('status') && (
                     <TableHead className="w-[100px]">Status</TableHead>
                   )}
@@ -593,6 +641,11 @@ function AllProductsPage() {
                         >
                           {product.stock}
                         </span>
+                      </TableCell>
+                    )}
+                    {visibleColumns.includes('stock') && (
+                      <TableCell className="text-xs font-mono text-muted-foreground">
+                        {product.baseUnit || 'PCS'}
                       </TableCell>
                     )}
                     {visibleColumns.includes('status') && (

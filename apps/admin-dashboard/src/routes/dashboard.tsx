@@ -91,7 +91,7 @@ const navItems: NavItem[] = [
     href: '/dashboard/inventory',
     icon: Warehouse,
     submenu: [
-      { title: 'Warehouse', href: '/dashboard/inventory/warehouse' },
+      { title: 'Warehouse', href: '/dashboard/warehouse' },
     ]
   },
   {
