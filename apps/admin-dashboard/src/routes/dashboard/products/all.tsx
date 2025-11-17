@@ -67,6 +67,16 @@ interface UnitOfMeasure {
   isBaseUnit: boolean;
 }
 
+interface ProductUOM {
+  id: string;
+  uomCode: string;
+  uomName: string;
+  barcode: string;
+  conversionFactor: number;
+  price: number;
+  isDefault: boolean;
+}
+
 interface WarehouseStock {
   warehouseId: string;
   warehouseName: string;
@@ -77,7 +87,7 @@ interface WarehouseStock {
 
 interface Product {
   id: string;
-  barcode: string;
+  barcode: string; // Keep for backward compatibility (will be primary UOM barcode)
   name: string;
   description: string;
   sku: string;
@@ -99,6 +109,8 @@ interface Product {
   alternateUnits: UnitOfMeasure[];
   wholesaleThreshold: number;
   warehouseStock: WarehouseStock[];
+  // Multi-UOM barcode system
+  productUOMs: ProductUOM[];
 }
 
 // Standard UOM for all products
@@ -106,6 +118,17 @@ const standardUOMs: UnitOfMeasure[] = [
   { code: 'PCS', name: 'Pieces', conversionFactor: 1, isBaseUnit: true },
   { code: 'DOZEN', name: 'Dozen', conversionFactor: 12, isBaseUnit: false },
   { code: 'BOX6', name: 'Box of 6', conversionFactor: 6, isBaseUnit: false },
+  { code: 'CARTON18', name: 'Carton (18 PCS)', conversionFactor: 18, isBaseUnit: false },
+  { code: 'BOX24', name: 'Box (24 PCS)', conversionFactor: 24, isBaseUnit: false },
+];
+
+// Available UOMs from master data (for selection in product form)
+const availableUOMs = [
+  { code: 'PCS', name: 'Pieces', conversionFactor: 1 },
+  { code: 'DOZEN', name: 'Dozen', conversionFactor: 12 },
+  { code: 'BOX6', name: 'Box of 6', conversionFactor: 6 },
+  { code: 'CARTON18', name: 'Carton (18 PCS)', conversionFactor: 18 },
+  { code: 'BOX24', name: 'Box (24 PCS)', conversionFactor: 24 },
 ];
 
 // Mock Categories
@@ -155,6 +178,11 @@ const mockProducts: Product[] = [
     warehouseStock: [
       { warehouseId: 'WH-001', warehouseName: 'Main Warehouse', stockQuantity: 145, retailPrice: 29.99, wholesalePrice: 25.00 },
     ],
+    productUOMs: [
+      { id: 'uom-1-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567890', conversionFactor: 1, price: 29.99, isDefault: true },
+      { id: 'uom-1-2', uomCode: 'BOX6', uomName: 'Box of 6', barcode: '8901234567906', conversionFactor: 6, price: 170.00, isDefault: false },
+      { id: 'uom-1-3', uomCode: 'CARTON18', uomName: 'Carton (18 PCS)', barcode: '8901234567918', conversionFactor: 18, price: 485.00, isDefault: false },
+    ],
   },
   {
     id: '2',
@@ -183,6 +211,9 @@ const mockProducts: Product[] = [
     warehouseStock: [
       { warehouseId: 'WH-002', warehouseName: 'Secondary Warehouse', stockQuantity: 89, retailPrice: 45.00, wholesalePrice: 40.00 },
     ],
+    productUOMs: [
+      { id: 'uom-2-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567891', conversionFactor: 1, price: 45.00, isDefault: true },
+    ],
   },
   {
     id: '3',
@@ -207,6 +238,9 @@ const mockProducts: Product[] = [
     warehouseStock: [
       { warehouseId: 'WH-001', warehouseName: 'Main Warehouse', stockQuantity: 234, retailPrice: 89.99, wholesalePrice: 80.00 },
     ],
+    productUOMs: [
+      { id: 'uom-3-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567892', conversionFactor: 1, price: 89.99, isDefault: true },
+    ],
   },
   {
     id: '4',
@@ -230,6 +264,9 @@ const mockProducts: Product[] = [
     wholesaleThreshold: 12,
     warehouseStock: [
       { warehouseId: 'WH-003', warehouseName: 'Regional Hub Jakarta', stockQuantity: 67, retailPrice: 34.50, wholesalePrice: 30.00 },
+    ],
+    productUOMs: [
+      { id: 'uom-4-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567893', conversionFactor: 1, price: 34.50, isDefault: true },
     ],
   },
   {
@@ -257,6 +294,9 @@ const mockProducts: Product[] = [
     wholesaleThreshold: 12,
     warehouseStock: [
       { warehouseId: 'WH-001', warehouseName: 'Main Warehouse', stockQuantity: 12, retailPrice: 299.99, wholesalePrice: 270.00 },
+    ],
+    productUOMs: [
+      { id: 'uom-5-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567894', conversionFactor: 1, price: 299.99, isDefault: true },
     ],
   },
   {
@@ -286,6 +326,9 @@ const mockProducts: Product[] = [
     warehouseStock: [
       { warehouseId: 'WH-002', warehouseName: 'Secondary Warehouse', stockQuantity: 78, retailPrice: 35.50, wholesalePrice: 32.00 },
     ],
+    productUOMs: [
+      { id: 'uom-6-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567895', conversionFactor: 1, price: 35.50, isDefault: true },
+    ],
   },
   {
     id: '7',
@@ -309,6 +352,9 @@ const mockProducts: Product[] = [
     warehouseStock: [
       { warehouseId: 'WH-003', warehouseName: 'Regional Hub Jakarta', stockQuantity: 156, retailPrice: 19.99, wholesalePrice: 17.00 },
     ],
+    productUOMs: [
+      { id: 'uom-7-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567896', conversionFactor: 1, price: 19.99, isDefault: true },
+    ],
   },
   {
     id: '8',
@@ -331,6 +377,9 @@ const mockProducts: Product[] = [
     wholesaleThreshold: 12,
     warehouseStock: [
       { warehouseId: 'WH-001', warehouseName: 'Main Warehouse', stockQuantity: 34, retailPrice: 129.99, wholesalePrice: 115.00 },
+    ],
+    productUOMs: [
+      { id: 'uom-8-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567897', conversionFactor: 1, price: 129.99, isDefault: true },
     ],
   },
   {
@@ -359,6 +408,9 @@ const mockProducts: Product[] = [
     warehouseStock: [
       { warehouseId: 'WH-002', warehouseName: 'Secondary Warehouse', stockQuantity: 92, retailPrice: 49.99, wholesalePrice: 45.00 },
     ],
+    productUOMs: [
+      { id: 'uom-9-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567898', conversionFactor: 1, price: 49.99, isDefault: true },
+    ],
   },
   {
     id: '10',
@@ -381,6 +433,9 @@ const mockProducts: Product[] = [
     wholesaleThreshold: 12,
     warehouseStock: [
       { warehouseId: 'WH-003', warehouseName: 'Regional Hub Jakarta', stockQuantity: 203, retailPrice: 15.99, wholesalePrice: 14.00 },
+    ],
+    productUOMs: [
+      { id: 'uom-10-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567899', conversionFactor: 1, price: 15.99, isDefault: true },
     ],
   },
 ];
@@ -433,6 +488,12 @@ function AllProductsPage() {
     wholesaleThreshold: '12',
   });
 
+  // Product UOM management states
+  const [productUOMs, setProductUOMs] = useState<ProductUOM[]>([]);
+  const [selectedUOM, setSelectedUOM] = useState('');
+  const [uomBarcode, setUomBarcode] = useState('');
+  const [uomPrice, setUomPrice] = useState('');
+
   // Filter products based on search
   const filteredProducts = useMemo(() => {
     return products.filter((product) =>
@@ -483,6 +544,10 @@ function AllProductsPage() {
       baseUnit: 'PCS',
       wholesaleThreshold: '12',
     });
+    setProductUOMs([]);
+    setSelectedUOM('');
+    setUomBarcode('');
+    setUomPrice('');
     setFormDrawerOpen(true);
   };
 
@@ -502,15 +567,73 @@ function AllProductsPage() {
       baseUnit: product.baseUnit,
       wholesaleThreshold: product.wholesaleThreshold.toString(),
     });
+    setProductUOMs(product.productUOMs || []);
+    setSelectedUOM('');
+    setUomBarcode('');
+    setUomPrice('');
     setFormDrawerOpen(true);
+  };
+
+  const handleAddUOM = () => {
+    if (!selectedUOM || !uomBarcode || !uomPrice) {
+      alert('Please fill in all UOM fields');
+      return;
+    }
+
+    const uom = availableUOMs.find(u => u.code === selectedUOM);
+    if (!uom) return;
+
+    // Check if UOM already added
+    if (productUOMs.some(pu => pu.uomCode === selectedUOM)) {
+      alert('This UOM has already been added');
+      return;
+    }
+
+    // Check if barcode is unique
+    if (productUOMs.some(pu => pu.barcode === uomBarcode)) {
+      alert('This barcode has already been used');
+      return;
+    }
+
+    const newUOM: ProductUOM = {
+      id: `uom-temp-${Date.now()}`,
+      uomCode: uom.code,
+      uomName: uom.name,
+      barcode: uomBarcode,
+      conversionFactor: uom.conversionFactor,
+      price: parseFloat(uomPrice),
+      isDefault: productUOMs.length === 0 && uom.code === 'PCS', // First PCS is default
+    };
+
+    setProductUOMs([...productUOMs, newUOM]);
+    setSelectedUOM('');
+    setUomBarcode('');
+    setUomPrice('');
+  };
+
+  const handleRemoveUOM = (id: string) => {
+    setProductUOMs(productUOMs.filter(uom => uom.id !== id));
   };
 
   const handleSubmitForm = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate productUOMs - at least one UOM required
+    if (productUOMs.length === 0) {
+      alert('Please add at least one Unit of Measure (UOM)');
+      return;
+    }
+
+    // Ensure at least one PCS (base unit) exists
+    if (!productUOMs.some(u => u.uomCode === 'PCS')) {
+      alert('At least one PCS (base unit) UOM is required');
+      return;
+    }
+
     if (formMode === 'add') {
       const newProduct: Product = {
         id: String(products.length + 1),
-        barcode: formData.barcode,
+        barcode: productUOMs.find(u => u.isDefault)?.barcode || productUOMs[0].barcode,
         name: formData.name,
         description: formData.description,
         sku: formData.sku,
@@ -538,6 +661,7 @@ function AllProductsPage() {
               : null,
           },
         ],
+        productUOMs: productUOMs,
       };
       setProducts([...products, newProduct]);
     } else if (formMode === 'edit' && selectedProduct) {
@@ -545,7 +669,7 @@ function AllProductsPage() {
         p.id === selectedProduct.id
           ? {
               ...p,
-              barcode: formData.barcode,
+              barcode: productUOMs.find(u => u.isDefault)?.barcode || productUOMs[0].barcode,
               name: formData.name,
               description: formData.description,
               sku: formData.sku,
@@ -556,6 +680,7 @@ function AllProductsPage() {
               warehouseId: formData.warehouseId,
               baseUnit: formData.baseUnit,
               wholesaleThreshold: parseInt(formData.wholesaleThreshold),
+              productUOMs: productUOMs,
             }
           : p
       ));
@@ -1243,6 +1368,133 @@ function AllProductsPage() {
                   Minimum {formData.baseUnit} for wholesale
                 </p>
               </div>
+            </div>
+
+            <Separator />
+
+            {/* Product UOMs Section */}
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Product UOMs (Barcodes)</Label>
+              <p className="text-xs text-muted-foreground">
+                Add different unit sizes with unique barcodes (e.g., PCS, Box, Carton).
+                Each UOM can have its own barcode and price.
+              </p>
+
+              {/* Add UOM Form */}
+              <div className="space-y-3 p-3 border rounded-md bg-muted/30">
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Select UOM</Label>
+                    <select
+                      value={selectedUOM}
+                      onChange={(e) => setSelectedUOM(e.target.value)}
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-2 py-1 text-sm"
+                    >
+                      <option value="">Select UOM...</option>
+                      {availableUOMs
+                        .filter(u => !productUOMs.some(pu => pu.uomCode === u.code))
+                        .map(uom => (
+                          <option key={uom.code} value={uom.code}>
+                            {uom.name} ({uom.conversionFactor} {formData.baseUnit})
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Barcode</Label>
+                    <Input
+                      placeholder="8901234567890"
+                      value={uomBarcode}
+                      onChange={(e) => setUomBarcode(e.target.value)}
+                      className="h-9"
+                      disabled={!selectedUOM}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Price</Label>
+                    <div className="flex gap-1">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={uomPrice}
+                        onChange={(e) => setUomPrice(e.target.value)}
+                        className="h-9"
+                        disabled={!selectedUOM}
+                      />
+                      <Button
+                        type="button"
+                        onClick={handleAddUOM}
+                        disabled={!selectedUOM || !uomBarcode || !uomPrice}
+                        className="h-9"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* UOM List */}
+              {productUOMs.length > 0 && (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[100px]">UOM</TableHead>
+                        <TableHead>Barcode</TableHead>
+                        <TableHead className="w-[80px] text-right">Factor</TableHead>
+                        <TableHead className="w-[100px] text-right">Price</TableHead>
+                        <TableHead className="w-[60px]">Default</TableHead>
+                        <TableHead className="w-[50px]"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {productUOMs.map((uom) => (
+                        <TableRow key={uom.id}>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium text-sm">{uom.uomCode}</div>
+                              <div className="text-xs text-muted-foreground">{uom.uomName}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">{uom.barcode}</TableCell>
+                          <TableCell className="text-right">×{uom.conversionFactor}</TableCell>
+                          <TableCell className="text-right font-medium">
+                            ${uom.price.toFixed(2)}
+                          </TableCell>
+                          <TableCell>
+                            {uom.isDefault && (
+                              <Badge variant="outline" className="text-xs">Default</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => handleRemoveUOM(uom.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {productUOMs.length === 0 && (
+                <div className="text-center py-6 border rounded-md border-dashed">
+                  <Package className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">No UOMs added yet</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Add at least one UOM (including PCS base unit)
+                  </p>
+                </div>
+              )}
             </div>
 
             <DrawerFooter className="px-0">
