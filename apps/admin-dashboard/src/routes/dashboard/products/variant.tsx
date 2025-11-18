@@ -210,6 +210,55 @@ function ProductVariantPage() {
     stock: '',
   });
 
+  // Extract unique products from variants
+  const availableProducts = useMemo(() => {
+    const productsMap = new Map<string, { name: string; sku: string }>();
+    mockVariants.forEach(variant => {
+      if (!productsMap.has(variant.productSKU)) {
+        productsMap.set(variant.productSKU, {
+          name: variant.productName,
+          sku: variant.productSKU
+        });
+      }
+    });
+    return Array.from(productsMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, []);
+
+  // Auto-generate variant SKU from product SKU and variant name
+  const generateVariantSKU = (productSKU: string, variantName: string) => {
+    if (!productSKU || !variantName) return '';
+
+    // Get 2-3 letters from variant name
+    const variantCode = variantName
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .toUpperCase()
+      .substring(0, 3);
+
+    return `${productSKU}-${variantCode}`;
+  };
+
+  // Handle product selection
+  const handleProductSelect = (productSKU: string) => {
+    const product = availableProducts.find(p => p.sku === productSKU);
+    if (product) {
+      setFormData({
+        ...formData,
+        productName: product.name,
+        productSKU: product.sku,
+        variantSKU: generateVariantSKU(product.sku, formData.variantName)
+      });
+    }
+  };
+
+  // Handle variant name change (auto-update variant SKU)
+  const handleVariantNameChange = (variantName: string) => {
+    setFormData({
+      ...formData,
+      variantName,
+      variantSKU: generateVariantSKU(formData.productSKU, variantName)
+    });
+  };
+
   // Filter variants based on search
   const filteredVariants = useMemo(() => {
     return variants.filter((variant) =>
@@ -624,26 +673,38 @@ function ProductVariantPage() {
 
           <form onSubmit={handleSubmitForm} className="flex-1 overflow-y-auto p-4 space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="productName">Product Name</Label>
-              <Input
-                id="productName"
-                placeholder="Baby Bottle Set"
-                value={formData.productName}
-                onChange={(e) => setFormData({ ...formData, productName: e.target.value })}
+              <Label htmlFor="productSelect">Select Product</Label>
+              <select
+                id="productSelect"
+                value={formData.productSKU}
+                onChange={(e) => handleProductSelect(e.target.value)}
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 required
-              />
+              >
+                <option value="">Choose a product...</option>
+                {availableProducts.map(product => (
+                  <option key={product.sku} value={product.sku}>
+                    {product.name} ({product.sku})
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">
+                Select the product this variant belongs to
+              </p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="productSKU">Product SKU</Label>
-              <Input
-                id="productSKU"
-                placeholder="BB-001"
-                value={formData.productSKU}
-                onChange={(e) => setFormData({ ...formData, productSKU: e.target.value })}
-                required
-              />
-            </div>
+            {formData.productSKU && (
+              <div className="p-3 bg-muted/30 rounded-md space-y-1">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Product:</span>
+                  <span className="font-medium">{formData.productName}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">SKU:</span>
+                  <span className="font-mono">{formData.productSKU}</span>
+                </div>
+              </div>
+            )}
 
             <Separator />
 
@@ -651,22 +712,29 @@ function ProductVariantPage() {
               <Label htmlFor="variantName">Variant Name</Label>
               <Input
                 id="variantName"
-                placeholder="Pink"
+                placeholder="Pink, Large, Cotton, etc."
                 value={formData.variantName}
-                onChange={(e) => setFormData({ ...formData, variantName: e.target.value })}
+                onChange={(e) => handleVariantNameChange(e.target.value)}
                 required
               />
+              <p className="text-xs text-muted-foreground">
+                e.g., "Pink" for color, "Large" for size, "Cotton" for material
+              </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="variantSKU">Variant SKU</Label>
+              <Label htmlFor="variantSKU">Variant SKU (Auto-generated)</Label>
               <Input
                 id="variantSKU"
-                placeholder="BB-001-PNK"
+                placeholder="BB-001-PIN"
                 value={formData.variantSKU}
-                onChange={(e) => setFormData({ ...formData, variantSKU: e.target.value })}
+                readOnly
+                className="bg-muted/30"
                 required
               />
+              <p className="text-xs text-muted-foreground">
+                Auto-generated from product SKU + variant name
+              </p>
             </div>
 
             <div className="space-y-2">

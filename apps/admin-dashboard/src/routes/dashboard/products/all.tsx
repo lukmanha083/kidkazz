@@ -509,20 +509,25 @@ function AllProductsPage() {
 
   // Helper function: Check if barcode is unique
   const isBarcodeUnique = (barcode: string, excludeProductId?: string) => {
-    // Check in products
+    // Check in products (main barcodes)
     const existsInProducts = products.some(p =>
       p.barcode === barcode && p.id !== excludeProductId
     );
     if (existsInProducts) return false;
 
-    // Check in product UOMs
-    const existsInUOMs = products.some(p =>
-      p.id !== excludeProductId && p.productUOMs?.some(uom => uom.barcode === barcode)
-    );
+    // Check in product UOMs (but exclude PCS UOMs that match main barcode)
+    const existsInUOMs = products.some(p => {
+      if (p.id === excludeProductId) return false;
+      return p.productUOMs?.some(uom =>
+        uom.barcode === barcode && !(uom.uomCode === 'PCS' && p.barcode === barcode)
+      );
+    });
     if (existsInUOMs) return false;
 
-    // Check in current form's UOMs
-    const existsInCurrentUOMs = productUOMs.some(uom => uom.barcode === barcode);
+    // Check in current form's additional UOMs (not PCS, as PCS uses main barcode)
+    const existsInCurrentUOMs = productUOMs.some(uom =>
+      uom.barcode === barcode && uom.uomCode !== 'PCS'
+    );
     if (existsInCurrentUOMs) return false;
 
     return true;
@@ -678,7 +683,9 @@ function AllProductsPage() {
 
   const handleAddUOM = () => {
     if (!selectedUOM || !uomBarcode || !uomPrice) {
-      alert('Please fill in all UOM fields');
+      toast.error('Missing UOM information', {
+        description: 'Please fill in UOM, barcode, and price'
+      });
       return;
     }
 
@@ -687,13 +694,26 @@ function AllProductsPage() {
 
     // Check if UOM already added
     if (productUOMs.some(pu => pu.uomCode === selectedUOM)) {
-      alert('This UOM has already been added');
+      toast.error('UOM already added', {
+        description: 'This UOM has already been added to the product'
+      });
       return;
     }
 
-    // Check if barcode is unique
-    if (productUOMs.some(pu => pu.barcode === uomBarcode)) {
-      alert('This barcode has already been used');
+    // Check if barcode is unique across all products and UOMs
+    const excludeId = formMode === 'edit' ? selectedProduct?.id : undefined;
+    if (!isBarcodeUnique(uomBarcode, excludeId)) {
+      toast.error('Barcode already exists', {
+        description: 'This barcode is already used by another product or UOM. Please use a different barcode.'
+      });
+      return;
+    }
+
+    // Check if same as main barcode (shouldn't happen for non-PCS)
+    if (uomBarcode === formData.barcode && uom.code !== 'PCS') {
+      toast.error('Duplicate barcode', {
+        description: 'This barcode is the same as the main product barcode. Please use a different barcode for additional UOMs.'
+      });
       return;
     }
 
@@ -704,13 +724,16 @@ function AllProductsPage() {
       barcode: uomBarcode,
       conversionFactor: uom.conversionFactor,
       price: parseFloat(uomPrice),
-      isDefault: productUOMs.length === 0 && uom.code === 'PCS', // First PCS is default
+      isDefault: false, // Never default since PCS is auto-created as default
     };
 
     setProductUOMs([...productUOMs, newUOM]);
     setSelectedUOM('');
     setUomBarcode('');
     setUomPrice('');
+    toast.success('UOM added', {
+      description: `${uom.name} has been added successfully`
+    });
   };
 
   const handleRemoveUOM = (id: string) => {
