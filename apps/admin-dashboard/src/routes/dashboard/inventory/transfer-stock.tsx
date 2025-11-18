@@ -35,6 +35,7 @@ import {
   Package,
   Calendar,
 } from 'lucide-react';
+import { mockWarehouses } from '@/data/warehouses';
 
 export const Route = createFileRoute('/dashboard/inventory/transfer-stock')({
   component: TransferStockPage,
@@ -62,13 +63,6 @@ interface StockTransfer {
   notes?: string;
 }
 
-// Mock warehouses
-const mockWarehouses = [
-  { id: 'WH-001', name: 'Main Warehouse' },
-  { id: 'WH-002', name: 'North Branch' },
-  { id: 'WH-003', name: 'South Branch' },
-];
-
 // Mock products for transfer
 const mockProducts = [
   { id: '1', name: 'Baby Bottle Set', sku: 'BB-001', warehouseId: 'WH-001', stock: 145 },
@@ -89,9 +83,9 @@ const mockTransfers: StockTransfer[] = [
     id: 'TRF-001',
     transferNumber: 'TRF-2024-001',
     sourceWarehouseId: 'WH-001',
-    sourceWarehouseName: 'Main Warehouse',
+    sourceWarehouseName: 'Main Warehouse Jakarta',
     destinationWarehouseId: 'WH-002',
-    destinationWarehouseName: 'North Branch',
+    destinationWarehouseName: 'Distribution Center Surabaya',
     items: [
       { productId: '1', productName: 'Baby Bottle Set', sku: 'BB-001', quantity: 50 },
       { productId: '7', productName: 'Educational Puzzle', sku: 'PZ-007', quantity: 30 },
@@ -106,9 +100,9 @@ const mockTransfers: StockTransfer[] = [
     id: 'TRF-002',
     transferNumber: 'TRF-2024-002',
     sourceWarehouseId: 'WH-003',
-    sourceWarehouseName: 'South Branch',
+    sourceWarehouseName: 'Regional Hub Bandung',
     destinationWarehouseId: 'WH-001',
-    destinationWarehouseName: 'Main Warehouse',
+    destinationWarehouseName: 'Main Warehouse Jakarta',
     items: [
       { productId: '4', productName: 'Children Books Set', sku: 'BK-004', quantity: 20 },
     ],
@@ -121,9 +115,9 @@ const mockTransfers: StockTransfer[] = [
     id: 'TRF-003',
     transferNumber: 'TRF-2024-003',
     sourceWarehouseId: 'WH-001',
-    sourceWarehouseName: 'Main Warehouse',
+    sourceWarehouseName: 'Main Warehouse Jakarta',
     destinationWarehouseId: 'WH-003',
-    destinationWarehouseName: 'South Branch',
+    destinationWarehouseName: 'Regional Hub Bandung',
     items: [
       { productId: '3', productName: 'Toy Car Collection', sku: 'TC-003', quantity: 40 },
       { productId: '5', productName: 'Baby Crib', sku: 'CR-005', quantity: 5 },
@@ -138,6 +132,9 @@ const mockTransfers: StockTransfer[] = [
 ];
 
 function TransferStockPage() {
+  // Filter only active warehouses
+  const activeWarehouses = mockWarehouses.filter(wh => wh.status === 'Active');
+
   const [transfers, setTransfers] = useState<StockTransfer[]>(mockTransfers);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -264,8 +261,8 @@ function TransferStockPage() {
       return;
     }
 
-    const sourceWarehouse = mockWarehouses.find(w => w.id === formData.sourceWarehouseId);
-    const destinationWarehouse = mockWarehouses.find(w => w.id === formData.destinationWarehouseId);
+    const sourceWarehouse = activeWarehouses.find(w => w.id === formData.sourceWarehouseId);
+    const destinationWarehouse = activeWarehouses.find(w => w.id === formData.destinationWarehouseId);
 
     if (!sourceWarehouse || !destinationWarehouse) {
       alert('Invalid warehouse selection');
@@ -648,7 +645,7 @@ function TransferStockPage() {
                 required
               >
                 <option value="">Select source warehouse...</option>
-                {mockWarehouses.map(warehouse => (
+                {activeWarehouses.map(warehouse => (
                   <option key={warehouse.id} value={warehouse.id}>
                     {warehouse.name}
                   </option>
@@ -671,7 +668,7 @@ function TransferStockPage() {
                 required
               >
                 <option value="">Select destination warehouse...</option>
-                {mockWarehouses
+                {activeWarehouses
                   .filter(w => w.id !== formData.sourceWarehouseId)
                   .map(warehouse => (
                     <option key={warehouse.id} value={warehouse.id}>

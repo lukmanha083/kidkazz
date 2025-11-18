@@ -249,6 +249,79 @@ export const quoteItems = sqliteTable('quote_items', {
 });
 
 // ============================================
+// WAREHOUSE & INVENTORY MANAGEMENT
+// ============================================
+
+export const warehouses = sqliteTable('warehouses', {
+  id: text('id').primaryKey(),
+  code: text('code').notNull().unique(),
+  name: text('name').notNull(),
+  location: text('location').notNull(),
+  address: text('address').notNull(),
+  city: text('city').notNull(),
+  postalCode: text('postal_code').notNull(),
+  phone: text('phone').notNull(),
+  manager: text('manager').notNull(),
+  rack: text('rack'),
+  bin: text('bin'),
+  status: text('status', { enum: ['Active', 'Inactive'] }).notNull().default('Active'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+});
+
+export const productVariants = sqliteTable('product_variants', {
+  id: text('id').primaryKey(),
+  productId: text('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  productName: text('product_name').notNull(),
+  productSKU: text('product_sku').notNull(),
+  variantName: text('variant_name').notNull(),
+  variantSKU: text('variant_sku').notNull().unique(),
+  variantType: text('variant_type', { enum: ['Color', 'Size', 'Material', 'Style'] }).notNull(),
+  price: real('price').notNull(),
+  stock: integer('stock').notNull().default(0),
+  status: text('status', { enum: ['Active', 'Inactive'] }).notNull().default('Active'),
+  image: text('image'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+});
+
+export const warehouseStock = sqliteTable('warehouse_stock', {
+  id: text('id').primaryKey(),
+  warehouseId: text('warehouse_id').notNull().references(() => warehouses.id, { onDelete: 'cascade' }),
+  productId: text('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  variantId: text('variant_id').references(() => productVariants.id, { onDelete: 'cascade' }),
+  quantity: integer('quantity').notNull().default(0),
+  rack: text('rack'),
+  bin: text('bin'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+});
+
+export const stockTransfers = sqliteTable('stock_transfers', {
+  id: text('id').primaryKey(),
+  transferNumber: text('transfer_number').notNull().unique(),
+  sourceWarehouseId: text('source_warehouse_id').notNull().references(() => warehouses.id),
+  destinationWarehouseId: text('destination_warehouse_id').notNull().references(() => warehouses.id),
+  totalItems: integer('total_items').notNull(),
+  status: text('status', { enum: ['Completed', 'Pending', 'Cancelled'] }).notNull().default('Pending'),
+  transferredBy: text('transferred_by').notNull(),
+  transferDate: integer('transfer_date', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  notes: text('notes'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+});
+
+export const stockTransferItems = sqliteTable('stock_transfer_items', {
+  id: text('id').primaryKey(),
+  transferId: text('transfer_id').notNull().references(() => stockTransfers.id, { onDelete: 'cascade' }),
+  productId: text('product_id').notNull().references(() => products.id),
+  productName: text('product_name').notNull(),
+  sku: text('sku').notNull(),
+  quantity: integer('quantity').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+});
+
+// ============================================
 // ADMIN & ANALYTICS
 // ============================================
 

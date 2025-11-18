@@ -35,6 +35,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Warehouse, MapPin, Package, ArrowRightLeft, History, AlertTriangle } from 'lucide-react';
+import { mockWarehouses } from '@/data/warehouses';
 
 export const Route = createFileRoute('/dashboard/inventory/uom-conversion')({
   component: UOMConversionPage,
@@ -72,13 +73,6 @@ interface ConversionHistory {
   performedBy: string;
   timestamp: Date;
 }
-
-// Mock warehouse data
-const warehouses = [
-  { id: 'WH-001', name: 'Main Warehouse' },
-  { id: 'WH-002', name: 'Distribution Center' },
-  { id: 'WH-003', name: 'Regional Hub' },
-];
 
 // Mock product inventory data
 const mockInventory: ProductInventory[] = [
@@ -122,7 +116,9 @@ const mockInventory: ProductInventory[] = [
 ];
 
 function UOMConversionPage() {
-  const [selectedWarehouse, setSelectedWarehouse] = useState('WH-001');
+  // Filter only active warehouses
+  const activeWarehouses = mockWarehouses.filter(wh => wh.status === 'Active');
+  const [selectedWarehouse, setSelectedWarehouse] = useState(activeWarehouses[0]?.id || '');
   const [inventory, setInventory] = useState<ProductInventory[]>(mockInventory);
   const [conversions, setConversions] = useState<ConversionHistory[]>([]);
 
@@ -295,8 +291,8 @@ function UOMConversionPage() {
           <CardDescription>Choose a warehouse to view and manage inventory</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-2">
-            {warehouses.map(wh => (
+          <div className="flex gap-2 flex-wrap">
+            {activeWarehouses.map(wh => (
               <Button
                 key={wh.id}
                 variant={selectedWarehouse === wh.id ? 'default' : 'outline'}
@@ -307,6 +303,9 @@ function UOMConversionPage() {
               </Button>
             ))}
           </div>
+          {activeWarehouses.length === 0 && (
+            <p className="text-sm text-muted-foreground">No active warehouses available</p>
+          )}
         </CardContent>
       </Card>
 

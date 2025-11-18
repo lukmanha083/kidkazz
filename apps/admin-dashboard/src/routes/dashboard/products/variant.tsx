@@ -846,13 +846,12 @@ function ProductVariantPage() {
                   placeholder="100"
                   value={formData.stock}
                   onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                  max={formData.productSKU ? getRemainingStock(formData.productSKU) : undefined}
                   min="0"
                   required
                 />
                 {formData.productSKU && (
                   <p className="text-xs text-muted-foreground">
-                    Max: {getRemainingStock(formData.productSKU)} units available
+                    Product has {getProductStock(formData.productSKU)} units in stock
                   </p>
                 )}
               </div>

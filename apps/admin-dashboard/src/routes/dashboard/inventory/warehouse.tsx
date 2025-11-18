@@ -41,69 +41,14 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Warehouse as WarehouseIcon, Plus, Pencil, Trash2, MapPin, Building2 } from 'lucide-react';
+import { mockWarehouses as initialWarehouses, type Warehouse } from '@/data/warehouses';
 
 export const Route = createFileRoute('/dashboard/inventory/warehouse')({
   component: WarehouseManagementPage,
 });
 
-interface Warehouse {
-  id: string;
-  code: string;
-  name: string;
-  location: string;
-  address: string;
-  city: string;
-  postalCode: string;
-  phone: string;
-  manager: string;
-  status: 'Active' | 'Inactive';
-  createdAt: Date;
-}
-
-const mockWarehouses: Warehouse[] = [
-  {
-    id: 'WH-001',
-    code: 'WH-JKT-01',
-    name: 'Main Warehouse Jakarta',
-    location: 'Jakarta',
-    address: 'Jl. Raya Industri No. 123',
-    city: 'Jakarta',
-    postalCode: '12345',
-    phone: '+62 21 1234 5678',
-    manager: 'Budi Santoso',
-    status: 'Active',
-    createdAt: new Date('2024-01-15'),
-  },
-  {
-    id: 'WH-002',
-    code: 'WH-SBY-01',
-    name: 'Distribution Center Surabaya',
-    location: 'Surabaya',
-    address: 'Jl. Industri Raya No. 456',
-    city: 'Surabaya',
-    postalCode: '60234',
-    phone: '+62 31 2345 6789',
-    manager: 'Siti Rahayu',
-    status: 'Active',
-    createdAt: new Date('2024-02-20'),
-  },
-  {
-    id: 'WH-003',
-    code: 'WH-BDG-01',
-    name: 'Regional Hub Bandung',
-    location: 'Bandung',
-    address: 'Jl. Soekarno Hatta No. 789',
-    city: 'Bandung',
-    postalCode: '40293',
-    phone: '+62 22 3456 7890',
-    manager: 'Ahmad Wijaya',
-    status: 'Active',
-    createdAt: new Date('2024-03-10'),
-  },
-];
-
 function WarehouseManagementPage() {
-  const [warehouses, setWarehouses] = useState<Warehouse[]>(mockWarehouses);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>(initialWarehouses);
   const [formDrawerOpen, setFormDrawerOpen] = useState(false);
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
   const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(null);
@@ -119,6 +64,8 @@ function WarehouseManagementPage() {
     postalCode: '',
     phone: '',
     manager: '',
+    rack: '',
+    bin: '',
     status: 'Active' as 'Active' | 'Inactive',
   });
 
@@ -133,6 +80,8 @@ function WarehouseManagementPage() {
       postalCode: '',
       phone: '',
       manager: '',
+      rack: '',
+      bin: '',
       status: 'Active',
     });
     setFormDrawerOpen(true);
@@ -150,6 +99,8 @@ function WarehouseManagementPage() {
       postalCode: warehouse.postalCode,
       phone: warehouse.phone,
       manager: warehouse.manager,
+      rack: warehouse.rack || '',
+      bin: warehouse.bin || '',
       status: warehouse.status,
     });
     setFormDrawerOpen(true);
@@ -277,6 +228,8 @@ function WarehouseManagementPage() {
                   <TableHead>Code</TableHead>
                   <TableHead>Warehouse Name</TableHead>
                   <TableHead>Location</TableHead>
+                  <TableHead>Rack</TableHead>
+                  <TableHead>Bin</TableHead>
                   <TableHead>Manager</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Status</TableHead>
@@ -299,6 +252,8 @@ function WarehouseManagementPage() {
                         <span>{warehouse.city}</span>
                       </div>
                     </TableCell>
+                    <TableCell className="font-mono text-sm">{warehouse.rack || '-'}</TableCell>
+                    <TableCell className="font-mono text-sm">{warehouse.bin || '-'}</TableCell>
                     <TableCell>{warehouse.manager}</TableCell>
                     <TableCell className="font-mono text-sm">{warehouse.phone}</TableCell>
                     <TableCell>
@@ -427,6 +382,28 @@ function WarehouseManagementPage() {
                   value={formData.manager}
                   onChange={(e) => setFormData({ ...formData, manager: e.target.value })}
                   required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="rack">Rack</Label>
+                <Input
+                  id="rack"
+                  placeholder="A-01"
+                  value={formData.rack}
+                  onChange={(e) => setFormData({ ...formData, rack: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="bin">Bin</Label>
+                <Input
+                  id="bin"
+                  placeholder="BIN-001"
+                  value={formData.bin}
+                  onChange={(e) => setFormData({ ...formData, bin: e.target.value })}
                 />
               </div>
             </div>
