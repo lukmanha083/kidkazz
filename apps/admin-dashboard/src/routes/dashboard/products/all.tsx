@@ -495,6 +495,103 @@ function AllProductsPage() {
   const [uomBarcode, setUomBarcode] = useState('');
   const [uomPrice, setUomPrice] = useState('');
 
+  // Helper function: Generate barcode (EAN-13 format)
+  const generateBarcode = () => {
+    // Generate 12 random digits, then calculate checksum
+    const randomDigits = Array.from({ length: 12 }, () => Math.floor(Math.random() * 10)).join('');
+    let sum = 0;
+    for (let i = 0; i < 12; i++) {
+      sum += parseInt(randomDigits[i]) * (i % 2 === 0 ? 1 : 3);
+    }
+    const checksum = (10 - (sum % 10)) % 10;
+    return randomDigits + checksum;
+  };
+
+  // Helper function: Check if barcode is unique
+  const isBarcodeUnique = (barcode: string, excludeProductId?: string) => {
+    // Check in products
+    const existsInProducts = products.some(p =>
+      p.barcode === barcode && p.id !== excludeProductId
+    );
+    if (existsInProducts) return false;
+
+    // Check in product UOMs
+    const existsInUOMs = products.some(p =>
+      p.id !== excludeProductId && p.productUOMs?.some(uom => uom.barcode === barcode)
+    );
+    if (existsInUOMs) return false;
+
+    // Check in current form's UOMs
+    const existsInCurrentUOMs = productUOMs.some(uom => uom.barcode === barcode);
+    if (existsInCurrentUOMs) return false;
+
+    return true;
+  };
+
+  // Helper function: Generate unique barcode
+  const generateUniqueBarcode = () => {
+    let barcode = generateBarcode();
+    let attempts = 0;
+    const excludeId = formMode === 'edit' ? selectedProduct?.id : undefined;
+
+    while (!isBarcodeUnique(barcode, excludeId) && attempts < 100) {
+      barcode = generateBarcode();
+      attempts++;
+    }
+
+    if (attempts >= 100) {
+      toast.error('Failed to generate unique barcode', {
+        description: 'Please try again or enter manually'
+      });
+      return '';
+    }
+
+    return barcode;
+  };
+
+  // Helper function: Generate SKU from category and product name
+  const generateSKU = (category: string, productName: string) => {
+    if (!category || !productName) return '';
+
+    // Get 2 letters from category (uppercase)
+    const categoryCode = category
+      .replace(/[^a-zA-Z]/g, '')
+      .toUpperCase()
+      .substring(0, 2)
+      .padEnd(2, 'X');
+
+    // Get 2 letters from product name (uppercase)
+    const nameCode = productName
+      .replace(/[^a-zA-Z]/g, '')
+      .toUpperCase()
+      .substring(0, 2)
+      .padEnd(2, 'X');
+
+    // Count existing products with same category+name prefix
+    const prefix = `${categoryCode}-${nameCode}`;
+    const existingProducts = products.filter(p => p.sku.startsWith(prefix));
+    const nextNumber = String(existingProducts.length + 1).padStart(2, '0');
+
+    return `${prefix}-${nextNumber}`;
+  };
+
+  // Auto-generate SKU when category or name changes
+  const handleCategoryOrNameChange = (field: 'category' | 'name', value: string) => {
+    const updatedFormData = { ...formData, [field]: value };
+
+    // Only auto-generate SKU in add mode or if SKU is empty
+    if (formMode === 'add' || !formData.sku) {
+      const category = field === 'category' ? value : formData.category;
+      const name = field === 'name' ? value : formData.name;
+
+      if (category && name) {
+        updatedFormData.sku = generateSKU(category, name);
+      }
+    }
+
+    setFormData(updatedFormData);
+  };
+
   // Filter products based on search
   const filteredProducts = useMemo(() => {
     return products.filter((product) =>
@@ -623,20 +720,28 @@ function AllProductsPage() {
   const handleSubmitForm = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate productUOMs - at least one UOM required
-    if (productUOMs.length === 0) {
-      toast.error('UOM required', {
-        description: 'Please add at least one Unit of Measure (UOM)'
+    // Validate barcode uniqueness
+    const excludeId = formMode === 'edit' ? selectedProduct?.id : undefined;
+    if (!isBarcodeUnique(formData.barcode, excludeId)) {
+      toast.error('Barcode already exists', {
+        description: 'This barcode is already used by another product. Please use a different barcode or click refresh to generate a new one.'
       });
       return;
     }
 
-    // Ensure at least one PCS (base unit) exists
-    if (!productUOMs.some(u => u.uomCode === 'PCS')) {
-      toast.error('Base unit required', {
-        description: 'At least one PCS (base unit) UOM is required'
-      });
-      return;
+    // Auto-create PCS UOM if not added manually
+    let finalProductUOMs = [...productUOMs];
+    if (!finalProductUOMs.some(u => u.uomCode === 'PCS')) {
+      const pcsUOM: ProductUOM = {
+        id: `uom-pcs-${Date.now()}`,
+        uomCode: 'PCS',
+        uomName: 'Pieces',
+        barcode: formData.barcode,
+        conversionFactor: 1,
+        price: parseFloat(formData.price),
+        isDefault: true,
+      };
+      finalProductUOMs = [pcsUOM, ...finalProductUOMs];
     }
 
     if (formMode === 'add') {
@@ -670,7 +775,7 @@ function AllProductsPage() {
               : null,
           },
         ],
-        productUOMs: productUOMs,
+        productUOMs: finalProductUOMs,
       };
       setProducts([...products, newProduct]);
       toast.success('Product created', {
@@ -692,7 +797,7 @@ function AllProductsPage() {
               warehouseId: formData.warehouseId,
               baseUnit: formData.baseUnit,
               wholesaleThreshold: parseInt(formData.wholesaleThreshold),
-              productUOMs: productUOMs,
+              productUOMs: finalProductUOMs,
             }
           : p
       ));
@@ -1233,13 +1338,38 @@ function AllProductsPage() {
           <form onSubmit={handleSubmitForm} className="flex-1 overflow-y-auto p-4 space-y-4">
             <div className="space-y-2">
               <Label htmlFor="barcode">Barcode</Label>
-              <Input
-                id="barcode"
-                placeholder="8901234567890"
-                value={formData.barcode}
-                onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-                required
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="barcode"
+                  placeholder="8901234567890"
+                  value={formData.barcode}
+                  onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+                  required
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => {
+                    const newBarcode = generateUniqueBarcode();
+                    if (newBarcode) {
+                      setFormData({ ...formData, barcode: newBarcode });
+                      toast.success('Barcode generated', {
+                        description: 'Unique barcode has been generated automatically'
+                      });
+                    }
+                  }}
+                  title="Generate unique barcode"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/>
+                  </svg>
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Click refresh to auto-generate a unique barcode
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -1248,7 +1378,7 @@ function AllProductsPage() {
                 id="name"
                 placeholder="Baby Bottle Set"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) => handleCategoryOrNameChange('name', e.target.value)}
                 required
               />
             </div>
@@ -1266,21 +1396,26 @@ function AllProductsPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="sku">SKU</Label>
+                <Label htmlFor="sku">SKU (Auto-generated)</Label>
                 <Input
                   id="sku"
-                  placeholder="BB-001"
+                  placeholder="TO-TA-01"
                   value={formData.sku}
                   onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
                   required
+                  readOnly
+                  className="bg-muted/30"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Auto-generated from category + product name
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
                 <select
                   id="category"
                   value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  onChange={(e) => handleCategoryOrNameChange('category', e.target.value)}
                   className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
                   required
                 >
@@ -1389,10 +1524,10 @@ function AllProductsPage() {
 
             {/* Product UOMs Section */}
             <div className="space-y-3">
-              <Label className="text-base font-semibold">Product UOMs (Barcodes)</Label>
+              <Label className="text-base font-semibold">Additional UOMs (Optional)</Label>
               <p className="text-xs text-muted-foreground">
-                Add different unit sizes with unique barcodes (e.g., PCS, Box, Carton).
-                Each UOM can have its own barcode and price.
+                PCS will use barcode and price from above. Add other units like Box, Carton if needed.
+                Each UOM needs a unique barcode and price.
               </p>
 
               {/* Add UOM Form */}
@@ -1407,7 +1542,7 @@ function AllProductsPage() {
                     >
                       <option value="">Select UOM...</option>
                       {availableUOMs
-                        .filter(u => !productUOMs.some(pu => pu.uomCode === u.code))
+                        .filter(u => u.code !== 'PCS' && !productUOMs.some(pu => pu.uomCode === u.code))
                         .map(uom => (
                           <option key={uom.code} value={uom.code}>
                             {uom.name} ({uom.conversionFactor} {formData.baseUnit})
