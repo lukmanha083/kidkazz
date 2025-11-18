@@ -35,6 +35,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Combobox } from '@/components/ui/combobox';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1679,7 +1680,7 @@ function AllProductsPage() {
               <Label className="text-base font-semibold">Additional UOMs (Optional)</Label>
               <p className="text-xs text-muted-foreground">
                 PCS will use barcode and price from above and will be set as the default unit. Add other units like Box, Carton if needed.
-                Each UOM needs a unique barcode and stock quantity. Click the radio button to change the default UOM.
+                Each UOM needs a unique barcode and stock quantity. Check the box to set which UOM is the default.
               </p>
 
               {/* Stock Allocation Info */}
@@ -1819,24 +1820,13 @@ function AllProductsPage() {
                             {uom.stock} units
                           </TableCell>
                           <TableCell className="text-center">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                              onClick={() => handleSetDefaultUOM(uom.id)}
-                              title={uom.isDefault ? "This is the default UOM" : "Set as default UOM"}
-                            >
-                              <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
-                                uom.isDefault
-                                  ? 'border-primary bg-primary'
-                                  : 'border-muted-foreground hover:border-primary'
-                              }`}>
-                                {uom.isDefault && (
-                                  <div className="h-2 w-2 rounded-full bg-primary-foreground" />
-                                )}
-                              </div>
-                            </Button>
+                            <div className="flex justify-center">
+                              <Checkbox
+                                checked={uom.isDefault}
+                                onCheckedChange={() => handleSetDefaultUOM(uom.id)}
+                                title={uom.isDefault ? "This is the default UOM" : "Set as default UOM"}
+                              />
+                            </div>
                           </TableCell>
                           <TableCell>
                             <Button

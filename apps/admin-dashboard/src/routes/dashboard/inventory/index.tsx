@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Warehouse, Package, AlertCircle, TrendingDown } from 'lucide-react';
 
-export const Route = createFileRoute('/dashboard/inventory')({
+export const Route = createFileRoute('/dashboard/inventory/')({
   component: InventoryPage,
 });
 
