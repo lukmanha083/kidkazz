@@ -236,9 +236,9 @@ function ProductVariantPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [variantToDelete, setVariantToDelete] = useState<ProductVariant | null>(null);
 
-  // Extract unique products from variants with stock tracking
+  // Extract unique products from variants
   const availableProducts = useMemo(() => {
-    const productsMap = new Map<string, { name: string; sku: string; totalStock: number; allocatedStock: number }>();
+    const productsMap = new Map<string, { name: string; sku: string; totalStock: number }>();
 
     // Mock total stock for products (in real app, this would come from products API)
     const mockProductStocks: Record<string, number> = {
@@ -257,12 +257,8 @@ function ProductVariantPage() {
           name: variant.productName,
           sku: variant.productSKU,
           totalStock: mockProductStocks[variant.productSKU] || 100,
-          allocatedStock: 0
         });
       }
-      // Sum up allocated stock from all variants
-      const product = productsMap.get(variant.productSKU)!;
-      product.allocatedStock += variant.stock;
     });
 
     return Array.from(productsMap.values()).sort((a, b) => a.name.localeCompare(b.name));
@@ -278,11 +274,11 @@ function ProductVariantPage() {
     }));
   }, [availableProducts]);
 
-  // Get remaining stock for selected product
-  const getRemainingStock = (productSKU: string) => {
+  // Get product stock (variants have independent stock, not allocated from product)
+  const getProductStock = (productSKU: string) => {
     const product = availableProducts.find(p => p.sku === productSKU);
     if (!product) return 0;
-    return product.totalStock - product.allocatedStock;
+    return product.totalStock;
   };
 
   // Auto-generate variant SKU from product SKU and variant name
@@ -770,13 +766,13 @@ function ProductVariantPage() {
                   <span className="font-mono">{formData.productSKU}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Available Stock:</span>
-                  <span className={`font-medium ${getRemainingStock(formData.productSKU) <= 0 ? 'text-destructive' : 'text-green-600'}`}>
-                    {getRemainingStock(formData.productSKU)} units
+                  <span className="text-muted-foreground">Product Stock:</span>
+                  <span className="font-medium text-green-600">
+                    {getProductStock(formData.productSKU)} units
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Variant stock cannot exceed available stock
+                  Variant stock is tracked independently from the main product
                 </p>
               </div>
             )}

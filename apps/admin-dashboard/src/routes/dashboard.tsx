@@ -92,7 +92,8 @@ const navItems: NavItem[] = [
     href: '/dashboard/inventory',
     icon: Warehouse,
     submenu: [
-      { title: 'Warehouse', href: '/dashboard/inventory/warehouse' },
+      { title: 'Warehouse Management', href: '/dashboard/inventory/warehouse' },
+      { title: 'UOM Conversion', href: '/dashboard/inventory/uom-conversion' },
       { title: 'Transfer Stock', href: '/dashboard/inventory/transfer-stock' },
     ]
   },

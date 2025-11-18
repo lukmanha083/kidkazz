@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import {
   Table,
   TableBody,
@@ -25,6 +24,13 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -34,656 +40,440 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Warehouse, MapPin, Package, ArrowRightLeft, History, AlertTriangle } from 'lucide-react';
+import { Warehouse as WarehouseIcon, Plus, Pencil, Trash2, MapPin, Building2 } from 'lucide-react';
 
 export const Route = createFileRoute('/dashboard/inventory/warehouse')({
-  component: WarehousePage,
+  component: WarehouseManagementPage,
 });
 
-interface ProductUOM {
+interface Warehouse {
   id: string;
-  uomCode: string;
-  uomName: string;
-  barcode: string;
-  conversionFactor: number;
-  stock: number;
-  isDefault: boolean;
-}
-
-interface ProductInventory {
-  id: string;
+  code: string;
   name: string;
-  sku: string;
-  barcode: string;
-  category: string;
-  totalStock: number;
-  productUOMs: ProductUOM[];
+  location: string;
+  address: string;
+  city: string;
+  postalCode: string;
+  phone: string;
+  manager: string;
+  status: 'Active' | 'Inactive';
+  createdAt: Date;
 }
 
-interface ConversionHistory {
-  id: string;
-  productName: string;
-  productSKU: string;
-  fromUOM: string;
-  fromQuantity: number;
-  toQuantity: number;
-  reason: string;
-  notes: string;
-  performedBy: string;
-  timestamp: Date;
-}
-
-// Mock warehouse data
-const warehouses = [
-  { id: 'WH-001', name: 'Main Warehouse' },
-  { id: 'WH-002', name: 'Distribution Center' },
-  { id: 'WH-003', name: 'Regional Hub' },
-];
-
-// Mock product inventory data
-const mockInventory: ProductInventory[] = [
+const mockWarehouses: Warehouse[] = [
   {
-    id: '1',
-    name: 'Baby Bottle Set',
-    sku: 'BB-001',
-    barcode: '8901234567890',
-    category: 'Feeding',
-    totalStock: 100,
-    productUOMs: [
-      { id: 'uom-1-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567890', conversionFactor: 1, stock: 10, isDefault: true },
-      { id: 'uom-1-2', uomCode: 'BOX6', uomName: 'Box of 6', barcode: '8901234567906', conversionFactor: 6, stock: 10, isDefault: false },
-      { id: 'uom-1-3', uomCode: 'CARTON18', uomName: 'Carton (18 PCS)', barcode: '8901234567918', conversionFactor: 18, stock: 2, isDefault: false },
-    ],
+    id: 'WH-001',
+    code: 'WH-JKT-01',
+    name: 'Main Warehouse Jakarta',
+    location: 'Jakarta',
+    address: 'Jl. Raya Industri No. 123',
+    city: 'Jakarta',
+    postalCode: '12345',
+    phone: '+62 21 1234 5678',
+    manager: 'Budi Santoso',
+    status: 'Active',
+    createdAt: new Date('2024-01-15'),
   },
   {
-    id: '2',
-    name: 'Kids Backpack',
-    sku: 'KB-002',
-    barcode: '8901234567891',
-    category: 'School',
-    totalStock: 89,
-    productUOMs: [
-      { id: 'uom-2-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567891', conversionFactor: 1, stock: 5, isDefault: true },
-      { id: 'uom-2-2', uomCode: 'BOX6', uomName: 'Box of 6', barcode: '8901234567897', conversionFactor: 6, stock: 14, isDefault: false },
-    ],
+    id: 'WH-002',
+    code: 'WH-SBY-01',
+    name: 'Distribution Center Surabaya',
+    location: 'Surabaya',
+    address: 'Jl. Industri Raya No. 456',
+    city: 'Surabaya',
+    postalCode: '60234',
+    phone: '+62 31 2345 6789',
+    manager: 'Siti Rahayu',
+    status: 'Active',
+    createdAt: new Date('2024-02-20'),
   },
   {
-    id: '3',
-    name: 'Educational Puzzle Set',
-    sku: 'EP-003',
-    barcode: '8901234567892',
-    category: 'Education',
-    totalStock: 120,
-    productUOMs: [
-      { id: 'uom-3-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567892', conversionFactor: 1, stock: 0, isDefault: true },
-      { id: 'uom-3-2', uomCode: 'BOX6', uomName: 'Box of 6', barcode: '8901234567898', conversionFactor: 6, stock: 20, isDefault: false },
-    ],
+    id: 'WH-003',
+    code: 'WH-BDG-01',
+    name: 'Regional Hub Bandung',
+    location: 'Bandung',
+    address: 'Jl. Soekarno Hatta No. 789',
+    city: 'Bandung',
+    postalCode: '40293',
+    phone: '+62 22 3456 7890',
+    manager: 'Ahmad Wijaya',
+    status: 'Active',
+    createdAt: new Date('2024-03-10'),
   },
 ];
 
-function WarehousePage() {
-  const [selectedWarehouse, setSelectedWarehouse] = useState('WH-001');
-  const [inventory, setInventory] = useState<ProductInventory[]>(mockInventory);
-  const [conversions, setConversions] = useState<ConversionHistory[]>([]);
+function WarehouseManagementPage() {
+  const [warehouses, setWarehouses] = useState<Warehouse[]>(mockWarehouses);
+  const [formDrawerOpen, setFormDrawerOpen] = useState(false);
+  const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
+  const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [warehouseToDelete, setWarehouseToDelete] = useState<Warehouse | null>(null);
 
-  // Drawer states
-  const [conversionDrawerOpen, setConversionDrawerOpen] = useState(false);
-  const [historyDrawerOpen, setHistoryDrawerOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    code: '',
+    name: '',
+    location: '',
+    address: '',
+    city: '',
+    postalCode: '',
+    phone: '',
+    manager: '',
+    status: 'Active' as 'Active' | 'Inactive',
+  });
 
-  // Conversion form states
-  const [selectedProduct, setSelectedProduct] = useState<ProductInventory | null>(null);
-  const [selectedFromUOM, setSelectedFromUOM] = useState<ProductUOM | null>(null);
-  const [conversionQuantity, setConversionQuantity] = useState('');
-  const [conversionReason, setConversionReason] = useState('PCS sold out');
-  const [conversionNotes, setConversionNotes] = useState('');
-
-  // Confirmation dialog
-  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-
-  // Rupiah formatter
-  const formatRupiah = (amount: number): string => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
+  const handleAddWarehouse = () => {
+    setFormMode('add');
+    setFormData({
+      code: '',
+      name: '',
+      location: '',
+      address: '',
+      city: '',
+      postalCode: '',
+      phone: '',
+      manager: '',
+      status: 'Active',
+    });
+    setFormDrawerOpen(true);
   };
 
-  // Format timestamp
-  const formatTimestamp = (date: Date): string => {
-    return new Intl.DateTimeFormat('id-ID', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(date);
+  const handleEditWarehouse = (warehouse: Warehouse) => {
+    setFormMode('edit');
+    setSelectedWarehouse(warehouse);
+    setFormData({
+      code: warehouse.code,
+      name: warehouse.name,
+      location: warehouse.location,
+      address: warehouse.address,
+      city: warehouse.city,
+      postalCode: warehouse.postalCode,
+      phone: warehouse.phone,
+      manager: warehouse.manager,
+      status: warehouse.status,
+    });
+    setFormDrawerOpen(true);
   };
 
-  // Calculate total PCS from all UOMs
-  const calculateTotalPCS = (product: ProductInventory): number => {
-    return product.productUOMs.reduce((total, uom) => {
-      return total + (uom.stock * uom.conversionFactor);
-    }, 0);
+  const handleDeleteWarehouse = (warehouse: Warehouse) => {
+    setWarehouseToDelete(warehouse);
+    setDeleteDialogOpen(true);
   };
 
-  // Get PCS UOM
-  const getPCSUOM = (product: ProductInventory): ProductUOM | undefined => {
-    return product.productUOMs.find(uom => uom.uomCode === 'PCS');
-  };
-
-  // Handle open conversion drawer
-  const handleOpenConversion = (product: ProductInventory, uom: ProductUOM) => {
-    if (uom.uomCode === 'PCS') {
-      toast.error('Cannot convert PCS', {
-        description: 'PCS is the base unit and cannot be converted'
+  const confirmDelete = () => {
+    if (warehouseToDelete) {
+      setWarehouses(warehouses.filter(w => w.id !== warehouseToDelete.id));
+      toast.success('Warehouse deleted', {
+        description: `${warehouseToDelete.name} has been deleted successfully`
       });
-      return;
+      setDeleteDialogOpen(false);
+      setWarehouseToDelete(null);
     }
-
-    if (uom.stock === 0) {
-      toast.error('No stock available', {
-        description: `${uom.uomName} has no stock available for conversion`
-      });
-      return;
-    }
-
-    setSelectedProduct(product);
-    setSelectedFromUOM(uom);
-    setConversionQuantity('');
-    setConversionReason('PCS sold out');
-    setConversionNotes('');
-    setConversionDrawerOpen(true);
   };
 
-  // Handle conversion submit
-  const handleConversionSubmit = (e: React.FormEvent) => {
+  const handleSubmitForm = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedProduct || !selectedFromUOM) return;
+    if (formMode === 'add') {
+      const newWarehouse: Warehouse = {
+        id: `WH-${Date.now()}`,
+        code: formData.code,
+        name: formData.name,
+        location: formData.location,
+        address: formData.address,
+        city: formData.city,
+        postalCode: formData.postalCode,
+        phone: formData.phone,
+        manager: formData.manager,
+        status: formData.status,
+        createdAt: new Date(),
+      };
 
-    const qty = parseInt(conversionQuantity);
-    if (qty <= 0 || qty > selectedFromUOM.stock) {
-      toast.error('Invalid quantity', {
-        description: `Please enter a quantity between 1 and ${selectedFromUOM.stock}`
+      setWarehouses([...warehouses, newWarehouse]);
+      toast.success('Warehouse created', {
+        description: `${newWarehouse.name} has been created successfully`
       });
-      return;
+    } else if (formMode === 'edit' && selectedWarehouse) {
+      setWarehouses(warehouses.map(w =>
+        w.id === selectedWarehouse.id
+          ? { ...w, ...formData }
+          : w
+      ));
+      toast.success('Warehouse updated', {
+        description: `${formData.name} has been updated successfully`
+      });
     }
 
-    setConfirmDialogOpen(true);
+    setFormDrawerOpen(false);
   };
-
-  // Confirm and execute conversion
-  const executeConversion = () => {
-    if (!selectedProduct || !selectedFromUOM) return;
-
-    const qty = parseInt(conversionQuantity);
-    const pcsToAdd = qty * selectedFromUOM.conversionFactor;
-
-    // Update inventory
-    setInventory(inventory.map(product => {
-      if (product.id === selectedProduct.id) {
-        return {
-          ...product,
-          productUOMs: product.productUOMs.map(uom => {
-            if (uom.id === selectedFromUOM.id) {
-              // Decrease source UOM stock
-              return { ...uom, stock: uom.stock - qty };
-            } else if (uom.uomCode === 'PCS') {
-              // Increase PCS stock
-              return { ...uom, stock: uom.stock + pcsToAdd };
-            }
-            return uom;
-          }),
-        };
-      }
-      return product;
-    }));
-
-    // Add to conversion history
-    const newConversion: ConversionHistory = {
-      id: `conv-${Date.now()}`,
-      productName: selectedProduct.name,
-      productSKU: selectedProduct.sku,
-      fromUOM: `${qty} ${selectedFromUOM.uomName}`,
-      fromQuantity: qty,
-      toQuantity: pcsToAdd,
-      reason: conversionReason,
-      notes: conversionNotes,
-      performedBy: 'Current User', // In real app, get from auth context
-      timestamp: new Date(),
-    };
-    setConversions([newConversion, ...conversions]);
-
-    toast.success('UOM Converted Successfully', {
-      description: `Converted ${qty} ${selectedFromUOM.uomName} → ${pcsToAdd} PCS`
-    });
-
-    setConfirmDialogOpen(false);
-    setConversionDrawerOpen(false);
-    setSelectedProduct(null);
-    setSelectedFromUOM(null);
-  };
-
-  // Get low stock products (PCS stock < 10)
-  const lowStockProducts = inventory.filter(product => {
-    const pcsUOM = getPCSUOM(product);
-    return pcsUOM && pcsUOM.stock < 10;
-  });
 
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Warehouse Inventory</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Warehouse Management</h1>
           <p className="text-muted-foreground mt-1">
-            Manage product inventory and perform UOM conversions
+            Manage warehouse locations and inventory centers
           </p>
         </div>
-        <Button onClick={() => setHistoryDrawerOpen(true)} variant="outline">
-          <History className="h-4 w-4 mr-2" />
-          Conversion History
+        <Button onClick={handleAddWarehouse}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Warehouse
         </Button>
       </div>
 
-      {/* Warehouse Selector */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Select Warehouse</CardTitle>
-          <CardDescription>Choose a warehouse to view and manage inventory</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
-            {warehouses.map(wh => (
-              <Button
-                key={wh.id}
-                variant={selectedWarehouse === wh.id ? 'default' : 'outline'}
-                onClick={() => setSelectedWarehouse(wh.id)}
-              >
-                <Warehouse className="h-4 w-4 mr-2" />
-                {wh.name}
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Summary Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
+      {/* Warehouse Stats */}
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Total Warehouses</CardTitle>
+            <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{inventory.length}</div>
-            <p className="text-xs text-muted-foreground">In warehouse</p>
+            <div className="text-2xl font-bold">{warehouses.length}</div>
+            <p className="text-xs text-muted-foreground">Across all locations</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Stock (PCS)</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Active Warehouses</CardTitle>
+            <WarehouseIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {inventory.reduce((sum, p) => sum + calculateTotalPCS(p), 0)}
+              {warehouses.filter(w => w.status === 'Active').length}
             </div>
-            <p className="text-xs text-muted-foreground">Equivalent pieces</p>
+            <p className="text-xs text-muted-foreground">Currently operational</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Low Stock Items</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-destructive" />
+            <CardTitle className="text-sm font-medium">Locations</CardTitle>
+            <MapPin className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{lowStockProducts.length}</div>
-            <p className="text-xs text-muted-foreground">PCS below 10 units</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Conversions Today</CardTitle>
-            <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{conversions.length}</div>
-            <p className="text-xs text-muted-foreground">UOM conversions</p>
+            <div className="text-2xl font-bold">
+              {new Set(warehouses.map(w => w.city)).size}
+            </div>
+            <p className="text-xs text-muted-foreground">Different cities</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Product Inventory Table */}
+      {/* Warehouses Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Product Inventory</CardTitle>
-          <CardDescription>
-            View stock by UOM and convert larger units to PCS when needed
-          </CardDescription>
+          <CardTitle>All Warehouses</CardTitle>
+          <CardDescription>View and manage all warehouse locations</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>UOM Breakdown</TableHead>
-                  <TableHead className="text-right">Total (PCS)</TableHead>
+                  <TableHead>Code</TableHead>
+                  <TableHead>Warehouse Name</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Manager</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {inventory.map(product => {
-                  const pcsUOM = getPCSUOM(product);
-                  const totalPCS = calculateTotalPCS(product);
-                  const isLowStock = pcsUOM && pcsUOM.stock < 10;
-
-                  return (
-                    <TableRow key={product.id}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{product.name}</p>
-                          <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{product.category}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          {product.productUOMs.map(uom => (
-                            <div
-                              key={uom.id}
-                              className="flex items-center justify-between gap-4 p-2 border rounded text-sm"
-                            >
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium">{uom.uomCode}</span>
-                                <span className="text-muted-foreground">×{uom.conversionFactor}</span>
-                                {uom.isDefault && (
-                                  <Badge variant="outline" className="text-xs">Default</Badge>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <span
-                                  className={`font-semibold ${
-                                    uom.uomCode === 'PCS' && uom.stock < 10
-                                      ? 'text-destructive'
-                                      : ''
-                                  }`}
-                                >
-                                  {uom.stock} units
-                                </span>
-                                {uom.uomCode !== 'PCS' && uom.stock > 0 && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleOpenConversion(product, uom)}
-                                  >
-                                    <ArrowRightLeft className="h-3 w-3 mr-1" />
-                                    Convert
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className={`text-lg font-bold ${isLowStock ? 'text-destructive' : ''}`}>
-                          {totalPCS} PCS
-                        </div>
-                        {isLowStock && (
-                          <p className="text-xs text-destructive">Low stock!</p>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {isLowStock && product.productUOMs.some(u => u.uomCode !== 'PCS' && u.stock > 0) && (
-                          <Badge variant="destructive" className="animate-pulse">
-                            Convert Available
-                          </Badge>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                {warehouses.map((warehouse) => (
+                  <TableRow key={warehouse.id}>
+                    <TableCell className="font-mono text-sm">{warehouse.code}</TableCell>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{warehouse.name}</div>
+                        <div className="text-sm text-muted-foreground">{warehouse.address}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <MapPin className="h-3 w-3 text-muted-foreground" />
+                        <span>{warehouse.city}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{warehouse.manager}</TableCell>
+                    <TableCell className="font-mono text-sm">{warehouse.phone}</TableCell>
+                    <TableCell>
+                      <Badge variant={warehouse.status === 'Active' ? 'default' : 'secondary'}>
+                        {warehouse.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEditWarehouse(warehouse)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive"
+                          onClick={() => handleDeleteWarehouse(warehouse)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </div>
         </CardContent>
       </Card>
 
-      {/* Conversion Drawer */}
-      <Drawer open={conversionDrawerOpen} onOpenChange={setConversionDrawerOpen}>
+      {/* Form Drawer */}
+      <Drawer open={formDrawerOpen} onOpenChange={setFormDrawerOpen}>
         <DrawerContent>
-          <form onSubmit={handleConversionSubmit}>
-            <DrawerHeader>
-              <DrawerTitle>Convert UOM to PCS</DrawerTitle>
-              <DrawerDescription>
-                Break down larger units into pieces for retail sale
-              </DrawerDescription>
-            </DrawerHeader>
+          <DrawerHeader>
+            <DrawerTitle>
+              {formMode === 'add' ? 'Add New Warehouse' : 'Edit Warehouse'}
+            </DrawerTitle>
+            <DrawerDescription>
+              {formMode === 'add'
+                ? 'Create a new warehouse location'
+                : 'Update warehouse information'}
+            </DrawerDescription>
+          </DrawerHeader>
 
-            <div className="px-6 space-y-4">
-              {selectedProduct && selectedFromUOM && (
-                <>
-                  {/* Product Info */}
-                  <div className="p-4 bg-muted rounded-md">
-                    <p className="font-semibold">{selectedProduct.name}</p>
-                    <p className="text-sm text-muted-foreground">SKU: {selectedProduct.sku}</p>
-                  </div>
+          <form onSubmit={handleSubmitForm} className="px-4 space-y-4 max-h-[60vh] overflow-y-auto">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="code">Warehouse Code *</Label>
+                <Input
+                  id="code"
+                  placeholder="WH-JKT-01"
+                  value={formData.code}
+                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                  required
+                />
+              </div>
 
-                  {/* Source UOM */}
-                  <div className="space-y-2">
-                    <Label>Source UOM</Label>
-                    <div className="p-3 border rounded-md bg-blue-50 dark:bg-blue-900/20">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-semibold">{selectedFromUOM.uomName}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Conversion Factor: ×{selectedFromUOM.conversionFactor}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm text-muted-foreground">Available</p>
-                          <p className="text-xl font-bold">{selectedFromUOM.stock} units</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Quantity Input */}
-                  <div className="space-y-2">
-                    <Label htmlFor="quantity">Quantity to Convert</Label>
-                    <Input
-                      id="quantity"
-                      type="number"
-                      min="1"
-                      max={selectedFromUOM.stock}
-                      value={conversionQuantity}
-                      onChange={(e) => setConversionQuantity(e.target.value)}
-                      placeholder="Enter quantity"
-                      required
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Max: {selectedFromUOM.stock} {selectedFromUOM.uomName}
-                    </p>
-                  </div>
-
-                  {/* Conversion Preview */}
-                  {conversionQuantity && parseInt(conversionQuantity) > 0 && (
-                    <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Will produce</p>
-                          <p className="text-2xl font-bold text-green-600">
-                            {parseInt(conversionQuantity) * selectedFromUOM.conversionFactor} PCS
-                          </p>
-                        </div>
-                        <ArrowRightLeft className="h-6 w-6 text-green-600" />
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        {conversionQuantity} {selectedFromUOM.uomName} × {selectedFromUOM.conversionFactor}
-                      </p>
-                    </div>
-                  )}
-
-                  <Separator />
-
-                  {/* Reason */}
-                  <div className="space-y-2">
-                    <Label htmlFor="reason">Reason for Conversion</Label>
-                    <select
-                      id="reason"
-                      value={conversionReason}
-                      onChange={(e) => setConversionReason(e.target.value)}
-                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                      required
-                    >
-                      <option value="PCS sold out">PCS sold out</option>
-                      <option value="Damaged packaging">Damaged packaging</option>
-                      <option value="Bulk order breakdown">Bulk order breakdown</option>
-                      <option value="Customer request">Customer request</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-
-                  {/* Notes */}
-                  <div className="space-y-2">
-                    <Label htmlFor="notes">Notes (Optional)</Label>
-                    <Input
-                      id="notes"
-                      value={conversionNotes}
-                      onChange={(e) => setConversionNotes(e.target.value)}
-                      placeholder="Additional information..."
-                    />
-                  </div>
-                </>
-              )}
+              <div className="space-y-2">
+                <Label htmlFor="name">Warehouse Name *</Label>
+                <Input
+                  id="name"
+                  placeholder="Main Warehouse Jakarta"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                />
+              </div>
             </div>
 
-            <DrawerFooter>
-              <Button type="submit" className="w-full">
-                <ArrowRightLeft className="h-4 w-4 mr-2" />
-                Convert to PCS
+            <div className="space-y-2">
+              <Label htmlFor="address">Address *</Label>
+              <Input
+                id="address"
+                placeholder="Jl. Raya Industri No. 123"
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="city">City *</Label>
+                <Input
+                  id="city"
+                  placeholder="Jakarta"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="postalCode">Postal Code *</Label>
+                <Input
+                  id="postalCode"
+                  placeholder="12345"
+                  value={formData.postalCode}
+                  onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number *</Label>
+                <Input
+                  id="phone"
+                  placeholder="+62 21 1234 5678"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="manager">Manager Name *</Label>
+                <Input
+                  id="manager"
+                  placeholder="Budi Santoso"
+                  value={formData.manager}
+                  onChange={(e) => setFormData({ ...formData, manager: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="status">Status *</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value: 'Active' | 'Inactive') =>
+                  setFormData({ ...formData, status: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <DrawerFooter className="px-0">
+              <Button type="submit">
+                {formMode === 'add' ? 'Create Warehouse' : 'Update Warehouse'}
               </Button>
               <DrawerClose asChild>
-                <Button type="button" variant="outline" className="w-full">
-                  Cancel
-                </Button>
+                <Button variant="outline">Cancel</Button>
               </DrawerClose>
             </DrawerFooter>
           </form>
         </DrawerContent>
       </Drawer>
 
-      {/* Conversion History Drawer */}
-      <Drawer open={historyDrawerOpen} onOpenChange={setHistoryDrawerOpen}>
-        <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle>Conversion History</DrawerTitle>
-            <DrawerDescription>
-              All UOM conversion activities in this warehouse
-            </DrawerDescription>
-          </DrawerHeader>
-
-          <div className="px-6 pb-6">
-            {conversions.length === 0 ? (
-              <div className="text-center py-12">
-                <History className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
-                <p className="text-muted-foreground mt-4">No conversions yet</p>
-                <p className="text-sm text-muted-foreground">
-                  Conversion history will appear here
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {conversions.map(conversion => (
-                  <div key={conversion.id} className="p-4 border rounded-md">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-semibold">{conversion.productName}</p>
-                        <p className="text-sm text-muted-foreground">SKU: {conversion.productSKU}</p>
-                      </div>
-                      <Badge variant="outline">
-                        {conversion.fromUOM} → {conversion.toQuantity} PCS
-                      </Badge>
-                    </div>
-                    <Separator className="my-2" />
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Reason:</span>
-                        <p className="font-medium">{conversion.reason}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">By:</span>
-                        <p className="font-medium">{conversion.performedBy}</p>
-                      </div>
-                    </div>
-                    {conversion.notes && (
-                      <div className="mt-2 text-sm">
-                        <span className="text-muted-foreground">Notes:</span>
-                        <p>{conversion.notes}</p>
-                      </div>
-                    )}
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {formatTimestamp(conversion.timestamp)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <DrawerFooter>
-            <DrawerClose asChild>
-              <Button variant="outline" className="w-full">
-                Close
-              </Button>
-            </DrawerClose>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-
-      {/* Confirmation Dialog */}
-      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm UOM Conversion</AlertDialogTitle>
+            <AlertDialogTitle>Delete Warehouse?</AlertDialogTitle>
             <AlertDialogDescription>
-              {selectedProduct && selectedFromUOM && conversionQuantity && (
-                <>
-                  You are about to convert:
-                  <div className="mt-3 p-3 bg-muted rounded-md">
-                    <p className="font-semibold">{selectedProduct.name}</p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <Badge variant="outline">
-                        {conversionQuantity} {selectedFromUOM.uomName}
-                      </Badge>
-                      <ArrowRightLeft className="h-4 w-4" />
-                      <Badge variant="outline">
-                        {parseInt(conversionQuantity) * selectedFromUOM.conversionFactor} PCS
-                      </Badge>
-                    </div>
-                  </div>
-                  <p className="mt-3 text-sm">
-                    This will decrease <strong>{selectedFromUOM.uomName}</strong> stock and increase
-                    <strong> PCS</strong> stock. This action cannot be undone.
-                  </p>
-                </>
-              )}
+              Are you sure you want to delete "{warehouseToDelete?.name}"? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={executeConversion}>
-              Confirm Conversion
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

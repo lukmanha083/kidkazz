@@ -815,15 +815,38 @@ function AllProductsPage() {
   };
 
   const handleSetDefaultUOM = (uomId: string) => {
-    setProductUOMs(productUOMs.map(uom => ({
-      ...uom,
-      isDefault: uom.id === uomId
-    })));
-    const selectedUOM = productUOMs.find(u => u.id === uomId);
-    if (selectedUOM) {
-      toast.success('Default UOM updated', {
-        description: `${selectedUOM.uomName} is now the default unit`
-      });
+    const clickedUOM = productUOMs.find(u => u.id === uomId);
+
+    // If clicking on already-default UOM, uncheck it and set PCS as default
+    if (clickedUOM?.isDefault) {
+      const pcsUOM = productUOMs.find(u => u.uomCode === 'PCS');
+
+      if (pcsUOM && pcsUOM.id !== uomId) {
+        // Set PCS as default
+        setProductUOMs(productUOMs.map(uom => ({
+          ...uom,
+          isDefault: uom.uomCode === 'PCS'
+        })));
+        toast.success('Default UOM updated', {
+          description: 'PCS is now the default unit'
+        });
+      } else {
+        // If clicking PCS itself or PCS doesn't exist, keep it as default
+        toast.info('At least one UOM must be default', {
+          description: 'PCS remains as the default unit'
+        });
+      }
+    } else {
+      // Set clicked UOM as default
+      setProductUOMs(productUOMs.map(uom => ({
+        ...uom,
+        isDefault: uom.id === uomId
+      })));
+      if (clickedUOM) {
+        toast.success('Default UOM updated', {
+          description: `${clickedUOM.uomName} is now the default unit`
+        });
+      }
     }
   };
 

@@ -23,6 +23,7 @@ import { Route as DashboardProductsCategoryRouteImport } from './routes/dashboar
 import { Route as DashboardProductsBundleRouteImport } from './routes/dashboard/products/bundle'
 import { Route as DashboardProductsAllRouteImport } from './routes/dashboard/products/all'
 import { Route as DashboardInventoryWarehouseRouteImport } from './routes/dashboard/inventory/warehouse'
+import { Route as DashboardInventoryUomConversionRouteImport } from './routes/dashboard/inventory/uom-conversion'
 import { Route as DashboardInventoryTransferStockRouteImport } from './routes/dashboard/inventory/transfer-stock'
 
 const DashboardRoute = DashboardRouteImport.update({
@@ -98,6 +99,12 @@ const DashboardInventoryWarehouseRoute =
     path: '/inventory/warehouse',
     getParentRoute: () => DashboardRoute,
   } as any)
+const DashboardInventoryUomConversionRoute =
+  DashboardInventoryUomConversionRouteImport.update({
+    id: '/inventory/uom-conversion',
+    path: '/inventory/uom-conversion',
+    getParentRoute: () => DashboardRoute,
+  } as any)
 const DashboardInventoryTransferStockRoute =
   DashboardInventoryTransferStockRouteImport.update({
     id: '/inventory/transfer-stock',
@@ -113,6 +120,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/inventory/transfer-stock': typeof DashboardInventoryTransferStockRoute
+  '/dashboard/inventory/uom-conversion': typeof DashboardInventoryUomConversionRoute
   '/dashboard/inventory/warehouse': typeof DashboardInventoryWarehouseRoute
   '/dashboard/products/all': typeof DashboardProductsAllRoute
   '/dashboard/products/bundle': typeof DashboardProductsBundleRoute
@@ -129,6 +137,7 @@ export interface FileRoutesByTo {
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard': typeof DashboardIndexRoute
   '/dashboard/inventory/transfer-stock': typeof DashboardInventoryTransferStockRoute
+  '/dashboard/inventory/uom-conversion': typeof DashboardInventoryUomConversionRoute
   '/dashboard/inventory/warehouse': typeof DashboardInventoryWarehouseRoute
   '/dashboard/products/all': typeof DashboardProductsAllRoute
   '/dashboard/products/bundle': typeof DashboardProductsBundleRoute
@@ -147,6 +156,7 @@ export interface FileRoutesById {
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/inventory/transfer-stock': typeof DashboardInventoryTransferStockRoute
+  '/dashboard/inventory/uom-conversion': typeof DashboardInventoryUomConversionRoute
   '/dashboard/inventory/warehouse': typeof DashboardInventoryWarehouseRoute
   '/dashboard/products/all': typeof DashboardProductsAllRoute
   '/dashboard/products/bundle': typeof DashboardProductsBundleRoute
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings'
     | '/dashboard/'
     | '/dashboard/inventory/transfer-stock'
+    | '/dashboard/inventory/uom-conversion'
     | '/dashboard/inventory/warehouse'
     | '/dashboard/products/all'
     | '/dashboard/products/bundle'
@@ -182,6 +193,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings'
     | '/dashboard'
     | '/dashboard/inventory/transfer-stock'
+    | '/dashboard/inventory/uom-conversion'
     | '/dashboard/inventory/warehouse'
     | '/dashboard/products/all'
     | '/dashboard/products/bundle'
@@ -199,6 +211,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings'
     | '/dashboard/'
     | '/dashboard/inventory/transfer-stock'
+    | '/dashboard/inventory/uom-conversion'
     | '/dashboard/inventory/warehouse'
     | '/dashboard/products/all'
     | '/dashboard/products/bundle'
@@ -314,6 +327,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardInventoryWarehouseRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/inventory/uom-conversion': {
+      id: '/dashboard/inventory/uom-conversion'
+      path: '/inventory/uom-conversion'
+      fullPath: '/dashboard/inventory/uom-conversion'
+      preLoaderRoute: typeof DashboardInventoryUomConversionRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/inventory/transfer-stock': {
       id: '/dashboard/inventory/transfer-stock'
       path: '/inventory/transfer-stock'
@@ -330,6 +350,7 @@ interface DashboardRouteChildren {
   DashboardSettingsRoute: typeof DashboardSettingsRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   DashboardInventoryTransferStockRoute: typeof DashboardInventoryTransferStockRoute
+  DashboardInventoryUomConversionRoute: typeof DashboardInventoryUomConversionRoute
   DashboardInventoryWarehouseRoute: typeof DashboardInventoryWarehouseRoute
   DashboardProductsAllRoute: typeof DashboardProductsAllRoute
   DashboardProductsBundleRoute: typeof DashboardProductsBundleRoute
@@ -346,6 +367,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardSettingsRoute: DashboardSettingsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   DashboardInventoryTransferStockRoute: DashboardInventoryTransferStockRoute,
+  DashboardInventoryUomConversionRoute: DashboardInventoryUomConversionRoute,
   DashboardInventoryWarehouseRoute: DashboardInventoryWarehouseRoute,
   DashboardProductsAllRoute: DashboardProductsAllRoute,
   DashboardProductsBundleRoute: DashboardProductsBundleRoute,
