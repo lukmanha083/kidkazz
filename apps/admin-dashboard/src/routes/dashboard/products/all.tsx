@@ -74,7 +74,7 @@ interface ProductUOM {
   uomName: string;
   barcode: string;
   conversionFactor: number;
-  price: number;
+  stock: number;
   isDefault: boolean;
 }
 
@@ -180,9 +180,9 @@ const mockProducts: Product[] = [
       { warehouseId: 'WH-001', warehouseName: 'Main Warehouse', stockQuantity: 145, retailPrice: 29.99, wholesalePrice: 25.00 },
     ],
     productUOMs: [
-      { id: 'uom-1-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567890', conversionFactor: 1, price: 29.99, isDefault: true },
-      { id: 'uom-1-2', uomCode: 'BOX6', uomName: 'Box of 6', barcode: '8901234567906', conversionFactor: 6, price: 170.00, isDefault: false },
-      { id: 'uom-1-3', uomCode: 'CARTON18', uomName: 'Carton (18 PCS)', barcode: '8901234567918', conversionFactor: 18, price: 485.00, isDefault: false },
+      { id: 'uom-1-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567890', conversionFactor: 1, stock: 100, isDefault: true },
+      { id: 'uom-1-2', uomCode: 'BOX6', uomName: 'Box of 6', barcode: '8901234567906', conversionFactor: 6, stock: 16, isDefault: false },
+      { id: 'uom-1-3', uomCode: 'CARTON18', uomName: 'Carton (18 PCS)', barcode: '8901234567918', conversionFactor: 18, stock: 5, isDefault: false },
     ],
   },
   {
@@ -213,7 +213,7 @@ const mockProducts: Product[] = [
       { warehouseId: 'WH-002', warehouseName: 'Secondary Warehouse', stockQuantity: 89, retailPrice: 45.00, wholesalePrice: 40.00 },
     ],
     productUOMs: [
-      { id: 'uom-2-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567891', conversionFactor: 1, price: 45.00, isDefault: true },
+      { id: 'uom-2-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567891', conversionFactor: 1, stock: 89, isDefault: true },
     ],
   },
   {
@@ -240,7 +240,7 @@ const mockProducts: Product[] = [
       { warehouseId: 'WH-001', warehouseName: 'Main Warehouse', stockQuantity: 234, retailPrice: 89.99, wholesalePrice: 80.00 },
     ],
     productUOMs: [
-      { id: 'uom-3-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567892', conversionFactor: 1, price: 89.99, isDefault: true },
+      { id: 'uom-3-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567892', conversionFactor: 1, stock: 120, isDefault: true },
     ],
   },
   {
@@ -267,7 +267,7 @@ const mockProducts: Product[] = [
       { warehouseId: 'WH-003', warehouseName: 'Regional Hub Jakarta', stockQuantity: 67, retailPrice: 34.50, wholesalePrice: 30.00 },
     ],
     productUOMs: [
-      { id: 'uom-4-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567893', conversionFactor: 1, price: 34.50, isDefault: true },
+      { id: 'uom-4-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567893', conversionFactor: 1, stock: 75, isDefault: true },
     ],
   },
   {
@@ -297,7 +297,7 @@ const mockProducts: Product[] = [
       { warehouseId: 'WH-001', warehouseName: 'Main Warehouse', stockQuantity: 12, retailPrice: 299.99, wholesalePrice: 270.00 },
     ],
     productUOMs: [
-      { id: 'uom-5-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567894', conversionFactor: 1, price: 299.99, isDefault: true },
+      { id: 'uom-5-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567894', conversionFactor: 1, stock: 25, isDefault: true },
     ],
   },
   {
@@ -328,7 +328,7 @@ const mockProducts: Product[] = [
       { warehouseId: 'WH-002', warehouseName: 'Secondary Warehouse', stockQuantity: 78, retailPrice: 35.50, wholesalePrice: 32.00 },
     ],
     productUOMs: [
-      { id: 'uom-6-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567895', conversionFactor: 1, price: 35.50, isDefault: true },
+      { id: 'uom-6-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567895', conversionFactor: 1, stock: 45, isDefault: true },
     ],
   },
   {
@@ -354,7 +354,7 @@ const mockProducts: Product[] = [
       { warehouseId: 'WH-003', warehouseName: 'Regional Hub Jakarta', stockQuantity: 156, retailPrice: 19.99, wholesalePrice: 17.00 },
     ],
     productUOMs: [
-      { id: 'uom-7-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567896', conversionFactor: 1, price: 19.99, isDefault: true },
+      { id: 'uom-7-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567896', conversionFactor: 1, stock: 200, isDefault: true },
     ],
   },
   {
@@ -380,7 +380,7 @@ const mockProducts: Product[] = [
       { warehouseId: 'WH-001', warehouseName: 'Main Warehouse', stockQuantity: 34, retailPrice: 129.99, wholesalePrice: 115.00 },
     ],
     productUOMs: [
-      { id: 'uom-8-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567897', conversionFactor: 1, price: 129.99, isDefault: true },
+      { id: 'uom-8-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567897', conversionFactor: 1, stock: 35, isDefault: true },
     ],
   },
   {
@@ -410,7 +410,7 @@ const mockProducts: Product[] = [
       { warehouseId: 'WH-002', warehouseName: 'Secondary Warehouse', stockQuantity: 92, retailPrice: 49.99, wholesalePrice: 45.00 },
     ],
     productUOMs: [
-      { id: 'uom-9-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567898', conversionFactor: 1, price: 49.99, isDefault: true },
+      { id: 'uom-9-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567898', conversionFactor: 1, stock: 92, isDefault: true },
     ],
   },
   {
@@ -436,7 +436,7 @@ const mockProducts: Product[] = [
       { warehouseId: 'WH-003', warehouseName: 'Regional Hub Jakarta', stockQuantity: 203, retailPrice: 15.99, wholesalePrice: 14.00 },
     ],
     productUOMs: [
-      { id: 'uom-10-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567899', conversionFactor: 1, price: 15.99, isDefault: true },
+      { id: 'uom-10-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567899', conversionFactor: 1, stock: 150, isDefault: true },
     ],
   },
 ];
@@ -457,6 +457,16 @@ const availableColumns = [
 ];
 
 function AllProductsPage() {
+  // Rupiah currency formatter
+  const formatRupiah = (amount: number): string => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
   const [products, setProducts] = useState<Product[]>(mockProducts);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -493,7 +503,7 @@ function AllProductsPage() {
   const [productUOMs, setProductUOMs] = useState<ProductUOM[]>([]);
   const [selectedUOM, setSelectedUOM] = useState('');
   const [uomBarcode, setUomBarcode] = useState('');
-  const [uomPrice, setUomPrice] = useState('');
+  const [uomStock, setUomStock] = useState('');
 
   // Helper function: Generate barcode (EAN-13 format)
   const generateBarcode = () => {
@@ -682,9 +692,9 @@ function AllProductsPage() {
   };
 
   const handleAddUOM = () => {
-    if (!selectedUOM || !uomBarcode || !uomPrice) {
+    if (!selectedUOM || !uomBarcode || !uomStock) {
       toast.error('Missing UOM information', {
-        description: 'Please fill in UOM, barcode, and price'
+        description: 'Please fill in UOM, barcode, and stock quantity'
       });
       return;
     }
@@ -723,7 +733,7 @@ function AllProductsPage() {
       uomName: uom.name,
       barcode: uomBarcode,
       conversionFactor: uom.conversionFactor,
-      price: parseFloat(uomPrice),
+      stock: parseInt(uomStock),
       isDefault: false, // Never default since PCS is auto-created as default
     };
 
@@ -761,7 +771,7 @@ function AllProductsPage() {
         uomName: 'Pieces',
         barcode: formData.barcode,
         conversionFactor: 1,
-        price: parseFloat(formData.price),
+        stock: parseInt(formData.stock),
         isDefault: true,
       };
       finalProductUOMs = [pcsUOM, ...finalProductUOMs];
@@ -974,7 +984,7 @@ function AllProductsPage() {
                     )}
                     {visibleColumns.includes('price') && (
                       <TableCell className="text-right font-semibold">
-                        ${product.price.toFixed(2)}
+                        {formatRupiah(product.price)}
                       </TableCell>
                     )}
                     {visibleColumns.includes('stock') && (
@@ -1190,7 +1200,7 @@ function AllProductsPage() {
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <Label className="text-xs text-muted-foreground">Price</Label>
-                        <p className="text-lg font-bold mt-1">${selectedProduct.price.toFixed(2)}</p>
+                        <p className="text-lg font-bold mt-1">{formatRupiah(selectedProduct.price)}</p>
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground">Stock</Label>
@@ -1262,7 +1272,7 @@ function AllProductsPage() {
                           <div className="grid grid-cols-2 gap-2 text-sm">
                             <div>
                               <span className="text-muted-foreground">Price:</span>{' '}
-                              <span className="font-semibold">${variant.price.toFixed(2)}</span>
+                              <span className="font-semibold">{formatRupiah(variant.price)}</span>
                             </div>
                             <div>
                               <span className="text-muted-foreground">Stock:</span>{' '}
@@ -1550,7 +1560,7 @@ function AllProductsPage() {
               <Label className="text-base font-semibold">Additional UOMs (Optional)</Label>
               <p className="text-xs text-muted-foreground">
                 PCS will use barcode and price from above. Add other units like Box, Carton if needed.
-                Each UOM needs a unique barcode and price.
+                Each UOM needs a unique barcode and stock quantity.
               </p>
 
               {/* Add UOM Form */}
@@ -1607,21 +1617,22 @@ function AllProductsPage() {
                     </div>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Price</Label>
+                    <Label className="text-xs">Stock/Quantity</Label>
                     <div className="flex gap-1">
                       <Input
                         type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        value={uomPrice}
-                        onChange={(e) => setUomPrice(e.target.value)}
+                        step="1"
+                        placeholder="0"
+                        value={uomStock}
+                        onChange={(e) => setUomStock(e.target.value)}
                         className="h-9"
                         disabled={!selectedUOM}
+                        min="0"
                       />
                       <Button
                         type="button"
                         onClick={handleAddUOM}
-                        disabled={!selectedUOM || !uomBarcode || !uomPrice}
+                        disabled={!selectedUOM || !uomBarcode || !uomStock}
                         className="h-9"
                       >
                         <Plus className="h-4 w-4" />
@@ -1640,7 +1651,7 @@ function AllProductsPage() {
                         <TableHead className="w-[100px]">UOM</TableHead>
                         <TableHead>Barcode</TableHead>
                         <TableHead className="w-[80px] text-right">Factor</TableHead>
-                        <TableHead className="w-[100px] text-right">Price</TableHead>
+                        <TableHead className="w-[100px] text-right">Stock</TableHead>
                         <TableHead className="w-[60px]">Default</TableHead>
                         <TableHead className="w-[50px]"></TableHead>
                       </TableRow>
@@ -1657,7 +1668,7 @@ function AllProductsPage() {
                           <TableCell className="font-mono text-sm">{uom.barcode}</TableCell>
                           <TableCell className="text-right">×{uom.conversionFactor}</TableCell>
                           <TableCell className="text-right font-medium">
-                            ${uom.price.toFixed(2)}
+                            {uom.stock} units
                           </TableCell>
                           <TableCell>
                             {uom.isDefault && (
@@ -1872,14 +1883,14 @@ function AllProductsPage() {
                               <div>
                                 <Label className="text-xs text-muted-foreground">Retail Price</Label>
                                 <p className="text-sm font-semibold text-green-600">
-                                  ${ws.retailPrice.toFixed(2)}
+                                  {formatRupiah(ws.retailPrice)}
                                 </p>
                               </div>
                               <div>
                                 <Label className="text-xs text-muted-foreground">Wholesale Price</Label>
                                 <p className="text-sm font-semibold">
                                   {ws.wholesalePrice !== null ? (
-                                    <span className="text-blue-600">${ws.wholesalePrice.toFixed(2)}</span>
+                                    <span className="text-blue-600">{formatRupiah(ws.wholesalePrice)}</span>
                                   ) : (
                                     <span className="text-muted-foreground">Not Available</span>
                                   )}
@@ -1921,7 +1932,7 @@ function AllProductsPage() {
                               <p className="text-xs text-muted-foreground">SKU: {variant.sku}</p>
                             </div>
                             <div className="text-right">
-                              <p className="text-sm font-semibold">${variant.price.toFixed(2)}</p>
+                              <p className="text-sm font-semibold">{formatRupiah(variant.price)}</p>
                               <p className="text-xs text-muted-foreground">Stock: {variant.stock}</p>
                             </div>
                           </div>
