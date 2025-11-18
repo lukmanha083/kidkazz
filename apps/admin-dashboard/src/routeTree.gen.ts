@@ -14,9 +14,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings'
 import { Route as DashboardOrdersRouteImport } from './routes/dashboard/orders'
-import { Route as DashboardInventoryRouteImport } from './routes/dashboard/inventory'
 import { Route as DashboardCustomersRouteImport } from './routes/dashboard/customers'
 import { Route as DashboardProductsIndexRouteImport } from './routes/dashboard/products/index'
+import { Route as DashboardInventoryIndexRouteImport } from './routes/dashboard/inventory/index'
 import { Route as DashboardProductsVariantRouteImport } from './routes/dashboard/products/variant'
 import { Route as DashboardProductsUomRouteImport } from './routes/dashboard/products/uom'
 import { Route as DashboardProductsCategoryRouteImport } from './routes/dashboard/products/category'
@@ -50,11 +50,6 @@ const DashboardOrdersRoute = DashboardOrdersRouteImport.update({
   path: '/orders',
   getParentRoute: () => DashboardRoute,
 } as any)
-const DashboardInventoryRoute = DashboardInventoryRouteImport.update({
-  id: '/inventory',
-  path: '/inventory',
-  getParentRoute: () => DashboardRoute,
-} as any)
 const DashboardCustomersRoute = DashboardCustomersRouteImport.update({
   id: '/customers',
   path: '/customers',
@@ -63,6 +58,11 @@ const DashboardCustomersRoute = DashboardCustomersRouteImport.update({
 const DashboardProductsIndexRoute = DashboardProductsIndexRouteImport.update({
   id: '/products/',
   path: '/products/',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardInventoryIndexRoute = DashboardInventoryIndexRouteImport.update({
+  id: '/inventory/',
+  path: '/inventory/',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardProductsVariantRoute =
@@ -94,22 +94,21 @@ const DashboardProductsAllRoute = DashboardProductsAllRouteImport.update({
 } as any)
 const DashboardInventoryWarehouseRoute =
   DashboardInventoryWarehouseRouteImport.update({
-    id: '/warehouse',
-    path: '/warehouse',
-    getParentRoute: () => DashboardInventoryRoute,
+    id: '/inventory/warehouse',
+    path: '/inventory/warehouse',
+    getParentRoute: () => DashboardRoute,
   } as any)
 const DashboardInventoryTransferStockRoute =
   DashboardInventoryTransferStockRouteImport.update({
-    id: '/transfer-stock',
-    path: '/transfer-stock',
-    getParentRoute: () => DashboardInventoryRoute,
+    id: '/inventory/transfer-stock',
+    path: '/inventory/transfer-stock',
+    getParentRoute: () => DashboardRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/dashboard/customers': typeof DashboardCustomersRoute
-  '/dashboard/inventory': typeof DashboardInventoryRouteWithChildren
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -120,12 +119,12 @@ export interface FileRoutesByFullPath {
   '/dashboard/products/category': typeof DashboardProductsCategoryRoute
   '/dashboard/products/uom': typeof DashboardProductsUomRoute
   '/dashboard/products/variant': typeof DashboardProductsVariantRoute
+  '/dashboard/inventory': typeof DashboardInventoryIndexRoute
   '/dashboard/products': typeof DashboardProductsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard/customers': typeof DashboardCustomersRoute
-  '/dashboard/inventory': typeof DashboardInventoryRouteWithChildren
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard': typeof DashboardIndexRoute
@@ -136,6 +135,7 @@ export interface FileRoutesByTo {
   '/dashboard/products/category': typeof DashboardProductsCategoryRoute
   '/dashboard/products/uom': typeof DashboardProductsUomRoute
   '/dashboard/products/variant': typeof DashboardProductsVariantRoute
+  '/dashboard/inventory': typeof DashboardInventoryIndexRoute
   '/dashboard/products': typeof DashboardProductsIndexRoute
 }
 export interface FileRoutesById {
@@ -143,7 +143,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/dashboard/customers': typeof DashboardCustomersRoute
-  '/dashboard/inventory': typeof DashboardInventoryRouteWithChildren
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -154,6 +153,7 @@ export interface FileRoutesById {
   '/dashboard/products/category': typeof DashboardProductsCategoryRoute
   '/dashboard/products/uom': typeof DashboardProductsUomRoute
   '/dashboard/products/variant': typeof DashboardProductsVariantRoute
+  '/dashboard/inventory/': typeof DashboardInventoryIndexRoute
   '/dashboard/products/': typeof DashboardProductsIndexRoute
 }
 export interface FileRouteTypes {
@@ -162,7 +162,6 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/dashboard/customers'
-    | '/dashboard/inventory'
     | '/dashboard/orders'
     | '/dashboard/settings'
     | '/dashboard/'
@@ -173,12 +172,12 @@ export interface FileRouteTypes {
     | '/dashboard/products/category'
     | '/dashboard/products/uom'
     | '/dashboard/products/variant'
+    | '/dashboard/inventory'
     | '/dashboard/products'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/dashboard/customers'
-    | '/dashboard/inventory'
     | '/dashboard/orders'
     | '/dashboard/settings'
     | '/dashboard'
@@ -189,13 +188,13 @@ export interface FileRouteTypes {
     | '/dashboard/products/category'
     | '/dashboard/products/uom'
     | '/dashboard/products/variant'
+    | '/dashboard/inventory'
     | '/dashboard/products'
   id:
     | '__root__'
     | '/'
     | '/dashboard'
     | '/dashboard/customers'
-    | '/dashboard/inventory'
     | '/dashboard/orders'
     | '/dashboard/settings'
     | '/dashboard/'
@@ -206,6 +205,7 @@ export interface FileRouteTypes {
     | '/dashboard/products/category'
     | '/dashboard/products/uom'
     | '/dashboard/products/variant'
+    | '/dashboard/inventory/'
     | '/dashboard/products/'
   fileRoutesById: FileRoutesById
 }
@@ -251,13 +251,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardOrdersRouteImport
       parentRoute: typeof DashboardRoute
     }
-    '/dashboard/inventory': {
-      id: '/dashboard/inventory'
-      path: '/inventory'
-      fullPath: '/dashboard/inventory'
-      preLoaderRoute: typeof DashboardInventoryRouteImport
-      parentRoute: typeof DashboardRoute
-    }
     '/dashboard/customers': {
       id: '/dashboard/customers'
       path: '/customers'
@@ -270,6 +263,13 @@ declare module '@tanstack/react-router' {
       path: '/products'
       fullPath: '/dashboard/products'
       preLoaderRoute: typeof DashboardProductsIndexRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/inventory/': {
+      id: '/dashboard/inventory/'
+      path: '/inventory'
+      fullPath: '/dashboard/inventory'
+      preLoaderRoute: typeof DashboardInventoryIndexRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/products/variant': {
@@ -309,59 +309,50 @@ declare module '@tanstack/react-router' {
     }
     '/dashboard/inventory/warehouse': {
       id: '/dashboard/inventory/warehouse'
-      path: '/warehouse'
+      path: '/inventory/warehouse'
       fullPath: '/dashboard/inventory/warehouse'
       preLoaderRoute: typeof DashboardInventoryWarehouseRouteImport
-      parentRoute: typeof DashboardInventoryRoute
+      parentRoute: typeof DashboardRoute
     }
     '/dashboard/inventory/transfer-stock': {
       id: '/dashboard/inventory/transfer-stock'
-      path: '/transfer-stock'
+      path: '/inventory/transfer-stock'
       fullPath: '/dashboard/inventory/transfer-stock'
       preLoaderRoute: typeof DashboardInventoryTransferStockRouteImport
-      parentRoute: typeof DashboardInventoryRoute
+      parentRoute: typeof DashboardRoute
     }
   }
 }
 
-interface DashboardInventoryRouteChildren {
-  DashboardInventoryTransferStockRoute: typeof DashboardInventoryTransferStockRoute
-  DashboardInventoryWarehouseRoute: typeof DashboardInventoryWarehouseRoute
-}
-
-const DashboardInventoryRouteChildren: DashboardInventoryRouteChildren = {
-  DashboardInventoryTransferStockRoute: DashboardInventoryTransferStockRoute,
-  DashboardInventoryWarehouseRoute: DashboardInventoryWarehouseRoute,
-}
-
-const DashboardInventoryRouteWithChildren =
-  DashboardInventoryRoute._addFileChildren(DashboardInventoryRouteChildren)
-
 interface DashboardRouteChildren {
   DashboardCustomersRoute: typeof DashboardCustomersRoute
-  DashboardInventoryRoute: typeof DashboardInventoryRouteWithChildren
   DashboardOrdersRoute: typeof DashboardOrdersRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardInventoryTransferStockRoute: typeof DashboardInventoryTransferStockRoute
+  DashboardInventoryWarehouseRoute: typeof DashboardInventoryWarehouseRoute
   DashboardProductsAllRoute: typeof DashboardProductsAllRoute
   DashboardProductsBundleRoute: typeof DashboardProductsBundleRoute
   DashboardProductsCategoryRoute: typeof DashboardProductsCategoryRoute
   DashboardProductsUomRoute: typeof DashboardProductsUomRoute
   DashboardProductsVariantRoute: typeof DashboardProductsVariantRoute
+  DashboardInventoryIndexRoute: typeof DashboardInventoryIndexRoute
   DashboardProductsIndexRoute: typeof DashboardProductsIndexRoute
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardCustomersRoute: DashboardCustomersRoute,
-  DashboardInventoryRoute: DashboardInventoryRouteWithChildren,
   DashboardOrdersRoute: DashboardOrdersRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
+  DashboardInventoryTransferStockRoute: DashboardInventoryTransferStockRoute,
+  DashboardInventoryWarehouseRoute: DashboardInventoryWarehouseRoute,
   DashboardProductsAllRoute: DashboardProductsAllRoute,
   DashboardProductsBundleRoute: DashboardProductsBundleRoute,
   DashboardProductsCategoryRoute: DashboardProductsCategoryRoute,
   DashboardProductsUomRoute: DashboardProductsUomRoute,
   DashboardProductsVariantRoute: DashboardProductsVariantRoute,
+  DashboardInventoryIndexRoute: DashboardInventoryIndexRoute,
   DashboardProductsIndexRoute: DashboardProductsIndexRoute,
 }
 
