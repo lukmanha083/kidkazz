@@ -5,12 +5,10 @@ import { cn } from "@/lib/utils"
 
 const Drawer = ({
   shouldScaleBackground = true,
-  dismissible = false,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Root>) => (
   <DrawerPrimitive.Root
     shouldScaleBackground={shouldScaleBackground}
-    dismissible={dismissible}
     {...props}
   />
 )
@@ -39,7 +37,7 @@ const DrawerContent = React.forwardRef<
   React.ComponentProps<typeof DrawerPrimitive.Content> & {
     side?: "left" | "right" | "bottom"
   }
->(({ side = "right", className, children, ...props }, ref) => (
+>(({ side = "right", className, children, onInteractOutside, onEscapeKeyDown, ...props }, ref) => (
   <DrawerPortal>
     <DrawerOverlay />
     <DrawerPrimitive.Content
@@ -51,6 +49,8 @@ const DrawerContent = React.forwardRef<
         side === "right" && "inset-y-0 right-0 h-full w-3/4 max-w-md rounded-l-[10px] sm:w-[540px]",
         className
       )}
+      onInteractOutside={onInteractOutside || ((e) => e.preventDefault())}
+      onEscapeKeyDown={onEscapeKeyDown || ((e) => e.preventDefault())}
       {...props}
     >
       {side === "bottom" && (
