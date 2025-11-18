@@ -36,6 +36,16 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Combobox } from '@/components/ui/combobox';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Plus,
   Search,
   Edit,
@@ -497,6 +507,7 @@ function AllProductsPage() {
     warehouseId: '',
     baseUnit: 'PCS',
     wholesaleThreshold: '12',
+    status: 'Active' as 'Active' | 'Inactive',
   });
 
   // Product UOM management states
@@ -504,6 +515,11 @@ function AllProductsPage() {
   const [selectedUOM, setSelectedUOM] = useState('');
   const [uomBarcode, setUomBarcode] = useState('');
   const [uomStock, setUomStock] = useState('');
+
+  // Delete confirmation states
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [uomToDelete, setUomToDelete] = useState<ProductUOM | null>(null);
 
   // Helper function: Generate barcode (EAN-13 format)
   const generateBarcode = () => {
@@ -624,12 +640,20 @@ function AllProductsPage() {
     return filteredProducts.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredProducts, currentPage, itemsPerPage]);
 
-  const handleDelete = (id: string) => {
-    const product = products.find(p => p.id === id);
-    setProducts(products.filter((p) => p.id !== id));
-    toast.success('Product deleted', {
-      description: product ? `"${product.name}" has been deleted successfully` : 'Product has been deleted'
-    });
+  const handleDelete = (product: Product) => {
+    setProductToDelete(product);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteProduct = () => {
+    if (productToDelete) {
+      setProducts(products.filter((p) => p.id !== productToDelete.id));
+      toast.success('Product deleted', {
+        description: `"${productToDelete.name}" has been deleted successfully`
+      });
+      setDeleteDialogOpen(false);
+      setProductToDelete(null);
+    }
   };
 
   const handlePageChange = (page: number) => {
@@ -660,6 +684,7 @@ function AllProductsPage() {
       warehouseId: '',
       baseUnit: 'PCS',
       wholesaleThreshold: '12',
+      status: 'Active',
     });
     setProductUOMs([]);
     setSelectedUOM('');
@@ -683,6 +708,7 @@ function AllProductsPage() {
       warehouseId: product.warehouseId,
       baseUnit: product.baseUnit,
       wholesaleThreshold: product.wholesaleThreshold.toString(),
+      status: product.status,
     });
     setProductUOMs(product.productUOMs || []);
     setSelectedUOM('');
@@ -771,8 +797,20 @@ function AllProductsPage() {
     });
   };
 
-  const handleRemoveUOM = (id: string) => {
-    setProductUOMs(productUOMs.filter(uom => uom.id !== id));
+  const handleRemoveUOM = (uom: ProductUOM) => {
+    setUomToDelete(uom);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteUOM = () => {
+    if (uomToDelete) {
+      setProductUOMs(productUOMs.filter(uom => uom.id !== uomToDelete.id));
+      toast.success('UOM removed', {
+        description: `${uomToDelete.uomName} has been removed`
+      });
+      setDeleteDialogOpen(false);
+      setUomToDelete(null);
+    }
   };
 
   const handleSubmitForm = (e: React.FormEvent) => {
@@ -813,7 +851,7 @@ function AllProductsPage() {
         category: formData.category,
         price: parseFloat(formData.price),
         stock: parseInt(formData.stock),
-        status: 'Active',
+        status: formData.status,
         rating: 0,
         reviews: 0,
         warehouse: formData.warehouse,
@@ -851,6 +889,7 @@ function AllProductsPage() {
               category: formData.category,
               price: parseFloat(formData.price),
               stock: parseInt(formData.stock),
+              status: formData.status,
               warehouse: formData.warehouse,
               warehouseId: formData.warehouseId,
               baseUnit: formData.baseUnit,
@@ -1106,7 +1145,7 @@ function AllProductsPage() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => handleDelete(product.id)}
+                          onClick={() => handleDelete(product)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -1491,8 +1530,8 @@ function AllProductsPage() {
                 <Input
                   id="price"
                   type="number"
-                  step="0.01"
-                  placeholder="29.99"
+                  step="1000"
+                  placeholder="50000"
                   value={formData.price}
                   onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                   required
@@ -1536,6 +1575,23 @@ function AllProductsPage() {
               </select>
               <p className="text-xs text-muted-foreground">
                 Stock will be added to this warehouse
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <select
+                id="status"
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as 'Active' | 'Inactive' })}
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                required
+              >
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+              <p className="text-xs text-muted-foreground">
+                Inactive products won't be visible to customers
               </p>
             </div>
 
@@ -1733,7 +1789,7 @@ function AllProductsPage() {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-destructive"
-                              onClick={() => handleRemoveUOM(uom.id)}
+                              onClick={() => handleRemoveUOM(uom)}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -2008,6 +2064,51 @@ function AllProductsPage() {
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {productToDelete && (
+                <>
+                  You are about to delete <strong>"{productToDelete.name}"</strong>.
+                  This action cannot be undone. This will permanently delete the product
+                  and remove all associated data.
+                </>
+              )}
+              {uomToDelete && (
+                <>
+                  You are about to remove <strong>{uomToDelete.uomName}</strong> from this product.
+                  This action cannot be undone.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setDeleteDialogOpen(false);
+              setProductToDelete(null);
+              setUomToDelete(null);
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (productToDelete) {
+                  confirmDeleteProduct();
+                } else if (uomToDelete) {
+                  confirmDeleteUOM();
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
