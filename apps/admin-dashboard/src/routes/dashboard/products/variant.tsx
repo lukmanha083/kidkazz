@@ -189,6 +189,16 @@ const mockVariants: ProductVariant[] = [
 ];
 
 function ProductVariantPage() {
+  // Rupiah currency formatter
+  const formatRupiah = (amount: number): string => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
   const [variants, setVariants] = useState<ProductVariant[]>(mockVariants);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -498,7 +508,7 @@ function ProductVariantPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right font-semibold">
-                      ${variant.price.toFixed(2)}
+                      {formatRupiah(variant.price)}
                     </TableCell>
                     <TableCell className="text-right">
                       <span
@@ -645,7 +655,7 @@ function ProductVariantPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs text-muted-foreground">Price</Label>
-                    <p className="text-lg font-bold mt-1">${selectedVariant.price.toFixed(2)}</p>
+                    <p className="text-lg font-bold mt-1">{formatRupiah(selectedVariant.price)}</p>
                   </div>
                   <div>
                     <Label className="text-xs text-muted-foreground">Stock</Label>

@@ -350,6 +350,16 @@ const mockBundles: ProductBundle[] = [
 ];
 
 function ProductBundlePage() {
+  // Rupiah currency formatter
+  const formatRupiah = (amount: number): string => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
   const [bundles, setBundles] = useState<ProductBundle[]>(mockBundles);
   const [products] = useState<Product[]>(mockProducts);
   const [searchTerm, setSearchTerm] = useState('');
@@ -681,10 +691,10 @@ function ProductBundlePage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="font-semibold text-green-600">
-                          ${bundle.bundlePrice.toFixed(2)}
+                          {formatRupiah(bundle.bundlePrice)}
                         </div>
                         <div className="text-xs text-muted-foreground line-through">
-                          ${originalPrice.toFixed(2)}
+                          {formatRupiah(originalPrice)}
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
@@ -851,7 +861,7 @@ function ProductBundlePage() {
                               </p>
                               {productData && (
                                 <p className="text-xs text-muted-foreground">
-                                  Stock: {productData.stock} units • ${product.price.toFixed(2)} each
+                                  Stock: {productData.stock} units • {formatRupiah(product.price)} each
                                 </p>
                               )}
                               <p className="text-xs text-blue-600 mt-1">Click to view details →</p>
@@ -869,13 +879,13 @@ function ProductBundlePage() {
                     <div>
                       <Label className="text-xs text-muted-foreground">Original Price</Label>
                       <p className="text-lg line-through text-muted-foreground mt-1">
-                        ${originalPrice.toFixed(2)}
+                        {formatRupiah(originalPrice)}
                       </p>
                     </div>
                     <div>
                       <Label className="text-xs text-muted-foreground">Bundle Price</Label>
                       <p className="text-lg font-bold text-green-600 mt-1">
-                        ${selectedBundle.bundlePrice.toFixed(2)}
+                        {formatRupiah(selectedBundle.bundlePrice)}
                       </p>
                     </div>
                   </div>
@@ -886,7 +896,7 @@ function ProductBundlePage() {
                       {discount}% OFF
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Save ${(originalPrice - selectedBundle.bundlePrice).toFixed(2)}
+                      Save {formatRupiah(originalPrice - selectedBundle.bundlePrice)}
                     </p>
                   </div>
 
@@ -1092,7 +1102,7 @@ function ProductBundlePage() {
                   <div className="flex justify-between items-center">
                     <Label className="text-xs text-muted-foreground">Total Original Price</Label>
                     <p className="text-sm font-semibold">
-                      ${calculateOriginalPrice(selectedProducts).toFixed(2)}
+                      {formatRupiah(calculateOriginalPrice(selectedProducts))}
                     </p>
                   </div>
                 </div>
@@ -1121,19 +1131,19 @@ function ProductBundlePage() {
                   <div className="flex justify-between items-center">
                     <Label className="text-xs text-muted-foreground">Bundle Price</Label>
                     <p className="text-lg font-bold text-green-600">
-                      ${calculateBundlePrice(
+                      {formatRupiah(calculateBundlePrice(
                         calculateOriginalPrice(selectedProducts),
                         parseFloat(formData.discountPercentage)
-                      ).toFixed(2)}
+                      ))}
                     </p>
                   </div>
                   <div className="flex justify-between items-center mt-2">
                     <Label className="text-xs text-muted-foreground">You Save</Label>
                     <p className="text-sm font-semibold text-orange-600">
-                      ${(calculateOriginalPrice(selectedProducts) - calculateBundlePrice(
+                      {formatRupiah(calculateOriginalPrice(selectedProducts) - calculateBundlePrice(
                         calculateOriginalPrice(selectedProducts),
                         parseFloat(formData.discountPercentage)
-                      )).toFixed(2)} ({formData.discountPercentage}% OFF)
+                      ))} ({formData.discountPercentage}% OFF)
                     </p>
                   </div>
                 </div>
@@ -1338,14 +1348,14 @@ function ProductBundlePage() {
                               <div>
                                 <Label className="text-xs text-muted-foreground">Retail Price</Label>
                                 <p className="text-sm font-semibold text-green-600">
-                                  ${ws.retailPrice.toFixed(2)}
+                                  {formatRupiah(ws.retailPrice)}
                                 </p>
                               </div>
                               <div>
                                 <Label className="text-xs text-muted-foreground">Wholesale Price</Label>
                                 <p className="text-sm font-semibold">
                                   {ws.wholesalePrice !== null ? (
-                                    <span className="text-blue-600">${ws.wholesalePrice.toFixed(2)}</span>
+                                    <span className="text-blue-600">{formatRupiah(ws.wholesalePrice)}</span>
                                   ) : (
                                     <span className="text-muted-foreground">Not Available</span>
                                   )}
