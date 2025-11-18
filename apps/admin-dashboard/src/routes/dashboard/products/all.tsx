@@ -779,11 +779,9 @@ function AllProductsPage() {
       return;
     }
 
-    // If adding PCS, make it default and set all others to non-default
-    // If adding other UOM and no default exists yet, don't set as default
-    // If adding other UOM and a default exists, keep existing default
+    // UOMs are added without default - user can check the box to set default
+    // If no UOM is set as default, PCS will be auto-created as default on save
     const isPCS = uom.code === 'PCS';
-    const hasDefault = productUOMs.some(u => u.isDefault);
 
     const newUOM: ProductUOM = {
       id: `uom-temp-${Date.now()}`,
@@ -792,13 +790,11 @@ function AllProductsPage() {
       barcode: uomBarcode,
       conversionFactor: uom.conversionFactor,
       stock: parseInt(uomStock),
-      isDefault: isPCS || !hasDefault, // PCS is always default, or first UOM becomes default
+      isDefault: false, // User must manually check to set as default
     };
 
-    // If adding PCS, unset all other defaults
-    const updatedUOMs = isPCS
-      ? productUOMs.map(u => ({ ...u, isDefault: false }))
-      : productUOMs;
+    // If adding PCS manually, don't auto-set as default - let user choose
+    const updatedUOMs = productUOMs;
 
     setProductUOMs([...updatedUOMs, newUOM]);
     setSelectedUOM('');
@@ -817,27 +813,18 @@ function AllProductsPage() {
   const handleSetDefaultUOM = (uomId: string) => {
     const clickedUOM = productUOMs.find(u => u.id === uomId);
 
-    // If clicking on already-default UOM, uncheck it and set PCS as default
+    // If clicking on already-default UOM, uncheck it (allow no defaults)
     if (clickedUOM?.isDefault) {
-      const pcsUOM = productUOMs.find(u => u.uomCode === 'PCS');
-
-      if (pcsUOM && pcsUOM.id !== uomId) {
-        // Set PCS as default
-        setProductUOMs(productUOMs.map(uom => ({
-          ...uom,
-          isDefault: uom.uomCode === 'PCS'
-        })));
-        toast.success('Default UOM updated', {
-          description: 'PCS is now the default unit'
-        });
-      } else {
-        // If clicking PCS itself or PCS doesn't exist, keep it as default
-        toast.info('At least one UOM must be default', {
-          description: 'PCS remains as the default unit'
-        });
-      }
+      // Uncheck this UOM
+      setProductUOMs(productUOMs.map(uom => ({
+        ...uom,
+        isDefault: uom.id === uomId ? false : uom.isDefault
+      })));
+      toast.info('Default unchecked', {
+        description: 'Leave all unchecked to use PCS as default, or check another UOM'
+      });
     } else {
-      // Set clicked UOM as default
+      // Set clicked UOM as default and uncheck all others
       setProductUOMs(productUOMs.map(uom => ({
         ...uom,
         isDefault: uom.id === uomId
@@ -1702,8 +1689,8 @@ function AllProductsPage() {
             <div className="space-y-3">
               <Label className="text-base font-semibold">Additional UOMs (Optional)</Label>
               <p className="text-xs text-muted-foreground">
-                PCS will use barcode and price from above and will be set as the default unit. Add other units like Box, Carton if needed.
-                Each UOM needs a unique barcode and stock quantity. Check the box to set which UOM is the default.
+                If you don't add any UOMs, PCS will be auto-created as default using the barcode above.
+                Add other units like Box, Carton if needed. Check the box to set which UOM is default, or leave all unchecked to use PCS as default.
               </p>
 
               {/* Stock Allocation Info */}

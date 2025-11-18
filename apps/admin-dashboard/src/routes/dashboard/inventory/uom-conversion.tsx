@@ -470,7 +470,7 @@ function UOMConversionPage() {
               </DrawerDescription>
             </DrawerHeader>
 
-            <div className="px-6 space-y-4">
+            <div className="px-6 space-y-4 max-h-[60vh] overflow-y-auto">
               {selectedProduct && selectedFromUOM && (
                 <>
                   {/* Product Info */}
