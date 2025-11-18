@@ -778,6 +778,12 @@ function AllProductsPage() {
       return;
     }
 
+    // If adding PCS, make it default and set all others to non-default
+    // If adding other UOM and no default exists yet, don't set as default
+    // If adding other UOM and a default exists, keep existing default
+    const isPCS = uom.code === 'PCS';
+    const hasDefault = productUOMs.some(u => u.isDefault);
+
     const newUOM: ProductUOM = {
       id: `uom-temp-${Date.now()}`,
       uomCode: uom.code,
@@ -785,10 +791,15 @@ function AllProductsPage() {
       barcode: uomBarcode,
       conversionFactor: uom.conversionFactor,
       stock: parseInt(uomStock),
-      isDefault: false, // Never default since PCS is auto-created as default
+      isDefault: isPCS || !hasDefault, // PCS is always default, or first UOM becomes default
     };
 
-    setProductUOMs([...productUOMs, newUOM]);
+    // If adding PCS, unset all other defaults
+    const updatedUOMs = isPCS
+      ? productUOMs.map(u => ({ ...u, isDefault: false }))
+      : productUOMs;
+
+    setProductUOMs([...updatedUOMs, newUOM]);
     setSelectedUOM('');
     setUomBarcode('');
     setUomStock('');
@@ -800,6 +811,19 @@ function AllProductsPage() {
   const handleRemoveUOM = (uom: ProductUOM) => {
     setUomToDelete(uom);
     setDeleteDialogOpen(true);
+  };
+
+  const handleSetDefaultUOM = (uomId: string) => {
+    setProductUOMs(productUOMs.map(uom => ({
+      ...uom,
+      isDefault: uom.id === uomId
+    })));
+    const selectedUOM = productUOMs.find(u => u.id === uomId);
+    if (selectedUOM) {
+      toast.success('Default UOM updated', {
+        description: `${selectedUOM.uomName} is now the default unit`
+      });
+    }
   };
 
   const confirmDeleteUOM = () => {
@@ -828,6 +852,9 @@ function AllProductsPage() {
     // Auto-create PCS UOM if not added manually
     let finalProductUOMs = [...productUOMs];
     if (!finalProductUOMs.some(u => u.uomCode === 'PCS')) {
+      // Check if any UOM is already set as default
+      const hasDefault = finalProductUOMs.some(u => u.isDefault);
+
       const pcsUOM: ProductUOM = {
         id: `uom-pcs-${Date.now()}`,
         uomCode: 'PCS',
@@ -835,9 +862,20 @@ function AllProductsPage() {
         barcode: formData.barcode,
         conversionFactor: 1,
         stock: parseInt(formData.stock),
-        isDefault: true,
+        isDefault: !hasDefault, // Set PCS as default only if no other UOM is default
       };
+
+      // If PCS is being set as default, unset all others
+      if (pcsUOM.isDefault) {
+        finalProductUOMs = finalProductUOMs.map(u => ({ ...u, isDefault: false }));
+      }
+
       finalProductUOMs = [pcsUOM, ...finalProductUOMs];
+    }
+
+    // Ensure at least one UOM is set as default
+    if (!finalProductUOMs.some(u => u.isDefault) && finalProductUOMs.length > 0) {
+      finalProductUOMs[0].isDefault = true;
     }
 
     if (formMode === 'add') {
@@ -1640,8 +1678,8 @@ function AllProductsPage() {
             <div className="space-y-3">
               <Label className="text-base font-semibold">Additional UOMs (Optional)</Label>
               <p className="text-xs text-muted-foreground">
-                PCS will use barcode and price from above. Add other units like Box, Carton if needed.
-                Each UOM needs a unique barcode and stock quantity.
+                PCS will use barcode and price from above and will be set as the default unit. Add other units like Box, Carton if needed.
+                Each UOM needs a unique barcode and stock quantity. Click the radio button to change the default UOM.
               </p>
 
               {/* Stock Allocation Info */}
@@ -1760,7 +1798,9 @@ function AllProductsPage() {
                         <TableHead>Barcode</TableHead>
                         <TableHead className="w-[80px] text-right">Factor</TableHead>
                         <TableHead className="w-[100px] text-right">Stock</TableHead>
-                        <TableHead className="w-[60px]">Default</TableHead>
+                        <TableHead className="w-[80px] text-center" title="Select which UOM is the default for this product">
+                          Default
+                        </TableHead>
                         <TableHead className="w-[50px]"></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1778,10 +1818,25 @@ function AllProductsPage() {
                           <TableCell className="text-right font-medium">
                             {uom.stock} units
                           </TableCell>
-                          <TableCell>
-                            {uom.isDefault && (
-                              <Badge variant="outline" className="text-xs">Default</Badge>
-                            )}
+                          <TableCell className="text-center">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => handleSetDefaultUOM(uom.id)}
+                              title={uom.isDefault ? "This is the default UOM" : "Set as default UOM"}
+                            >
+                              <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
+                                uom.isDefault
+                                  ? 'border-primary bg-primary'
+                                  : 'border-muted-foreground hover:border-primary'
+                              }`}>
+                                {uom.isDefault && (
+                                  <div className="h-2 w-2 rounded-full bg-primary-foreground" />
+                                )}
+                              </div>
+                            </Button>
                           </TableCell>
                           <TableCell>
                             <Button
