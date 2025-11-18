@@ -754,7 +754,7 @@ function AllProductsPage() {
     const excludeId = formMode === 'edit' ? selectedProduct?.id : undefined;
     if (!isBarcodeUnique(uomBarcode, excludeId)) {
       toast.error('Barcode already exists', {
-        description: 'This barcode is already used by another product or UOM. Please use a different barcode.'
+        description: 'This barcode is already used by another product or UOM. Please click the refresh button to generate a new barcode.'
       });
       return;
     }
