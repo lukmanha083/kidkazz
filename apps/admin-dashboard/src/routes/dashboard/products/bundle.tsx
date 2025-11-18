@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState, useMemo } from 'react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -446,7 +447,11 @@ function ProductBundlePage() {
   }, [filteredBundles, currentPage, itemsPerPage]);
 
   const handleDelete = (id: string) => {
+    const bundle = bundles.find(b => b.id === id);
     setBundles(bundles.filter((b) => b.id !== id));
+    toast.success('Bundle deleted', {
+      description: bundle ? `"${bundle.bundleName}" has been deleted successfully` : 'Bundle has been deleted'
+    });
   };
 
   const handlePageChange = (page: number) => {
@@ -561,6 +566,9 @@ function ProductBundlePage() {
         endDate: formData.endDate,
       };
       setBundles([...bundles, newBundle]);
+      toast.success('Bundle created', {
+        description: `"${formData.bundleName}" has been created successfully`
+      });
     } else if (formMode === 'edit' && selectedBundle) {
       setBundles(bundles.map(b =>
         b.id === selectedBundle.id
@@ -578,6 +586,9 @@ function ProductBundlePage() {
             }
           : b
       ));
+      toast.success('Bundle updated', {
+        description: `"${formData.bundleName}" has been updated successfully`
+      });
     }
     setFormDrawerOpen(false);
     setSelectedProducts([]);

@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState, useMemo } from 'react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -512,7 +513,11 @@ function AllProductsPage() {
   }, [filteredProducts, currentPage, itemsPerPage]);
 
   const handleDelete = (id: string) => {
+    const product = products.find(p => p.id === id);
     setProducts(products.filter((p) => p.id !== id));
+    toast.success('Product deleted', {
+      description: product ? `"${product.name}" has been deleted successfully` : 'Product has been deleted'
+    });
   };
 
   const handlePageChange = (page: number) => {
@@ -620,13 +625,17 @@ function AllProductsPage() {
 
     // Validate productUOMs - at least one UOM required
     if (productUOMs.length === 0) {
-      alert('Please add at least one Unit of Measure (UOM)');
+      toast.error('UOM required', {
+        description: 'Please add at least one Unit of Measure (UOM)'
+      });
       return;
     }
 
     // Ensure at least one PCS (base unit) exists
     if (!productUOMs.some(u => u.uomCode === 'PCS')) {
-      alert('At least one PCS (base unit) UOM is required');
+      toast.error('Base unit required', {
+        description: 'At least one PCS (base unit) UOM is required'
+      });
       return;
     }
 
@@ -664,6 +673,9 @@ function AllProductsPage() {
         productUOMs: productUOMs,
       };
       setProducts([...products, newProduct]);
+      toast.success('Product created', {
+        description: `"${formData.name}" has been created successfully`
+      });
     } else if (formMode === 'edit' && selectedProduct) {
       setProducts(products.map(p =>
         p.id === selectedProduct.id
@@ -684,6 +696,9 @@ function AllProductsPage() {
             }
           : p
       ));
+      toast.success('Product updated', {
+        description: `"${formData.name}" has been updated successfully`
+      });
     }
     setFormDrawerOpen(false);
   };

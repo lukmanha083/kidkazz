@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState, useMemo } from 'react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -227,7 +228,11 @@ function ProductVariantPage() {
   }, [filteredVariants, currentPage, itemsPerPage]);
 
   const handleDelete = (id: string) => {
+    const variant = variants.find(v => v.id === id);
     setVariants(variants.filter((v) => v.id !== id));
+    toast.success('Variant deleted', {
+      description: variant ? `"${variant.variantName}" has been deleted successfully` : 'Variant has been deleted'
+    });
   };
 
   const handlePageChange = (page: number) => {
@@ -288,6 +293,9 @@ function ProductVariantPage() {
         status: 'Active',
       };
       setVariants([...variants, newVariant]);
+      toast.success('Variant created', {
+        description: `"${formData.variantName}" has been created successfully`
+      });
     } else if (formMode === 'edit' && selectedVariant) {
       setVariants(variants.map(v =>
         v.id === selectedVariant.id
@@ -303,6 +311,9 @@ function ProductVariantPage() {
             }
           : v
       ));
+      toast.success('Variant updated', {
+        description: `"${formData.variantName}" has been updated successfully`
+      });
     }
     setFormDrawerOpen(false);
   };

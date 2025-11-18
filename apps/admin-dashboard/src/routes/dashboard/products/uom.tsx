@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState, useMemo } from 'react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -149,10 +150,15 @@ function UOMPage() {
   const handleDelete = (id: string) => {
     const uom = uoms.find(u => u.id === id);
     if (uom?.isBaseUnit) {
-      alert('Cannot delete base unit');
+      toast.error('Cannot delete base unit', {
+        description: 'Base units cannot be deleted from the system'
+      });
       return;
     }
     setUoms(uoms.filter((u) => u.id !== id));
+    toast.success('UOM deleted', {
+      description: uom ? `"${uom.name}" has been deleted successfully` : 'UOM has been deleted'
+    });
   };
 
   const handlePageChange = (page: number) => {
@@ -203,7 +209,9 @@ function UOMPage() {
 
     const conversionFactor = parseFloat(formData.conversionFactor);
     if (conversionFactor <= 0) {
-      alert('Conversion factor must be greater than 0');
+      toast.error('Invalid conversion factor', {
+        description: 'Conversion factor must be greater than 0'
+      });
       return;
     }
 
@@ -220,6 +228,9 @@ function UOMPage() {
         description: formData.description,
       };
       setUoms([...uoms, newUOM]);
+      toast.success('UOM created', {
+        description: `"${formData.name}" has been created successfully`
+      });
     } else if (formMode === 'edit' && selectedUOM) {
       setUoms(uoms.map(u =>
         u.id === selectedUOM.id
@@ -233,6 +244,9 @@ function UOMPage() {
             }
           : u
       ));
+      toast.success('UOM updated', {
+        description: `"${formData.name}" has been updated successfully`
+      });
     }
     setFormDrawerOpen(false);
   };

@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState, useMemo } from 'react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -188,7 +189,11 @@ function CategoryPage() {
   }, [filteredCategories, currentPage, itemsPerPage]);
 
   const handleDelete = (id: string) => {
+    const category = categories.find(c => c.id === id);
     setCategories(categories.filter((c) => c.id !== id));
+    toast.success('Category deleted', {
+      description: category ? `"${category.name}" has been deleted successfully` : 'Category has been deleted'
+    });
   };
 
   const handlePageChange = (page: number) => {
@@ -242,6 +247,9 @@ function CategoryPage() {
         createdAt: new Date().toISOString().split('T')[0],
       };
       setCategories([...categories, newCategory]);
+      toast.success('Category created', {
+        description: `"${formData.name}" has been created successfully`
+      });
     } else if (formMode === 'edit' && selectedCategory) {
       setCategories(categories.map(c =>
         c.id === selectedCategory.id
@@ -254,6 +262,9 @@ function CategoryPage() {
             }
           : c
       ));
+      toast.success('Category updated', {
+        description: `"${formData.name}" has been updated successfully`
+      });
     }
     setFormDrawerOpen(false);
   };
