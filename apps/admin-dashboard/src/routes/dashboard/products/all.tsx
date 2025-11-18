@@ -1575,13 +1575,36 @@ function AllProductsPage() {
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Barcode</Label>
-                    <Input
-                      placeholder="8901234567890"
-                      value={uomBarcode}
-                      onChange={(e) => setUomBarcode(e.target.value)}
-                      className="h-9"
-                      disabled={!selectedUOM}
-                    />
+                    <div className="flex gap-1">
+                      <Input
+                        placeholder="8901234567890"
+                        value={uomBarcode}
+                        onChange={(e) => setUomBarcode(e.target.value)}
+                        className="h-9 flex-1"
+                        disabled={!selectedUOM}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9"
+                        onClick={() => {
+                          const newBarcode = generateUniqueBarcode();
+                          if (newBarcode) {
+                            setUomBarcode(newBarcode);
+                            toast.success('Barcode generated', {
+                              description: 'Unique barcode generated for UOM'
+                            });
+                          }
+                        }}
+                        disabled={!selectedUOM}
+                        title="Generate unique barcode"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/>
+                        </svg>
+                      </Button>
+                    </div>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Price</Label>

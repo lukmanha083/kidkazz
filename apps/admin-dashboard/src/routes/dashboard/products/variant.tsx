@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import {
   Table,
   TableBody,
@@ -210,19 +211,54 @@ function ProductVariantPage() {
     stock: '',
   });
 
-  // Extract unique products from variants
+  // Extract unique products from variants with stock tracking
   const availableProducts = useMemo(() => {
-    const productsMap = new Map<string, { name: string; sku: string }>();
+    const productsMap = new Map<string, { name: string; sku: string; totalStock: number; allocatedStock: number }>();
+
+    // Mock total stock for products (in real app, this would come from products API)
+    const mockProductStocks: Record<string, number> = {
+      'BB-001': 150,
+      'BF-002': 200,
+      'ST-003': 180,
+      'DB-004': 120,
+      'SH-006': 100,
+      'CR-005': 50,
+      'DB-009': 200,
+    };
+
     mockVariants.forEach(variant => {
       if (!productsMap.has(variant.productSKU)) {
         productsMap.set(variant.productSKU, {
           name: variant.productName,
-          sku: variant.productSKU
+          sku: variant.productSKU,
+          totalStock: mockProductStocks[variant.productSKU] || 100,
+          allocatedStock: 0
         });
       }
+      // Sum up allocated stock from all variants
+      const product = productsMap.get(variant.productSKU)!;
+      product.allocatedStock += variant.stock;
     });
+
     return Array.from(productsMap.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, []);
+  }, [variants]);
+
+  // Convert products to combobox options
+  const productOptions: ComboboxOption[] = useMemo(() => {
+    return availableProducts.map(product => ({
+      value: product.sku,
+      label: `${product.name} (${product.sku})`,
+      name: product.name,
+      sku: product.sku,
+    }));
+  }, [availableProducts]);
+
+  // Get remaining stock for selected product
+  const getRemainingStock = (productSKU: string) => {
+    const product = availableProducts.find(p => p.sku === productSKU);
+    if (!product) return 0;
+    return product.totalStock - product.allocatedStock;
+  };
 
   // Auto-generate variant SKU from product SKU and variant name
   const generateVariantSKU = (productSKU: string, variantName: string) => {
@@ -673,28 +709,22 @@ function ProductVariantPage() {
 
           <form onSubmit={handleSubmitForm} className="flex-1 overflow-y-auto p-4 space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="productSelect">Select Product</Label>
-              <select
-                id="productSelect"
+              <Label>Select Product</Label>
+              <Combobox
+                options={productOptions}
                 value={formData.productSKU}
-                onChange={(e) => handleProductSelect(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                required
-              >
-                <option value="">Choose a product...</option>
-                {availableProducts.map(product => (
-                  <option key={product.sku} value={product.sku}>
-                    {product.name} ({product.sku})
-                  </option>
-                ))}
-              </select>
+                onValueChange={handleProductSelect}
+                placeholder="Search products..."
+                searchPlaceholder="Type to search..."
+                emptyText="No products found."
+              />
               <p className="text-xs text-muted-foreground">
-                Select the product this variant belongs to
+                Search and select the product this variant belongs to
               </p>
             </div>
 
             {formData.productSKU && (
-              <div className="p-3 bg-muted/30 rounded-md space-y-1">
+              <div className="p-3 bg-muted/30 rounded-md space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Product:</span>
                   <span className="font-medium">{formData.productName}</span>
@@ -703,6 +733,15 @@ function ProductVariantPage() {
                   <span className="text-muted-foreground">SKU:</span>
                   <span className="font-mono">{formData.productSKU}</span>
                 </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Available Stock:</span>
+                  <span className={`font-medium ${getRemainingStock(formData.productSKU) <= 0 ? 'text-destructive' : 'text-green-600'}`}>
+                    {getRemainingStock(formData.productSKU)} units
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Variant stock cannot exceed available stock
+                </p>
               </div>
             )}
 
@@ -775,8 +814,15 @@ function ProductVariantPage() {
                   placeholder="100"
                   value={formData.stock}
                   onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                  max={formData.productSKU ? getRemainingStock(formData.productSKU) : undefined}
+                  min="0"
                   required
                 />
+                {formData.productSKU && (
+                  <p className="text-xs text-muted-foreground">
+                    Max: {getRemainingStock(formData.productSKU)} units available
+                  </p>
+                )}
               </div>
             </div>
 
