@@ -15,6 +15,7 @@ import { webhooksRoutes } from './routes/webhooks';
 import { retailRoutes } from './routes/retail';
 import { wholesaleRoutes } from './routes/wholesale';
 import { warehousesRoutes } from './routes/warehouses';
+import { accountingRoutes } from './routes/accounting';
 
 // Types
 export type Env = {
@@ -58,6 +59,7 @@ app.route('/api/retail', retailRoutes);
 app.route('/api/wholesale', wholesaleRoutes);
 app.route('/api/products', productsRoutes);
 app.route('/api/warehouses', warehousesRoutes);
+app.route('/api/accounting', accountingRoutes);
 app.route('/api/orders', ordersRoutes);
 app.route('/api/quotes', quotesRoutes);
 app.route('/api/payments', paymentsRoutes);

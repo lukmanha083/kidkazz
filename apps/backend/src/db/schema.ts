@@ -322,6 +322,131 @@ export const stockTransferItems = sqliteTable('stock_transfer_items', {
 });
 
 // ============================================
+// ACCOUNTING & FINANCE
+// ============================================
+
+// Chart of Accounts - Defines all accounts used in the system
+export const chartOfAccounts = sqliteTable('chart_of_accounts', {
+  id: text('id').primaryKey(),
+  code: text('code').notNull().unique(), // 4-digit code (e.g., 1000, 2000)
+  name: text('name').notNull(), // Account name (e.g., "Cash", "Accounts Payable")
+  accountType: text('account_type', {
+    enum: ['Asset', 'Liability', 'Equity', 'Revenue', 'COGS', 'Expense']
+  }).notNull(),
+  accountSubType: text('account_sub_type'), // e.g., "Current Asset", "Fixed Asset"
+  parentAccountId: text('parent_account_id').references((): any => chartOfAccounts.id, { onDelete: 'set null' }),
+  description: text('description'),
+  taxType: text('tax_type'), // Tax treatment (e.g., "Taxable", "Non-taxable")
+  isSystemAccount: integer('is_system_account', { mode: 'boolean' }).notNull().default(false), // System-managed accounts
+  isDetailAccount: integer('is_detail_account', { mode: 'boolean' }).notNull().default(true), // Can have transactions
+  status: text('status', { enum: ['Active', 'Inactive', 'Archived'] }).notNull().default('Active'),
+  currency: text('currency').notNull().default('IDR'),
+  normalBalance: text('normal_balance', { enum: ['Debit', 'Credit'] }).notNull(), // Normal balance for this account type
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+});
+
+// Journal Entries - Header for all accounting transactions
+export const journalEntries = sqliteTable('journal_entries', {
+  id: text('id').primaryKey(),
+  entryNumber: text('entry_number').notNull().unique(), // JE-2024-0001
+  entryDate: integer('entry_date', { mode: 'timestamp' }).notNull(), // Transaction date
+  description: text('description').notNull(),
+  reference: text('reference'), // External reference (invoice #, receipt #, etc.)
+  entryType: text('entry_type', {
+    enum: ['Manual', 'System', 'Recurring', 'Adjusting', 'Closing']
+  }).notNull().default('Manual'),
+  status: text('status', { enum: ['Draft', 'Posted', 'Voided'] }).notNull().default('Draft'),
+  sourceModule: text('source_module'), // e.g., "Sales", "Purchase", "Inventory"
+  sourceId: text('source_id'), // ID from source module (order_id, invoice_id, etc.)
+  fiscalYear: integer('fiscal_year').notNull(),
+  fiscalPeriod: integer('fiscal_period').notNull(), // Month (1-12)
+  createdBy: text('created_by').notNull().references(() => users.id),
+  postedBy: text('posted_by').references(() => users.id),
+  postedAt: integer('posted_at', { mode: 'timestamp' }),
+  voidedBy: text('voided_by').references(() => users.id),
+  voidedAt: integer('voided_at', { mode: 'timestamp' }),
+  voidReason: text('void_reason'),
+  notes: text('notes'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+});
+
+// Journal Lines - Individual debit/credit entries
+export const journalLines = sqliteTable('journal_lines', {
+  id: text('id').primaryKey(),
+  journalEntryId: text('journal_entry_id').notNull().references(() => journalEntries.id, { onDelete: 'cascade' }),
+  lineNumber: integer('line_number').notNull(), // Order of lines in the entry
+  accountId: text('account_id').notNull().references(() => chartOfAccounts.id),
+  direction: text('direction', { enum: ['Debit', 'Credit'] }).notNull(),
+  amount: real('amount').notNull(), // Always positive, direction determines debit/credit
+  currency: text('currency').notNull().default('IDR'),
+  exchangeRate: real('exchange_rate').notNull().default(1.0),
+  amountInBaseCurrency: real('amount_in_base_currency').notNull(), // amount * exchangeRate
+  description: text('description'), // Line-specific description
+  taxAmount: real('tax_amount').default(0),
+  taxCode: text('tax_code'),
+  dimension1: text('dimension1'), // For dimensional analysis (department, project, etc.)
+  dimension2: text('dimension2'),
+  dimension3: text('dimension3'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+});
+
+// Account Balances - Materialized view for performance (updated by triggers or batch jobs)
+export const accountBalances = sqliteTable('account_balances', {
+  id: text('id').primaryKey(),
+  accountId: text('account_id').notNull().references(() => chartOfAccounts.id, { onDelete: 'cascade' }),
+  fiscalYear: integer('fiscal_year').notNull(),
+  fiscalPeriod: integer('fiscal_period').notNull(),
+  openingBalance: real('opening_balance').notNull().default(0),
+  debitAmount: real('debit_amount').notNull().default(0),
+  creditAmount: real('credit_amount').notNull().default(0),
+  closingBalance: real('closing_balance').notNull().default(0),
+  currency: text('currency').notNull().default('IDR'),
+  lastUpdated: integer('last_updated', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+});
+
+// Fiscal Periods - Define fiscal year and periods
+export const fiscalPeriods = sqliteTable('fiscal_periods', {
+  id: text('id').primaryKey(),
+  fiscalYear: integer('fiscal_year').notNull(),
+  periodNumber: integer('period_number').notNull(), // 1-12 for monthly, 1-4 for quarterly
+  periodName: text('period_name').notNull(), // e.g., "January 2024", "Q1 2024"
+  startDate: integer('start_date', { mode: 'timestamp' }).notNull(),
+  endDate: integer('end_date', { mode: 'timestamp' }).notNull(),
+  status: text('status', { enum: ['Open', 'Closed', 'Locked'] }).notNull().default('Open'),
+  closedBy: text('closed_by').references(() => users.id),
+  closedAt: integer('closed_at', { mode: 'timestamp' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+});
+
+// Budget Entries - For budget vs actual reporting
+export const budgetEntries = sqliteTable('budget_entries', {
+  id: text('id').primaryKey(),
+  accountId: text('account_id').notNull().references(() => chartOfAccounts.id),
+  fiscalYear: integer('fiscal_year').notNull(),
+  fiscalPeriod: integer('fiscal_period').notNull(),
+  budgetAmount: real('budget_amount').notNull(),
+  notes: text('notes'),
+  createdBy: text('created_by').notNull().references(() => users.id),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+});
+
+// Tax Codes - For tax handling
+export const taxCodes = sqliteTable('tax_codes', {
+  id: text('id').primaryKey(),
+  code: text('code').notNull().unique(),
+  name: text('name').notNull(),
+  rate: real('rate').notNull(), // Tax rate as percentage
+  taxType: text('tax_type', { enum: ['Sales', 'Purchase', 'Both'] }).notNull(),
+  accountId: text('account_id').references(() => chartOfAccounts.id), // Tax payable/receivable account
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
+});
+
+// ============================================
 // ADMIN & ANALYTICS
 // ============================================
 
