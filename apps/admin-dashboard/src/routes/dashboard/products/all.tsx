@@ -664,7 +664,7 @@ function AllProductsPage() {
     setProductUOMs([]);
     setSelectedUOM('');
     setUomBarcode('');
-    setUomPrice('');
+    setUomStock('');
     setFormDrawerOpen(true);
   };
 
@@ -687,7 +687,7 @@ function AllProductsPage() {
     setProductUOMs(product.productUOMs || []);
     setSelectedUOM('');
     setUomBarcode('');
-    setUomPrice('');
+    setUomStock('');
     setFormDrawerOpen(true);
   };
 
