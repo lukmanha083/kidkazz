@@ -27,6 +27,16 @@ import { Pagination } from '@/components/ui/pagination';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Plus,
   Search,
   Edit,
@@ -219,7 +229,12 @@ function ProductVariantPage() {
     variantType: 'Color' as 'Color' | 'Size' | 'Material' | 'Style',
     price: '',
     stock: '',
+    status: 'Active' as 'Active' | 'Inactive',
   });
+
+  // Delete confirmation states
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [variantToDelete, setVariantToDelete] = useState<ProductVariant | null>(null);
 
   // Extract unique products from variants with stock tracking
   const availableProducts = useMemo(() => {
@@ -322,12 +337,20 @@ function ProductVariantPage() {
     return filteredVariants.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredVariants, currentPage, itemsPerPage]);
 
-  const handleDelete = (id: string) => {
-    const variant = variants.find(v => v.id === id);
-    setVariants(variants.filter((v) => v.id !== id));
-    toast.success('Variant deleted', {
-      description: variant ? `"${variant.variantName}" has been deleted successfully` : 'Variant has been deleted'
-    });
+  const handleDelete = (variant: ProductVariant) => {
+    setVariantToDelete(variant);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (variantToDelete) {
+      setVariants(variants.filter((v) => v.id !== variantToDelete.id));
+      toast.success('Variant deleted', {
+        description: `"${variantToDelete.variantName}" has been deleted successfully`
+      });
+      setDeleteDialogOpen(false);
+      setVariantToDelete(null);
+    }
   };
 
   const handlePageChange = (page: number) => {
@@ -354,6 +377,7 @@ function ProductVariantPage() {
       variantType: 'Color',
       price: '',
       stock: '',
+      status: 'Active',
     });
     setFormDrawerOpen(true);
   };
@@ -369,6 +393,7 @@ function ProductVariantPage() {
       variantType: variant.variantType,
       price: variant.price.toString(),
       stock: variant.stock.toString(),
+      status: variant.status,
     });
     setFormDrawerOpen(true);
   };
@@ -385,7 +410,7 @@ function ProductVariantPage() {
         variantType: formData.variantType,
         price: parseFloat(formData.price),
         stock: parseInt(formData.stock),
-        status: 'Active',
+        status: formData.status,
       };
       setVariants([...variants, newVariant]);
       toast.success('Variant created', {
@@ -403,6 +428,7 @@ function ProductVariantPage() {
               variantType: formData.variantType,
               price: parseFloat(formData.price),
               stock: parseInt(formData.stock),
+              status: formData.status,
             }
           : v
       ));
@@ -557,7 +583,7 @@ function ProductVariantPage() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => handleDelete(variant.id)}
+                          onClick={() => handleDelete(variant)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -809,8 +835,8 @@ function ProductVariantPage() {
                 <Input
                   id="price"
                   type="number"
-                  step="0.01"
-                  placeholder="29.99"
+                  step="1000"
+                  placeholder="50000"
                   value={formData.price}
                   onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                   required
@@ -836,6 +862,23 @@ function ProductVariantPage() {
               </div>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <select
+                id="status"
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as 'Active' | 'Inactive' })}
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                required
+              >
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+              <p className="text-xs text-muted-foreground">
+                Inactive variants won't be visible to customers
+              </p>
+            </div>
+
             <DrawerFooter className="px-0">
               <Button type="submit" className="w-full">
                 {formMode === 'add' ? 'Create Variant' : 'Update Variant'}
@@ -849,6 +892,39 @@ function ProductVariantPage() {
           </form>
         </DrawerContent>
       </Drawer>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {variantToDelete && (
+                <>
+                  You are about to delete variant <strong>"{variantToDelete.variantName}"</strong> of{' '}
+                  <strong>{variantToDelete.productName}</strong>.
+                  This action cannot be undone. This will permanently delete the variant
+                  and remove all associated data.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setDeleteDialogOpen(false);
+              setVariantToDelete(null);
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
