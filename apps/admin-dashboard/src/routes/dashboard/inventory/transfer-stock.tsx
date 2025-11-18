@@ -36,7 +36,7 @@ import {
   Calendar,
 } from 'lucide-react';
 
-export const Route = createFileRoute('/dashboard/transfer-stock')({
+export const Route = createFileRoute('/dashboard/inventory/transfer-stock')({
   component: TransferStockPage,
 });
 
