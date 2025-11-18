@@ -691,6 +691,20 @@ function AllProductsPage() {
     setFormDrawerOpen(true);
   };
 
+  // Calculate total PCS allocated to UOMs
+  const calculateAllocatedPCS = (uoms: ProductUOM[]) => {
+    return uoms.reduce((total, uom) => {
+      return total + (uom.stock * uom.conversionFactor);
+    }, 0);
+  };
+
+  // Get remaining PCS available for UOMs
+  const getRemainingPCS = () => {
+    const totalStock = parseInt(formData.stock) || 0;
+    const allocatedPCS = calculateAllocatedPCS(productUOMs);
+    return totalStock - allocatedPCS;
+  };
+
   const handleAddUOM = () => {
     if (!selectedUOM || !uomBarcode || !uomStock) {
       toast.error('Missing UOM information', {
@@ -727,6 +741,17 @@ function AllProductsPage() {
       return;
     }
 
+    // Validate UOM stock doesn't exceed available PCS
+    const uomStockInPCS = parseInt(uomStock) * uom.conversionFactor;
+    const remainingPCS = getRemainingPCS();
+
+    if (uomStockInPCS > remainingPCS) {
+      toast.error('Insufficient stock', {
+        description: `Cannot allocate ${uomStockInPCS} PCS to this UOM. Only ${remainingPCS} PCS available. Reduce UOM quantity or increase product stock.`
+      });
+      return;
+    }
+
     const newUOM: ProductUOM = {
       id: `uom-temp-${Date.now()}`,
       uomCode: uom.code,
@@ -740,7 +765,7 @@ function AllProductsPage() {
     setProductUOMs([...productUOMs, newUOM]);
     setSelectedUOM('');
     setUomBarcode('');
-    setUomPrice('');
+    setUomStock('');
     toast.success('UOM added', {
       description: `${uom.name} has been added successfully`
     });
@@ -1462,7 +1487,7 @@ function AllProductsPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="price">Price ($)</Label>
+                <Label htmlFor="price">Price (Rp)</Label>
                 <Input
                   id="price"
                   type="number"
@@ -1562,6 +1587,33 @@ function AllProductsPage() {
                 PCS will use barcode and price from above. Add other units like Box, Carton if needed.
                 Each UOM needs a unique barcode and stock quantity.
               </p>
+
+              {/* Stock Allocation Info */}
+              {formData.stock && (
+                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                  <div className="grid grid-cols-3 gap-2 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Total Stock:</span>
+                      <p className="font-semibold">{formData.stock} PCS</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Allocated to UOMs:</span>
+                      <p className="font-semibold text-orange-600">{calculateAllocatedPCS(productUOMs)} PCS</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Remaining:</span>
+                      <p className={`font-semibold ${getRemainingPCS() < 0 ? 'text-destructive' : 'text-green-600'}`}>
+                        {getRemainingPCS()} PCS
+                      </p>
+                    </div>
+                  </div>
+                  {getRemainingPCS() < 0 && (
+                    <p className="text-xs text-destructive mt-2">
+                      ⚠️ Warning: UOM stock exceeds total product stock! Please adjust UOM quantities.
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Add UOM Form */}
               <div className="space-y-3 p-3 border rounded-md bg-muted/30">

@@ -805,7 +805,7 @@ function ProductVariantPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="price">Price ($)</Label>
+                <Label htmlFor="price">Price (Rp)</Label>
                 <Input
                   id="price"
                   type="number"
