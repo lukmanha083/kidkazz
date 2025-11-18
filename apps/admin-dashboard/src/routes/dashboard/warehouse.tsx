@@ -1,9 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import {
   Table,
   TableBody,
@@ -21,461 +24,431 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
-import { Pagination } from '@/components/ui/pagination';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import {
-  Plus,
-  Search,
-  Edit,
-  Trash2,
-  Eye,
-  X,
-  Warehouse,
-  MapPin,
-  Phone,
-  Mail,
-  User,
-} from 'lucide-react';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Warehouse, MapPin, Package, ArrowRightLeft, History, AlertTriangle } from 'lucide-react';
 
 export const Route = createFileRoute('/dashboard/warehouse')({
   component: WarehousePage,
 });
 
-interface WarehouseData {
+interface ProductUOM {
   id: string;
-  name: string;
-  code: string;
-  location: string;
-  address: string;
-  city: string;
-  postalCode: string;
-  country: string;
-  phone: string;
-  email: string;
-  manager: string;
-  capacity: number;
-  currentStock: number;
-  status: 'Active' | 'Inactive';
-  createdDate: string;
+  uomCode: string;
+  uomName: string;
+  barcode: string;
+  conversionFactor: number;
+  stock: number;
+  isDefault: boolean;
 }
 
-// Mock warehouses
-const mockWarehouses: WarehouseData[] = [
+interface ProductInventory {
+  id: string;
+  name: string;
+  sku: string;
+  barcode: string;
+  category: string;
+  totalStock: number;
+  productUOMs: ProductUOM[];
+}
+
+interface ConversionHistory {
+  id: string;
+  productName: string;
+  productSKU: string;
+  fromUOM: string;
+  fromQuantity: number;
+  toQuantity: number;
+  reason: string;
+  notes: string;
+  performedBy: string;
+  timestamp: Date;
+}
+
+// Mock warehouse data
+const warehouses = [
+  { id: 'WH-001', name: 'Main Warehouse' },
+  { id: 'WH-002', name: 'Distribution Center' },
+  { id: 'WH-003', name: 'Regional Hub' },
+];
+
+// Mock product inventory data
+const mockInventory: ProductInventory[] = [
   {
-    id: 'WH-001',
-    name: 'Main Warehouse',
-    code: 'WH-001',
-    location: 'Jakarta',
-    address: 'Jl. Industri No. 123',
-    city: 'Jakarta',
-    postalCode: '12345',
-    country: 'Indonesia',
-    phone: '+62 21 1234567',
-    email: 'main@kidkazz.com',
-    manager: 'John Doe',
-    capacity: 10000,
-    currentStock: 7450,
-    status: 'Active',
-    createdDate: '2024-01-15',
+    id: '1',
+    name: 'Baby Bottle Set',
+    sku: 'BB-001',
+    barcode: '8901234567890',
+    category: 'Feeding',
+    totalStock: 100,
+    productUOMs: [
+      { id: 'uom-1-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567890', conversionFactor: 1, stock: 10, isDefault: true },
+      { id: 'uom-1-2', uomCode: 'BOX6', uomName: 'Box of 6', barcode: '8901234567906', conversionFactor: 6, stock: 10, isDefault: false },
+      { id: 'uom-1-3', uomCode: 'CARTON18', uomName: 'Carton (18 PCS)', barcode: '8901234567918', conversionFactor: 18, stock: 2, isDefault: false },
+    ],
   },
   {
-    id: 'WH-002',
-    name: 'North Branch',
-    code: 'WH-002',
-    location: 'Surabaya',
-    address: 'Jl. Raya Utara No. 456',
-    city: 'Surabaya',
-    postalCode: '60123',
-    country: 'Indonesia',
-    phone: '+62 31 7654321',
-    email: 'north@kidkazz.com',
-    manager: 'Jane Smith',
-    capacity: 5000,
-    currentStock: 3200,
-    status: 'Active',
-    createdDate: '2024-02-20',
+    id: '2',
+    name: 'Kids Backpack',
+    sku: 'KB-002',
+    barcode: '8901234567891',
+    category: 'School',
+    totalStock: 89,
+    productUOMs: [
+      { id: 'uom-2-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567891', conversionFactor: 1, stock: 5, isDefault: true },
+      { id: 'uom-2-2', uomCode: 'BOX6', uomName: 'Box of 6', barcode: '8901234567897', conversionFactor: 6, stock: 14, isDefault: false },
+    ],
   },
   {
-    id: 'WH-003',
-    name: 'South Branch',
-    code: 'WH-003',
-    location: 'Bandung',
-    address: 'Jl. Selatan No. 789',
-    city: 'Bandung',
-    postalCode: '40123',
-    country: 'Indonesia',
-    phone: '+62 22 9876543',
-    email: 'south@kidkazz.com',
-    manager: 'Bob Johnson',
-    capacity: 3000,
-    currentStock: 1850,
-    status: 'Active',
-    createdDate: '2024-03-10',
+    id: '3',
+    name: 'Educational Puzzle Set',
+    sku: 'EP-003',
+    barcode: '8901234567892',
+    category: 'Education',
+    totalStock: 120,
+    productUOMs: [
+      { id: 'uom-3-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567892', conversionFactor: 1, stock: 0, isDefault: true },
+      { id: 'uom-3-2', uomCode: 'BOX6', uomName: 'Box of 6', barcode: '8901234567898', conversionFactor: 6, stock: 20, isDefault: false },
+    ],
   },
 ];
 
 function WarehousePage() {
-  const [warehouses, setWarehouses] = useState<WarehouseData[]>(mockWarehouses);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [selectedWarehouse, setSelectedWarehouse] = useState('WH-001');
+  const [inventory, setInventory] = useState<ProductInventory[]>(mockInventory);
+  const [conversions, setConversions] = useState<ConversionHistory[]>([]);
 
   // Drawer states
-  const [viewDrawerOpen, setViewDrawerOpen] = useState(false);
-  const [formDrawerOpen, setFormDrawerOpen] = useState(false);
-  const [selectedWarehouse, setSelectedWarehouse] = useState<WarehouseData | null>(null);
-  const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
+  const [conversionDrawerOpen, setConversionDrawerOpen] = useState(false);
+  const [historyDrawerOpen, setHistoryDrawerOpen] = useState(false);
 
-  // Form data
-  const [formData, setFormData] = useState({
-    name: '',
-    code: '',
-    location: '',
-    address: '',
-    city: '',
-    postalCode: '',
-    country: '',
-    phone: '',
-    email: '',
-    manager: '',
-    capacity: '',
-  });
+  // Conversion form states
+  const [selectedProduct, setSelectedProduct] = useState<ProductInventory | null>(null);
+  const [selectedFromUOM, setSelectedFromUOM] = useState<ProductUOM | null>(null);
+  const [conversionQuantity, setConversionQuantity] = useState('');
+  const [conversionReason, setConversionReason] = useState('PCS sold out');
+  const [conversionNotes, setConversionNotes] = useState('');
 
-  // Filter warehouses based on search
-  const filteredWarehouses = useMemo(() => {
-    return warehouses.filter((warehouse) =>
-      warehouse.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      warehouse.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      warehouse.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      warehouse.manager.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [warehouses, searchTerm]);
+  // Confirmation dialog
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
-  // Calculate pagination
-  const totalPages = Math.ceil(filteredWarehouses.length / itemsPerPage);
-  const paginatedWarehouses = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredWarehouses.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredWarehouses, currentPage, itemsPerPage]);
-
-  const handleDelete = (id: string) => {
-    setWarehouses(warehouses.filter((w) => w.id !== id));
+  // Rupiah formatter
+  const formatRupiah = (amount: number): string => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
   };
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+  // Format timestamp
+  const formatTimestamp = (date: Date): string => {
+    return new Intl.DateTimeFormat('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
   };
 
-  const handleSearchChange = (value: string) => {
-    setSearchTerm(value);
-    setCurrentPage(1);
+  // Calculate total PCS from all UOMs
+  const calculateTotalPCS = (product: ProductInventory): number => {
+    return product.productUOMs.reduce((total, uom) => {
+      return total + (uom.stock * uom.conversionFactor);
+    }, 0);
   };
 
-  const handleViewWarehouse = (warehouse: WarehouseData) => {
-    setSelectedWarehouse(warehouse);
-    setViewDrawerOpen(true);
+  // Get PCS UOM
+  const getPCSUOM = (product: ProductInventory): ProductUOM | undefined => {
+    return product.productUOMs.find(uom => uom.uomCode === 'PCS');
   };
 
-  const handleAddWarehouse = () => {
-    setFormMode('add');
-    setFormData({
-      name: '',
-      code: '',
-      location: '',
-      address: '',
-      city: '',
-      postalCode: '',
-      country: 'Indonesia',
-      phone: '',
-      email: '',
-      manager: '',
-      capacity: '',
-    });
-    setFormDrawerOpen(true);
+  // Handle open conversion drawer
+  const handleOpenConversion = (product: ProductInventory, uom: ProductUOM) => {
+    if (uom.uomCode === 'PCS') {
+      toast.error('Cannot convert PCS', {
+        description: 'PCS is the base unit and cannot be converted'
+      });
+      return;
+    }
+
+    if (uom.stock === 0) {
+      toast.error('No stock available', {
+        description: `${uom.uomName} has no stock available for conversion`
+      });
+      return;
+    }
+
+    setSelectedProduct(product);
+    setSelectedFromUOM(uom);
+    setConversionQuantity('');
+    setConversionReason('PCS sold out');
+    setConversionNotes('');
+    setConversionDrawerOpen(true);
   };
 
-  const handleEditWarehouse = (warehouse: WarehouseData) => {
-    setFormMode('edit');
-    setSelectedWarehouse(warehouse);
-    setFormData({
-      name: warehouse.name,
-      code: warehouse.code,
-      location: warehouse.location,
-      address: warehouse.address,
-      city: warehouse.city,
-      postalCode: warehouse.postalCode,
-      country: warehouse.country,
-      phone: warehouse.phone,
-      email: warehouse.email,
-      manager: warehouse.manager,
-      capacity: warehouse.capacity.toString(),
-    });
-    setFormDrawerOpen(true);
-  };
-
-  const handleSubmitForm = (e: React.FormEvent) => {
+  // Handle conversion submit
+  const handleConversionSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (formMode === 'add') {
-      const newWarehouse: WarehouseData = {
-        id: `WH-${String(warehouses.length + 1).padStart(3, '0')}`,
-        name: formData.name,
-        code: formData.code,
-        location: formData.location,
-        address: formData.address,
-        city: formData.city,
-        postalCode: formData.postalCode,
-        country: formData.country,
-        phone: formData.phone,
-        email: formData.email,
-        manager: formData.manager,
-        capacity: parseInt(formData.capacity),
-        currentStock: 0,
-        status: 'Active',
-        createdDate: new Date().toISOString().split('T')[0],
-      };
-      setWarehouses([...warehouses, newWarehouse]);
-    } else if (formMode === 'edit' && selectedWarehouse) {
-      setWarehouses(warehouses.map(w =>
-        w.id === selectedWarehouse.id
-          ? {
-              ...w,
-              name: formData.name,
-              code: formData.code,
-              location: formData.location,
-              address: formData.address,
-              city: formData.city,
-              postalCode: formData.postalCode,
-              country: formData.country,
-              phone: formData.phone,
-              email: formData.email,
-              manager: formData.manager,
-              capacity: parseInt(formData.capacity),
-            }
-          : w
-      ));
+    if (!selectedProduct || !selectedFromUOM) return;
+
+    const qty = parseInt(conversionQuantity);
+    if (qty <= 0 || qty > selectedFromUOM.stock) {
+      toast.error('Invalid quantity', {
+        description: `Please enter a quantity between 1 and ${selectedFromUOM.stock}`
+      });
+      return;
     }
-    setFormDrawerOpen(false);
+
+    setConfirmDialogOpen(true);
   };
 
-  const calculateUtilization = (current: number, capacity: number): number => {
-    return Math.round((current / capacity) * 100);
+  // Confirm and execute conversion
+  const executeConversion = () => {
+    if (!selectedProduct || !selectedFromUOM) return;
+
+    const qty = parseInt(conversionQuantity);
+    const pcsToAdd = qty * selectedFromUOM.conversionFactor;
+
+    // Update inventory
+    setInventory(inventory.map(product => {
+      if (product.id === selectedProduct.id) {
+        return {
+          ...product,
+          productUOMs: product.productUOMs.map(uom => {
+            if (uom.id === selectedFromUOM.id) {
+              // Decrease source UOM stock
+              return { ...uom, stock: uom.stock - qty };
+            } else if (uom.uomCode === 'PCS') {
+              // Increase PCS stock
+              return { ...uom, stock: uom.stock + pcsToAdd };
+            }
+            return uom;
+          }),
+        };
+      }
+      return product;
+    }));
+
+    // Add to conversion history
+    const newConversion: ConversionHistory = {
+      id: `conv-${Date.now()}`,
+      productName: selectedProduct.name,
+      productSKU: selectedProduct.sku,
+      fromUOM: `${qty} ${selectedFromUOM.uomName}`,
+      fromQuantity: qty,
+      toQuantity: pcsToAdd,
+      reason: conversionReason,
+      notes: conversionNotes,
+      performedBy: 'Current User', // In real app, get from auth context
+      timestamp: new Date(),
+    };
+    setConversions([newConversion, ...conversions]);
+
+    toast.success('UOM Converted Successfully', {
+      description: `Converted ${qty} ${selectedFromUOM.uomName} → ${pcsToAdd} PCS`
+    });
+
+    setConfirmDialogOpen(false);
+    setConversionDrawerOpen(false);
+    setSelectedProduct(null);
+    setSelectedFromUOM(null);
   };
+
+  // Get low stock products (PCS stock < 10)
+  const lowStockProducts = inventory.filter(product => {
+    const pcsUOM = getPCSUOM(product);
+    return pcsUOM && pcsUOM.stock < 10;
+  });
 
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Warehouse Management</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Warehouse Inventory</h1>
           <p className="text-muted-foreground mt-1">
-            Manage warehouse locations, capacity, and inventory
+            Manage product inventory and perform UOM conversions
           </p>
         </div>
-        <Button onClick={handleAddWarehouse} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Warehouse
+        <Button onClick={() => setHistoryDrawerOpen(true)} variant="outline">
+          <History className="h-4 w-4 mr-2" />
+          Conversion History
         </Button>
       </div>
+
+      {/* Warehouse Selector */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Select Warehouse</CardTitle>
+          <CardDescription>Choose a warehouse to view and manage inventory</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2">
+            {warehouses.map(wh => (
+              <Button
+                key={wh.id}
+                variant={selectedWarehouse === wh.id ? 'default' : 'outline'}
+                onClick={() => setSelectedWarehouse(wh.id)}
+              >
+                <Warehouse className="h-4 w-4 mr-2" />
+                {wh.name}
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Summary Stats */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Warehouses</CardTitle>
-            <Warehouse className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{warehouses.length}</div>
-            <p className="text-xs text-muted-foreground">Active locations</p>
+            <div className="text-2xl font-bold">{inventory.length}</div>
+            <p className="text-xs text-muted-foreground">In warehouse</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Capacity</CardTitle>
-            <Warehouse className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Total Stock (PCS)</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {warehouses.reduce((sum, w) => sum + w.capacity, 0).toLocaleString()}
+              {inventory.reduce((sum, p) => sum + calculateTotalPCS(p), 0)}
             </div>
-            <p className="text-xs text-muted-foreground">Units capacity</p>
+            <p className="text-xs text-muted-foreground">Equivalent pieces</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Current Stock</CardTitle>
-            <Warehouse className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Low Stock Items</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {warehouses.reduce((sum, w) => sum + w.currentStock, 0).toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">Units in stock</p>
+            <div className="text-2xl font-bold">{lowStockProducts.length}</div>
+            <p className="text-xs text-muted-foreground">PCS below 10 units</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Average Utilization</CardTitle>
-            <Warehouse className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Conversions Today</CardTitle>
+            <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {Math.round(
-                (warehouses.reduce((sum, w) => sum + w.currentStock, 0) /
-                  warehouses.reduce((sum, w) => sum + w.capacity, 0)) *
-                  100
-              )}%
-            </div>
-            <p className="text-xs text-muted-foreground">Across all locations</p>
+            <div className="text-2xl font-bold">{conversions.length}</div>
+            <p className="text-xs text-muted-foreground">UOM conversions</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Warehouses Table */}
+      {/* Product Inventory Table */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>All Warehouses</CardTitle>
-              <CardDescription>
-                {filteredWarehouses.length} of {warehouses.length} warehouses
-              </CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              {/* Search */}
-              <div className="relative w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search warehouses..."
-                  value={searchTerm}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  className="pl-10 h-9"
-                />
-              </div>
-            </div>
-          </div>
+          <CardTitle>Product Inventory</CardTitle>
+          <CardDescription>
+            View stock by UOM and convert larger units to PCS when needed
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[180px]">Warehouse</TableHead>
-                  <TableHead className="w-[100px]">Code</TableHead>
-                  <TableHead className="w-[150px]">Location</TableHead>
-                  <TableHead className="w-[150px]">Manager</TableHead>
-                  <TableHead className="w-[120px] text-right">Capacity</TableHead>
-                  <TableHead className="w-[120px] text-right">Stock</TableHead>
-                  <TableHead className="w-[100px] text-right">Usage</TableHead>
-                  <TableHead className="w-[90px]">Status</TableHead>
-                  <TableHead className="w-[140px] text-right">Actions</TableHead>
+                  <TableHead>Product</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>UOM Breakdown</TableHead>
+                  <TableHead className="text-right">Total (PCS)</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedWarehouses.map((warehouse) => {
-                  const utilization = calculateUtilization(warehouse.currentStock, warehouse.capacity);
+                {inventory.map(product => {
+                  const pcsUOM = getPCSUOM(product);
+                  const totalPCS = calculateTotalPCS(product);
+                  const isLowStock = pcsUOM && pcsUOM.stock < 10;
 
                   return (
-                    <TableRow
-                      key={warehouse.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => handleViewWarehouse(warehouse)}
-                    >
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          <Warehouse className="h-4 w-4 text-muted-foreground" />
-                          <div>
-                            <div>{warehouse.name}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {warehouse.city}
-                            </div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-mono text-sm text-muted-foreground">
-                        {warehouse.code}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        <div className="flex items-center gap-1">
-                          <MapPin className="h-3 w-3 text-muted-foreground" />
-                          {warehouse.location}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        <div className="flex items-center gap-1">
-                          <User className="h-3 w-3 text-muted-foreground" />
-                          {warehouse.manager}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {warehouse.capacity.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {warehouse.currentStock.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
-                            <div
-                              className={`h-full ${
-                                utilization >= 90
-                                  ? 'bg-destructive'
-                                  : utilization >= 70
-                                  ? 'bg-yellow-500'
-                                  : 'bg-green-500'
-                              }`}
-                              style={{ width: `${utilization}%` }}
-                            />
-                          </div>
-                          <span className="text-xs font-medium w-10 text-right">
-                            {utilization}%
-                          </span>
+                    <TableRow key={product.id}>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{product.name}</p>
+                          <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant={warehouse.status === 'Active' ? 'default' : 'secondary'}
-                          className={
-                            warehouse.status === 'Active'
-                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-500'
-                              : ''
-                          }
-                        >
-                          {warehouse.status}
-                        </Badge>
+                        <Badge variant="outline">{product.category}</Badge>
                       </TableCell>
-                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleViewWarehouse(warehouse)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleEditWarehouse(warehouse)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() => handleDelete(warehouse.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                      <TableCell>
+                        <div className="space-y-1">
+                          {product.productUOMs.map(uom => (
+                            <div
+                              key={uom.id}
+                              className="flex items-center justify-between gap-4 p-2 border rounded text-sm"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{uom.uomCode}</span>
+                                <span className="text-muted-foreground">×{uom.conversionFactor}</span>
+                                {uom.isDefault && (
+                                  <Badge variant="outline" className="text-xs">Default</Badge>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span
+                                  className={`font-semibold ${
+                                    uom.uomCode === 'PCS' && uom.stock < 10
+                                      ? 'text-destructive'
+                                      : ''
+                                  }`}
+                                >
+                                  {uom.stock} units
+                                </span>
+                                {uom.uomCode !== 'PCS' && uom.stock > 0 && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleOpenConversion(product, uom)}
+                                  >
+                                    <ArrowRightLeft className="h-3 w-3 mr-1" />
+                                    Convert
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
                         </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className={`text-lg font-bold ${isLowStock ? 'text-destructive' : ''}`}>
+                          {totalPCS} PCS
+                        </div>
+                        {isLowStock && (
+                          <p className="text-xs text-destructive">Low stock!</p>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {isLowStock && product.productUOMs.some(u => u.uomCode !== 'PCS' && u.stock > 0) && (
+                          <Badge variant="destructive" className="animate-pulse">
+                            Convert Available
+                          </Badge>
+                        )}
                       </TableCell>
                     </TableRow>
                   );
@@ -483,347 +456,122 @@ function WarehousePage() {
               </TableBody>
             </Table>
           </div>
-
-          {/* Pagination Controls */}
-          <div className="mt-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Items per page:</span>
-              <select
-                value={itemsPerPage}
-                onChange={(e) => {
-                  setItemsPerPage(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="h-8 rounded-md border border-input bg-background px-3 text-sm"
-              >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={15}>15</option>
-                <option value={20}>20</option>
-              </select>
-            </div>
-
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-              itemsPerPage={itemsPerPage}
-              totalItems={filteredWarehouses.length}
-            />
-          </div>
         </CardContent>
       </Card>
 
-      {/* View Warehouse Drawer (Right Side) */}
-      <Drawer open={viewDrawerOpen} onOpenChange={setViewDrawerOpen}>
-        <DrawerContent side="right">
-          <DrawerHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <DrawerTitle>{selectedWarehouse?.name}</DrawerTitle>
-                <DrawerDescription>Warehouse Details</DrawerDescription>
-              </div>
-              <DrawerClose asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <X className="h-4 w-4" />
-                </Button>
-              </DrawerClose>
-            </div>
-          </DrawerHeader>
+      {/* Conversion Drawer */}
+      <Drawer open={conversionDrawerOpen} onOpenChange={setConversionDrawerOpen}>
+        <DrawerContent>
+          <form onSubmit={handleConversionSubmit}>
+            <DrawerHeader>
+              <DrawerTitle>Convert UOM to PCS</DrawerTitle>
+              <DrawerDescription>
+                Break down larger units into pieces for retail sale
+              </DrawerDescription>
+            </DrawerHeader>
 
-          {selectedWarehouse && (() => {
-            const utilization = calculateUtilization(selectedWarehouse.currentStock, selectedWarehouse.capacity);
-
-            return (
-              <div className="flex-1 overflow-y-auto p-4">
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Warehouse Name</Label>
-                    <p className="text-sm font-medium mt-1">{selectedWarehouse.name}</p>
+            <div className="px-6 space-y-4">
+              {selectedProduct && selectedFromUOM && (
+                <>
+                  {/* Product Info */}
+                  <div className="p-4 bg-muted rounded-md">
+                    <p className="font-semibold">{selectedProduct.name}</p>
+                    <p className="text-sm text-muted-foreground">SKU: {selectedProduct.sku}</p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Code</Label>
-                      <p className="text-sm font-mono mt-1">{selectedWarehouse.code}</p>
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Status</Label>
-                      <div className="mt-1">
-                        <Badge
-                          variant={selectedWarehouse.status === 'Active' ? 'default' : 'secondary'}
-                          className={
-                            selectedWarehouse.status === 'Active'
-                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-500'
-                              : ''
-                          }
-                        >
-                          {selectedWarehouse.status}
-                        </Badge>
+                  {/* Source UOM */}
+                  <div className="space-y-2">
+                    <Label>Source UOM</Label>
+                    <div className="p-3 border rounded-md bg-blue-50 dark:bg-blue-900/20">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-semibold">{selectedFromUOM.uomName}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Conversion Factor: ×{selectedFromUOM.conversionFactor}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-muted-foreground">Available</p>
+                          <p className="text-xl font-bold">{selectedFromUOM.stock} units</p>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <Separator />
-
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Location</Label>
-                    <p className="text-sm mt-1">{selectedWarehouse.location}</p>
-                  </div>
-
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Full Address</Label>
-                    <p className="text-sm mt-1">
-                      {selectedWarehouse.address}<br />
-                      {selectedWarehouse.city}, {selectedWarehouse.postalCode}<br />
-                      {selectedWarehouse.country}
+                  {/* Quantity Input */}
+                  <div className="space-y-2">
+                    <Label htmlFor="quantity">Quantity to Convert</Label>
+                    <Input
+                      id="quantity"
+                      type="number"
+                      min="1"
+                      max={selectedFromUOM.stock}
+                      value={conversionQuantity}
+                      onChange={(e) => setConversionQuantity(e.target.value)}
+                      placeholder="Enter quantity"
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Max: {selectedFromUOM.stock} {selectedFromUOM.uomName}
                     </p>
                   </div>
 
+                  {/* Conversion Preview */}
+                  {conversionQuantity && parseInt(conversionQuantity) > 0 && (
+                    <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Will produce</p>
+                          <p className="text-2xl font-bold text-green-600">
+                            {parseInt(conversionQuantity) * selectedFromUOM.conversionFactor} PCS
+                          </p>
+                        </div>
+                        <ArrowRightLeft className="h-6 w-6 text-green-600" />
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {conversionQuantity} {selectedFromUOM.uomName} × {selectedFromUOM.conversionFactor}
+                      </p>
+                    </div>
+                  )}
+
                   <Separator />
 
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Manager</Label>
-                    <p className="text-sm mt-1">{selectedWarehouse.manager}</p>
+                  {/* Reason */}
+                  <div className="space-y-2">
+                    <Label htmlFor="reason">Reason for Conversion</Label>
+                    <select
+                      id="reason"
+                      value={conversionReason}
+                      onChange={(e) => setConversionReason(e.target.value)}
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                      required
+                    >
+                      <option value="PCS sold out">PCS sold out</option>
+                      <option value="Damaged packaging">Damaged packaging</option>
+                      <option value="Bulk order breakdown">Bulk order breakdown</option>
+                      <option value="Customer request">Customer request</option>
+                      <option value="Other">Other</option>
+                    </select>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Phone</Label>
-                      <p className="text-sm mt-1">{selectedWarehouse.phone}</p>
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Email</Label>
-                      <p className="text-sm mt-1">{selectedWarehouse.email}</p>
-                    </div>
+                  {/* Notes */}
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Notes (Optional)</Label>
+                    <Input
+                      id="notes"
+                      value={conversionNotes}
+                      onChange={(e) => setConversionNotes(e.target.value)}
+                      placeholder="Additional information..."
+                    />
                   </div>
-
-                  <Separator />
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Total Capacity</Label>
-                      <p className="text-lg font-bold mt-1">
-                        {selectedWarehouse.capacity.toLocaleString()}
-                      </p>
-                      <p className="text-xs text-muted-foreground">units</p>
-                    </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Current Stock</Label>
-                      <p className="text-lg font-bold mt-1">
-                        {selectedWarehouse.currentStock.toLocaleString()}
-                      </p>
-                      <p className="text-xs text-muted-foreground">units</p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Utilization</Label>
-                    <div className="mt-2">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-2xl font-bold">{utilization}%</span>
-                        <span className="text-xs text-muted-foreground">
-                          {selectedWarehouse.capacity - selectedWarehouse.currentStock} units available
-                        </span>
-                      </div>
-                      <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className={`h-full ${
-                            utilization >= 90
-                              ? 'bg-destructive'
-                              : utilization >= 70
-                              ? 'bg-yellow-500'
-                              : 'bg-green-500'
-                          }`}
-                          style={{ width: `${utilization}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Created Date</Label>
-                    <p className="text-sm mt-1">{selectedWarehouse.createdDate}</p>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-
-          <DrawerFooter>
-            <Button onClick={() => selectedWarehouse && handleEditWarehouse(selectedWarehouse)}>
-              <Edit className="h-4 w-4 mr-2" />
-              Edit Warehouse
-            </Button>
-            <DrawerClose asChild>
-              <Button variant="outline">Close</Button>
-            </DrawerClose>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-
-      {/* Add/Edit Warehouse Form Drawer (Left Side) */}
-      <Drawer open={formDrawerOpen} onOpenChange={setFormDrawerOpen}>
-        <DrawerContent side="left">
-          <DrawerHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <DrawerTitle>
-                  {formMode === 'add' ? 'Add New Warehouse' : 'Edit Warehouse'}
-                </DrawerTitle>
-                <DrawerDescription>
-                  {formMode === 'add'
-                    ? 'Create a new warehouse location'
-                    : 'Update warehouse information'}
-                </DrawerDescription>
-              </div>
-              <DrawerClose asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <X className="h-4 w-4" />
-                </Button>
-              </DrawerClose>
-            </div>
-          </DrawerHeader>
-
-          <form onSubmit={handleSubmitForm} className="flex-1 overflow-y-auto p-4 space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Warehouse Name</Label>
-              <Input
-                id="name"
-                placeholder="Main Warehouse"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-              />
+                </>
+              )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="code">Warehouse Code</Label>
-              <Input
-                id="code"
-                placeholder="WH-001"
-                value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                required
-              />
-            </div>
-
-            <Separator />
-
-            <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
-              <Input
-                id="location"
-                placeholder="Jakarta"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="address">Street Address</Label>
-              <Input
-                id="address"
-                placeholder="Jl. Industri No. 123"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
-                  placeholder="Jakarta"
-                  value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="postalCode">Postal Code</Label>
-                <Input
-                  id="postalCode"
-                  placeholder="12345"
-                  value={formData.postalCode}
-                  onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="country">Country</Label>
-              <Input
-                id="country"
-                placeholder="Indonesia"
-                value={formData.country}
-                onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                required
-              />
-            </div>
-
-            <Separator />
-
-            <div className="space-y-2">
-              <Label htmlFor="manager">Manager Name</Label>
-              <Input
-                id="manager"
-                placeholder="John Doe"
-                value={formData.manager}
-                onChange={(e) => setFormData({ ...formData, manager: e.target.value })}
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  placeholder="+62 21 1234567"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="warehouse@kidkazz.com"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-
-            <Separator />
-
-            <div className="space-y-2">
-              <Label htmlFor="capacity">Storage Capacity (units)</Label>
-              <Input
-                id="capacity"
-                type="number"
-                min="0"
-                placeholder="10000"
-                value={formData.capacity}
-                onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
-                required
-              />
-              <p className="text-xs text-muted-foreground">
-                Maximum number of units this warehouse can hold
-              </p>
-            </div>
-
-            <DrawerFooter className="px-0">
+            <DrawerFooter>
               <Button type="submit" className="w-full">
-                {formMode === 'add' ? 'Create Warehouse' : 'Update Warehouse'}
+                <ArrowRightLeft className="h-4 w-4 mr-2" />
+                Convert to PCS
               </Button>
               <DrawerClose asChild>
                 <Button type="button" variant="outline" className="w-full">
@@ -834,6 +582,112 @@ function WarehousePage() {
           </form>
         </DrawerContent>
       </Drawer>
+
+      {/* Conversion History Drawer */}
+      <Drawer open={historyDrawerOpen} onOpenChange={setHistoryDrawerOpen}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>Conversion History</DrawerTitle>
+            <DrawerDescription>
+              All UOM conversion activities in this warehouse
+            </DrawerDescription>
+          </DrawerHeader>
+
+          <div className="px-6 pb-6">
+            {conversions.length === 0 ? (
+              <div className="text-center py-12">
+                <History className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
+                <p className="text-muted-foreground mt-4">No conversions yet</p>
+                <p className="text-sm text-muted-foreground">
+                  Conversion history will appear here
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {conversions.map(conversion => (
+                  <div key={conversion.id} className="p-4 border rounded-md">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="font-semibold">{conversion.productName}</p>
+                        <p className="text-sm text-muted-foreground">SKU: {conversion.productSKU}</p>
+                      </div>
+                      <Badge variant="outline">
+                        {conversion.fromUOM} → {conversion.toQuantity} PCS
+                      </Badge>
+                    </div>
+                    <Separator className="my-2" />
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Reason:</span>
+                        <p className="font-medium">{conversion.reason}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">By:</span>
+                        <p className="font-medium">{conversion.performedBy}</p>
+                      </div>
+                    </div>
+                    {conversion.notes && (
+                      <div className="mt-2 text-sm">
+                        <span className="text-muted-foreground">Notes:</span>
+                        <p>{conversion.notes}</p>
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {formatTimestamp(conversion.timestamp)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <DrawerFooter>
+            <DrawerClose asChild>
+              <Button variant="outline" className="w-full">
+                Close
+              </Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm UOM Conversion</AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedProduct && selectedFromUOM && conversionQuantity && (
+                <>
+                  You are about to convert:
+                  <div className="mt-3 p-3 bg-muted rounded-md">
+                    <p className="font-semibold">{selectedProduct.name}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge variant="outline">
+                        {conversionQuantity} {selectedFromUOM.uomName}
+                      </Badge>
+                      <ArrowRightLeft className="h-4 w-4" />
+                      <Badge variant="outline">
+                        {parseInt(conversionQuantity) * selectedFromUOM.conversionFactor} PCS
+                      </Badge>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-sm">
+                    This will decrease <strong>{selectedFromUOM.uomName}</strong> stock and increase
+                    <strong> PCS</strong> stock. This action cannot be undone.
+                  </p>
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={executeConversion}>
+              Confirm Conversion
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

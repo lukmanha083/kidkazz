@@ -25,6 +25,16 @@ import {
 import { Pagination } from '@/components/ui/pagination';
 import { Badge } from '@/components/ui/badge';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Plus,
   Search,
   Edit,
@@ -172,6 +182,10 @@ function CategoryPage() {
     parentCategory: '',
   });
 
+  // Delete confirmation states
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+
   // Filter categories based on search
   const filteredCategories = useMemo(() => {
     return categories.filter((category) =>
@@ -188,12 +202,20 @@ function CategoryPage() {
     return filteredCategories.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredCategories, currentPage, itemsPerPage]);
 
-  const handleDelete = (id: string) => {
-    const category = categories.find(c => c.id === id);
-    setCategories(categories.filter((c) => c.id !== id));
-    toast.success('Category deleted', {
-      description: category ? `"${category.name}" has been deleted successfully` : 'Category has been deleted'
-    });
+  const handleDelete = (category: Category) => {
+    setCategoryToDelete(category);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (categoryToDelete) {
+      setCategories(categories.filter((c) => c.id !== categoryToDelete.id));
+      toast.success('Category deleted', {
+        description: `"${categoryToDelete.name}" has been deleted successfully`
+      });
+      setDeleteDialogOpen(false);
+      setCategoryToDelete(null);
+    }
   };
 
   const handlePageChange = (page: number) => {
@@ -391,7 +413,7 @@ function CategoryPage() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => handleDelete(category.id)}
+                          onClick={() => handleDelete(category)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -610,6 +632,37 @@ function CategoryPage() {
           </form>
         </DrawerContent>
       </Drawer>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {categoryToDelete && (
+                <>
+                  You are about to delete <strong>"{categoryToDelete.name}"</strong>.
+                  This action cannot be undone.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setDeleteDialogOpen(false);
+              setCategoryToDelete(null);
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

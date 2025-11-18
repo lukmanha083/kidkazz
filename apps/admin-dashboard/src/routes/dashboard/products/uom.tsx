@@ -26,6 +26,16 @@ import { Pagination } from '@/components/ui/pagination';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Plus,
   Search,
   Edit,
@@ -131,6 +141,10 @@ function UOMPage() {
     description: '',
   });
 
+  // Delete confirmation states
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [uomToDelete, setUomToDelete] = useState<UnitOfMeasure | null>(null);
+
   // Filter UOMs based on search
   const filteredUOMs = useMemo(() => {
     return uoms.filter((uom) =>
@@ -147,18 +161,26 @@ function UOMPage() {
     return filteredUOMs.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredUOMs, currentPage, itemsPerPage]);
 
-  const handleDelete = (id: string) => {
-    const uom = uoms.find(u => u.id === id);
-    if (uom?.isBaseUnit) {
+  const handleDelete = (uom: UnitOfMeasure) => {
+    if (uom.isBaseUnit) {
       toast.error('Cannot delete base unit', {
         description: 'Base units cannot be deleted from the system'
       });
       return;
     }
-    setUoms(uoms.filter((u) => u.id !== id));
-    toast.success('UOM deleted', {
-      description: uom ? `"${uom.name}" has been deleted successfully` : 'UOM has been deleted'
-    });
+    setUomToDelete(uom);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (uomToDelete) {
+      setUoms(uoms.filter((u) => u.id !== uomToDelete.id));
+      toast.success('UOM deleted', {
+        description: `"${uomToDelete.name}" has been deleted successfully`
+      });
+      setDeleteDialogOpen(false);
+      setUomToDelete(null);
+    }
   };
 
   const handlePageChange = (page: number) => {
@@ -432,7 +454,7 @@ function UOMPage() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => handleDelete(uom.id)}
+                          onClick={() => handleDelete(uom)}
                           disabled={uom.isBaseUnit}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -726,6 +748,37 @@ function UOMPage() {
           </form>
         </DrawerContent>
       </Drawer>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {uomToDelete && (
+                <>
+                  You are about to delete <strong>"{uomToDelete.name}"</strong>.
+                  This action cannot be undone.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setDeleteDialogOpen(false);
+              setUomToDelete(null);
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

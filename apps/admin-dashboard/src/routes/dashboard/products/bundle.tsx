@@ -26,6 +26,16 @@ import { Pagination } from '@/components/ui/pagination';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Plus,
   Search,
   Edit,
@@ -385,6 +395,10 @@ function ProductBundlePage() {
     endDate: '',
   });
 
+  // Delete confirmation states
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [bundleToDelete, setBundleToDelete] = useState<ProductBundle | null>(null);
+
   // Available products for combobox - searchable by barcode, SKU, or name
   const availableProducts = products.map(p => ({
     value: p.sku,
@@ -456,12 +470,20 @@ function ProductBundlePage() {
     return filteredBundles.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredBundles, currentPage, itemsPerPage]);
 
-  const handleDelete = (id: string) => {
-    const bundle = bundles.find(b => b.id === id);
-    setBundles(bundles.filter((b) => b.id !== id));
-    toast.success('Bundle deleted', {
-      description: bundle ? `"${bundle.bundleName}" has been deleted successfully` : 'Bundle has been deleted'
-    });
+  const handleDelete = (bundle: ProductBundle) => {
+    setBundleToDelete(bundle);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (bundleToDelete) {
+      setBundles(bundles.filter((b) => b.id !== bundleToDelete.id));
+      toast.success('Bundle deleted', {
+        description: `"${bundleToDelete.bundleName}" has been deleted successfully`
+      });
+      setDeleteDialogOpen(false);
+      setBundleToDelete(null);
+    }
   };
 
   const handlePageChange = (page: number) => {
@@ -749,7 +771,7 @@ function ProductBundlePage() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() => handleDelete(bundle.id)}
+                            onClick={() => handleDelete(bundle)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -1393,6 +1415,37 @@ function ProductBundlePage() {
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {bundleToDelete && (
+                <>
+                  You are about to delete <strong>"{bundleToDelete.bundleName}"</strong>.
+                  This action cannot be undone.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setDeleteDialogOpen(false);
+              setBundleToDelete(null);
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
