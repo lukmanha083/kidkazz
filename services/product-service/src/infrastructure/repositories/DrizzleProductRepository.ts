@@ -1,9 +1,9 @@
 import { DrizzleD1Database } from 'drizzle-orm/d1';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { IProductRepository } from '../../domain/repositories/IProductRepository';
 import { Product } from '../../domain/entities/Product';
 import { products } from '../db/schema';
-import { Result, ResultFactory } from '@kidkazz/types';
+import { Result, ResultFactory } from '../../shared/types';
 
 /**
  * Drizzle Product Repository (Adapter)
@@ -25,9 +25,9 @@ export class DrizzleProductRepository implements IProductRepository {
         id: product.getId(),
         name: product.getName(),
         sku: product.getSKU().getValue(),
-        description: '',
+        description: '', // TODO: Get from product when description field is added
         retailPrice: product.getRetailPrice()?.getValue() || null,
-        basePrice: product.getWholesalePrice().getValue(),
+        wholesalePrice: product.getWholesalePrice().getValue(),
         availableForRetail: product.getAvailability().isAvailableForRetail(),
         availableForWholesale: product.getAvailability().isAvailableForWholesale(),
         minimumOrderQuantity: product.getMinimumOrderQuantity(),
@@ -146,11 +146,11 @@ export class DrizzleProductRepository implements IProductRepository {
     id: string;
     name: string;
     sku: string;
-    description: string | null;
+    description: string;
     retailPrice: number | null;
-    basePrice: number;
-    availableForRetail: number;
-    availableForWholesale: number;
+    wholesalePrice: number;
+    availableForRetail: boolean;
+    availableForWholesale: boolean;
     minimumOrderQuantity: number;
     status: string;
   }): Product {
@@ -159,12 +159,12 @@ export class DrizzleProductRepository implements IProductRepository {
     const productResult = Product.create({
       name: row.name,
       sku: row.sku,
-      description: row.description || '',
+      description: row.description,
       retailPrice: row.retailPrice,
-      wholesalePrice: row.basePrice,
+      wholesalePrice: row.wholesalePrice,
       availability: {
-        retail: Boolean(row.availableForRetail),
-        wholesale: Boolean(row.availableForWholesale),
+        retail: row.availableForRetail,
+        wholesale: row.availableForWholesale,
       },
       minimumOrderQuantity: row.minimumOrderQuantity,
     });

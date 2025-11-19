@@ -1,5 +1,5 @@
 import { IProductRepository } from '../../domain/repositories/IProductRepository';
-import { Result, ResultFactory } from '@kidkazz/types';
+import { Result, ResultFactory } from '../../shared/types';
 
 /**
  * List Products Use Case

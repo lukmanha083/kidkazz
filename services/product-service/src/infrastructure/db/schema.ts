@@ -33,51 +33,31 @@ export const uoms = sqliteTable('uoms', {
 
 /**
  * Products table
- * Main product catalog with admin dashboard features
+ * Simplified for MVP - matches Product domain entity
  */
 export const products = sqliteTable('products', {
   id: text('id').primaryKey(),
-  barcode: text('barcode').unique().notNull(), // Primary barcode (for PCS UOM)
   name: text('name').notNull(),
   sku: text('sku').unique().notNull(),
-  description: text('description'),
-  image: text('image'),
+  description: text('description').notNull(),
 
-  // Category
-  categoryId: text('category_id').references(() => categories.id, { onDelete: 'set null' }),
-
-  // Pricing (in Rupiah - IDR)
-  price: real('price').notNull(), // Base/retail price
-  retailPrice: real('retail_price'), // Retail price (nullable for wholesale-only)
-  wholesalePrice: real('wholesale_price'), // Wholesale price
-
-  // Stock
-  stock: integer('stock').default(0).notNull(),
-
-  // Base unit
-  baseUnit: text('base_unit').default('PCS').notNull(),
-
-  // Wholesale settings
-  wholesaleThreshold: integer('wholesale_threshold').default(100), // Minimum qty for wholesale pricing
-  minimumOrderQuantity: integer('minimum_order_quantity').default(1),
-
-  // Ratings & Reviews
-  rating: real('rating').default(0),
-  reviews: integer('reviews').default(0),
+  // Pricing
+  retailPrice: real('retail_price'), // Nullable for wholesale-only products
+  wholesalePrice: real('wholesale_price').notNull(), // Base wholesale price
 
   // Availability
-  availableForRetail: integer('available_for_retail', { mode: 'boolean' }).default(true),
-  availableForWholesale: integer('available_for_wholesale', { mode: 'boolean' }).default(true),
+  availableForRetail: integer('available_for_retail', { mode: 'boolean' }).notNull(),
+  availableForWholesale: integer('available_for_wholesale', { mode: 'boolean' }).notNull(),
+
+  // Wholesale settings
+  minimumOrderQuantity: integer('minimum_order_quantity').notNull().default(1),
 
   // Status
-  status: text('status').default('active'), // 'active' | 'inactive' | 'discontinued'
-  isBundle: integer('is_bundle', { mode: 'boolean' }).default(false),
+  status: text('status').notNull().default('active'), // 'active' | 'inactive' | 'discontinued'
 
   // Audit fields
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
-  createdBy: text('created_by'),
-  updatedBy: text('updated_by'),
 });
 
 /**

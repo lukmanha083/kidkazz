@@ -1,6 +1,6 @@
-import { Price, SKU, ProductId, Result, ResultFactory, InvalidOperationError } from '@kidkazz/types';
-import { ProductCreated, ProductPriceUpdated, ProductAvailabilityChanged } from '@kidkazz/domain-events';
-import { generateId, generateTimestamp } from '@kidkazz/utils';
+import { Price, SKU, ProductId, Result, ResultFactory, InvalidOperationError } from '../../shared/types';
+import { ProductCreated, ProductPriceUpdated, ProductAvailabilityChanged } from '../../shared/events';
+import { generateId, generateTimestamp } from '../../shared/utils/helpers';
 
 /**
  * Domain Event base type for Product

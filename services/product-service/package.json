@@ -17,10 +17,7 @@
     "@hono/zod-validator": "^0.2.0",
     "drizzle-orm": "^0.36.4",
     "zod": "^3.22.0",
-    "nanoid": "^5.0.0",
-    "@kidkazz/domain-events": "workspace:*",
-    "@kidkazz/types": "workspace:*",
-    "@kidkazz/utils": "workspace:*"
+    "nanoid": "^5.0.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20251113.0",

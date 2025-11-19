@@ -1,5 +1,5 @@
 import { Product } from '../entities/Product';
-import { Result } from '@kidkazz/types';
+import { Result } from '../../shared/types';
 
 /**
  * Product Repository Port (Interface)

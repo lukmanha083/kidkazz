@@ -1,6 +1,6 @@
 import { Product } from '../../domain/entities/Product';
 import { IProductRepository } from '../../domain/repositories/IProductRepository';
-import { Result, ResultFactory, ValidationError } from '@kidkazz/types';
+import { Result, ResultFactory, ValidationError } from '../../shared/types';
 
 /**
  * Create Product Use Case

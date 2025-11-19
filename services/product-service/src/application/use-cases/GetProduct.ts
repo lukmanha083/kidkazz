@@ -1,5 +1,5 @@
 import { IProductRepository } from '../../domain/repositories/IProductRepository';
-import { Result, ResultFactory, NotFoundError } from '@kidkazz/types';
+import { Result, ResultFactory, NotFoundError } from '../../shared/types';
 
 /**
  * Get Product Use Case

@@ -1,5 +1,5 @@
 import { IProductRepository } from '../../domain/repositories/IProductRepository';
-import { Result, ResultFactory, NotFoundError, ValidationError } from '@kidkazz/types';
+import { Result, ResultFactory, NotFoundError, ValidationError } from '../../shared/types';
 
 /**
  * Update Product Price Use Case
