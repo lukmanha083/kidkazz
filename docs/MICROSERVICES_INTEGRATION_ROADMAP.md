@@ -713,9 +713,15 @@ Order Service manages order processing across three sales channels: **Retail Web
 1. Retail orders: Any quantity, retail pricing
 2. Wholesale orders: Must meet MOQ, tiered pricing applies
 3. POS orders: Immediate stock deduction, print receipt
-4. All orders must reserve inventory before confirmation
-5. Completed orders trigger accounting journal entries
-6. Cancelled orders release reserved inventory
+4. **NO inventory reservation** - Real-time inventory only
+5. **First-pay-first-served**: Payment confirmation = stock allocation (not order creation)
+6. Concurrent stock deduction: If multiple orders try to confirm payment simultaneously, first successful payment gets the stock
+7. Auto-cancel pending orders: When stock reaches 0, trigger event to cancel all pending orders for that product
+8. Payment confirmation workflow:
+   - Check real-time stock availability
+   - If available: Deduct stock + confirm order
+   - If not available: Reject payment + cancel order
+9. Completed orders trigger accounting journal entries
 
 ### Domain Model
 
@@ -765,9 +771,12 @@ class Order {
   addItem(productId: string, quantity: number, price: Money): void
   removeItem(itemId: string): void
   calculateTotal(): void
-  confirm(userId: string): void  // Reserve inventory
-  cancel(userId: string, reason: string): void  // Release inventory
+  confirmPayment(userId: string): Promise<boolean>  // Check stock + deduct if available
+  cancel(userId: string, reason: string): void
   complete(userId: string): void  // Create accounting entries
+
+  // Validation
+  canBePaid(): boolean  // Check if order is in valid state for payment
 }
 
 class OrderLineItem {
@@ -849,24 +858,32 @@ src/
 
 ### Order Workflow
 
-#### 1. Retail Web Order Flow
+#### 1. Retail Web Order Flow (First-Pay-First-Served)
 
 ```mermaid
 graph LR
     A[Customer adds to cart] --> B[Create draft order]
-    B --> C[Validate products]
-    C --> D[Customer confirms]
-    D --> E[Reserve inventory]
-    E --> F{Stock available?}
-    F -->|Yes| G[Confirm order]
-    F -->|No| H[Reject order]
-    G --> I[Process payment]
+    B --> C[Show inventory availability]
+    C --> D[Customer initiates payment]
+    D --> E{Real-time stock check}
+    E -->|Available| F[Deduct inventory atomically]
+    E -->|Not available| G[Reject payment + Cancel order]
+    F --> H{Deduction successful?}
+    H -->|Yes| I[Confirm payment]
+    H -->|No - Race condition| G
     I --> J[Complete order]
     J --> K[Create accounting entry]
     J --> L[Send confirmation email]
+    G --> M[Notify customer - Out of stock]
 ```
 
-#### 2. Wholesale Web Order Flow
+**Key Points:**
+- No reservation - stock is only checked and deducted at payment time
+- Atomic stock deduction prevents overselling
+- Race condition handling: If 2 customers pay simultaneously for last item, first transaction wins
+- Pending orders can be cancelled by `StockDepleted` event from other channels
+
+#### 2. Wholesale Web Order Flow (First-Pay-First-Served)
 
 ```mermaid
 graph LR
@@ -875,25 +892,46 @@ graph LR
     C -->|No| D[Show error]
     C -->|Yes| E[Apply wholesale pricing]
     E --> F[Create draft order]
-    F --> G[Reserve inventory]
-    G --> H[Confirm order]
-    H --> I[Complete order]
-    I --> J[Create accounting entry]
+    F --> G[Show stock availability]
+    G --> H[Wholesaler initiates payment/PO]
+    H --> I{Real-time stock check}
+    I -->|Available| J[Deduct inventory atomically]
+    I -->|Not available| K[Reject + Cancel order]
+    J --> L[Confirm order]
+    L --> M[Complete order]
+    M --> N[Create accounting entry]
+    M --> O[Generate invoice]
 ```
 
-#### 3. POS Order Flow
+**Key Points:**
+- Same real-time inventory model as retail
+- MOQ validation happens before order creation
+- Payment/PO confirmation triggers stock deduction
+- Wholesale orders compete with retail/POS for same inventory pool
+
+#### 3. POS Order Flow (Immediate - Highest Priority)
 
 ```mermaid
 graph LR
-    A[Cashier scans items] --> B[Create order]
-    B --> C[Reserve inventory]
-    C --> D[Process payment]
-    D --> E[Confirm order]
-    E --> F[Complete order]
-    F --> G[Deduct inventory]
-    G --> H[Create accounting entry]
-    H --> I[Print receipt]
+    A[Cashier scans items] --> B[Create order + Show stock]
+    B --> C{Stock available?}
+    C -->|No| D[Alert cashier - Out of stock]
+    C -->|Yes| E[Customer pays cash/card]
+    E --> F{Payment successful?}
+    F -->|No| G[Cancel transaction]
+    F -->|Yes| H[Deduct inventory IMMEDIATELY]
+    H --> I[Complete order]
+    I --> J[Create accounting entry]
+    J --> K[Print receipt]
+    J --> L[Publish StockDepleted event if 0]
 ```
+
+**Key Points:**
+- **Highest priority** - POS gets stock first (immediate payment)
+- Stock deduction happens immediately on payment confirmation
+- If stock goes to 0, `StockDepleted` event triggers cancellation of pending online orders
+- No draft/pending state - order is completed in single transaction
+- Real-time inventory sync across all channels
 
 ### Service Integration
 
@@ -910,11 +948,34 @@ const product = await c.env.PRODUCT_SERVICE.fetch(
 // Get current price based on pricing tier
 ```
 
-#### 2. Inventory Service (Reserve/Release Stock)
+#### 2. Inventory Service (Real-Time Stock Check & Atomic Deduction)
+
+**NO RESERVATION - First-pay-first-served model**
+
 ```typescript
-// Reserve stock when order is confirmed
-const reservation = await c.env.INVENTORY_SERVICE.fetch(
-  new Request('http://internal/api/inventory/reserve', {
+// Step 1: Check real-time stock availability (during payment initiation)
+const stockCheck = await c.env.INVENTORY_SERVICE.fetch(
+  new Request('http://internal/api/inventory/check-availability', {
+    method: 'POST',
+    body: JSON.stringify({
+      warehouseId: order.warehouseId,
+      items: order.items.map(item => ({
+        productId: item.productId,
+        quantity: item.quantity
+      }))
+    })
+  })
+);
+
+const availability = await stockCheck.json();
+if (!availability.available) {
+  throw new Error('Insufficient stock');
+}
+
+// Step 2: Atomic stock deduction (during payment confirmation)
+// This uses database transaction to prevent race conditions
+const deductResponse = await c.env.INVENTORY_SERVICE.fetch(
+  new Request('http://internal/api/inventory/deduct', {
     method: 'POST',
     body: JSON.stringify({
       orderId: order.id,
@@ -927,21 +988,57 @@ const reservation = await c.env.INVENTORY_SERVICE.fetch(
   })
 );
 
-// Release stock if order is cancelled
-await c.env.INVENTORY_SERVICE.fetch(
-  new Request('http://internal/api/inventory/release', {
-    method: 'POST',
-    body: JSON.stringify({ reservationId })
-  })
-);
+if (!deductResponse.ok) {
+  // Race condition: Stock was depleted between check and deduct
+  throw new Error('Stock no longer available (sold to another customer)');
+}
 
-// Confirm stock deduction when order completes
-await c.env.INVENTORY_SERVICE.fetch(
-  new Request('http://internal/api/inventory/confirm', {
-    method: 'POST',
-    body: JSON.stringify({ reservationId })
-  })
-);
+const deductResult = await deductResponse.json();
+
+// If stock reaches 0 or low threshold, event is auto-published
+// Event: StockDepleted { productId, warehouseId }
+```
+
+**Inventory Service Implementation (Atomic Deduction):**
+```typescript
+// In inventory-service
+async deductStock(warehouseId: string, productId: string, quantity: number) {
+  return await db.transaction(async (tx) => {
+    // Lock row for update (prevents concurrent modifications)
+    const stock = await tx
+      .select()
+      .from(warehouseStock)
+      .where(
+        and(
+          eq(warehouseStock.warehouseId, warehouseId),
+          eq(warehouseStock.productId, productId)
+        )
+      )
+      .for('update')  // Row-level lock
+      .get();
+
+    if (!stock || stock.quantity < quantity) {
+      throw new Error('Insufficient stock');
+    }
+
+    // Deduct stock
+    await tx
+      .update(warehouseStock)
+      .set({ quantity: stock.quantity - quantity })
+      .where(eq(warehouseStock.id, stock.id));
+
+    // Check if stock depleted
+    if (stock.quantity - quantity === 0) {
+      // Publish StockDepleted event
+      await publishEvent({
+        type: 'StockDepleted',
+        data: { warehouseId, productId }
+      });
+    }
+
+    return { success: true, remainingStock: stock.quantity - quantity };
+  });
+}
 ```
 
 #### 3. Accounting Service (Create Journal Entries)
@@ -1006,9 +1103,11 @@ GET    /api/orders/pos                 # List POS orders (by store/terminal)
 POST   /api/orders/pos/:id/receipt     # Generate receipt
 ```
 
-### Events Published
+### Events Published & Consumed
 
-#### 1. OrderCreated
+#### Events Published by Order Service
+
+##### 1. OrderCreated
 ```json
 {
   "type": "OrderCreated",
@@ -1021,25 +1120,26 @@ POST   /api/orders/pos/:id/receipt     # Generate receipt
     "total": 1500.00,
     "items": [
       { "productId": "prod-789", "quantity": 2, "price": 750.00 }
-    ]
+    ],
+    "status": "PendingPayment"
   }
 }
 ```
 
-#### 2. OrderConfirmed
+##### 2. PaymentConfirmed
 ```json
 {
-  "type": "OrderConfirmed",
+  "type": "PaymentConfirmed",
   "timestamp": "2025-01-15T10:31:00Z",
   "data": {
     "orderId": "order-123",
-    "reservationId": "res-999",
-    "confirmedBy": "user-123"
+    "paymentMethod": "CreditCard",
+    "amount": 1500.00
   }
 }
 ```
 
-#### 3. OrderCompleted
+##### 3. OrderCompleted
 ```json
 {
   "type": "OrderCompleted",
@@ -1058,6 +1158,82 @@ POST   /api/orders/pos/:id/receipt     # Generate receipt
 - Accounting Service: Create journal entry (if not already done)
 - Email Service: Send confirmation email
 - Analytics Service: Record sale
+
+##### 4. OrderCancelled
+```json
+{
+  "type": "OrderCancelled",
+  "timestamp": "2025-01-15T10:32:00Z",
+  "data": {
+    "orderId": "order-123",
+    "orderNumber": "ORD-2025-0001",
+    "reason": "Stock depleted - sold to another customer",
+    "autoCancel": true
+  }
+}
+```
+
+#### Events Consumed by Order Service
+
+##### StockDepleted (from Inventory Service)
+```json
+{
+  "type": "StockDepleted",
+  "timestamp": "2025-01-15T10:31:30Z",
+  "data": {
+    "warehouseId": "wh-001",
+    "productId": "prod-789",
+    "previousQuantity": 2,
+    "currentQuantity": 0,
+    "depletedBy": "POS"  // Which channel caused depletion
+  }
+}
+```
+
+**Order Service Handler:**
+```typescript
+// Queue consumer in order-service
+async function handleStockDepletedEvent(event: StockDepletedEvent) {
+  // Find all pending orders for this product in this warehouse
+  const pendingOrders = await db
+    .select()
+    .from(orders)
+    .where(
+      and(
+        eq(orders.warehouseId, event.data.warehouseId),
+        eq(orders.status, 'PendingPayment')
+      )
+    );
+
+  // Filter orders containing the depleted product
+  const affectedOrders = pendingOrders.filter(order =>
+    order.items.some(item => item.productId === event.data.productId)
+  );
+
+  // Auto-cancel these orders
+  for (const order of affectedOrders) {
+    await cancelOrder(order.id, {
+      reason: `Stock depleted - ${event.data.productId} sold out in ${event.data.warehouseId}`,
+      autoCancel: true,
+      causedBy: event.data.depletedBy
+    });
+
+    // Notify customer
+    await notifyCustomer(order.customerId, {
+      type: 'OrderCancelled',
+      message: 'Sorry, the product in your cart is no longer available.'
+    });
+  }
+}
+```
+
+**Example Scenario:**
+1. Customer A creates online retail order for 2 mobile toys (status: PendingPayment)
+2. Customer B comes to POS and buys same 2 mobile toys (immediate payment)
+3. POS payment confirmed → Inventory deducted → Stock becomes 0
+4. Inventory Service publishes `StockDepleted` event
+5. Order Service consumes event → Auto-cancels Customer A's pending order
+6. Customer A receives notification: "Product no longer available"
 
 ### Steps Summary
 
@@ -1121,16 +1297,17 @@ CREATE TABLE orders (
   total REAL NOT NULL,
   currency TEXT DEFAULT 'USD',
 
-  status TEXT NOT NULL,  -- 'Draft', 'Confirmed', 'Processing', 'Completed', 'Cancelled'
+  status TEXT NOT NULL,  -- 'PendingPayment', 'PaymentConfirmed', 'Completed', 'Cancelled'
 
   shipping_address_json TEXT,  -- JSON serialized address
   billing_address_json TEXT,
 
   created_at INTEGER NOT NULL,
-  confirmed_at INTEGER,
+  payment_confirmed_at INTEGER,  -- When payment was confirmed
   completed_at INTEGER,
   cancelled_at INTEGER,
   cancel_reason TEXT,
+  auto_cancelled INTEGER DEFAULT 0,  -- 1 if cancelled by system (stock depletion)
 
   created_by TEXT,
   metadata TEXT  -- JSON for channel-specific data
@@ -1151,18 +1328,34 @@ CREATE TABLE order_line_items (
   FOREIGN KEY (order_id) REFERENCES orders(id)
 );
 
--- Inventory reservations (tracks stock holds)
-CREATE TABLE order_reservations (
+-- Payment history (tracks payment attempts)
+CREATE TABLE order_payments (
   id TEXT PRIMARY KEY,
   order_id TEXT NOT NULL,
-  warehouse_id TEXT NOT NULL,
-  status TEXT NOT NULL,  -- 'Active', 'Confirmed', 'Released'
+  payment_method TEXT NOT NULL,  -- 'CreditCard', 'Cash', 'BankTransfer', etc.
+  amount REAL NOT NULL,
+  currency TEXT DEFAULT 'USD',
+  status TEXT NOT NULL,  -- 'Pending', 'Confirmed', 'Failed'
+  transaction_id TEXT,  -- External payment gateway transaction ID
+  failed_reason TEXT,  -- If payment failed
   created_at INTEGER NOT NULL,
-  expires_at INTEGER,  -- Auto-release after expiry
 
   FOREIGN KEY (order_id) REFERENCES orders(id)
 );
+
+-- Indexes for performance
+CREATE INDEX idx_orders_status ON orders(status);
+CREATE INDEX idx_orders_warehouse_product ON orders(warehouse_id, status);
+CREATE INDEX idx_orders_customer ON orders(customer_id);
+CREATE INDEX idx_orders_sales_channel ON orders(sales_channel, status);
 ```
+
+**Key Differences from Reservation Model:**
+- ❌ No `order_reservations` table (no reservation needed)
+- ✅ Order status: `PendingPayment` → `PaymentConfirmed` → `Completed`
+- ✅ `payment_confirmed_at` tracks when payment succeeded (triggers stock deduction)
+- ✅ `auto_cancelled` flag indicates system auto-cancel (from StockDepleted event)
+- ✅ `order_payments` table tracks all payment attempts
 
 ---
 
