@@ -86,86 +86,69 @@ export const warehouseApi = {
 };
 
 // ============================================
-// PRODUCTS API
+// PRODUCTS API (MVP - Simplified)
 // ============================================
 
 export interface Product {
-  id: string;
-  supplierId: string;
-  categoryId: string;
-  sku: string;
+  productId: string;
   name: string;
-  description?: string;
-  shortDescription?: string;
-  basePrice: number;
-  currency: string;
+  sku: string;
+  retailPrice: number | null;
+  wholesalePrice: number;
   availableForRetail: boolean;
   availableForWholesale: boolean;
-  retailPrice?: number;
-  retailDiscountPercent?: number;
-  stockQuantity: number;
-  lowStockThreshold: number;
   minimumOrderQuantity: number;
-  packagingUnit: string;
-  unitsPerPackage: number;
-  weight?: number;
-  dimensions?: string;
-  status: 'draft' | 'active' | 'inactive' | 'discontinued';
-  isFeatured: boolean;
-  metaTitle?: string;
-  metaDescription?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  status: string; // 'active' | 'inactive' | 'discontinued'
 }
 
-export interface PricingTier {
-  id: string;
-  productId: string;
-  minQuantity: number;
-  maxQuantity?: number;
-  pricePerUnit: number;
-  discountPercent: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface ProductImage {
-  id: string;
-  productId: string;
-  url: string;
-  alt?: string;
-  displayOrder: number;
-  isPrimary: boolean;
-  createdAt: Date;
-}
-
-export interface Category {
-  id: string;
+export interface CreateProductInput {
   name: string;
-  slug: string;
-  description?: string;
-  parentId?: string;
-  imageUrl?: string;
-  displayOrder: number;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  sku: string;
+  description: string;
+  retailPrice: number | null;
+  wholesalePrice: number;
+  availableForRetail: boolean;
+  availableForWholesale: boolean;
+  minimumOrderQuantity?: number;
+}
+
+export interface UpdateProductPriceInput {
+  priceType: 'retail' | 'wholesale';
+  newPrice: number;
 }
 
 export const productApi = {
   // Get all products
-  getAll: async (): Promise<{ products: Product[] }> => {
+  getAll: async (): Promise<{ products: Product[]; total: number }> => {
     return apiRequest('/api/products');
   },
 
-  // Get product by ID with details
-  getById: async (id: string): Promise<{
-    product: Product;
-    pricingTiers: PricingTier[];
-    images: ProductImage[];
-    category: Category;
-  }> => {
+  // Get product by ID
+  getById: async (id: string): Promise<Product> => {
     return apiRequest(`/api/products/${id}`);
+  },
+
+  // Create new product
+  create: async (data: CreateProductInput): Promise<Product> => {
+    return apiRequest('/api/products', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Update product price
+  updatePrice: async (id: string, data: UpdateProductPriceInput): Promise<{ message: string }> => {
+    return apiRequest(`/api/products/${id}/price`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Delete product
+  delete: async (id: string): Promise<{ message: string }> => {
+    return apiRequest(`/api/products/${id}`, {
+      method: 'DELETE',
+    });
   },
 };
 
