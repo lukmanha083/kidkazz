@@ -95,19 +95,33 @@ CREATE TABLE `product_variants` (
 CREATE UNIQUE INDEX `product_variants_variant_sku_unique` ON `product_variants` (`variant_sku`);--> statement-breakpoint
 CREATE TABLE `products` (
 	`id` text PRIMARY KEY NOT NULL,
+	`barcode` text NOT NULL,
 	`name` text NOT NULL,
 	`sku` text NOT NULL,
-	`description` text NOT NULL,
+	`description` text,
+	`image` text,
+	`category_id` text,
+	`price` real NOT NULL,
 	`retail_price` real,
-	`wholesale_price` real NOT NULL,
-	`available_for_retail` integer NOT NULL,
-	`available_for_wholesale` integer NOT NULL,
-	`minimum_order_quantity` integer DEFAULT 1 NOT NULL,
-	`status` text DEFAULT 'active' NOT NULL,
+	`wholesale_price` real,
+	`stock` integer DEFAULT 0 NOT NULL,
+	`base_unit` text DEFAULT 'PCS' NOT NULL,
+	`wholesale_threshold` integer DEFAULT 100,
+	`minimum_order_quantity` integer DEFAULT 1,
+	`rating` real DEFAULT 0,
+	`reviews` integer DEFAULT 0,
+	`available_for_retail` integer DEFAULT true,
+	`available_for_wholesale` integer DEFAULT true,
+	`status` text DEFAULT 'active',
+	`is_bundle` integer DEFAULT false,
 	`created_at` integer NOT NULL,
-	`updated_at` integer NOT NULL
+	`updated_at` integer NOT NULL,
+	`created_by` text,
+	`updated_by` text,
+	FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON UPDATE no action ON DELETE set null
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX `products_barcode_unique` ON `products` (`barcode`);--> statement-breakpoint
 CREATE UNIQUE INDEX `products_sku_unique` ON `products` (`sku`);--> statement-breakpoint
 CREATE TABLE `uoms` (
 	`id` text PRIMARY KEY NOT NULL,
