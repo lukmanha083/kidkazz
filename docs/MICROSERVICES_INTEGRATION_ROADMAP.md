@@ -1,6 +1,6 @@
 # Microservices Integration Roadmap
 
-This document outlines the step-by-step process for integrating the frontend with three core microservices: **Product Service**, **Inventory Service**, and **Accounting Service** using Cloudflare Workers, Service Bindings, and event-driven architecture.
+This document outlines the step-by-step process for integrating the frontend with four core microservices: **Product Service**, **Inventory Service**, **Accounting Service**, and **Order Service** using Cloudflare Workers, Service Bindings, and event-driven architecture.
 
 ## Table of Contents
 1. [Architecture Overview](#architecture-overview)
@@ -8,9 +8,10 @@ This document outlines the step-by-step process for integrating the frontend wit
 3. [Module 1: Accounting Service](#module-1-accounting-service)
 4. [Module 2: Product Service](#module-2-product-service)
 5. [Module 3: Inventory Service](#module-3-inventory-service)
-6. [Inter-Service Communication](#inter-service-communication)
-7. [Frontend Integration](#frontend-integration)
-8. [Testing Strategy](#testing-strategy)
+6. [Module 4: Order Service](#module-4-order-service)
+7. [Inter-Service Communication](#inter-service-communication)
+8. [Frontend Integration](#frontend-integration)
+9. [Testing Strategy](#testing-strategy)
 
 ---
 
@@ -19,41 +20,67 @@ This document outlines the step-by-step process for integrating the frontend wit
 ### Microservices Architecture
 
 ```
-┌─────────────────────┐
-│  Admin Dashboard    │
-│    (Frontend)       │
-└──────────┬──────────┘
-           │ HTTP
-           ▼
-┌─────────────────────┐
-│    API Gateway      │◄────────┐
-│  (Service Router)   │         │
-└──────────┬──────────┘         │
-           │                    │
-  ┌────────┼────────┬──────────┐│
-  │        │        │          ││
-  ▼        ▼        ▼          ▼│
-┌────┐  ┌────┐  ┌────┐    ┌────┐
-│Prod│  │Inv │  │Acct│    │User│
-│Svc │  │Svc │  │Svc │    │Svc │
-└─┬──┘  └─┬──┘  └─┬──┘    └────┘
-  │       │       │
-  ▼       ▼       ▼
-┌────┐  ┌────┐  ┌────┐
-│ D1 │  │ D1 │  │ D1 │
-└────┘  └────┘  └────┘
-  │       │       │
-  └───────┴───────┴────► Event Queue (Future)
+┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+│ Retail Web   │  │Wholesale Web │  │   POS App    │
+│  (Customer)  │  │ (Wholesaler) │  │ (In-Store)   │
+└──────┬───────┘  └──────┬───────┘  └──────┬───────┘
+       │                 │                 │
+       └─────────────────┼─────────────────┘
+                         │ HTTP
+                         ▼
+              ┌─────────────────────┐
+              │   Admin Dashboard   │
+              │     (Frontend)      │
+              └──────────┬──────────┘
+                         │ HTTP
+                         ▼
+              ┌─────────────────────┐
+              │    API Gateway      │◄──────────┐
+              │  (Service Router)   │           │
+              └──────────┬──────────┘           │
+                         │                      │
+         ┌───────────────┼───────────┬─────────┐│
+         │               │           │         ││
+         ▼               ▼           ▼         ▼│
+      ┌─────┐        ┌─────┐     ┌─────┐  ┌─────┐
+      │Order│───────►│Prod │     │Inv  │  │Acct │
+      │ Svc │        │ Svc │     │ Svc │  │ Svc │
+      └──┬──┘        └──┬──┘     └──┬──┘  └──┬──┘
+         │              │            │        │
+         │ Calls via Service Bindings│        │
+         └──────────────┴────────────┴────────┘
+         │              │            │        │
+         ▼              ▼            ▼        ▼
+      ┌─────┐        ┌─────┐     ┌─────┐  ┌─────┐
+      │ D1  │        │ D1  │     │ D1  │  │ D1  │
+      └─────┘        └─────┘     └─────┘  └─────┘
+         │              │            │        │
+         └──────────────┴────────────┴────────┘
+                         │
+                         ▼
+              ┌─────────────────────┐
+              │   Event Queues      │
+              │ (Async Communication)│
+              └─────────────────────┘
 ```
 
 ### Service Boundaries (Bounded Contexts)
 
 | Service | Responsibility | Database | Events Published |
 |---------|---------------|----------|------------------|
+| **Order Service** | Order management, 3 sales channels (retail web, wholesale web, POS), order processing | order-db | OrderCreated, OrderConfirmed, OrderCancelled, OrderCompleted |
 | **Product Service** | Product catalog, SKUs, pricing, categories | product-db | ProductCreated, ProductUpdated, PriceChanged |
 | **Inventory Service** | Stock levels, warehouses, transfers, reservations | inventory-db | StockReserved, StockConfirmed, StockTransferred |
 | **Accounting Service** | Chart of accounts, journal entries, financial reports | accounting-db | JournalEntryPosted, AccountCreated |
 | **API Gateway** | Route requests, service discovery, aggregation | - | - |
+
+### Sales Channels in Order Service
+
+| Channel | Use Case | Pricing Model | Minimum Order |
+|---------|----------|---------------|---------------|
+| **Retail Web** | B2C e-commerce via website/mobile app | Retail price | 1 unit |
+| **Wholesale Web** | B2B e-commerce for registered wholesalers | Wholesale price (tiered discounts) | Minimum quantity (e.g., 10 units) |
+| **Point of Sale (POS)** | In-store retail sales via POS terminal | Retail price | 1 unit |
 
 ### Technology Stack
 
@@ -664,6 +691,478 @@ Inventory Service manages warehouses, stock levels, reservations, and transfers.
 ### Service Dependencies
 - Inventory Service calls Product Service to validate SKUs
 - Order Service calls Inventory Service to reserve stock
+
+---
+
+## Module 4: Order Service
+
+### Overview
+Order Service manages order processing across three sales channels: **Retail Web**, **Wholesale Web**, and **Point of Sale (POS)**. It orchestrates interactions with Product, Inventory, and Accounting services to complete the order lifecycle.
+
+### Bounded Context
+
+**Ubiquitous Language:**
+- **Order**: A customer purchase request
+- **Sales Channel**: The origin of the order (Retail Web, Wholesale Web, POS)
+- **Order Line Item**: Individual product and quantity in an order
+- **Order Status**: Draft → Confirmed → Processing → Completed/Cancelled
+- **Pricing Tier**: Retail vs Wholesale pricing rules
+- **Minimum Order Quantity (MOQ)**: Required for wholesale orders
+
+**Business Rules:**
+1. Retail orders: Any quantity, retail pricing
+2. Wholesale orders: Must meet MOQ, tiered pricing applies
+3. POS orders: Immediate stock deduction, print receipt
+4. All orders must reserve inventory before confirmation
+5. Completed orders trigger accounting journal entries
+6. Cancelled orders release reserved inventory
+
+### Domain Model
+
+#### Aggregates
+
+**Order Aggregate (Root)**
+```typescript
+class Order {
+  // Identity
+  id: string
+  orderNumber: string  // Auto-generated: "ORD-2025-0001"
+
+  // Sales Channel
+  salesChannel: 'RetailWeb' | 'WholesaleWeb' | 'POS'
+
+  // Customer info
+  customerId: string
+  customerEmail: string
+  customerName: string
+
+  // Order details
+  items: OrderLineItem[]  // Minimum 1 item
+  subtotal: Money
+  tax: Money
+  discount: Money
+  total: Money
+
+  // Pricing
+  pricingTier: 'Retail' | 'Wholesale'
+
+  // Status
+  status: 'Draft' | 'Confirmed' | 'Processing' | 'Completed' | 'Cancelled'
+
+  // Fulfillment
+  warehouseId: string
+  shippingAddress?: Address
+  billingAddress?: Address
+
+  // Metadata
+  createdAt: Date
+  confirmedAt?: Date
+  completedAt?: Date
+  cancelledAt?: Date
+  cancelReason?: string
+
+  // Domain methods
+  addItem(productId: string, quantity: number, price: Money): void
+  removeItem(itemId: string): void
+  calculateTotal(): void
+  confirm(userId: string): void  // Reserve inventory
+  cancel(userId: string, reason: string): void  // Release inventory
+  complete(userId: string): void  // Create accounting entries
+}
+
+class OrderLineItem {
+  id: string
+  productId: string
+  productName: string
+  sku: string
+  quantity: number
+  unitPrice: Money
+  lineTotal: Money
+  taxAmount: Money
+}
+```
+
+**Value Objects**
+```typescript
+class Address {
+  street: string
+  city: string
+  state: string
+  postalCode: string
+  country: string
+}
+
+class Money {
+  amount: number
+  currency: string
+}
+```
+
+### Architecture Layers
+
+Following hexagonal architecture:
+
+```
+src/
+├── domain/
+│   ├── entities/
+│   │   ├── order.entity.ts
+│   │   └── order-line-item.entity.ts
+│   ├── value-objects/
+│   │   ├── money.vo.ts
+│   │   └── address.vo.ts
+│   ├── repositories/
+│   │   └── order.repository.ts
+│   └── services/
+│       ├── order.service.ts
+│       ├── pricing.service.ts          # Calculate prices based on tier
+│       └── order-orchestrator.service.ts  # Coordinate with other services
+├── application/
+│   ├── commands/
+│   │   ├── create-order.command.ts
+│   │   ├── confirm-order.command.ts
+│   │   ├── cancel-order.command.ts
+│   │   └── complete-order.command.ts
+│   ├── queries/
+│   │   ├── get-order.query.ts
+│   │   ├── list-orders.query.ts
+│   │   └── get-orders-by-customer.query.ts
+│   └── dtos/
+│       └── order.dto.ts
+└── infrastructure/
+    ├── database/
+    │   ├── schema.ts
+    │   └── order.repository.impl.ts
+    ├── http/
+    │   ├── routes.ts
+    │   └── controllers/
+    │       ├── retail-order.controller.ts
+    │       ├── wholesale-order.controller.ts
+    │       └── pos-order.controller.ts
+    └── events/
+        ├── event-publisher.ts
+        └── events/
+            ├── order-created.event.ts
+            ├── order-confirmed.event.ts
+            └── order-completed.event.ts
+```
+
+### Order Workflow
+
+#### 1. Retail Web Order Flow
+
+```mermaid
+graph LR
+    A[Customer adds to cart] --> B[Create draft order]
+    B --> C[Validate products]
+    C --> D[Customer confirms]
+    D --> E[Reserve inventory]
+    E --> F{Stock available?}
+    F -->|Yes| G[Confirm order]
+    F -->|No| H[Reject order]
+    G --> I[Process payment]
+    I --> J[Complete order]
+    J --> K[Create accounting entry]
+    J --> L[Send confirmation email]
+```
+
+#### 2. Wholesale Web Order Flow
+
+```mermaid
+graph LR
+    A[Wholesaler adds to cart] --> B[Validate MOQ]
+    B --> C{Meets MOQ?}
+    C -->|No| D[Show error]
+    C -->|Yes| E[Apply wholesale pricing]
+    E --> F[Create draft order]
+    F --> G[Reserve inventory]
+    G --> H[Confirm order]
+    H --> I[Complete order]
+    I --> J[Create accounting entry]
+```
+
+#### 3. POS Order Flow
+
+```mermaid
+graph LR
+    A[Cashier scans items] --> B[Create order]
+    B --> C[Reserve inventory]
+    C --> D[Process payment]
+    D --> E[Confirm order]
+    E --> F[Complete order]
+    F --> G[Deduct inventory]
+    G --> H[Create accounting entry]
+    H --> I[Print receipt]
+```
+
+### Service Integration
+
+**Order Service calls other services:**
+
+#### 1. Product Service (Validate Products & Get Prices)
+```typescript
+// GET product details
+const product = await c.env.PRODUCT_SERVICE.fetch(
+  new Request(`http://internal/api/products/${productId}`)
+);
+
+// Validate product exists and is active
+// Get current price based on pricing tier
+```
+
+#### 2. Inventory Service (Reserve/Release Stock)
+```typescript
+// Reserve stock when order is confirmed
+const reservation = await c.env.INVENTORY_SERVICE.fetch(
+  new Request('http://internal/api/inventory/reserve', {
+    method: 'POST',
+    body: JSON.stringify({
+      orderId: order.id,
+      warehouseId: order.warehouseId,
+      items: order.items.map(item => ({
+        productId: item.productId,
+        quantity: item.quantity
+      }))
+    })
+  })
+);
+
+// Release stock if order is cancelled
+await c.env.INVENTORY_SERVICE.fetch(
+  new Request('http://internal/api/inventory/release', {
+    method: 'POST',
+    body: JSON.stringify({ reservationId })
+  })
+);
+
+// Confirm stock deduction when order completes
+await c.env.INVENTORY_SERVICE.fetch(
+  new Request('http://internal/api/inventory/confirm', {
+    method: 'POST',
+    body: JSON.stringify({ reservationId })
+  })
+);
+```
+
+#### 3. Accounting Service (Create Journal Entries)
+```typescript
+// When order is completed, create accounting entry
+// Debit: Accounts Receivable (or Cash for POS)
+// Credit: Revenue
+
+await c.env.ACCOUNTING_SERVICE.fetch(
+  new Request('http://internal/api/accounting/journal-entries', {
+    method: 'POST',
+    body: JSON.stringify({
+      entryDate: new Date().toISOString(),
+      description: `Sales - Order ${order.orderNumber}`,
+      reference: order.orderNumber,
+      entryType: 'System',
+      lines: [
+        {
+          accountId: cashAccountId,  // or AR account
+          direction: 'Debit',
+          amount: order.total.amount
+        },
+        {
+          accountId: revenueAccountId,
+          direction: 'Credit',
+          amount: order.total.amount
+        }
+      ]
+    })
+  })
+);
+```
+
+### API Endpoints
+
+#### Retail Web Orders
+```
+POST   /api/orders/retail              # Create retail order
+GET    /api/orders/retail/:id          # Get retail order
+PUT    /api/orders/retail/:id          # Update draft order
+POST   /api/orders/retail/:id/confirm  # Confirm order (reserve stock)
+POST   /api/orders/retail/:id/cancel   # Cancel order (release stock)
+GET    /api/orders/retail              # List retail orders
+```
+
+#### Wholesale Web Orders
+```
+POST   /api/orders/wholesale              # Create wholesale order
+GET    /api/orders/wholesale/:id          # Get wholesale order
+PUT    /api/orders/wholesale/:id          # Update draft order
+POST   /api/orders/wholesale/:id/confirm  # Confirm order
+POST   /api/orders/wholesale/:id/cancel   # Cancel order
+GET    /api/orders/wholesale              # List wholesale orders
+GET    /api/orders/wholesale/customer/:customerId  # Orders by customer
+```
+
+#### POS Orders
+```
+POST   /api/orders/pos                 # Create POS order (immediate)
+GET    /api/orders/pos/:id             # Get POS order
+GET    /api/orders/pos                 # List POS orders (by store/terminal)
+POST   /api/orders/pos/:id/receipt     # Generate receipt
+```
+
+### Events Published
+
+#### 1. OrderCreated
+```json
+{
+  "type": "OrderCreated",
+  "timestamp": "2025-01-15T10:30:00Z",
+  "data": {
+    "orderId": "order-123",
+    "orderNumber": "ORD-2025-0001",
+    "salesChannel": "RetailWeb",
+    "customerId": "cust-456",
+    "total": 1500.00,
+    "items": [
+      { "productId": "prod-789", "quantity": 2, "price": 750.00 }
+    ]
+  }
+}
+```
+
+#### 2. OrderConfirmed
+```json
+{
+  "type": "OrderConfirmed",
+  "timestamp": "2025-01-15T10:31:00Z",
+  "data": {
+    "orderId": "order-123",
+    "reservationId": "res-999",
+    "confirmedBy": "user-123"
+  }
+}
+```
+
+#### 3. OrderCompleted
+```json
+{
+  "type": "OrderCompleted",
+  "timestamp": "2025-01-15T10:35:00Z",
+  "data": {
+    "orderId": "order-123",
+    "orderNumber": "ORD-2025-0001",
+    "salesChannel": "RetailWeb",
+    "total": 1500.00,
+    "journalEntryId": "je-456"  // Created accounting entry
+  }
+}
+```
+
+**This event triggers:**
+- Accounting Service: Create journal entry (if not already done)
+- Email Service: Send confirmation email
+- Analytics Service: Record sale
+
+### Steps Summary
+
+1. ✅ Review existing order-service scaffolding
+2. ✅ Design domain entities (Order, OrderLineItem)
+3. ✅ Implement value objects (Address, Money)
+4. ✅ Create repository interfaces
+5. ✅ Implement order orchestrator service (coordinates with other services)
+6. ✅ Implement pricing service (retail vs wholesale)
+7. ✅ Create commands (CreateOrder, ConfirmOrder, CompleteOrder)
+8. ✅ Create queries (GetOrder, ListOrders)
+9. ✅ Add HTTP controllers for each sales channel
+10. ✅ Configure service bindings (Product, Inventory, Accounting)
+11. ✅ Implement event publishing
+12. ✅ Test order flow for each channel
+13. ✅ Test rollback scenarios (order cancellation)
+
+### Channel-Specific Features
+
+#### Retail Web
+- Shopping cart persistence
+- Guest checkout support
+- Shipping address validation
+- Multiple payment methods
+- Email confirmations
+
+#### Wholesale Web
+- MOQ validation
+- Tiered pricing (volume discounts)
+- Credit limit checks
+- Purchase order numbers
+- Invoice generation
+- Net payment terms (e.g., Net 30)
+
+#### Point of Sale (POS)
+- Barcode scanning
+- Immediate inventory deduction
+- Cash/card payment
+- Receipt printing
+- Offline mode support (sync later)
+- Cashier assignment
+
+### Database Schema
+
+```sql
+-- Orders table
+CREATE TABLE orders (
+  id TEXT PRIMARY KEY,
+  order_number TEXT UNIQUE NOT NULL,
+  sales_channel TEXT NOT NULL,  -- 'RetailWeb', 'WholesaleWeb', 'POS'
+  customer_id TEXT NOT NULL,
+  customer_email TEXT,
+  customer_name TEXT NOT NULL,
+
+  pricing_tier TEXT NOT NULL,  -- 'Retail', 'Wholesale'
+  warehouse_id TEXT NOT NULL,
+
+  subtotal REAL NOT NULL,
+  tax REAL NOT NULL,
+  discount REAL NOT NULL,
+  total REAL NOT NULL,
+  currency TEXT DEFAULT 'USD',
+
+  status TEXT NOT NULL,  -- 'Draft', 'Confirmed', 'Processing', 'Completed', 'Cancelled'
+
+  shipping_address_json TEXT,  -- JSON serialized address
+  billing_address_json TEXT,
+
+  created_at INTEGER NOT NULL,
+  confirmed_at INTEGER,
+  completed_at INTEGER,
+  cancelled_at INTEGER,
+  cancel_reason TEXT,
+
+  created_by TEXT,
+  metadata TEXT  -- JSON for channel-specific data
+);
+
+-- Order line items table
+CREATE TABLE order_line_items (
+  id TEXT PRIMARY KEY,
+  order_id TEXT NOT NULL,
+  product_id TEXT NOT NULL,
+  product_name TEXT NOT NULL,
+  sku TEXT NOT NULL,
+  quantity INTEGER NOT NULL,
+  unit_price REAL NOT NULL,
+  line_total REAL NOT NULL,
+  tax_amount REAL NOT NULL,
+
+  FOREIGN KEY (order_id) REFERENCES orders(id)
+);
+
+-- Inventory reservations (tracks stock holds)
+CREATE TABLE order_reservations (
+  id TEXT PRIMARY KEY,
+  order_id TEXT NOT NULL,
+  warehouse_id TEXT NOT NULL,
+  status TEXT NOT NULL,  -- 'Active', 'Confirmed', 'Released'
+  created_at INTEGER NOT NULL,
+  expires_at INTEGER,  -- Auto-release after expiry
+
+  FOREIGN KEY (order_id) REFERENCES orders(id)
+);
+```
 
 ---
 
