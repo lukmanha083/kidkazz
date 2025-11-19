@@ -713,15 +713,16 @@ Order Service manages order processing across three sales channels: **Retail Web
 1. Retail orders: Any quantity, retail pricing
 2. Wholesale orders: Must meet MOQ, tiered pricing applies
 3. POS orders: Immediate stock deduction, print receipt
-4. **NO inventory reservation** - Real-time inventory only
-5. **First-pay-first-served**: Payment confirmation = stock allocation (not order creation)
-6. Concurrent stock deduction: If multiple orders try to confirm payment simultaneously, first successful payment gets the stock
-7. Auto-cancel pending orders: When stock reaches 0, trigger event to cancel all pending orders for that product
-8. Payment confirmation workflow:
-   - Check real-time stock availability
-   - If available: Deduct stock + confirm order
-   - If not available: Reject payment + cancel order
-9. Completed orders trigger accounting journal entries
+4. **POS can sell with negative stock**: POS sales NEVER blocked by inventory (allows negative stock to prevent missed sales due to inventory errors)
+5. **Online orders blocked at zero stock**: Retail/Wholesale web orders rejected if stock unavailable
+6. **NO inventory reservation** - Real-time inventory only
+7. **First-pay-first-served**: Payment confirmation = stock allocation (not order creation)
+8. Concurrent stock deduction: If multiple orders try to confirm payment simultaneously, first successful payment gets the stock
+9. Auto-cancel pending orders: When stock reaches 0 or negative, trigger event to cancel all pending online orders for that product
+10. Payment confirmation workflow:
+    - **POS**: Always allow sale (can go negative)
+    - **Online (Retail/Wholesale)**: Check real-time stock → If available: Deduct + confirm → If not: Reject + cancel
+11. Completed orders trigger accounting journal entries
 
 ### Domain Model
 
@@ -909,27 +910,29 @@ graph LR
 - Payment/PO confirmation triggers stock deduction
 - Wholesale orders compete with retail/POS for same inventory pool
 
-#### 3. POS Order Flow (Immediate - Highest Priority)
+#### 3. POS Order Flow (Immediate - NEVER Blocked)
 
 ```mermaid
 graph LR
-    A[Cashier scans items] --> B[Create order + Show stock]
-    B --> C{Stock available?}
-    C -->|No| D[Alert cashier - Out of stock]
-    C -->|Yes| E[Customer pays cash/card]
-    E --> F{Payment successful?}
-    F -->|No| G[Cancel transaction]
-    F -->|Yes| H[Deduct inventory IMMEDIATELY]
-    H --> I[Complete order]
-    I --> J[Create accounting entry]
-    J --> K[Print receipt]
-    J --> L[Publish StockDepleted event if 0]
+    A[Cashier scans items] --> B[Create order + Show stock info]
+    B --> C[Display warning if low/negative stock]
+    C --> D[Customer pays cash/card]
+    D --> E{Payment successful?}
+    E -->|No| F[Cancel transaction]
+    E -->|Yes| G[Deduct inventory ALWAYS - can go negative]
+    G --> H[Complete order]
+    H --> I[Create accounting entry]
+    I --> J[Print receipt]
+    J --> K[Publish StockDepleted event if ≤ 0]
+    K --> L[Trigger online order cancellation]
 ```
 
 **Key Points:**
-- **Highest priority** - POS gets stock first (immediate payment)
-- Stock deduction happens immediately on payment confirmation
-- If stock goes to 0, `StockDepleted` event triggers cancellation of pending online orders
+- **NEVER blocked by inventory** - POS can create negative stock
+- Stock info shown to cashier (warning if low/out of stock) but sale always allowed
+- Immediate stock deduction on payment (can result in negative quantity)
+- If stock becomes 0 or negative, `StockDepleted` event triggers cancellation of ALL pending online orders
+- Rationale: Don't miss physical sales due to inventory data errors
 - No draft/pending state - order is completed in single transaction
 - Real-time inventory sync across all channels
 
