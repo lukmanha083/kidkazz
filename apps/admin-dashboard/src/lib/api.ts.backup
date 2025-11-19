@@ -25,63 +25,6 @@ async function apiRequest<T>(
 }
 
 // ============================================
-// CATEGORIES API
-// ============================================
-
-export interface Category {
-  id: string;
-  name: string;
-  description?: string;
-  icon?: string;
-  color?: string;
-  status: 'active' | 'inactive';
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface CreateCategoryInput {
-  name: string;
-  description?: string;
-  icon?: string;
-  color?: string;
-  status?: 'active' | 'inactive';
-}
-
-export const categoryApi = {
-  getAll: async (): Promise<{ categories: Category[]; total: number }> => {
-    return apiRequest('/api/categories');
-  },
-
-  getActive: async (): Promise<{ categories: Category[]; total: number }> => {
-    return apiRequest('/api/categories/active');
-  },
-
-  getById: async (id: string): Promise<Category> => {
-    return apiRequest(`/api/categories/${id}`);
-  },
-
-  create: async (data: CreateCategoryInput): Promise<Category> => {
-    return apiRequest('/api/categories', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
-
-  update: async (id: string, data: Partial<CreateCategoryInput>): Promise<Category> => {
-    return apiRequest(`/api/categories/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  },
-
-  delete: async (id: string): Promise<{ message: string }> => {
-    return apiRequest(`/api/categories/${id}`, {
-      method: 'DELETE',
-    });
-  },
-};
-
-// ============================================
 // WAREHOUSE API
 // ============================================
 
