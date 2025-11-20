@@ -143,49 +143,108 @@ export const warehouseApi = {
 };
 
 // ============================================
-// PRODUCTS API (MVP - Simplified)
+// PRODUCTS API (Full Features)
 // ============================================
 
-export interface Product {
+export interface ProductVariant {
+  id: string;
   productId: string;
+  productName: string;
+  productSKU: string;
+  variantName: string;
+  variantSKU: string;
+  variantType: 'Color' | 'Size' | 'Material' | 'Style';
+  price: number;
+  stock: number;
+  status: 'active' | 'inactive';
+  image?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ProductUOM {
+  id: string;
+  productId: string;
+  uomCode: string;
+  uomName: string;
+  barcode: string;
+  conversionFactor: number;
+  stock: number;
+  isDefault: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Product {
+  id: string;
+  barcode: string;
   name: string;
   sku: string;
-  retailPrice: number | null;
-  wholesalePrice: number;
+  description?: string;
+  image?: string;
+  categoryId?: string;
+  price: number;
+  retailPrice?: number | null;
+  wholesalePrice?: number | null;
+  stock: number;
+  baseUnit: string;
+  wholesaleThreshold: number;
+  minimumOrderQuantity: number;
+  rating: number;
+  reviews: number;
   availableForRetail: boolean;
   availableForWholesale: boolean;
-  minimumOrderQuantity: number;
-  status: string; // 'active' | 'inactive' | 'discontinued'
+  status: 'active' | 'inactive' | 'discontinued';
+  isBundle: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: string | null;
+  updatedBy?: string | null;
+  // Populated when fetching by ID
+  variants?: ProductVariant[];
+  productUOMs?: ProductUOM[];
 }
 
 export interface CreateProductInput {
+  barcode: string;
   name: string;
   sku: string;
-  description: string;
-  retailPrice: number | null;
-  wholesalePrice: number;
-  availableForRetail: boolean;
-  availableForWholesale: boolean;
+  description?: string;
+  image?: string;
+  categoryId?: string;
+  price: number;
+  retailPrice?: number | null;
+  wholesalePrice?: number | null;
+  stock?: number;
+  baseUnit?: string;
+  wholesaleThreshold?: number;
   minimumOrderQuantity?: number;
-}
-
-export interface UpdateProductPriceInput {
-  priceType: 'retail' | 'wholesale';
-  newPrice: number;
+  rating?: number;
+  reviews?: number;
+  availableForRetail?: boolean;
+  availableForWholesale?: boolean;
+  status?: 'active' | 'inactive' | 'discontinued';
+  isBundle?: boolean;
 }
 
 export const productApi = {
-  // Get all products
-  getAll: async (): Promise<{ products: Product[]; total: number }> => {
-    return apiRequest('/api/products');
+  getAll: async (params?: {
+    status?: string;
+    category?: string;
+    search?: string;
+  }): Promise<{ products: Product[]; total: number }> => {
+    const queryParams = params ? new URLSearchParams(params as any).toString() : '';
+    return apiRequest(`/api/products${queryParams ? `?${queryParams}` : ''}`);
   },
 
-  // Get product by ID
   getById: async (id: string): Promise<Product> => {
     return apiRequest(`/api/products/${id}`);
   },
 
-  // Create new product
+  getBySKU: async (sku: string): Promise<Product> => {
+    return apiRequest(`/api/products/sku/${sku}`);
+  },
+
   create: async (data: CreateProductInput): Promise<Product> => {
     return apiRequest('/api/products', {
       method: 'POST',
@@ -193,17 +252,166 @@ export const productApi = {
     });
   },
 
-  // Update product price
-  updatePrice: async (id: string, data: UpdateProductPriceInput): Promise<{ message: string }> => {
+  update: async (id: string, data: Partial<CreateProductInput>): Promise<Product> => {
+    return apiRequest(`/api/products/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updatePrice: async (
+    id: string,
+    data: { priceType: 'retail' | 'wholesale' | 'base'; newPrice: number }
+  ): Promise<{ message: string }> => {
     return apiRequest(`/api/products/${id}/price`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
   },
 
-  // Delete product
+  updateStock: async (id: string, stock: number): Promise<{ message: string }> => {
+    return apiRequest(`/api/products/${id}/stock`, {
+      method: 'PATCH',
+      body: JSON.stringify({ stock }),
+    });
+  },
+
   delete: async (id: string): Promise<{ message: string }> => {
     return apiRequest(`/api/products/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// ============================================
+// PRODUCT VARIANTS API
+// ============================================
+
+export interface CreateVariantInput {
+  productId: string;
+  productName: string;
+  productSKU: string;
+  variantName: string;
+  variantSKU: string;
+  variantType: 'Color' | 'Size' | 'Material' | 'Style';
+  price: number;
+  stock?: number;
+  status?: 'active' | 'inactive';
+  image?: string;
+}
+
+export const variantApi = {
+  getAll: async (productId?: string): Promise<{ variants: ProductVariant[]; total: number }> => {
+    const query = productId ? `?productId=${productId}` : '';
+    return apiRequest(`/api/variants${query}`);
+  },
+
+  getById: async (id: string): Promise<ProductVariant> => {
+    return apiRequest(`/api/variants/${id}`);
+  },
+
+  create: async (data: CreateVariantInput): Promise<ProductVariant> => {
+    return apiRequest('/api/variants', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  update: async (id: string, data: Partial<Omit<CreateVariantInput, 'productId'>>): Promise<ProductVariant> => {
+    return apiRequest(`/api/variants/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateStock: async (id: string, stock: number): Promise<{ message: string }> => {
+    return apiRequest(`/api/variants/${id}/stock`, {
+      method: 'PATCH',
+      body: JSON.stringify({ stock }),
+    });
+  },
+
+  delete: async (id: string): Promise<{ message: string }> => {
+    return apiRequest(`/api/variants/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// ============================================
+// UOMS API
+// ============================================
+
+export interface UOM {
+  id: string;
+  code: string;
+  name: string;
+  conversionFactor: number;
+  isBaseUnit: boolean;
+  createdAt: Date;
+}
+
+export interface CreateUOMInput {
+  code: string;
+  name: string;
+  conversionFactor: number;
+  isBaseUnit?: boolean;
+}
+
+export interface CreateProductUOMInput {
+  productId: string;
+  uomCode: string;
+  uomName: string;
+  barcode: string;
+  conversionFactor: number;
+  stock?: number;
+  isDefault?: boolean;
+}
+
+export const uomApi = {
+  // Master UOMs
+  getAll: async (): Promise<{ uoms: UOM[]; total: number }> => {
+    return apiRequest('/api/uoms');
+  },
+
+  getByCode: async (code: string): Promise<UOM> => {
+    return apiRequest(`/api/uoms/${code}`);
+  },
+
+  create: async (data: CreateUOMInput): Promise<UOM> => {
+    return apiRequest('/api/uoms', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  delete: async (id: string): Promise<{ message: string }> => {
+    return apiRequest(`/api/uoms/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Product UOMs
+  getProductUOMs: async (productId: string): Promise<{ productUOMs: ProductUOM[]; total: number }> => {
+    return apiRequest(`/api/uoms/products/${productId}`);
+  },
+
+  addProductUOM: async (data: CreateProductUOMInput): Promise<ProductUOM> => {
+    return apiRequest('/api/uoms/products', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateProductUOMStock: async (id: string, stock: number): Promise<{ message: string }> => {
+    return apiRequest(`/api/uoms/products/${id}/stock`, {
+      method: 'PATCH',
+      body: JSON.stringify({ stock }),
+    });
+  },
+
+  deleteProductUOM: async (id: string): Promise<{ message: string }> => {
+    return apiRequest(`/api/uoms/products/${id}`, {
       method: 'DELETE',
     });
   },
@@ -406,7 +614,10 @@ export const accountingApi = {
 };
 
 export default {
+  category: categoryApi,
   warehouse: warehouseApi,
   product: productApi,
+  variant: variantApi,
+  uom: uomApi,
   accounting: accountingApi,
 };
