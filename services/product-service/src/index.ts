@@ -4,10 +4,13 @@ import { logger } from 'hono/logger';
 import { createTRPCHandler, createContextFactory } from '@kidkazz/trpc';
 import { appRouter } from './infrastructure/trpc';
 import routes from './infrastructure/http/routes';
+import imageRoutes from './routes/images';
 
 type Bindings = {
   DB: D1Database;
   PRODUCT_EVENTS_QUEUE: Queue;
+  PRODUCT_IMAGES: R2Bucket;
+  IMAGE_CACHE: KVNamespace;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -40,6 +43,9 @@ app.all('/trpc/*', async (c) => {
 
 // REST API routes (for backward compatibility with frontend)
 app.route('/api', routes);
+
+// Image routes (R2 + KV cache)
+app.route('/api/images', imageRoutes);
 
 // 404 handler
 app.notFound((c) => {

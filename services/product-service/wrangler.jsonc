@@ -29,6 +29,23 @@
     ]
   },
 
+  // R2 bucket for product images
+  "r2_buckets": [
+    {
+      "binding": "PRODUCT_IMAGES",
+      "bucket_name": "kidkazz-product-images"
+    }
+  ],
+
+  // KV namespace for image CDN cache
+  "kv_namespaces": [
+    {
+      "binding": "IMAGE_CACHE",
+      "id": "preview_id",
+      "preview_id": "preview_id"
+    }
+  ],
+
   // Development settings
   "dev": {
     "port": 8788
