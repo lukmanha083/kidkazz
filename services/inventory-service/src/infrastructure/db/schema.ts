@@ -100,6 +100,9 @@ export const inventoryMovements = sqliteTable('inventory_movements', {
   movementType: text('movement_type').notNull(), // 'in' | 'out' | 'adjustment' | 'transfer'
   quantity: integer('quantity').notNull(),
 
+  // Source of the operation (for negative stock business rule tracking)
+  source: text('source').default('warehouse'), // 'warehouse' | 'pos'
+
   // Reference to the operation that caused this movement
   referenceType: text('reference_type'), // 'order' | 'restock' | 'adjustment' | 'transfer'
   referenceId: text('reference_id'),

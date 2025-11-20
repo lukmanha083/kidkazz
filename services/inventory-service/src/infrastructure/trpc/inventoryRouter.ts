@@ -58,6 +58,7 @@ export const inventoryRouter = router({
       warehouseId: z.string(),
       quantity: z.number(),
       movementType: z.enum(['in', 'out', 'adjustment']),
+      source: z.enum(['warehouse', 'pos']).optional(), // NEW: Operation source
       reason: z.string().optional(),
       performedBy: z.string().optional(),
     }))

@@ -2,6 +2,7 @@ import { AggregateRoot } from '@kidkazz/ddd-core';
 import { Money } from '../value-objects/Money';
 import { SKU } from '../value-objects/SKU';
 import { Stock } from '../value-objects/Stock';
+import { PhysicalAttributes } from '../value-objects/PhysicalAttributes';
 import { ProductCreated } from '../events/ProductCreated';
 import { StockAdjusted } from '../events/StockAdjusted';
 import { PriceChanged } from '../events/PriceChanged';
@@ -24,6 +25,7 @@ interface ProductProps {
   baseUnit: string;
   wholesaleThreshold: number;
   minimumOrderQuantity: number;
+  physicalAttributes?: PhysicalAttributes; // NEW: Physical dimensions and weight
   rating: number;
   reviews: number;
   availableForRetail: boolean;
@@ -64,6 +66,7 @@ export class Product extends AggregateRoot {
     baseUnit: string;
     wholesaleThreshold?: number;
     minimumOrderQuantity?: number;
+    physicalAttributes?: { weight: number; length: number; width: number; height: number }; // NEW
     availableForRetail?: boolean;
     availableForWholesale?: boolean;
     createdBy?: string;
@@ -75,6 +78,12 @@ export class Product extends AggregateRoot {
     const price = Money.create(input.price);
     const retailPrice = Money.create(input.retailPrice || input.price);
     const wholesalePrice = Money.create(input.wholesalePrice || input.price);
+
+    // Create physical attributes if provided
+    let physicalAttributes: PhysicalAttributes | undefined;
+    if (input.physicalAttributes) {
+      physicalAttributes = PhysicalAttributes.create(input.physicalAttributes);
+    }
 
     const product = new Product({
       id,
@@ -91,6 +100,7 @@ export class Product extends AggregateRoot {
       baseUnit: input.baseUnit,
       wholesaleThreshold: input.wholesaleThreshold || 10,
       minimumOrderQuantity: input.minimumOrderQuantity || 1,
+      physicalAttributes, // NEW
       rating: 0,
       reviews: 0,
       availableForRetail: input.availableForRetail !== false,
@@ -128,6 +138,10 @@ export class Product extends AggregateRoot {
     baseUnit: string;
     wholesaleThreshold: number;
     minimumOrderQuantity: number;
+    weight?: number; // NEW
+    length?: number; // NEW
+    width?: number; // NEW
+    height?: number; // NEW
     rating: number;
     reviews: number;
     availableForRetail: boolean;
@@ -139,6 +153,18 @@ export class Product extends AggregateRoot {
     createdBy?: string;
     updatedBy?: string;
   }): Product {
+    // Reconstitute physical attributes if data is present
+    let physicalAttributes: PhysicalAttributes | undefined;
+    if (data.weight !== null && data.weight !== undefined &&
+        data.length && data.width && data.height) {
+      physicalAttributes = PhysicalAttributes.create({
+        weight: data.weight,
+        length: data.length,
+        width: data.width,
+        height: data.height,
+      });
+    }
+
     return new Product({
       id: data.id,
       barcode: data.barcode,
@@ -154,6 +180,7 @@ export class Product extends AggregateRoot {
       baseUnit: data.baseUnit,
       wholesaleThreshold: data.wholesaleThreshold,
       minimumOrderQuantity: data.minimumOrderQuantity,
+      physicalAttributes, // NEW
       rating: data.rating,
       reviews: data.reviews,
       availableForRetail: data.availableForRetail,
@@ -306,9 +333,43 @@ export class Product extends AggregateRoot {
   public getCategoryId(): string | undefined { return this.props.categoryId; }
 
   /**
+   * Get physical attributes (weight and dimensions)
+   */
+  public getPhysicalAttributes(): PhysicalAttributes | undefined {
+    return this.props.physicalAttributes;
+  }
+
+  /**
+   * Set or update physical attributes
+   */
+  public setPhysicalAttributes(attrs: { weight: number; length: number; width: number; height: number }, performedBy?: string): void {
+    this.props.physicalAttributes = PhysicalAttributes.create(attrs);
+    this.props.updatedAt = new Date();
+    if (performedBy) {
+      this.props.updatedBy = performedBy;
+    }
+  }
+
+  /**
+   * Remove physical attributes
+   */
+  public removePhysicalAttributes(performedBy?: string): void {
+    this.props.physicalAttributes = undefined;
+    this.props.updatedAt = new Date();
+    if (performedBy) {
+      this.props.updatedBy = performedBy;
+    }
+  }
+
+  /**
    * Convert to data for persistence
    */
   public toData() {
+    // Extract physical attributes if present
+    const physicalData = this.props.physicalAttributes
+      ? this.props.physicalAttributes.toData()
+      : { weight: null, length: null, width: null, height: null };
+
     return {
       id: this.props.id,
       barcode: this.props.barcode,
@@ -324,6 +385,10 @@ export class Product extends AggregateRoot {
       baseUnit: this.props.baseUnit,
       wholesaleThreshold: this.props.wholesaleThreshold,
       minimumOrderQuantity: this.props.minimumOrderQuantity,
+      weight: physicalData.weight, // NEW
+      length: physicalData.length, // NEW
+      width: physicalData.width, // NEW
+      height: physicalData.height, // NEW
       rating: this.props.rating,
       reviews: this.props.reviews,
       availableForRetail: this.props.availableForRetail,

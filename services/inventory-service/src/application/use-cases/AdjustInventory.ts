@@ -7,6 +7,7 @@ interface AdjustInventoryInput {
   warehouseId: string;
   quantity: number;
   movementType: 'in' | 'out' | 'adjustment';
+  source?: 'warehouse' | 'pos'; // NEW: Determines which business rule to apply
   reason?: string;
   performedBy?: string;
 }
@@ -55,13 +56,24 @@ export class AdjustInventory {
 
     const previousQuantity = inventory.getAvailableQuantity();
 
-    // Adjust inventory (domain logic)
-    inventory.adjust(
-      input.quantity,
-      input.movementType,
-      input.reason,
-      input.performedBy
-    );
+    // Apply appropriate business rule based on source and movement type
+    const source = input.source || 'warehouse'; // Default to warehouse for backward compatibility
+
+    if (input.movementType === 'in') {
+      inventory.adjustIn(input.quantity, input.reason, input.performedBy);
+    } else if (input.movementType === 'out') {
+      if (source === 'pos') {
+        // POS operations can create negative stock
+        inventory.posSale(input.quantity, input.reason, input.performedBy);
+      } else {
+        // Warehouse operations have strict validation
+        inventory.warehouseAdjustOut(input.quantity, input.reason, input.performedBy);
+      }
+    } else if (input.movementType === 'adjustment') {
+      inventory.directAdjustment(input.quantity, input.reason, input.performedBy);
+    } else {
+      throw new Error(`Invalid movement type: ${input.movementType}`);
+    }
 
     // Persist
     await this.repository.save(inventory);

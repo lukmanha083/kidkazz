@@ -21,6 +21,7 @@ const adjustStockSchema = z.object({
   productId: z.string(),
   quantity: z.number(),
   movementType: z.enum(['in', 'out', 'adjustment']),
+  source: z.enum(['warehouse', 'pos']).optional(), // NEW: Operation source (defaults to 'warehouse')
   reason: z.string().optional(),
   notes: z.string().optional(),
   performedBy: z.string().optional(),
@@ -110,13 +111,24 @@ app.post('/adjust', zValidator('json', adjustStockSchema), async (c) => {
     await db.insert(inventory).values(inventoryRecord).run();
   }
 
+  // Determine operation source (defaults to 'warehouse')
+  const source = data.source || 'warehouse';
+
   // Calculate new quantity
   let newQuantity = inventoryRecord.quantityAvailable;
   if (data.movementType === 'in') {
     newQuantity += data.quantity;
   } else if (data.movementType === 'out') {
+    // BUSINESS RULE: Warehouse operations cannot create negative stock
+    if (source === 'warehouse' && inventoryRecord.quantityAvailable < data.quantity) {
+      return c.json({
+        error: 'Insufficient stock for warehouse adjustment',
+        available: inventoryRecord.quantityAvailable,
+        requested: data.quantity,
+      }, 400);
+    }
+    // POS operations can create negative stock (first-pay-first-served)
     newQuantity -= data.quantity;
-    // Allow negative stock for POS as per business rules
   } else {
     // adjustment - set to exact quantity
     newQuantity = data.quantity;
@@ -141,6 +153,7 @@ app.post('/adjust', zValidator('json', adjustStockSchema), async (c) => {
     warehouseId: data.warehouseId,
     movementType: data.movementType,
     quantity: data.quantity,
+    source: source, // Track operation source
     referenceType: null,
     referenceId: null,
     reason: data.reason || null,

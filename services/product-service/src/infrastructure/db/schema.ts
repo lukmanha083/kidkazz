@@ -61,6 +61,12 @@ export const products = sqliteTable('products', {
   wholesaleThreshold: integer('wholesale_threshold').default(100), // Minimum qty for wholesale pricing
   minimumOrderQuantity: integer('minimum_order_quantity').default(1),
 
+  // Physical Attributes (for shipping cost calculation)
+  weight: real('weight'), // in kg
+  length: real('length'), // in cm (panjang)
+  width: real('width'), // in cm (lebar)
+  height: real('height'), // in cm (tinggi)
+
   // Ratings & Reviews
   rating: real('rating').default(0),
   reviews: integer('reviews').default(0),

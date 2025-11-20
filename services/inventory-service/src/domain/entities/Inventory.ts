@@ -95,29 +95,58 @@ export class Inventory extends AggregateRoot {
   }
 
   /**
-   * Business Logic: Adjust inventory (in/out/adjustment)
+   * Business Logic: Adjust inventory IN (receiving stock)
+   * This is for warehouse receiving operations
    */
-  public adjust(
+  public adjustIn(
     quantity: number,
-    movementType: 'in' | 'out' | 'adjustment',
     reason?: string,
     performedBy?: string
   ): void {
     const previousQuantity = this.props.quantityAvailable.getValue();
-    let newQuantity: Quantity;
+    const newQuantity = this.props.quantityAvailable.increase(Math.abs(quantity));
 
-    if (movementType === 'in') {
-      // Stock coming in (restock)
-      newQuantity = this.props.quantityAvailable.increase(Math.abs(quantity));
-      this.props.lastRestockedAt = new Date();
-    } else if (movementType === 'out') {
-      // Stock going out (sale/transfer)
-      // Allow negative stock (business rule for POS)
-      newQuantity = this.props.quantityAvailable.decrease(Math.abs(quantity));
-    } else {
-      // Direct adjustment/correction
-      newQuantity = Quantity.create(quantity);
+    this.props.quantityAvailable = newQuantity;
+    this.props.lastRestockedAt = new Date();
+    this.props.updatedAt = new Date();
+
+    // Raise domain event
+    this.addDomainEvent(
+      new InventoryAdjusted(
+        this.props.id,
+        this.props.productId,
+        this.props.warehouseId,
+        previousQuantity,
+        newQuantity.getValue(),
+        Math.abs(quantity),
+        'in',
+        reason,
+        performedBy
+      )
+    );
+  }
+
+  /**
+   * Business Logic: Warehouse adjustment OUT
+   * STRICT VALIDATION: Cannot create negative stock
+   * Use this for warehouse operations (transfers, manual adjustments, etc.)
+   */
+  public warehouseAdjustOut(
+    quantity: number,
+    reason?: string,
+    performedBy?: string
+  ): void {
+    const previousQuantity = this.props.quantityAvailable.getValue();
+    const absoluteQuantity = Math.abs(quantity);
+
+    // BUSINESS RULE: Warehouse operations cannot create negative stock
+    if (previousQuantity < absoluteQuantity) {
+      throw new Error(
+        `Insufficient stock for warehouse adjustment. Available: ${previousQuantity}, Requested: ${absoluteQuantity}`
+      );
     }
+
+    const newQuantity = this.props.quantityAvailable.decrease(absoluteQuantity);
 
     this.props.quantityAvailable = newQuantity;
     this.props.updatedAt = new Date();
@@ -130,12 +159,99 @@ export class Inventory extends AggregateRoot {
         this.props.warehouseId,
         previousQuantity,
         newQuantity.getValue(),
-        movementType === 'adjustment' ? quantity - previousQuantity : (movementType === 'in' ? quantity : -quantity),
-        movementType,
+        -absoluteQuantity,
+        'out',
         reason,
         performedBy
       )
     );
+  }
+
+  /**
+   * Business Logic: POS Sale
+   * ALLOWS NEGATIVE STOCK: First-pay-first-served business rule
+   * Use this ONLY for Point of Sale transactions
+   */
+  public posSale(
+    quantity: number,
+    reason?: string,
+    performedBy?: string
+  ): void {
+    const previousQuantity = this.props.quantityAvailable.getValue();
+    const absoluteQuantity = Math.abs(quantity);
+
+    // BUSINESS RULE: POS can create negative stock (first-pay-first-served)
+    // No validation - allow negative
+    const newQuantity = this.props.quantityAvailable.decrease(absoluteQuantity);
+
+    this.props.quantityAvailable = newQuantity;
+    this.props.updatedAt = new Date();
+
+    // Raise domain event with special marker for POS
+    this.addDomainEvent(
+      new InventoryAdjusted(
+        this.props.id,
+        this.props.productId,
+        this.props.warehouseId,
+        previousQuantity,
+        newQuantity.getValue(),
+        -absoluteQuantity,
+        'out',
+        reason || 'POS Sale',
+        performedBy
+      )
+    );
+  }
+
+  /**
+   * Business Logic: Direct adjustment/correction
+   * Use this for inventory corrections and audits
+   */
+  public directAdjustment(
+    newQuantity: number,
+    reason?: string,
+    performedBy?: string
+  ): void {
+    const previousQuantity = this.props.quantityAvailable.getValue();
+    const quantity = Quantity.create(newQuantity);
+
+    this.props.quantityAvailable = quantity;
+    this.props.updatedAt = new Date();
+
+    // Raise domain event
+    this.addDomainEvent(
+      new InventoryAdjusted(
+        this.props.id,
+        this.props.productId,
+        this.props.warehouseId,
+        previousQuantity,
+        quantity.getValue(),
+        newQuantity - previousQuantity,
+        'adjustment',
+        reason,
+        performedBy
+      )
+    );
+  }
+
+  /**
+   * @deprecated Use specific methods: adjustIn, warehouseAdjustOut, posSale, or directAdjustment
+   * Kept for backward compatibility
+   */
+  public adjust(
+    quantity: number,
+    movementType: 'in' | 'out' | 'adjustment',
+    reason?: string,
+    performedBy?: string
+  ): void {
+    if (movementType === 'in') {
+      this.adjustIn(quantity, reason, performedBy);
+    } else if (movementType === 'out') {
+      // Default to strict warehouse validation
+      this.warehouseAdjustOut(quantity, reason, performedBy);
+    } else {
+      this.directAdjustment(quantity, reason, performedBy);
+    }
   }
 
   /**

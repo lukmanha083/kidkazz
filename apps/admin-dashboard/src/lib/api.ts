@@ -220,6 +220,10 @@ export interface Product {
   baseUnit: string;
   wholesaleThreshold: number;
   minimumOrderQuantity: number;
+  weight?: number | null; // NEW: in kg
+  length?: number | null; // NEW: in cm (panjang)
+  width?: number | null; // NEW: in cm (lebar)
+  height?: number | null; // NEW: in cm (tinggi)
   rating: number;
   reviews: number;
   availableForRetail: boolean;
@@ -245,6 +249,10 @@ export interface CreateProductInput {
   price: number;
   retailPrice?: number | null;
   wholesalePrice?: number | null;
+  weight?: number; // NEW: in kg
+  length?: number; // NEW: in cm
+  width?: number; // NEW: in cm
+  height?: number; // NEW: in cm
   stock?: number;
   baseUnit?: string;
   wholesaleThreshold?: number;
