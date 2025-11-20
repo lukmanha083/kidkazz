@@ -1,5 +1,9 @@
-// API base URL - update this based on your environment
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8787';
+// API base URLs for microservices
+const PRODUCT_SERVICE_URL = import.meta.env.VITE_PRODUCT_SERVICE_URL || 'http://localhost:8788';
+const INVENTORY_SERVICE_URL = import.meta.env.VITE_INVENTORY_SERVICE_URL || 'http://localhost:8792';
+
+// For backward compatibility
+const API_BASE_URL = PRODUCT_SERVICE_URL;
 
 // Generic API request function
 async function apiRequest<T>(
@@ -85,60 +89,86 @@ export const categoryApi = {
 // WAREHOUSE API
 // ============================================
 
+// Updated to match DDD backend schema
 export interface Warehouse {
   id: string;
   code: string;
   name: string;
-  location: string;
-  address: string;
+  addressLine1: string;
+  addressLine2?: string;
   city: string;
+  province: string;
   postalCode: string;
-  phone: string;
-  manager: string;
-  rack?: string;
-  bin?: string;
-  status: 'Active' | 'Inactive';
-  createdAt: Date;
-  updatedAt: Date;
+  country: string;
+  contactName?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  status: 'active' | 'inactive';
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
+export interface CreateWarehouseInput {
+  code: string;
+  name: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  province: string;
+  postalCode: string;
+  country?: string;
+  contactName?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+}
+
+// Updated to use Inventory Service URL
 export const warehouseApi = {
   // Get all warehouses
-  getAll: async (): Promise<{ warehouses: Warehouse[] }> => {
-    return apiRequest('/api/warehouses');
+  getAll: async (): Promise<{ warehouses: Warehouse[]; total: number }> => {
+    const url = `${INVENTORY_SERVICE_URL}/api/warehouses`;
+    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
   },
 
   // Get only active warehouses
-  getActive: async (): Promise<{ warehouses: Warehouse[] }> => {
-    return apiRequest('/api/warehouses/active');
+  getActive: async (): Promise<{ warehouses: Warehouse[]; total: number }> => {
+    const url = `${INVENTORY_SERVICE_URL}/api/warehouses/active`;
+    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
   },
 
   // Get warehouse by ID
-  getById: async (id: string): Promise<{ warehouse: Warehouse }> => {
-    return apiRequest(`/api/warehouses/${id}`);
+  getById: async (id: string): Promise<Warehouse> => {
+    const url = `${INVENTORY_SERVICE_URL}/api/warehouses/${id}`;
+    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
   },
 
   // Create new warehouse
-  create: async (data: Omit<Warehouse, 'id' | 'createdAt' | 'updatedAt'>): Promise<{ warehouse: Warehouse }> => {
-    return apiRequest('/api/warehouses', {
+  create: async (data: CreateWarehouseInput): Promise<{ id: string; code: string; name: string }> => {
+    const url = `${INVENTORY_SERVICE_URL}/api/warehouses`;
+    return fetch(url, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
-    });
+    }).then(r => r.json());
   },
 
   // Update warehouse
-  update: async (id: string, data: Partial<Omit<Warehouse, 'id' | 'createdAt' | 'updatedAt'>>): Promise<{ warehouse: Warehouse }> => {
-    return apiRequest(`/api/warehouses/${id}`, {
+  update: async (id: string, data: Partial<CreateWarehouseInput>): Promise<Warehouse> => {
+    const url = `${INVENTORY_SERVICE_URL}/api/warehouses/${id}`;
+    return fetch(url, {
       method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
-    });
+    }).then(r => r.json());
   },
 
   // Delete warehouse
   delete: async (id: string): Promise<{ message: string }> => {
-    return apiRequest(`/api/warehouses/${id}`, {
+    const url = `${INVENTORY_SERVICE_URL}/api/warehouses/${id}`;
+    return fetch(url, {
       method: 'DELETE',
-    });
+      headers: { 'Content-Type': 'application/json' },
+    }).then(r => r.json());
   },
 };
 
@@ -613,6 +643,95 @@ export const accountingApi = {
   },
 };
 
+// ============================================
+// INVENTORY API
+// ============================================
+
+export interface Inventory {
+  id: string;
+  warehouseId: string;
+  productId: string;
+  quantityAvailable: number;
+  quantityReserved: number;
+  quantityInTransit?: number;
+  minimumStock: number;
+  lastRestockedAt?: Date | string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface InventoryAdjustmentInput {
+  productId: string;
+  warehouseId: string;
+  quantity: number;
+  movementType: 'in' | 'out' | 'adjustment';
+  reason?: string;
+  performedBy?: string;
+}
+
+export interface InventoryMovement {
+  id: string;
+  inventoryId: string;
+  productId: string;
+  warehouseId: string;
+  movementType: 'in' | 'out' | 'adjustment' | 'transfer';
+  quantity: number;
+  referenceType?: string;
+  referenceId?: string;
+  reason?: string;
+  notes?: string;
+  performedBy?: string;
+  createdAt: Date | string;
+}
+
+export const inventoryApi = {
+  // Get all inventory records
+  getAll: async (filters?: { productId?: string; warehouseId?: string }): Promise<{ inventory: Inventory[]; total: number }> => {
+    const params = new URLSearchParams(filters as any).toString();
+    const url = INVENTORY_SERVICE_URL + '/api/inventory' + (params ? '?' + params : '');
+    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
+  },
+
+  // Get inventory for a product across all warehouses
+  getByProduct: async (productId: string): Promise<{ productId: string; warehouses: Inventory[]; totalAvailable: number; totalReserved: number }> => {
+    const url = INVENTORY_SERVICE_URL + '/api/inventory/' + productId;
+    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
+  },
+
+  // Get specific product-warehouse inventory
+  getByProductAndWarehouse: async (productId: string, warehouseId: string): Promise<Inventory> => {
+    const url = INVENTORY_SERVICE_URL + '/api/inventory/' + productId + '/' + warehouseId;
+    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
+  },
+
+  // Adjust inventory (in/out/adjustment)
+  adjust: async (data: InventoryAdjustmentInput): Promise<{ inventoryId: string; productId: string; warehouseId: string; previousQuantity: number; newQuantity: number; message: string }> => {
+    const url = INVENTORY_SERVICE_URL + '/api/inventory/adjust';
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then(r => r.json());
+  },
+
+  // Set minimum stock level
+  setMinimumStock: async (inventoryId: string, minimumStock: number): Promise<{ message: string }> => {
+    const url = INVENTORY_SERVICE_URL + '/api/inventory/' + inventoryId + '/minimum-stock';
+    return fetch(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ minimumStock }),
+    }).then(r => r.json());
+  },
+
+  // Get movement history for a product
+  getMovements: async (productId: string, limit?: number): Promise<{ movements: InventoryMovement[]; total: number }> => {
+    const params = limit ? '?limit=' + limit : '';
+    const url = INVENTORY_SERVICE_URL + '/api/inventory/movements/' + productId + params;
+    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
+  },
+};
+
 export default {
   category: categoryApi,
   warehouse: warehouseApi,
@@ -620,4 +739,5 @@ export default {
   variant: variantApi,
   uom: uomApi,
   accounting: accountingApi,
+  inventory: inventoryApi,
 };

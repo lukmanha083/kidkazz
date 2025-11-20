@@ -21,9 +21,9 @@ app.get('/health', (c) => {
 });
 
 // Mount routes
-app.route('/api/categories', categoriesRoutes);
-app.route('/api/products', productsRoutes);
-app.route('/api/variants', variantsRoutes);
-app.route('/api/uoms', uomsRoutes);
+app.route('/categories', categoriesRoutes);
+app.route('/products', productsRoutes);
+app.route('/variants', variantsRoutes);
+app.route('/uoms', uomsRoutes);
 
 export default app;
