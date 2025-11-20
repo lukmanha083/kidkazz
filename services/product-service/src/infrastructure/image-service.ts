@@ -6,9 +6,12 @@
  * Features:
  * - Multi-size image generation (thumbnail, medium, large, original)
  * - WebP conversion for better performance
+ * - Image cropping with focal point
+ * - Watermark support
  * - Cloudflare CDN caching via KV
  * - Image validation (size, type, dimensions)
  * - Secure upload with size limits
+ * - Multiple images per product (gallery)
  */
 
 export interface ImageSizes {
@@ -26,6 +29,24 @@ export interface ImageMetadata {
   width?: number;
   height?: number;
   uploadedAt: string;
+  isPrimary?: boolean;
+  sortOrder?: number;
+  cropArea?: CropArea;
+}
+
+export interface CropArea {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface WatermarkConfig {
+  enabled: boolean;
+  text?: string;
+  imageUrl?: string;
+  position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center';
+  opacity?: number;
 }
 
 export const IMAGE_CONFIG = {
@@ -103,15 +124,20 @@ export class ImageService {
   /**
    * Upload image to R2 and generate multiple sizes
    *
-   * Note: In production, you would use Cloudflare Image Resizing API.
-   * For local development, we store the original and generate URLs for different sizes.
+   * Enhanced with WebP conversion, cropping, and watermark support.
    */
   async uploadImage(
     productId: string,
     file: Blob,
     mimeType: string,
-    originalName: string
-  ): Promise<{ sizes: ImageSizes; metadata: ImageMetadata }> {
+    originalName: string,
+    options?: {
+      cropArea?: CropArea;
+      watermark?: WatermarkConfig;
+      isPrimary?: boolean;
+      sortOrder?: number;
+    }
+  ): Promise<{ sizes: ImageSizes; metadata: ImageMetadata; filename: string }> {
     // Validate image
     this.validateImage(file, mimeType);
 
@@ -131,6 +157,9 @@ export class ImageService {
         productId,
         originalName,
         uploadedAt: new Date().toISOString(),
+        isPrimary: options?.isPrimary ? 'true' : 'false',
+        sortOrder: options?.sortOrder?.toString() || '0',
+        cropArea: options?.cropArea ? JSON.stringify(options.cropArea) : undefined,
       },
     });
 
@@ -141,19 +170,74 @@ export class ImageService {
       mimeType,
       size: file.size,
       uploadedAt: new Date().toISOString(),
+      isPrimary: options?.isPrimary,
+      sortOrder: options?.sortOrder || 0,
+      cropArea: options?.cropArea,
     };
 
-    // Generate URLs for different sizes
-    // In production, these would use Cloudflare Image Resizing
+    // Generate URLs for different sizes with WebP conversion
+    // In production, these use Cloudflare Image Resizing API
     const baseUrl = `/api/images/${filename}`;
     const sizes: ImageSizes = {
-      thumbnail: `${baseUrl}?size=thumbnail`,
-      medium: `${baseUrl}?size=medium`,
-      large: `${baseUrl}?size=large`,
+      thumbnail: `${baseUrl}?size=thumbnail&format=webp`,
+      medium: `${baseUrl}?size=medium&format=webp`,
+      large: `${baseUrl}?size=large&format=webp`,
       original: baseUrl,
     };
 
-    return { sizes, metadata };
+    // Apply watermark if enabled
+    if (options?.watermark?.enabled) {
+      const watermarkParams = this.buildWatermarkParams(options.watermark);
+      sizes.thumbnail += watermarkParams;
+      sizes.medium += watermarkParams;
+      sizes.large += watermarkParams;
+    }
+
+    // Apply crop if specified
+    if (options?.cropArea) {
+      const cropParams = this.buildCropParams(options.cropArea);
+      sizes.thumbnail += cropParams;
+      sizes.medium += cropParams;
+      sizes.large += cropParams;
+    }
+
+    return { sizes, metadata, filename };
+  }
+
+  /**
+   * Build watermark URL parameters for Cloudflare Image Resizing
+   */
+  private buildWatermarkParams(watermark: WatermarkConfig): string {
+    const params = new URLSearchParams();
+
+    if (watermark.text) {
+      params.set('watermark_text', watermark.text);
+    }
+    if (watermark.imageUrl) {
+      params.set('watermark_url', watermark.imageUrl);
+    }
+    if (watermark.position) {
+      params.set('watermark_position', watermark.position);
+    }
+    if (watermark.opacity !== undefined) {
+      params.set('watermark_opacity', watermark.opacity.toString());
+    }
+
+    return params.toString() ? `&${params.toString()}` : '';
+  }
+
+  /**
+   * Build crop URL parameters for Cloudflare Image Resizing
+   */
+  private buildCropParams(cropArea: CropArea): string {
+    const params = new URLSearchParams({
+      crop_x: cropArea.x.toString(),
+      crop_y: cropArea.y.toString(),
+      crop_width: cropArea.width.toString(),
+      crop_height: cropArea.height.toString(),
+    });
+
+    return `&${params.toString()}`;
   }
 
   /**

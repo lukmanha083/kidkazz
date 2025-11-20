@@ -18,17 +18,25 @@ const app = new Hono<{ Bindings: Bindings }>();
 /**
  * POST /api/images/upload
  *
- * Upload product image
+ * Upload product image with enhanced features
  *
  * Body: FormData with:
  * - file: Image file (required)
  * - productId: Product ID (required)
+ * - cropArea: JSON string of crop coordinates (optional)
+ * - watermark: JSON string of watermark config (optional)
+ * - isPrimary: Boolean if this is the primary image (optional)
+ * - sortOrder: Number for gallery ordering (optional)
  */
 app.post('/upload', async (c) => {
   try {
     const formData = await c.req.formData();
     const file = formData.get('file') as File;
     const productId = formData.get('productId') as string;
+    const cropAreaStr = formData.get('cropArea') as string | null;
+    const watermarkStr = formData.get('watermark') as string | null;
+    const isPrimaryStr = formData.get('isPrimary') as string | null;
+    const sortOrderStr = formData.get('sortOrder') as string | null;
 
     // Validation
     if (!file) {
@@ -38,6 +46,12 @@ app.post('/upload', async (c) => {
     if (!productId) {
       return c.json({ error: 'Product ID is required' }, 400);
     }
+
+    // Parse optional parameters
+    const cropArea = cropAreaStr ? JSON.parse(cropAreaStr) : undefined;
+    const watermark = watermarkStr ? JSON.parse(watermarkStr) : undefined;
+    const isPrimary = isPrimaryStr === 'true';
+    const sortOrder = sortOrderStr ? parseInt(sortOrderStr, 10) : undefined;
 
     // Initialize image service
     const imageService = new ImageService(
@@ -50,13 +64,20 @@ app.post('/upload', async (c) => {
       productId,
       file,
       file.type,
-      file.name
+      file.name,
+      {
+        cropArea,
+        watermark,
+        isPrimary,
+        sortOrder,
+      }
     );
 
     return c.json({
       success: true,
       message: 'Image uploaded successfully',
       image: {
+        filename: result.filename,
         urls: result.sizes,
         metadata: result.metadata,
       },
