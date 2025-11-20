@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
+import warehousesRoutes from './routes/warehouses';
+import inventoryRoutes from './routes/inventory';
 
 type Bindings = {
   DB: D1Database;
@@ -27,22 +29,9 @@ app.get('/health', (c) => {
   });
 });
 
-// Placeholder routes - will be implemented later
-app.post('/api/inventory/reserve', (c) => {
-  return c.json({ message: 'Reserve inventory - coming soon' }, 501);
-});
-
-app.post('/api/inventory/confirm', (c) => {
-  return c.json({ message: 'Confirm inventory - coming soon' }, 501);
-});
-
-app.post('/api/inventory/release', (c) => {
-  return c.json({ message: 'Release inventory - coming soon' }, 501);
-});
-
-app.get('/api/inventory/:productId', (c) => {
-  return c.json({ message: 'Get inventory - coming soon' }, 501);
-});
+// Mount routes
+app.route('/api/warehouses', warehousesRoutes);
+app.route('/api/inventory', inventoryRoutes);
 
 // 404 handler
 app.notFound((c) => {
