@@ -17,14 +17,21 @@ import { Route as DashboardOrdersRouteImport } from './routes/dashboard/orders'
 import { Route as DashboardCustomersRouteImport } from './routes/dashboard/customers'
 import { Route as DashboardProductsIndexRouteImport } from './routes/dashboard/products/index'
 import { Route as DashboardInventoryIndexRouteImport } from './routes/dashboard/inventory/index'
+import { Route as DashboardAccountingIndexRouteImport } from './routes/dashboard/accounting/index'
 import { Route as DashboardProductsVariantRouteImport } from './routes/dashboard/products/variant'
 import { Route as DashboardProductsUomRouteImport } from './routes/dashboard/products/uom'
+import { Route as DashboardProductsTestRouteImport } from './routes/dashboard/products/test'
 import { Route as DashboardProductsCategoryRouteImport } from './routes/dashboard/products/category'
 import { Route as DashboardProductsBundleRouteImport } from './routes/dashboard/products/bundle'
 import { Route as DashboardProductsAllRouteImport } from './routes/dashboard/products/all'
 import { Route as DashboardInventoryWarehouseRouteImport } from './routes/dashboard/inventory/warehouse'
 import { Route as DashboardInventoryUomConversionRouteImport } from './routes/dashboard/inventory/uom-conversion'
 import { Route as DashboardInventoryTransferStockRouteImport } from './routes/dashboard/inventory/transfer-stock'
+import { Route as DashboardAccountingJournalEntryRouteImport } from './routes/dashboard/accounting/journal-entry'
+import { Route as DashboardAccountingIncomeStatementRouteImport } from './routes/dashboard/accounting/income-statement'
+import { Route as DashboardAccountingGeneralLedgerRouteImport } from './routes/dashboard/accounting/general-ledger'
+import { Route as DashboardAccountingChartOfAccountsRouteImport } from './routes/dashboard/accounting/chart-of-accounts'
+import { Route as DashboardAccountingBalanceSheetRouteImport } from './routes/dashboard/accounting/balance-sheet'
 
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
@@ -66,6 +73,12 @@ const DashboardInventoryIndexRoute = DashboardInventoryIndexRouteImport.update({
   path: '/inventory/',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardAccountingIndexRoute =
+  DashboardAccountingIndexRouteImport.update({
+    id: '/accounting/',
+    path: '/accounting/',
+    getParentRoute: () => DashboardRoute,
+  } as any)
 const DashboardProductsVariantRoute =
   DashboardProductsVariantRouteImport.update({
     id: '/products/variant',
@@ -75,6 +88,11 @@ const DashboardProductsVariantRoute =
 const DashboardProductsUomRoute = DashboardProductsUomRouteImport.update({
   id: '/products/uom',
   path: '/products/uom',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardProductsTestRoute = DashboardProductsTestRouteImport.update({
+  id: '/products/test',
+  path: '/products/test',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardProductsCategoryRoute =
@@ -111,6 +129,36 @@ const DashboardInventoryTransferStockRoute =
     path: '/inventory/transfer-stock',
     getParentRoute: () => DashboardRoute,
   } as any)
+const DashboardAccountingJournalEntryRoute =
+  DashboardAccountingJournalEntryRouteImport.update({
+    id: '/accounting/journal-entry',
+    path: '/accounting/journal-entry',
+    getParentRoute: () => DashboardRoute,
+  } as any)
+const DashboardAccountingIncomeStatementRoute =
+  DashboardAccountingIncomeStatementRouteImport.update({
+    id: '/accounting/income-statement',
+    path: '/accounting/income-statement',
+    getParentRoute: () => DashboardRoute,
+  } as any)
+const DashboardAccountingGeneralLedgerRoute =
+  DashboardAccountingGeneralLedgerRouteImport.update({
+    id: '/accounting/general-ledger',
+    path: '/accounting/general-ledger',
+    getParentRoute: () => DashboardRoute,
+  } as any)
+const DashboardAccountingChartOfAccountsRoute =
+  DashboardAccountingChartOfAccountsRouteImport.update({
+    id: '/accounting/chart-of-accounts',
+    path: '/accounting/chart-of-accounts',
+    getParentRoute: () => DashboardRoute,
+  } as any)
+const DashboardAccountingBalanceSheetRoute =
+  DashboardAccountingBalanceSheetRouteImport.update({
+    id: '/accounting/balance-sheet',
+    path: '/accounting/balance-sheet',
+    getParentRoute: () => DashboardRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -119,14 +167,21 @@ export interface FileRoutesByFullPath {
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/accounting/balance-sheet': typeof DashboardAccountingBalanceSheetRoute
+  '/dashboard/accounting/chart-of-accounts': typeof DashboardAccountingChartOfAccountsRoute
+  '/dashboard/accounting/general-ledger': typeof DashboardAccountingGeneralLedgerRoute
+  '/dashboard/accounting/income-statement': typeof DashboardAccountingIncomeStatementRoute
+  '/dashboard/accounting/journal-entry': typeof DashboardAccountingJournalEntryRoute
   '/dashboard/inventory/transfer-stock': typeof DashboardInventoryTransferStockRoute
   '/dashboard/inventory/uom-conversion': typeof DashboardInventoryUomConversionRoute
   '/dashboard/inventory/warehouse': typeof DashboardInventoryWarehouseRoute
   '/dashboard/products/all': typeof DashboardProductsAllRoute
   '/dashboard/products/bundle': typeof DashboardProductsBundleRoute
   '/dashboard/products/category': typeof DashboardProductsCategoryRoute
+  '/dashboard/products/test': typeof DashboardProductsTestRoute
   '/dashboard/products/uom': typeof DashboardProductsUomRoute
   '/dashboard/products/variant': typeof DashboardProductsVariantRoute
+  '/dashboard/accounting': typeof DashboardAccountingIndexRoute
   '/dashboard/inventory': typeof DashboardInventoryIndexRoute
   '/dashboard/products': typeof DashboardProductsIndexRoute
 }
@@ -136,14 +191,21 @@ export interface FileRoutesByTo {
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard': typeof DashboardIndexRoute
+  '/dashboard/accounting/balance-sheet': typeof DashboardAccountingBalanceSheetRoute
+  '/dashboard/accounting/chart-of-accounts': typeof DashboardAccountingChartOfAccountsRoute
+  '/dashboard/accounting/general-ledger': typeof DashboardAccountingGeneralLedgerRoute
+  '/dashboard/accounting/income-statement': typeof DashboardAccountingIncomeStatementRoute
+  '/dashboard/accounting/journal-entry': typeof DashboardAccountingJournalEntryRoute
   '/dashboard/inventory/transfer-stock': typeof DashboardInventoryTransferStockRoute
   '/dashboard/inventory/uom-conversion': typeof DashboardInventoryUomConversionRoute
   '/dashboard/inventory/warehouse': typeof DashboardInventoryWarehouseRoute
   '/dashboard/products/all': typeof DashboardProductsAllRoute
   '/dashboard/products/bundle': typeof DashboardProductsBundleRoute
   '/dashboard/products/category': typeof DashboardProductsCategoryRoute
+  '/dashboard/products/test': typeof DashboardProductsTestRoute
   '/dashboard/products/uom': typeof DashboardProductsUomRoute
   '/dashboard/products/variant': typeof DashboardProductsVariantRoute
+  '/dashboard/accounting': typeof DashboardAccountingIndexRoute
   '/dashboard/inventory': typeof DashboardInventoryIndexRoute
   '/dashboard/products': typeof DashboardProductsIndexRoute
 }
@@ -155,14 +217,21 @@ export interface FileRoutesById {
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/accounting/balance-sheet': typeof DashboardAccountingBalanceSheetRoute
+  '/dashboard/accounting/chart-of-accounts': typeof DashboardAccountingChartOfAccountsRoute
+  '/dashboard/accounting/general-ledger': typeof DashboardAccountingGeneralLedgerRoute
+  '/dashboard/accounting/income-statement': typeof DashboardAccountingIncomeStatementRoute
+  '/dashboard/accounting/journal-entry': typeof DashboardAccountingJournalEntryRoute
   '/dashboard/inventory/transfer-stock': typeof DashboardInventoryTransferStockRoute
   '/dashboard/inventory/uom-conversion': typeof DashboardInventoryUomConversionRoute
   '/dashboard/inventory/warehouse': typeof DashboardInventoryWarehouseRoute
   '/dashboard/products/all': typeof DashboardProductsAllRoute
   '/dashboard/products/bundle': typeof DashboardProductsBundleRoute
   '/dashboard/products/category': typeof DashboardProductsCategoryRoute
+  '/dashboard/products/test': typeof DashboardProductsTestRoute
   '/dashboard/products/uom': typeof DashboardProductsUomRoute
   '/dashboard/products/variant': typeof DashboardProductsVariantRoute
+  '/dashboard/accounting/': typeof DashboardAccountingIndexRoute
   '/dashboard/inventory/': typeof DashboardInventoryIndexRoute
   '/dashboard/products/': typeof DashboardProductsIndexRoute
 }
@@ -175,14 +244,21 @@ export interface FileRouteTypes {
     | '/dashboard/orders'
     | '/dashboard/settings'
     | '/dashboard/'
+    | '/dashboard/accounting/balance-sheet'
+    | '/dashboard/accounting/chart-of-accounts'
+    | '/dashboard/accounting/general-ledger'
+    | '/dashboard/accounting/income-statement'
+    | '/dashboard/accounting/journal-entry'
     | '/dashboard/inventory/transfer-stock'
     | '/dashboard/inventory/uom-conversion'
     | '/dashboard/inventory/warehouse'
     | '/dashboard/products/all'
     | '/dashboard/products/bundle'
     | '/dashboard/products/category'
+    | '/dashboard/products/test'
     | '/dashboard/products/uom'
     | '/dashboard/products/variant'
+    | '/dashboard/accounting'
     | '/dashboard/inventory'
     | '/dashboard/products'
   fileRoutesByTo: FileRoutesByTo
@@ -192,14 +268,21 @@ export interface FileRouteTypes {
     | '/dashboard/orders'
     | '/dashboard/settings'
     | '/dashboard'
+    | '/dashboard/accounting/balance-sheet'
+    | '/dashboard/accounting/chart-of-accounts'
+    | '/dashboard/accounting/general-ledger'
+    | '/dashboard/accounting/income-statement'
+    | '/dashboard/accounting/journal-entry'
     | '/dashboard/inventory/transfer-stock'
     | '/dashboard/inventory/uom-conversion'
     | '/dashboard/inventory/warehouse'
     | '/dashboard/products/all'
     | '/dashboard/products/bundle'
     | '/dashboard/products/category'
+    | '/dashboard/products/test'
     | '/dashboard/products/uom'
     | '/dashboard/products/variant'
+    | '/dashboard/accounting'
     | '/dashboard/inventory'
     | '/dashboard/products'
   id:
@@ -210,14 +293,21 @@ export interface FileRouteTypes {
     | '/dashboard/orders'
     | '/dashboard/settings'
     | '/dashboard/'
+    | '/dashboard/accounting/balance-sheet'
+    | '/dashboard/accounting/chart-of-accounts'
+    | '/dashboard/accounting/general-ledger'
+    | '/dashboard/accounting/income-statement'
+    | '/dashboard/accounting/journal-entry'
     | '/dashboard/inventory/transfer-stock'
     | '/dashboard/inventory/uom-conversion'
     | '/dashboard/inventory/warehouse'
     | '/dashboard/products/all'
     | '/dashboard/products/bundle'
     | '/dashboard/products/category'
+    | '/dashboard/products/test'
     | '/dashboard/products/uom'
     | '/dashboard/products/variant'
+    | '/dashboard/accounting/'
     | '/dashboard/inventory/'
     | '/dashboard/products/'
   fileRoutesById: FileRoutesById
@@ -285,6 +375,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardInventoryIndexRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/accounting/': {
+      id: '/dashboard/accounting/'
+      path: '/accounting'
+      fullPath: '/dashboard/accounting'
+      preLoaderRoute: typeof DashboardAccountingIndexRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/products/variant': {
       id: '/dashboard/products/variant'
       path: '/products/variant'
@@ -297,6 +394,13 @@ declare module '@tanstack/react-router' {
       path: '/products/uom'
       fullPath: '/dashboard/products/uom'
       preLoaderRoute: typeof DashboardProductsUomRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/products/test': {
+      id: '/dashboard/products/test'
+      path: '/products/test'
+      fullPath: '/dashboard/products/test'
+      preLoaderRoute: typeof DashboardProductsTestRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/products/category': {
@@ -341,6 +445,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardInventoryTransferStockRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/accounting/journal-entry': {
+      id: '/dashboard/accounting/journal-entry'
+      path: '/accounting/journal-entry'
+      fullPath: '/dashboard/accounting/journal-entry'
+      preLoaderRoute: typeof DashboardAccountingJournalEntryRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/accounting/income-statement': {
+      id: '/dashboard/accounting/income-statement'
+      path: '/accounting/income-statement'
+      fullPath: '/dashboard/accounting/income-statement'
+      preLoaderRoute: typeof DashboardAccountingIncomeStatementRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/accounting/general-ledger': {
+      id: '/dashboard/accounting/general-ledger'
+      path: '/accounting/general-ledger'
+      fullPath: '/dashboard/accounting/general-ledger'
+      preLoaderRoute: typeof DashboardAccountingGeneralLedgerRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/accounting/chart-of-accounts': {
+      id: '/dashboard/accounting/chart-of-accounts'
+      path: '/accounting/chart-of-accounts'
+      fullPath: '/dashboard/accounting/chart-of-accounts'
+      preLoaderRoute: typeof DashboardAccountingChartOfAccountsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/accounting/balance-sheet': {
+      id: '/dashboard/accounting/balance-sheet'
+      path: '/accounting/balance-sheet'
+      fullPath: '/dashboard/accounting/balance-sheet'
+      preLoaderRoute: typeof DashboardAccountingBalanceSheetRouteImport
+      parentRoute: typeof DashboardRoute
+    }
   }
 }
 
@@ -349,14 +488,21 @@ interface DashboardRouteChildren {
   DashboardOrdersRoute: typeof DashboardOrdersRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardAccountingBalanceSheetRoute: typeof DashboardAccountingBalanceSheetRoute
+  DashboardAccountingChartOfAccountsRoute: typeof DashboardAccountingChartOfAccountsRoute
+  DashboardAccountingGeneralLedgerRoute: typeof DashboardAccountingGeneralLedgerRoute
+  DashboardAccountingIncomeStatementRoute: typeof DashboardAccountingIncomeStatementRoute
+  DashboardAccountingJournalEntryRoute: typeof DashboardAccountingJournalEntryRoute
   DashboardInventoryTransferStockRoute: typeof DashboardInventoryTransferStockRoute
   DashboardInventoryUomConversionRoute: typeof DashboardInventoryUomConversionRoute
   DashboardInventoryWarehouseRoute: typeof DashboardInventoryWarehouseRoute
   DashboardProductsAllRoute: typeof DashboardProductsAllRoute
   DashboardProductsBundleRoute: typeof DashboardProductsBundleRoute
   DashboardProductsCategoryRoute: typeof DashboardProductsCategoryRoute
+  DashboardProductsTestRoute: typeof DashboardProductsTestRoute
   DashboardProductsUomRoute: typeof DashboardProductsUomRoute
   DashboardProductsVariantRoute: typeof DashboardProductsVariantRoute
+  DashboardAccountingIndexRoute: typeof DashboardAccountingIndexRoute
   DashboardInventoryIndexRoute: typeof DashboardInventoryIndexRoute
   DashboardProductsIndexRoute: typeof DashboardProductsIndexRoute
 }
@@ -366,14 +512,23 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardOrdersRoute: DashboardOrdersRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
+  DashboardAccountingBalanceSheetRoute: DashboardAccountingBalanceSheetRoute,
+  DashboardAccountingChartOfAccountsRoute:
+    DashboardAccountingChartOfAccountsRoute,
+  DashboardAccountingGeneralLedgerRoute: DashboardAccountingGeneralLedgerRoute,
+  DashboardAccountingIncomeStatementRoute:
+    DashboardAccountingIncomeStatementRoute,
+  DashboardAccountingJournalEntryRoute: DashboardAccountingJournalEntryRoute,
   DashboardInventoryTransferStockRoute: DashboardInventoryTransferStockRoute,
   DashboardInventoryUomConversionRoute: DashboardInventoryUomConversionRoute,
   DashboardInventoryWarehouseRoute: DashboardInventoryWarehouseRoute,
   DashboardProductsAllRoute: DashboardProductsAllRoute,
   DashboardProductsBundleRoute: DashboardProductsBundleRoute,
   DashboardProductsCategoryRoute: DashboardProductsCategoryRoute,
+  DashboardProductsTestRoute: DashboardProductsTestRoute,
   DashboardProductsUomRoute: DashboardProductsUomRoute,
   DashboardProductsVariantRoute: DashboardProductsVariantRoute,
+  DashboardAccountingIndexRoute: DashboardAccountingIndexRoute,
   DashboardInventoryIndexRoute: DashboardInventoryIndexRoute,
   DashboardProductsIndexRoute: DashboardProductsIndexRoute,
 }
