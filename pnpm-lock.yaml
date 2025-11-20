@@ -250,15 +250,27 @@ importers:
       '@hono/zod-validator':
         specifier: ^0.2.0
         version: 0.2.2(hono@4.10.5)(zod@3.25.76)
+      '@kidkazz/ddd-core':
+        specifier: workspace:*
+        version: link:../../packages/ddd-core
       '@kidkazz/domain-events':
         specifier: workspace:*
         version: link:../../shared/domain-events
+      '@kidkazz/trpc':
+        specifier: workspace:*
+        version: link:../../packages/trpc
       '@kidkazz/types':
         specifier: workspace:*
         version: link:../../shared/types
       '@kidkazz/utils':
         specifier: workspace:*
         version: link:../../shared/utils
+      '@trpc/client':
+        specifier: ^11.0.0
+        version: 11.7.1(@trpc/server@11.7.1(typescript@5.9.3))(typescript@5.9.3)
+      '@trpc/server':
+        specifier: ^11.0.0
+        version: 11.7.1(typescript@5.9.3)
       drizzle-orm:
         specifier: ^0.36.4
         version: 0.36.4(@cloudflare/workers-types@4.20251119.0)(@types/react@18.3.26)(react@18.3.1)

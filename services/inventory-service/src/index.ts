@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
+import { createTRPCHandler, createContextFactory } from '@kidkazz/trpc';
+import { appRouter } from './infrastructure/trpc';
 import warehousesRoutes from './routes/warehouses';
 import inventoryRoutes from './routes/inventory';
 
@@ -17,7 +19,7 @@ app.use('/*', logger());
 app.use('/*', cors({
   origin: '*',
   allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization'],
+  allowHeaders: ['Content-Type', 'Authorization', 'x-user-id'],
 }));
 
 // Health check
@@ -29,7 +31,16 @@ app.get('/health', (c) => {
   });
 });
 
-// Mount routes
+// tRPC endpoint (for service-to-service communication)
+app.all('/trpc/*', async (c) => {
+  const createContext = createContextFactory<Bindings>();
+  const handler = createTRPCHandler(appRouter, (req, env) =>
+    createContext({ req } as any, { ...env, eventQueue: env.INVENTORY_EVENTS_QUEUE })
+  );
+  return handler(c);
+});
+
+// REST API routes (for backward compatibility with frontend)
 app.route('/api/warehouses', warehousesRoutes);
 app.route('/api/inventory', inventoryRoutes);
 
