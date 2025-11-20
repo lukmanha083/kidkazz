@@ -5,12 +5,16 @@ import { createTRPCHandler, createContextFactory } from '@kidkazz/trpc';
 import { appRouter } from './infrastructure/trpc';
 import routes from './infrastructure/http/routes';
 import imageRoutes from './routes/images';
+import videoRoutes from './routes/videos';
 
 type Bindings = {
   DB: D1Database;
   PRODUCT_EVENTS_QUEUE: Queue;
   PRODUCT_IMAGES: R2Bucket;
   IMAGE_CACHE: KVNamespace;
+  PRODUCT_VIDEOS: R2Bucket;
+  VIDEO_CACHE: KVNamespace;
+  CLOUDFLARE_STREAM_API_TOKEN?: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -46,6 +50,9 @@ app.route('/api', routes);
 
 // Image routes (R2 + KV cache)
 app.route('/api/images', imageRoutes);
+
+// Video routes (R2 + Cloudflare Stream)
+app.route('/api/videos', videoRoutes);
 
 // 404 handler
 app.notFound((c) => {

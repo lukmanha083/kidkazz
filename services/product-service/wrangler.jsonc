@@ -29,22 +29,37 @@
     ]
   },
 
-  // R2 bucket for product images
+  // R2 buckets for product images and videos
   "r2_buckets": [
     {
       "binding": "PRODUCT_IMAGES",
       "bucket_name": "kidkazz-product-images"
+    },
+    {
+      "binding": "PRODUCT_VIDEOS",
+      "bucket_name": "kidkazz-product-videos"
     }
   ],
 
-  // KV namespace for image CDN cache
+  // KV namespaces for image and video CDN cache
   "kv_namespaces": [
     {
       "binding": "IMAGE_CACHE",
       "id": "preview_id",
       "preview_id": "preview_id"
+    },
+    {
+      "binding": "VIDEO_CACHE",
+      "id": "video_preview_id",
+      "preview_id": "video_preview_id"
     }
   ],
+
+  // Environment variables (optional)
+  // Uncomment and set to enable Cloudflare Stream for optimized video delivery
+  // "vars": {
+  //   "CLOUDFLARE_STREAM_API_TOKEN": "your-stream-api-token-here"
+  // },
 
   // Development settings
   "dev": {
