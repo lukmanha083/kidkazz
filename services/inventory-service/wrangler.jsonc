@@ -44,6 +44,22 @@
     }
   ],
 
+  // Durable Objects for real-time WebSocket updates
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "INVENTORY_UPDATES",
+        "class_name": "InventoryUpdatesBroadcaster",
+        "script_name": "inventory-service"
+      },
+      {
+        "name": "WAREHOUSE_UPDATES",
+        "class_name": "WarehouseUpdatesBroadcaster",
+        "script_name": "inventory-service"
+      }
+    ]
+  },
+
   // Development settings
   "dev": {
     "port": 8792

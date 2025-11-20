@@ -4,9 +4,11 @@ import { z } from 'zod';
 import { drizzle } from 'drizzle-orm/d1';
 import { eq } from 'drizzle-orm';
 import { warehouses } from '../infrastructure/db/schema';
+import { broadcastWarehouseUpdate } from '../infrastructure/broadcast';
 
 type Bindings = {
   DB: D1Database;
+  WAREHOUSE_UPDATES: DurableObjectNamespace;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -98,6 +100,25 @@ app.post('/', zValidator('json', createWarehouseSchema), async (c) => {
 
   await db.insert(warehouses).values(newWarehouse).run();
 
+  // Broadcast real-time update via WebSocket
+  await broadcastWarehouseUpdate(c.env, {
+    type: 'warehouse_created',
+    data: {
+      warehouseId: newWarehouse.id,
+      code: newWarehouse.code,
+      name: newWarehouse.name,
+      address: {
+        street: newWarehouse.addressLine1,
+        city: newWarehouse.city,
+        state: newWarehouse.province,
+        country: newWarehouse.country,
+        postalCode: newWarehouse.postalCode,
+      },
+      isActive: newWarehouse.status === 'active',
+      timestamp: new Date().toISOString(),
+    },
+  });
+
   return c.json(newWarehouse, 201);
 });
 
@@ -129,6 +150,27 @@ app.put('/:id', zValidator('json', updateWarehouseSchema), async (c) => {
     .where(eq(warehouses.id, id))
     .get();
 
+  // Broadcast real-time update via WebSocket
+  if (updated) {
+    await broadcastWarehouseUpdate(c.env, {
+      type: 'warehouse_updated',
+      data: {
+        warehouseId: updated.id,
+        code: updated.code,
+        name: updated.name,
+        address: {
+          street: updated.addressLine1,
+          city: updated.city,
+          state: updated.province,
+          country: updated.country,
+          postalCode: updated.postalCode,
+        },
+        isActive: updated.status === 'active',
+        timestamp: new Date().toISOString(),
+      },
+    });
+  }
+
   return c.json(updated);
 });
 
@@ -137,7 +179,35 @@ app.delete('/:id', async (c) => {
   const id = c.req.param('id');
   const db = drizzle(c.env.DB);
 
+  // Get warehouse before deletion for broadcast
+  const warehouse = await db
+    .select()
+    .from(warehouses)
+    .where(eq(warehouses.id, id))
+    .get();
+
   await db.delete(warehouses).where(eq(warehouses.id, id)).run();
+
+  // Broadcast real-time update via WebSocket
+  if (warehouse) {
+    await broadcastWarehouseUpdate(c.env, {
+      type: 'warehouse_deleted',
+      data: {
+        warehouseId: warehouse.id,
+        code: warehouse.code,
+        name: warehouse.name,
+        address: {
+          street: warehouse.addressLine1,
+          city: warehouse.city,
+          state: warehouse.province,
+          country: warehouse.country,
+          postalCode: warehouse.postalCode,
+        },
+        isActive: false,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  }
 
   return c.json({ message: 'Warehouse deleted successfully' });
 });

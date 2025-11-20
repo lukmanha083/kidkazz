@@ -4,10 +4,12 @@ import { z } from 'zod';
 import { drizzle } from 'drizzle-orm/d1';
 import { eq, and } from 'drizzle-orm';
 import { inventory, inventoryMovements } from '../infrastructure/db/schema';
+import { broadcastInventoryUpdate } from '../infrastructure/broadcast';
 
 type Bindings = {
   DB: D1Database;
   INVENTORY_EVENTS_QUEUE: Queue;
+  INVENTORY_UPDATES: DurableObjectNamespace;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -170,6 +172,22 @@ app.post('/adjust', zValidator('json', adjustStockSchema), async (c) => {
     .from(inventory)
     .where(eq(inventory.id, inventoryRecord.id))
     .get();
+
+  // Broadcast real-time update via WebSocket
+  if (updated) {
+    await broadcastInventoryUpdate(c.env, {
+      type: 'inventory_adjusted',
+      data: {
+        inventoryId: updated.id,
+        productId: updated.productId,
+        warehouseId: updated.warehouseId,
+        quantityAvailable: updated.quantityAvailable,
+        quantityReserved: updated.quantityReserved,
+        minimumStock: updated.minimumStock ?? undefined,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  }
 
   return c.json({
     inventory: updated,
