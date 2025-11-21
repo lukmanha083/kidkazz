@@ -67,6 +67,7 @@ import {
   categoryApi,
   warehouseApi,
   uomApi,
+  productLocationApi,
 } from '@/lib/api';
 
 export const Route = createFileRoute('/dashboard/products/all')({
@@ -135,6 +136,12 @@ function AllProductsPage() {
     baseUnit: 'PCS',
     wholesaleThreshold: '12',
     status: 'active' as 'active' | 'inactive' | 'discontinued',
+    // Optional location fields
+    warehouseId: '',
+    rack: '',
+    bin: '',
+    zone: '',
+    aisle: '',
   });
 
   // Product UOM management states
@@ -365,6 +372,12 @@ function AllProductsPage() {
       baseUnit: 'PCS',
       wholesaleThreshold: '12',
       status: 'active',
+      // Optional location fields
+      warehouseId: '',
+      rack: '',
+      bin: '',
+      zone: '',
+      aisle: '',
     });
     setProductUOMs([]);
     setSelectedUOM('');
@@ -378,6 +391,10 @@ function AllProductsPage() {
     // Fetch full product details
     const fullProduct = await productApi.getById(product.id);
     setSelectedProduct(fullProduct);
+
+    // Get first location if exists (for editing)
+    const firstLocation = fullProduct.productLocations?.[0];
+
     setFormData({
       barcode: fullProduct.barcode,
       name: fullProduct.name,
@@ -389,6 +406,12 @@ function AllProductsPage() {
       baseUnit: fullProduct.baseUnit,
       wholesaleThreshold: fullProduct.wholesaleThreshold.toString(),
       status: fullProduct.status,
+      // Optional location fields - populate from first location if exists
+      warehouseId: firstLocation?.warehouseId || '',
+      rack: firstLocation?.rack || '',
+      bin: firstLocation?.bin || '',
+      zone: firstLocation?.zone || '',
+      aisle: firstLocation?.aisle || '',
     });
     setProductUOMs(fullProduct.productUOMs || []);
     setSelectedUOM('');
@@ -516,7 +539,7 @@ function AllProductsPage() {
     }
   };
 
-  const handleSubmitForm = (e: React.FormEvent) => {
+  const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const excludeId = formMode === 'edit' ? selectedProduct?.id : undefined;
@@ -573,9 +596,90 @@ function AllProductsPage() {
     };
 
     if (formMode === 'add') {
-      createProductMutation.mutate(productData);
+      try {
+        // Create product first
+        const createdProduct = await productApi.create(productData);
+
+        // If warehouse is selected, create location (optional)
+        if (formData.warehouseId) {
+          try {
+            await productLocationApi.create({
+              productId: createdProduct.id,
+              warehouseId: formData.warehouseId,
+              rack: formData.rack || null,
+              bin: formData.bin || null,
+              zone: formData.zone || null,
+              aisle: formData.aisle || null,
+              quantity: parseInt(formData.stock),
+            });
+          } catch (locationError) {
+            console.error('Failed to create product location:', locationError);
+            toast.info('Product created, but location could not be set', {
+              description: 'You can add the location later'
+            });
+          }
+        }
+
+        queryClient.invalidateQueries({ queryKey: ['products'] });
+        toast.success('Product created successfully');
+        setFormDrawerOpen(false);
+      } catch (error: any) {
+        toast.error('Failed to create product', {
+          description: error.message,
+        });
+      }
     } else if (formMode === 'edit' && selectedProduct) {
-      updateProductMutation.mutate({ id: selectedProduct.id, data: productData });
+      try {
+        // Update product first
+        await productApi.update(selectedProduct.id, productData);
+
+        // Handle location update (optional)
+        if (formData.warehouseId) {
+          // Check if location already exists for this product-warehouse combo
+          const existingLocations = selectedProduct.productLocations || [];
+          const existingLocation = existingLocations.find(
+            loc => loc.warehouseId === formData.warehouseId
+          );
+
+          try {
+            if (existingLocation) {
+              // Update existing location
+              await productLocationApi.update(existingLocation.id, {
+                rack: formData.rack || null,
+                bin: formData.bin || null,
+                zone: formData.zone || null,
+                aisle: formData.aisle || null,
+                quantity: parseInt(formData.stock),
+              });
+            } else {
+              // Create new location
+              await productLocationApi.create({
+                productId: selectedProduct.id,
+                warehouseId: formData.warehouseId,
+                rack: formData.rack || null,
+                bin: formData.bin || null,
+                zone: formData.zone || null,
+                aisle: formData.aisle || null,
+                quantity: parseInt(formData.stock),
+              });
+            }
+          } catch (locationError) {
+            console.error('Failed to update product location:', locationError);
+            toast.info('Product updated, but location could not be set', {
+              description: 'You can update the location later'
+            });
+          }
+        }
+
+        queryClient.invalidateQueries({ queryKey: ['products'] });
+        queryClient.invalidateQueries({ queryKey: ['product', selectedProduct.id] });
+        toast.success('Product updated successfully');
+        setFormDrawerOpen(false);
+      } catch (error: any) {
+        toast.error('Failed to update product', {
+          description: error.message,
+        });
+      }
     }
   };
 
@@ -982,6 +1086,55 @@ function AllProductsPage() {
                     </div>
                   </>
                 )}
+
+                {selectedProduct.productLocations && selectedProduct.productLocations.length > 0 && (
+                  <>
+                    <Separator />
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Product Locations</Label>
+                      <div className="mt-2 space-y-2">
+                        {selectedProduct.productLocations.map((location) => {
+                          const warehouse = warehouses.find(w => w.id === location.warehouseId);
+                          return (
+                            <div key={location.id} className="p-3 border rounded bg-muted/30">
+                              <p className="text-sm font-medium mb-2">{warehouse?.name || 'Unknown Warehouse'}</p>
+                              <div className="grid grid-cols-2 gap-2 text-xs">
+                                {location.rack && (
+                                  <div>
+                                    <span className="text-muted-foreground">Rack:</span>
+                                    <span className="ml-1 font-medium">{location.rack}</span>
+                                  </div>
+                                )}
+                                {location.bin && (
+                                  <div>
+                                    <span className="text-muted-foreground">Bin:</span>
+                                    <span className="ml-1 font-medium">{location.bin}</span>
+                                  </div>
+                                )}
+                                {location.zone && (
+                                  <div>
+                                    <span className="text-muted-foreground">Zone:</span>
+                                    <span className="ml-1 font-medium">{location.zone}</span>
+                                  </div>
+                                )}
+                                {location.aisle && (
+                                  <div>
+                                    <span className="text-muted-foreground">Aisle:</span>
+                                    <span className="ml-1 font-medium">{location.aisle}</span>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="mt-2 pt-2 border-t">
+                                <span className="text-xs text-muted-foreground">Quantity at location:</span>
+                                <span className="ml-1 text-sm font-semibold">{location.quantity}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -1142,6 +1295,81 @@ function AllProductsPage() {
                 <option value="inactive">Inactive</option>
                 <option value="discontinued">Discontinued</option>
               </select>
+            </div>
+
+            <Separator className="my-4" />
+
+            {/* Optional Location Section */}
+            <div className="space-y-4 border rounded-lg p-4 bg-muted/20">
+              <div className="flex items-start justify-between">
+                <div>
+                  <Label className="text-base font-semibold">Product Location (Optional)</Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Set the warehouse and precise location for this product. This is optional and can be added later.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="warehouseId">Warehouse</Label>
+                <select
+                  id="warehouseId"
+                  value={formData.warehouseId}
+                  onChange={(e) => setFormData({ ...formData, warehouseId: e.target.value })}
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                >
+                  <option value="">No warehouse selected</option>
+                  {warehouses.map(warehouse => (
+                    <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {formData.warehouseId && (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="rack">Rack (Optional)</Label>
+                      <Input
+                        id="rack"
+                        placeholder="A1, B3, R-01"
+                        value={formData.rack}
+                        onChange={(e) => setFormData({ ...formData, rack: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="bin">Bin (Optional)</Label>
+                      <Input
+                        id="bin"
+                        placeholder="01, A, TOP"
+                        value={formData.bin}
+                        onChange={(e) => setFormData({ ...formData, bin: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="zone">Zone (Optional)</Label>
+                      <Input
+                        id="zone"
+                        placeholder="Zone A, Cold Storage"
+                        value={formData.zone}
+                        onChange={(e) => setFormData({ ...formData, zone: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="aisle">Aisle (Optional)</Label>
+                      <Input
+                        id="aisle"
+                        placeholder="1, 2A, Main"
+                        value={formData.aisle}
+                        onChange={(e) => setFormData({ ...formData, aisle: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             <DrawerFooter className="px-0">
