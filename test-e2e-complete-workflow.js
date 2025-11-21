@@ -75,15 +75,16 @@ async function runTests() {
 
     const createProduct = await apiCall('product', '/api/products', 'POST', productData);
 
-    if (createProduct.status === 200 && createProduct.data.product) {
-      testData.productId = createProduct.data.product.id;
+    // Product service returns the product directly (status 201), not wrapped
+    if (createProduct.status === 201 && createProduct.data.id) {
+      testData.productId = createProduct.data.id;
       log('✅ TEST 1 PASSED: Product created with physical attributes', 'green');
       log(`   Product ID: ${testData.productId}`, 'blue');
       log(`   Weight: ${productData.weight}kg, Dimensions: ${productData.length}x${productData.width}x${productData.height}cm`, 'blue');
       testsPassed++;
     } else {
       log('❌ TEST 1 FAILED: Could not create product', 'red');
-      log(`   Response: ${JSON.stringify(createProduct.data)}`, 'red');
+      log(`   Status: ${createProduct.status}, Response: ${JSON.stringify(createProduct.data)}`, 'red');
       testsFailed++;
       throw new Error('Cannot continue without product');
     }
