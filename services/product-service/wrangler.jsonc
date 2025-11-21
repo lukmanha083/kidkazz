@@ -1,68 +1,61 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "product-service",
-  "main": "src/index.ts",
-  "compatibility_date": "2024-11-14",
-  "compatibility_flags": ["nodejs_compat"],
-
-  "observability": {
-    "enabled": true,
-    "head_sampling_rate": 1
-  },
-
-  // D1 Database binding
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "product-db",
-      "database_id": "43857977-dffc-4978-bbc9-b64d0f60bc69" // Run: wrangler d1 create product-db
-    }
-  ],
-
-  // Queue for publishing product events
-  "queues": {
-    "producers": [
-      {
-        "queue": "product-events-queue",
-        "binding": "PRODUCT_EVENTS_QUEUE"
-      }
-    ]
-  },
-
-  // R2 buckets for product images and videos
-  "r2_buckets": [
-    {
-      "binding": "PRODUCT_IMAGES",
-      "bucket_name": "kidkazz-product-images"
-    },
-    {
-      "binding": "PRODUCT_VIDEOS",
-      "bucket_name": "kidkazz-product-videos"
-    }
-  ],
-
-  // KV namespaces for image and video CDN cache
-  "kv_namespaces": [
-    {
-      "binding": "IMAGE_CACHE",
-      "id": "preview_id",
-      "preview_id": "preview_id"
-    },
-    {
-      "binding": "VIDEO_CACHE",
-      "id": "video_preview_id",
-      "preview_id": "video_preview_id"
-    }
-  ],
-
-  // Environment variables (optional)
-  // Uncomment and set to enable Cloudflare Stream for optimized video delivery
-  // "vars": {
-  //   "CLOUDFLARE_STREAM_API_TOKEN": "your-stream-api-token-here"
-  // },
-
-  // Development settings
-  "dev": {
-    "port": 8788
-  }
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "product-service",
+	"main": "src/index.ts",
+	"compatibility_date": "2024-11-14",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"observability": {
+		"enabled": true,
+		"head_sampling_rate": 1
+	},
+	// D1 Database binding
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "product-db",
+			"database_id": "43857977-dffc-4978-bbc9-b64d0f60bc69" // Run: wrangler d1 create product-db
+		}
+	],
+	// Queue for publishing product events
+	"queues": {
+		"producers": [
+			{
+				"queue": "product-events-queue",
+				"binding": "PRODUCT_EVENTS_QUEUE"
+			}
+		]
+	},
+	// R2 buckets for product images and videos
+	"r2_buckets": [
+		{
+			"binding": "kidkazz_product_images",
+			"bucket_name": "kidkazz-product-images"
+		},
+		{
+			"bucket_name": "kidkazz-product-videos",
+			"binding": "kidkazz_product_videos"
+		}
+	],
+	// KV namespaces for image and video CDN cache
+	"kv_namespaces": [
+		{
+			"binding": "IMAGE_CACHE",
+			"id": "ad2778466f154ee1bd225ac55425076e"
+		},
+		{
+			"binding": "VIDEO_CACHE",
+			"id": "dcafd474ff6a40c0a5f53e865b08a22c"
+		}
+	],
+	// Environment variables (optional)
+	// Uncomment and set to enable Cloudflare Stream for optimized video delivery
+	// "vars": {
+	//   "CLOUDFLARE_STREAM_API_TOKEN": "your-stream-api-token-here"
+	// },
+	// Development settings
+	"dev": {
+		"port": 8788
+	}
 }
