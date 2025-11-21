@@ -9,6 +9,7 @@ import {
   TrendingUp,
   Layers,
   Clock,
+  Receipt,
 } from 'lucide-react';
 import { accountingApi } from '@/lib/api';
 
@@ -84,6 +85,13 @@ function AccountingDashboardPage() {
       color: 'purple',
     },
     {
+      title: 'Expenses',
+      description: 'Track and manage business expenses',
+      icon: Receipt,
+      href: '/dashboard/accounting/expenses',
+      color: 'red',
+    },
+    {
       title: 'Income Statement',
       description: 'View profit and loss report for any period',
       icon: TrendingUp,
@@ -103,6 +111,7 @@ function AccountingDashboardPage() {
     blue: 'bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200',
     green: 'bg-green-50 text-green-600 hover:bg-green-100 border-green-200',
     purple: 'bg-purple-50 text-purple-600 hover:bg-purple-100 border-purple-200',
+    red: 'bg-red-50 text-red-600 hover:bg-red-100 border-red-200',
     amber: 'bg-amber-50 text-amber-600 hover:bg-amber-100 border-amber-200',
     indigo: 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-indigo-200',
   };

@@ -8,6 +8,13 @@
       "when": 1763571258744,
       "tag": "0000_free_firelord",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1732195000000,
+      "tag": "0005_add_accounting_fields_to_products",
+      "breakpoints": true
     }
   ]
 }

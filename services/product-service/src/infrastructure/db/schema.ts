@@ -79,6 +79,30 @@ export const products = sqliteTable('products', {
   status: text('status').default('active'), // 'active' | 'inactive' | 'discontinued'
   isBundle: integer('is_bundle', { mode: 'boolean' }).default(false),
 
+  // Accounting Integration (links to Accounting Service Chart of Accounts)
+  revenueAccountId: text('revenue_account_id'), // Revenue account for sales
+  revenueAccountCode: text('revenue_account_code'), // e.g., "4010" - Product Sales
+  cogsAccountId: text('cogs_account_id'), // COGS account
+  cogsAccountCode: text('cogs_account_code'), // e.g., "5010" - Cost of Product Sales
+  inventoryAccountId: text('inventory_account_id'), // Inventory asset account
+  inventoryAccountCode: text('inventory_account_code'), // e.g., "1010" - Finished Goods
+  deferredCogsAccountId: text('deferred_cogs_account_id'), // For advanced revenue recognition
+
+  // Costing
+  costPrice: real('cost_price'), // Actual cost (vs selling price)
+  costingMethod: text('costing_method', {
+    enum: ['FIFO', 'LIFO', 'Average', 'Standard']
+  }).default('Average'),
+
+  // Tax
+  taxable: integer('taxable', { mode: 'boolean' }).default(true),
+  taxCategoryId: text('tax_category_id'),
+
+  // GL Segmentation (optional for multi-department/location tracking)
+  glSegment1: text('gl_segment1'), // Department
+  glSegment2: text('gl_segment2'), // Location
+  glSegment3: text('gl_segment3'), // Project
+
   // Audit fields
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
@@ -222,6 +246,87 @@ export const customPricing = sqliteTable('custom_pricing', {
 });
 
 /**
+ * Product Images table
+ * Image gallery support for products with multiple images
+ */
+export const productImages = sqliteTable('product_images', {
+  id: text('id').primaryKey(),
+  productId: text('product_id')
+    .notNull()
+    .references(() => products.id, { onDelete: 'cascade' }),
+
+  filename: text('filename').notNull(),
+  originalName: text('original_name').notNull(),
+  mimeType: text('mime_type').notNull(),
+  size: integer('size').notNull(),
+  width: integer('width'),
+  height: integer('height'),
+
+  // Image organization
+  isPrimary: integer('is_primary', { mode: 'boolean' }).default(false).notNull(),
+  sortOrder: integer('sort_order').default(0).notNull(),
+
+  // Image transformations
+  cropArea: text('crop_area'), // JSON: {x, y, width, height}
+
+  // URLs for different sizes
+  thumbnailUrl: text('thumbnail_url').notNull(),
+  mediumUrl: text('medium_url').notNull(),
+  largeUrl: text('large_url').notNull(),
+  originalUrl: text('original_url').notNull(),
+
+  // Timestamps
+  uploadedAt: integer('uploaded_at', { mode: 'timestamp' }).notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+});
+
+/**
+ * Product Videos table
+ * Support for multiple videos per product with two storage modes (R2 and Cloudflare Stream)
+ */
+export const productVideos = sqliteTable('product_videos', {
+  id: text('id').primaryKey(),
+  productId: text('product_id')
+    .notNull()
+    .references(() => products.id, { onDelete: 'cascade' }),
+
+  // File information
+  filename: text('filename'), // R2 filename (for R2 mode)
+  originalName: text('original_name').notNull(),
+  mimeType: text('mime_type').notNull(),
+  size: integer('size').notNull(),
+
+  // Video dimensions and duration
+  width: integer('width'),
+  height: integer('height'),
+  duration: integer('duration'), // Duration in seconds
+
+  // Video organization
+  isPrimary: integer('is_primary', { mode: 'boolean' }).default(false).notNull(),
+  sortOrder: integer('sort_order').default(0).notNull(),
+
+  // Storage mode: 'r2' or 'stream'
+  storageMode: text('storage_mode').default('r2').notNull(), // 'r2' | 'stream'
+
+  // Cloudflare Stream specific (for Stream mode)
+  streamId: text('stream_id'), // Cloudflare Stream video UID
+  streamStatus: text('stream_status'), // 'queued' | 'inprogress' | 'ready' | 'error'
+
+  // URLs for different modes
+  originalUrl: text('original_url'), // R2 original video URL
+  hlsUrl: text('hls_url'), // Stream HLS manifest URL
+  dashUrl: text('dash_url'), // Stream DASH manifest URL
+  thumbnailUrl: text('thumbnail_url'), // Stream thumbnail URL
+  downloadUrl: text('download_url'), // Download URL (both modes)
+
+  // Timestamps
+  uploadedAt: integer('uploaded_at', { mode: 'timestamp' }).notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+});
+
+/**
  * Product Locations table
  * Tracks the physical location (rack and bin) of products in warehouses
  * This allows precise location tracking for inventory management
@@ -277,6 +382,12 @@ export type InsertPricingTier = typeof pricingTiers.$inferInsert;
 
 export type CustomPricing = typeof customPricing.$inferSelect;
 export type InsertCustomPricing = typeof customPricing.$inferInsert;
+
+export type ProductImage = typeof productImages.$inferSelect;
+export type InsertProductImage = typeof productImages.$inferInsert;
+
+export type ProductVideo = typeof productVideos.$inferSelect;
+export type InsertProductVideo = typeof productVideos.$inferInsert;
 
 export type ProductLocation = typeof productLocations.$inferSelect;
 export type InsertProductLocation = typeof productLocations.$inferInsert;
