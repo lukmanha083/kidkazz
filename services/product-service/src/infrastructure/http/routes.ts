@@ -3,6 +3,7 @@ import categoriesRoutes from './routes/categories';
 import productsRoutes from './routes/products';
 import variantsRoutes from './routes/variants';
 import uomsRoutes from './routes/uoms';
+import productLocationsRoutes from './routes/product-locations';
 
 type Bindings = {
   DB: D1Database;
@@ -25,5 +26,6 @@ app.route('/categories', categoriesRoutes);
 app.route('/products', productsRoutes);
 app.route('/variants', variantsRoutes);
 app.route('/uoms', uomsRoutes);
+app.route('/product-locations', productLocationsRoutes);
 
 export default app;

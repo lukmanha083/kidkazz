@@ -3,7 +3,7 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { drizzle } from 'drizzle-orm/d1';
 import { eq, and, like } from 'drizzle-orm';
-import { products, productVariants, productUOMs } from '../../db/schema';
+import { products, productVariants, productUOMs, productLocations } from '../../db/schema';
 import { generateId } from '../../../shared/utils/helpers';
 
 type Bindings = {
@@ -102,10 +102,18 @@ app.get('/:id', async (c) => {
     .where(eq(productUOMs.productId, id))
     .all();
 
+  // Get locations
+  const locations = await db
+    .select()
+    .from(productLocations)
+    .where(eq(productLocations.productId, id))
+    .all();
+
   return c.json({
     ...product,
     variants,
     productUOMs: uoms,
+    productLocations: locations,
   });
 });
 

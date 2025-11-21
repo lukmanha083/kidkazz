@@ -205,6 +205,31 @@ export interface ProductUOM {
   updatedAt: Date;
 }
 
+export interface ProductLocation {
+  id: string;
+  productId: string;
+  warehouseId: string;
+  rack?: string | null;
+  bin?: string | null;
+  zone?: string | null;
+  aisle?: string | null;
+  quantity: number;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: string | null;
+  updatedBy?: string | null;
+}
+
+export interface CreateProductLocationInput {
+  productId: string;
+  warehouseId: string;
+  rack?: string | null;
+  bin?: string | null;
+  zone?: string | null;
+  aisle?: string | null;
+  quantity?: number;
+}
+
 export interface Product {
   id: string;
   barcode: string;
@@ -237,6 +262,7 @@ export interface Product {
   // Populated when fetching by ID
   variants?: ProductVariant[];
   productUOMs?: ProductUOM[];
+  productLocations?: ProductLocation[];
 }
 
 export interface CreateProductInput {
@@ -747,6 +773,59 @@ export const inventoryApi = {
   },
 };
 
+// ============================================
+// PRODUCT LOCATIONS API
+// ============================================
+
+export const productLocationApi = {
+  getAll: async (filters?: {
+    productId?: string;
+    warehouseId?: string;
+  }): Promise<{ locations: ProductLocation[]; total: number }> => {
+    const queryParams = filters ? new URLSearchParams(filters as any).toString() : '';
+    return apiRequest(`/api/product-locations${queryParams ? `?${queryParams}` : ''}`);
+  },
+
+  getById: async (id: string): Promise<ProductLocation> => {
+    return apiRequest(`/api/product-locations/${id}`);
+  },
+
+  getByProduct: async (productId: string): Promise<{ locations: ProductLocation[]; total: number }> => {
+    return apiRequest(`/api/product-locations/product/${productId}`);
+  },
+
+  getByWarehouse: async (warehouseId: string): Promise<{ locations: ProductLocation[]; total: number }> => {
+    return apiRequest(`/api/product-locations/warehouse/${warehouseId}`);
+  },
+
+  create: async (data: CreateProductLocationInput): Promise<ProductLocation> => {
+    return apiRequest('/api/product-locations', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  update: async (id: string, data: Partial<Omit<CreateProductLocationInput, 'productId'>>): Promise<ProductLocation> => {
+    return apiRequest(`/api/product-locations/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateQuantity: async (id: string, quantity: number): Promise<{ message: string }> => {
+    return apiRequest(`/api/product-locations/${id}/quantity`, {
+      method: 'PATCH',
+      body: JSON.stringify({ quantity }),
+    });
+  },
+
+  delete: async (id: string): Promise<{ message: string }> => {
+    return apiRequest(`/api/product-locations/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
 export default {
   category: categoryApi,
   warehouse: warehouseApi,
@@ -755,4 +834,5 @@ export default {
   uom: uomApi,
   accounting: accountingApi,
   inventory: inventoryApi,
+  productLocation: productLocationApi,
 };

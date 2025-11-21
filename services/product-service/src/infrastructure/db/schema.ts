@@ -221,6 +221,35 @@ export const customPricing = sqliteTable('custom_pricing', {
   createdBy: text('created_by'),
 });
 
+/**
+ * Product Locations table
+ * Tracks the physical location (rack and bin) of products in warehouses
+ * This allows precise location tracking for inventory management
+ */
+export const productLocations = sqliteTable('product_locations', {
+  id: text('id').primaryKey(),
+  productId: text('product_id')
+    .notNull()
+    .references(() => products.id, { onDelete: 'cascade' }),
+
+  warehouseId: text('warehouse_id').notNull(), // Reference to warehouse (foreign service)
+  rack: text('rack'), // Rack identifier (e.g., 'A1', 'B3', 'R-01')
+  bin: text('bin'), // Bin identifier within rack (e.g., '01', 'A', 'TOP')
+
+  // Optional additional location details
+  zone: text('zone'), // Warehouse zone (e.g., 'Zone A', 'Cold Storage')
+  aisle: text('aisle'), // Aisle number/identifier
+
+  // Stock tracking at this specific location
+  quantity: integer('quantity').default(0).notNull(), // Quantity at this location
+
+  // Audit fields
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+  createdBy: text('created_by'),
+  updatedBy: text('updated_by'),
+});
+
 // Types inferred from the schema
 export type Category = typeof categories.$inferSelect;
 export type InsertCategory = typeof categories.$inferInsert;
@@ -248,3 +277,6 @@ export type InsertPricingTier = typeof pricingTiers.$inferInsert;
 
 export type CustomPricing = typeof customPricing.$inferSelect;
 export type InsertCustomPricing = typeof customPricing.$inferInsert;
+
+export type ProductLocation = typeof productLocations.$inferSelect;
+export type InsertProductLocation = typeof productLocations.$inferInsert;
