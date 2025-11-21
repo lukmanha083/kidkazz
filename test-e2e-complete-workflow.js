@@ -134,15 +134,17 @@ async function runTests() {
     const createWh1 = await apiCall('inventory', '/api/warehouses', 'POST', warehouse1Data);
     const createWh2 = await apiCall('inventory', '/api/warehouses', 'POST', warehouse2Data);
 
-    if (createWh1.status === 200 && createWh2.status === 200) {
-      testData.warehouse1Id = createWh1.data.warehouse?.id || createWh1.data.id;
-      testData.warehouse2Id = createWh2.data.warehouse?.id || createWh2.data.id;
+    // Inventory service returns status 201 (Created) and warehouse object directly
+    if (createWh1.status === 201 && createWh2.status === 201) {
+      testData.warehouse1Id = createWh1.data.id;
+      testData.warehouse2Id = createWh2.data.id;
       log('✅ TEST 3 PASSED: Two warehouses created successfully', 'green');
       log(`   Warehouse 1 ID: ${testData.warehouse1Id}`, 'blue');
       log(`   Warehouse 2 ID: ${testData.warehouse2Id}`, 'blue');
       testsPassed++;
     } else {
       log('❌ TEST 3 FAILED: Could not create warehouses', 'red');
+      log(`   Warehouse 1 status: ${createWh1.status}, Warehouse 2 status: ${createWh2.status}`, 'red');
       testsFailed++;
       throw new Error('Cannot continue without warehouses');
     }
