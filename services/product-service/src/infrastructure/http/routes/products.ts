@@ -33,6 +33,11 @@ const createProductSchema = z.object({
   availableForWholesale: z.boolean().default(true),
   status: z.enum(['active', 'inactive', 'discontinued']).default('active'),
   isBundle: z.boolean().default(false),
+  // Physical attributes for shipping calculations
+  weight: z.number().optional().nullable(),
+  length: z.number().optional().nullable(),
+  width: z.number().optional().nullable(),
+  height: z.number().optional().nullable(),
 });
 
 const updateProductSchema = createProductSchema.partial();
