@@ -12,6 +12,8 @@
  * - Broadcast to all subscribers in a room
  */
 
+import { DurableObject } from 'cloudflare:workers';
+
 export interface InventoryUpdate {
   type: 'inventory_updated' | 'inventory_adjusted' | 'stock_low';
   data: {
@@ -30,12 +32,11 @@ interface WebSocketSession {
   subscriptions: Set<string>; // Set of "productId:warehouseId" room keys
 }
 
-export class InventoryUpdatesBroadcaster implements DurableObject {
+export class InventoryUpdatesBroadcaster extends DurableObject {
   private sessions: Map<WebSocket, WebSocketSession>;
-  private state: DurableObjectState;
 
   constructor(state: DurableObjectState, env: any) {
-    this.state = state;
+    super(state, env);
     this.sessions = new Map();
   }
 

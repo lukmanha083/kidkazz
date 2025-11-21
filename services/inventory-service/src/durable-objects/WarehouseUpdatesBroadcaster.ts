@@ -11,6 +11,8 @@
  * - Broadcast to all subscribers
  */
 
+import { DurableObject } from 'cloudflare:workers';
+
 export interface WarehouseUpdate {
   type: 'warehouse_created' | 'warehouse_updated' | 'warehouse_deleted';
   data: {
@@ -34,12 +36,11 @@ interface WebSocketSession {
   subscriptions: Set<string>; // Set of warehouse IDs or '*' for all
 }
 
-export class WarehouseUpdatesBroadcaster implements DurableObject {
+export class WarehouseUpdatesBroadcaster extends DurableObject {
   private sessions: Map<WebSocket, WebSocketSession>;
-  private state: DurableObjectState;
 
   constructor(state: DurableObjectState, env: any) {
-    this.state = state;
+    super(state, env);
     this.sessions = new Map();
   }
 
