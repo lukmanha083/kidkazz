@@ -69,10 +69,10 @@ const testProduct = {
   barcode: `TEST-NEG-${timestamp}`,
   sku: `SKU-NEG-${timestamp}`,
   name: 'Test Product for Negative Stock',
-  category: 'Test',
-  basePrice: 10000,
+  categoryId: null, // Use categoryId instead of category
+  price: 10000, // Use price instead of basePrice
   retailPrice: 15000,
-  initialStock: 0,
+  stock: 0, // Use stock instead of initialStock
 };
 
 async function runTests() {
@@ -100,11 +100,24 @@ async function runTests() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(testProduct),
       });
+
+      if (!productRes.ok) {
+        const errorData = await productRes.json();
+        throw new Error(`Product creation failed: ${JSON.stringify(errorData)}`);
+      }
+
       const productData = await productRes.json();
-      productId = productData.product?.id || productData.id;
+      // Product service returns the product directly (not wrapped)
+      productId = productData.id;
+
+      if (!productId) {
+        throw new Error(`Product ID not found in response: ${JSON.stringify(productData)}`);
+      }
+
       logSuccess(`Created test product: ${productId}`);
     } catch (err) {
-      logInfo('Product service not available, using mock product ID');
+      logInfo(`Product service error: ${err.message}`);
+      logInfo('Using mock product ID for testing');
       productId = 'mock-product-' + Date.now();
     }
 
