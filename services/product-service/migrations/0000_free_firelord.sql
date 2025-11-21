@@ -1,17 +1,4 @@
-CREATE TABLE IF NOT EXISTS `bundle_items` (
-	`id` text PRIMARY KEY NOT NULL,
-	`bundle_id` text NOT NULL,
-	`product_id` text NOT NULL,
-	`product_sku` text NOT NULL,
-	`product_name` text NOT NULL,
-	`barcode` text NOT NULL,
-	`quantity` integer NOT NULL,
-	`price` real NOT NULL,
-	`created_at` integer NOT NULL,
-	FOREIGN KEY (`bundle_id`) REFERENCES `product_bundles`(`id`) ON UPDATE no action ON DELETE cascade,
-	FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON UPDATE no action ON DELETE cascade
-);
---> statement-breakpoint
+-- Independent tables first (no dependencies)
 CREATE TABLE IF NOT EXISTS `categories` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
@@ -23,6 +10,65 @@ CREATE TABLE IF NOT EXISTS `categories` (
 	`updated_at` integer NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `uoms` (
+	`id` text PRIMARY KEY NOT NULL,
+	`code` text NOT NULL,
+	`name` text NOT NULL,
+	`conversion_factor` integer NOT NULL,
+	`is_base_unit` integer DEFAULT false,
+	`created_at` integer NOT NULL
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS `uoms_code_unique` ON `uoms` (`code`);--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `product_bundles` (
+	`id` text PRIMARY KEY NOT NULL,
+	`bundle_name` text NOT NULL,
+	`bundle_sku` text NOT NULL,
+	`bundle_description` text,
+	`bundle_image` text,
+	`bundle_price` real NOT NULL,
+	`discount_percentage` real NOT NULL,
+	`status` text DEFAULT 'active' NOT NULL,
+	`available_stock` integer DEFAULT 0 NOT NULL,
+	`start_date` text,
+	`end_date` text,
+	`created_at` integer NOT NULL,
+	`updated_at` integer NOT NULL
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS `product_bundles_bundle_sku_unique` ON `product_bundles` (`bundle_sku`);--> statement-breakpoint
+-- Products table (depends on categories)
+CREATE TABLE IF NOT EXISTS `products` (
+	`id` text PRIMARY KEY NOT NULL,
+	`barcode` text NOT NULL,
+	`name` text NOT NULL,
+	`sku` text NOT NULL,
+	`description` text,
+	`image` text,
+	`category_id` text,
+	`price` real NOT NULL,
+	`retail_price` real,
+	`wholesale_price` real,
+	`stock` integer DEFAULT 0 NOT NULL,
+	`base_unit` text DEFAULT 'PCS' NOT NULL,
+	`wholesale_threshold` integer DEFAULT 100,
+	`minimum_order_quantity` integer DEFAULT 1,
+	`rating` real DEFAULT 0,
+	`reviews` integer DEFAULT 0,
+	`available_for_retail` integer DEFAULT true,
+	`available_for_wholesale` integer DEFAULT true,
+	`status` text DEFAULT 'active',
+	`is_bundle` integer DEFAULT false,
+	`created_at` integer NOT NULL,
+	`updated_at` integer NOT NULL,
+	`created_by` text,
+	`updated_by` text,
+	FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON UPDATE no action ON DELETE set null
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS `products_barcode_unique` ON `products` (`barcode`);--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS `products_sku_unique` ON `products` (`sku`);--> statement-breakpoint
+-- Tables that depend on products
 CREATE TABLE IF NOT EXISTS `custom_pricing` (
 	`id` text PRIMARY KEY NOT NULL,
 	`product_id` text NOT NULL,
@@ -44,23 +90,6 @@ CREATE TABLE IF NOT EXISTS `pricing_tiers` (
 	FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `product_bundles` (
-	`id` text PRIMARY KEY NOT NULL,
-	`bundle_name` text NOT NULL,
-	`bundle_sku` text NOT NULL,
-	`bundle_description` text,
-	`bundle_image` text,
-	`bundle_price` real NOT NULL,
-	`discount_percentage` real NOT NULL,
-	`status` text DEFAULT 'active' NOT NULL,
-	`available_stock` integer DEFAULT 0 NOT NULL,
-	`start_date` text,
-	`end_date` text,
-	`created_at` integer NOT NULL,
-	`updated_at` integer NOT NULL
-);
---> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS `product_bundles_bundle_sku_unique` ON `product_bundles` (`bundle_sku`);--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS `product_uoms` (
 	`id` text PRIMARY KEY NOT NULL,
 	`product_id` text NOT NULL,
@@ -93,43 +122,17 @@ CREATE TABLE IF NOT EXISTS `product_variants` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS `product_variants_variant_sku_unique` ON `product_variants` (`variant_sku`);--> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `products` (
+-- Bundle items (depends on both product_bundles and products)
+CREATE TABLE IF NOT EXISTS `bundle_items` (
 	`id` text PRIMARY KEY NOT NULL,
+	`bundle_id` text NOT NULL,
+	`product_id` text NOT NULL,
+	`product_sku` text NOT NULL,
+	`product_name` text NOT NULL,
 	`barcode` text NOT NULL,
-	`name` text NOT NULL,
-	`sku` text NOT NULL,
-	`description` text,
-	`image` text,
-	`category_id` text,
+	`quantity` integer NOT NULL,
 	`price` real NOT NULL,
-	`retail_price` real,
-	`wholesale_price` real,
-	`stock` integer DEFAULT 0 NOT NULL,
-	`base_unit` text DEFAULT 'PCS' NOT NULL,
-	`wholesale_threshold` integer DEFAULT 100,
-	`minimum_order_quantity` integer DEFAULT 1,
-	`rating` real DEFAULT 0,
-	`reviews` integer DEFAULT 0,
-	`available_for_retail` integer DEFAULT true,
-	`available_for_wholesale` integer DEFAULT true,
-	`status` text DEFAULT 'active',
-	`is_bundle` integer DEFAULT false,
 	`created_at` integer NOT NULL,
-	`updated_at` integer NOT NULL,
-	`created_by` text,
-	`updated_by` text,
-	FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON UPDATE no action ON DELETE set null
+	FOREIGN KEY (`bundle_id`) REFERENCES `product_bundles`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`product_id`) REFERENCES `products`(`id`) ON UPDATE no action ON DELETE cascade
 );
---> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS `products_barcode_unique` ON `products` (`barcode`);--> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS `products_sku_unique` ON `products` (`sku`);--> statement-breakpoint
-CREATE TABLE IF NOT EXISTS `uoms` (
-	`id` text PRIMARY KEY NOT NULL,
-	`code` text NOT NULL,
-	`name` text NOT NULL,
-	`conversion_factor` integer NOT NULL,
-	`is_base_unit` integer DEFAULT false,
-	`created_at` integer NOT NULL
-);
---> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS `uoms_code_unique` ON `uoms` (`code`);
