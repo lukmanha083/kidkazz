@@ -1,164 +1,150 @@
 # Integration Tutorial: Connecting Frontend to Backend Services
 
-This guide walks you through integrating the frontend Product and Warehouse modules with their respective backend services.
+This guide walks you through integrating the frontend with backend services using **WebSocket for real-time updates** and **TanStack React Query for data management**.
 
 ## Table of Contents
 1. [Prerequisites](#prerequisites)
 2. [Database Setup](#database-setup)
 3. [Backend Configuration](#backend-configuration)
 4. [Frontend Configuration](#frontend-configuration)
-5. [Replacing Mock Data with API Calls](#replacing-mock-data-with-api-calls)
-6. [Testing the Integration](#testing-the-integration)
+5. [Using React Query Hooks](#using-react-query-hooks)
+6. [Enabling Real-Time Updates](#enabling-real-time-updates)
+7. [Testing the Integration](#testing-the-integration)
+
+---
 
 ## Prerequisites
 
 Before starting, ensure you have:
-- Node.js 18+ installed
+- Node.js 20+ installed
 - Access to Cloudflare D1 database (or SQLite for local development)
-- Backend running on port 8787
+- Product Service running on port 8788
+- Inventory Service running on port 8792
 - Frontend running on port 5173
+
+---
 
 ## Database Setup
 
 ### 1. Apply Database Migrations
 
-The new schema includes tables for warehouses, product variants, and stock management.
+The schema includes tables for warehouses, inventory, and product integration.
 
-**For Cloudflare D1 (Production):**
+**For Cloudflare D1 (Production)**:
 
 ```bash
-cd apps/backend
+cd services/inventory-service
 
-# Generate migration
-npx wrangler d1 migrations create kidkazz_db add_warehouse_tables
-
-# Apply the migration
-npx wrangler d1 migrations apply kidkazz_db
+# Apply migrations
+wrangler d1 migrations apply inventory-db
 ```
 
-**For Local Development (SQLite):**
+**For Local Development (SQLite)**:
 
 ```bash
-cd apps/backend
+cd services/inventory-service
 
 # Apply to local database
-npx wrangler d1 migrations apply kidkazz_db --local
+wrangler d1 migrations apply inventory-db --local
 ```
 
-### 2. Seed Initial Data (Optional)
-
-Create a seed file to populate initial warehouse data:
-
-```sql
--- apps/backend/migrations/seed_warehouses.sql
-
-INSERT INTO warehouses (id, code, name, location, address, city, postalCode, phone, manager, rack, bin, status, createdAt, updatedAt)
-VALUES
-  ('WH-001', 'WH-JKT-01', 'Main Warehouse Jakarta', 'Jakarta', 'Jl. Raya Industri No. 123', 'Jakarta', '12345', '+62 21 1234 5678', 'Budi Santoso', 'A-01', 'BIN-001', 'Active', unixepoch(), unixepoch()),
-  ('WH-002', 'WH-SBY-01', 'Distribution Center Surabaya', 'Surabaya', 'Jl. Industri Raya No. 456', 'Surabaya', '60234', '+62 31 2345 6789', 'Siti Rahayu', 'B-12', 'BIN-045', 'Active', unixepoch(), unixepoch()),
-  ('WH-003', 'WH-BDG-01', 'Regional Hub Bandung', 'Bandung', 'Jl. Soekarno Hatta No. 789', 'Bandung', '40293', '+62 22 3456 7890', 'Ahmad Wijaya', 'C-05', 'BIN-023', 'Active', unixepoch(), unixepoch());
-```
-
-Run the seed:
+### 2. Verify Tables
 
 ```bash
-# Local
-sqlite3 .wrangler/state/v3/d1/miniflare-D1DatabaseObject/your-db.sqlite < migrations/seed_warehouses.sql
-
-# Production
-npx wrangler d1 execute kidkazz_db --file=./migrations/seed_warehouses.sql
+wrangler d1 execute inventory-db --local --command "SELECT name FROM sqlite_master WHERE type='table';"
 ```
+
+**Expected tables**: `warehouses`, `inventory`, `inventory_movements`
+
+---
 
 ## Backend Configuration
 
-### 1. Verify Routes are Registered
-
-Check `apps/backend/src/index.ts`:
-
-```typescript
-import { warehousesRoutes } from './routes/warehouses';
-
-// ...
-
-app.route('/api/warehouses', warehousesRoutes);
-```
-
-### 2. Test Backend Endpoints
-
-Start the backend server:
+### 1. Start Inventory Service with WebSocket Support
 
 ```bash
-cd apps/backend
+cd services/inventory-service
 npm run dev
 ```
 
-Test the warehouse endpoints:
+The inventory service provides:
+- **REST API**: `http://localhost:8792/api/*`
+- **WebSocket**: `ws://localhost:8792/ws/inventory`
+- **WebSocket**: `ws://localhost:8792/ws/warehouses`
+
+### 2. Verify WebSocket Endpoints
+
+Test WebSocket connection:
 
 ```bash
-# Get all warehouses
-curl http://localhost:8787/api/warehouses
+# Check WebSocket stats
+curl http://localhost:8792/internal/stats/inventory
 
-# Get active warehouses only
-curl http://localhost:8787/api/warehouses/active
-
-# Create a warehouse
-curl -X POST http://localhost:8787/api/warehouses \
-  -H "Content-Type: application/json" \
-  -d '{
-    "code": "WH-TEST-01",
-    "name": "Test Warehouse",
-    "location": "Jakarta",
-    "address": "Test Address",
-    "city": "Jakarta",
-    "postalCode": "12345",
-    "phone": "+62 21 1234 5678",
-    "manager": "Test Manager",
-    "rack": "A-01",
-    "bin": "BIN-001",
-    "status": "Active"
-  }'
+# Expected response:
+# {
+#   "totalConnections": 0,
+#   "subscriptionCounts": {}
+# }
 ```
+
+---
 
 ## Frontend Configuration
 
-### 1. Environment Variables
-
-Create or update `.env` file in `apps/admin-dashboard`:
-
-```env
-# Development
-VITE_API_BASE_URL=http://localhost:8787
-
-# Production
-# VITE_API_BASE_URL=https://your-backend.workers.dev
-```
-
-### 2. Install Dependencies (if needed)
+### 1. Install Dependencies
 
 ```bash
 cd apps/admin-dashboard
-npm install
+
+# Install React Query and WebSocket dependencies
+npm install @tanstack/react-query
 ```
 
-## Replacing Mock Data with API Calls
+### 2. Environment Variables
 
-### 1. Update Warehouse Management Page
+Create `.env` file in `apps/admin-dashboard`:
 
-**File:** `apps/admin-dashboard/src/routes/dashboard/inventory/warehouse.tsx`
+```env
+# Development
+VITE_PRODUCT_SERVICE_URL=http://localhost:8788
+VITE_INVENTORY_SERVICE_URL=http://localhost:8792
+```
 
-Replace mock data with API calls:
+### 3. Setup React Query Provider
+
+The Query Client is already configured in `src/main.tsx`:
 
 ```typescript
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from './lib/query-client';
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <YourApp />
+    </QueryClientProvider>
+  );
+}
+```
+
+---
+
+## Using React Query Hooks
+
+### Example 1: Warehouse Management Page
+
+**File**: `apps/admin-dashboard/src/routes/dashboard/inventory/warehouse.tsx`
+
+Replace useState/useEffect with React Query hooks:
+
+**Before (Old Approach)**:
+```typescript
 import { useState, useEffect } from 'react';
-import { warehouseApi } from '@/lib/api';
-import type { Warehouse } from '@/lib/api';
 
 function WarehouseManagementPage() {
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  // Fetch warehouses on mount
   useEffect(() => {
     loadWarehouses();
   }, []);
@@ -166,165 +152,232 @@ function WarehouseManagementPage() {
   const loadWarehouses = async () => {
     try {
       setLoading(true);
-      setError(null);
-      const response = await warehouseApi.getAll();
-      setWarehouses(response.warehouses);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load warehouses');
-      toast.error('Failed to load warehouses');
+      const response = await fetch('http://localhost:8792/api/warehouses');
+      const data = await response.json();
+      setWarehouses(data.warehouses);
+    } catch (error) {
+      console.error(error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmitForm = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleCreate = async (formData) => {
     try {
-      if (formMode === 'add') {
-        const response = await warehouseApi.create(formData);
-        setWarehouses([...warehouses, response.warehouse]);
-        toast.success('Warehouse created successfully');
-      } else if (formMode === 'edit' && selectedWarehouse) {
-        const response = await warehouseApi.update(selectedWarehouse.id, formData);
-        setWarehouses(warehouses.map(w =>
-          w.id === selectedWarehouse.id ? response.warehouse : w
-        ));
-        toast.success('Warehouse updated successfully');
-      }
-      setFormDrawerOpen(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Operation failed');
+      const response = await fetch('http://localhost:8792/api/warehouses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      const result = await response.json();
+      setWarehouses([...warehouses, result.warehouse]);
+    } catch (error) {
+      console.error(error);
     }
   };
 
-  const confirmDelete = async () => {
-    if (!warehouseToDelete) return;
-
-    try {
-      await warehouseApi.delete(warehouseToDelete.id);
-      setWarehouses(warehouses.filter(w => w.id !== warehouseToDelete.id));
-      toast.success('Warehouse deleted successfully');
-      setDeleteDialogOpen(false);
-      setWarehouseToDelete(null);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to delete warehouse');
-    }
-  };
-
-  // Add loading state to UI
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-2 text-sm text-muted-foreground">Loading warehouses...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <p className="text-destructive">{error}</p>
-          <Button onClick={loadWarehouses} className="mt-4">Retry</Button>
-        </div>
-      </div>
-    );
-  }
-
-  // Rest of the component remains the same...
+  // Manual polling for updates
+  useEffect(() => {
+    const interval = setInterval(loadWarehouses, 30000); // Poll every 30s
+    return () => clearInterval(interval);
+  }, []);
 }
 ```
 
-### 2. Update UOM Conversion Page
+**After (Modern Approach with React Query + WebSocket)**:
+```typescript
+import { useWarehouses, useCreateWarehouse } from '@/hooks/queries/useWarehouses';
+import { toast } from 'sonner';
 
-**File:** `apps/admin-dashboard/src/routes/dashboard/inventory/uom-conversion.tsx`
+function WarehouseManagementPage() {
+  // Fetch warehouses with real-time WebSocket updates
+  const {
+    warehouses,
+    isLoading,
+    isError,
+    error,
+    wsConnected,  // WebSocket connection status
+  } = useWarehouses({
+    realtime: true,  // Enable real-time updates via WebSocket
+  });
+
+  // Create warehouse mutation with optimistic updates
+  const createMutation = useCreateWarehouse();
+
+  const handleCreate = async (formData) => {
+    try {
+      await createMutation.mutateAsync(formData);
+      toast.success('Warehouse created successfully');
+      // No need to manually update state - React Query handles it automatically!
+    } catch (error) {
+      toast.error(error.message || 'Failed to create warehouse');
+    }
+  };
+
+  // Show WebSocket connection status
+  return (
+    <div>
+      <div className="flex items-center gap-2">
+        <h1>Warehouses</h1>
+        <Badge color={wsConnected ? 'green' : 'red'}>
+          {wsConnected ? 'Live' : 'Offline'}
+        </Badge>
+      </div>
+
+      {isLoading && <Spinner />}
+      {isError && <ErrorMessage error={error} />}
+
+      <WarehouseList
+        warehouses={warehouses}
+        onCreate={handleCreate}
+      />
+    </div>
+  );
+}
+```
+
+**Benefits**:
+- ✅ Less code (no manual state management)
+- ✅ Automatic caching
+- ✅ Real-time updates via WebSocket (no polling!)
+- ✅ Optimistic UI updates
+- ✅ Automatic error handling
+- ✅ Connection status indicator
+
+---
+
+### Example 2: Inventory Management with Real-Time Sync
+
+**File**: `apps/admin-dashboard/src/routes/dashboard/inventory/index.tsx`
 
 ```typescript
-import { useState, useEffect } from 'react';
-import { warehouseApi } from '@/lib/api';
-import type { Warehouse } from '@/lib/api';
+import {
+  useInventory,
+  useAdjustInventory,
+} from '@/hooks/queries/useInventory';
+import { useWarehouses } from '@/hooks/queries/useWarehouses';
 
-function UOMConversionPage() {
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
-  const [loading, setLoading] = useState(true);
+function InventoryManagementPage() {
+  const [selectedWarehouse, setSelectedWarehouse] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadActiveWarehouses();
-  }, []);
+  // Fetch warehouses
+  const { warehouses } = useWarehouses({ realtime: true });
 
-  const loadActiveWarehouses = async () => {
+  // Fetch inventory with real-time updates
+  const {
+    inventory,
+    isLoading,
+    wsConnected,
+  } = useInventory(
+    { warehouseId: selectedWarehouse },  // Filter by warehouse
+    { realtime: true }                    // Enable WebSocket
+  );
+
+  // Adjust inventory mutation
+  const adjustMutation = useAdjustInventory();
+
+  const handleAdjust = async (data) => {
     try {
-      setLoading(true);
-      const response = await warehouseApi.getActive();
-      setWarehouses(response.warehouses);
-      if (response.warehouses.length > 0) {
-        setSelectedWarehouse(response.warehouses[0].id);
-      }
-    } catch (err) {
-      toast.error('Failed to load warehouses');
-    } finally {
-      setLoading(false);
+      await adjustMutation.mutateAsync({
+        productId: data.productId,
+        warehouseId: data.warehouseId,
+        quantity: data.quantity,
+        movementType: data.movementType,  // 'in' | 'out' | 'adjustment'
+        source: data.source,               // 'warehouse' | 'pos'
+        reason: data.reason,
+      });
+      toast.success('Inventory adjusted');
+      // UI automatically updates via optimistic update + WebSocket!
+    } catch (error) {
+      toast.error(error.message);
+      // Automatic rollback on error
     }
   };
 
-  // Replace the hardcoded activeWarehouses with the state
-  const activeWarehouses = warehouses;
+  return (
+    <div>
+      <div className="flex items-center gap-4">
+        <Select
+          value={selectedWarehouse}
+          onValueChange={setSelectedWarehouse}
+        >
+          {warehouses.map(w => (
+            <option key={w.id} value={w.id}>{w.name}</option>
+          ))}
+        </Select>
 
-  // Rest of the component...
+        <Badge color={wsConnected ? 'green' : 'gray'}>
+          {wsConnected ? '🟢 Live' : '🔴 Offline'}
+        </Badge>
+      </div>
+
+      <InventoryTable
+        inventory={inventory}
+        onAdjust={handleAdjust}
+        loading={isLoading}
+      />
+    </div>
+  );
 }
 ```
 
-### 3. Update Transfer Stock Page
+---
 
-**File:** `apps/admin-dashboard/src/routes/dashboard/inventory/transfer-stock.tsx`
+## Enabling Real-Time Updates
+
+### How WebSocket Integration Works
+
+1. **Frontend hooks** (`useWarehouses`, `useInventory`) connect to WebSocket
+2. **Backend broadcasts** when data changes (create, update, delete)
+3. **WebSocket receives** message
+4. **React Query cache** is automatically invalidated
+5. **UI updates** with latest data
+
+### Testing WebSocket Connection
+
+#### 1. Open Browser DevTools
+
+Navigate to `http://localhost:5173` and open DevTools:
+- **Console** tab: See WebSocket connection logs
+- **Network** tab → **WS** filter: See WebSocket connections
+
+#### 2. Test Real-Time Sync
+
+**Window 1**: Open `http://localhost:5173/inventory`
+**Window 2**: Open `http://localhost:5173/inventory` in another browser window
+
+In Window 1:
+1. Create a new warehouse
+2. Watch Window 2 automatically update (no refresh needed!)
+
+#### 3. Monitor Connection Status
 
 ```typescript
-import { useState, useEffect } from 'react';
-import { warehouseApi } from '@/lib/api';
-import type { Warehouse } from '@/lib/api';
+const { wsConnected } = useWarehouses({ realtime: true });
 
-function TransferStockPage() {
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadActiveWarehouses();
-  }, []);
-
-  const loadActiveWarehouses = async () => {
-    try {
-      setLoading(true);
-      const response = await warehouseApi.getActive();
-      setWarehouses(response.warehouses);
-    } catch (err) {
-      toast.error('Failed to load warehouses');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Replace the hardcoded activeWarehouses with the state
-  const activeWarehouses = warehouses;
-
-  // Rest of the component...
-}
+console.log('WebSocket connected:', wsConnected);
+// true = connected, false = disconnected
 ```
+
+---
 
 ## Testing the Integration
 
-### 1. Start Both Services
+### 1. Start All Services
 
-**Terminal 1 - Backend:**
+**Terminal 1: Inventory Service**
 ```bash
-cd apps/backend
+cd services/inventory-service
 npm run dev
 ```
 
-**Terminal 2 - Frontend:**
+**Terminal 2: Product Service**
+```bash
+cd services/product-service
+npm run dev
+```
+
+**Terminal 3: Frontend**
 ```bash
 cd apps/admin-dashboard
 npm run dev
@@ -335,92 +388,270 @@ npm run dev
 1. Navigate to `http://localhost:5173/dashboard/inventory/warehouse`
 2. Click "Add Warehouse"
 3. Fill in the form and submit
-4. Verify the warehouse appears in the list
-5. Edit the warehouse and verify changes
-6. Test delete functionality
+4. **Observe**: Warehouse appears immediately (optimistic update)
+5. **Verify**: Check Network tab for POST request
+6. **Verify**: Check WebSocket tab for broadcast message
 
-### 3. Test Cross-Page Integration
+### 3. Test Real-Time Sync
 
-1. Add a new warehouse in Warehouse Management
-2. Navigate to UOM Conversion page
-3. Verify the new warehouse appears in the warehouse selector
-4. Navigate to Transfer Stock page
-5. Verify the new warehouse appears in source/destination dropdowns
+1. Open two browser windows side-by-side
+2. In Window 1: Create a warehouse
+3. In Window 2: Watch it appear automatically (< 100ms)
+4. No manual refresh needed!
 
-### 4. Test Error Handling
+### 4. Test Inventory Adjustment
 
-1. Stop the backend server
-2. Try to create a warehouse
-3. Verify error message appears
-4. Restart backend and retry
+1. Navigate to inventory page
+2. Adjust inventory for a product
+3. **Observe**: UI updates immediately
+4. **Verify**: WebSocket broadcasts update
+5. **Test Error**: Try to adjust more than available (warehouse source)
+6. **Observe**: Error message + automatic rollback
 
-## Common Issues and Solutions
+### 5. Test Connection Recovery
 
-### Issue 1: CORS Errors
-
-**Problem:** Browser shows CORS policy errors
-
-**Solution:** Verify backend CORS configuration in `apps/backend/src/index.ts`:
-
-```typescript
-app.use('*', cors({
-  origin: ['http://localhost:3000', 'http://localhost:5173'],
-  credentials: true,
-}));
-```
-
-### Issue 2: API Base URL Not Found
-
-**Problem:** API requests fail with "Failed to fetch"
-
-**Solution:**
-1. Check `.env` file exists in `apps/admin-dashboard`
-2. Verify `VITE_API_BASE_URL` is set correctly
-3. Restart the frontend dev server after changing `.env`
-
-### Issue 3: Database Not Found
-
-**Problem:** Backend returns "Database not found" errors
-
-**Solution:**
-```bash
-cd apps/backend
-npx wrangler d1 migrations apply kidkazz_db --local
-```
-
-### Issue 4: TypeScript Errors
-
-**Problem:** Type errors in API calls
-
-**Solution:** Ensure types are properly imported:
-
-```typescript
-import { warehouseApi, type Warehouse } from '@/lib/api';
-```
-
-## Next Steps
-
-1. **Add Loading States:** Implement skeleton loaders for better UX
-2. **Add Pagination:** Implement server-side pagination for large datasets
-3. **Add Caching:** Use React Query or SWR for data caching
-4. **Add Optimistic Updates:** Update UI before API call completes
-5. **Add Offline Support:** Implement service workers for offline functionality
-
-## Best Practices
-
-1. **Error Handling:** Always wrap API calls in try-catch blocks
-2. **Loading States:** Show loading indicators during API calls
-3. **User Feedback:** Use toast notifications for success/error messages
-4. **Type Safety:** Use TypeScript types from the API client
-5. **Separation of Concerns:** Keep API logic in the API client, not components
-
-## Resources
-
-- [API Client Documentation](./API_CLIENT.md)
-- [Backend API Reference](./API_REFERENCE.md)
-- [Database Schema](../apps/backend/src/db/schema.ts)
-- [Frontend Components](../apps/admin-dashboard/src/routes/)
+1. Stop inventory service (`Ctrl+C`)
+2. **Observe**: Connection status turns red
+3. **Observe**: UI shows "Offline" badge
+4. Restart inventory service
+5. **Observe**: Auto-reconnects within 1-30 seconds
+6. **Observe**: Connection status turns green
 
 ---
 
-**Need Help?** Check the troubleshooting section or create an issue in the repository.
+## API Endpoints Reference
+
+### Inventory Service
+
+#### REST API
+```
+GET    /api/warehouses              # List all warehouses
+POST   /api/warehouses              # Create warehouse
+GET    /api/warehouses/:id          # Get warehouse by ID
+PUT    /api/warehouses/:id          # Update warehouse
+DELETE /api/warehouses/:id          # Delete warehouse
+
+GET    /api/inventory               # List inventory
+GET    /api/inventory/:productId    # Get inventory for product
+POST   /api/inventory/adjust        # Adjust inventory
+```
+
+#### WebSocket
+```
+WS     /ws/inventory                # Real-time inventory updates
+WS     /ws/warehouses               # Real-time warehouse updates
+
+GET    /internal/stats/inventory    # WebSocket connection stats
+GET    /internal/stats/warehouses   # WebSocket connection stats
+```
+
+### WebSocket Message Types
+
+**Client → Server** (Subscribe):
+```json
+{
+  "type": "subscribe",
+  "payload": {
+    "productId": "abc123",      // Optional filter
+    "warehouseId": "xyz456"     // Optional filter
+  }
+}
+```
+
+**Server → Client** (Broadcast):
+```json
+{
+  "type": "inventory_adjusted",
+  "data": {
+    "inventoryId": "inv-123",
+    "productId": "prod-456",
+    "warehouseId": "wh-789",
+    "quantityAvailable": 100,
+    "quantityReserved": 0,
+    "timestamp": "2025-11-21T10:00:00Z"
+  }
+}
+```
+
+---
+
+## Common Issues and Solutions
+
+### Issue 1: WebSocket Not Connecting
+
+**Symptoms**:
+- `wsConnected` is always `false`
+- Console shows WebSocket errors
+
+**Solutions**:
+1. Verify inventory service is running
+2. Check port (should be 8792)
+3. Verify URL uses `ws://` not `http://`
+4. Check CORS configuration
+
+```bash
+# Test WebSocket endpoint
+curl -i -N \
+  -H "Connection: Upgrade" \
+  -H "Upgrade: websocket" \
+  -H "Sec-WebSocket-Version: 13" \
+  -H "Sec-WebSocket-Key: test" \
+  http://localhost:8792/ws/inventory
+```
+
+### Issue 2: Data Not Updating in Real-Time
+
+**Symptoms**:
+- WebSocket connected but UI doesn't update
+- Have to manually refresh to see changes
+
+**Solutions**:
+1. Check `realtime: true` is set in hook options
+2. Verify WebSocket messages in Network tab
+3. Check React Query cache invalidation
+
+```typescript
+// Make sure realtime is enabled
+const { warehouses, wsConnected } = useWarehouses({
+  realtime: true,  // ← Must be true
+});
+```
+
+### Issue 3: React Query Not Caching
+
+**Symptoms**:
+- Data fetched on every render
+- Slow performance
+
+**Solutions**:
+1. Verify QueryClientProvider wraps app
+2. Check query keys are consistent
+3. Verify staleTime/cacheTime settings
+
+```typescript
+// Check query client config
+import { queryClient } from '@/lib/query-client';
+
+console.log(queryClient.getDefaultOptions());
+```
+
+### Issue 4: Optimistic Updates Not Working
+
+**Symptoms**:
+- UI doesn't update until server responds
+- Slow UX
+
+**Solutions**:
+1. Use mutation hooks (`useCreateWarehouse`, not direct API calls)
+2. Check for errors in mutation callbacks
+3. Verify cache invalidation
+
+```typescript
+// ✅ Good - uses mutation hook with optimistic updates
+const createMutation = useCreateWarehouse();
+await createMutation.mutateAsync(data);
+
+// ❌ Bad - no optimistic updates
+await warehouseApi.create(data);
+```
+
+---
+
+## Development Workflow
+
+### Day-to-Day Development
+
+1. **Start services** in separate terminals:
+   ```bash
+   # Terminal 1
+   cd services/inventory-service && npm run dev
+
+   # Terminal 2
+   cd services/product-service && npm run dev
+
+   # Terminal 3
+   cd apps/admin-dashboard && npm run dev
+   ```
+
+2. **Make changes** to hooks/components
+
+3. **Watch real-time updates** work automatically
+
+4. **Check WebSocket** connection stats:
+   ```bash
+   curl http://localhost:8792/internal/stats/inventory
+   ```
+
+### Before Committing
+
+1. **Type check**:
+   ```bash
+   cd apps/admin-dashboard
+   npx tsc --noEmit
+   ```
+
+2. **Test integration**:
+   - Open multiple browser windows
+   - Test CRUD operations
+   - Verify real-time sync
+
+3. **Check console** for errors:
+   - No WebSocket errors
+   - No React Query errors
+   - No TypeScript errors
+
+---
+
+## Best Practices
+
+1. **Always enable real-time updates** for better UX:
+   ```typescript
+   useWarehouses({ realtime: true })  // ✅ Good
+   useWarehouses({ realtime: false }) // ❌ Bad
+   ```
+
+2. **Use mutation hooks** for optimistic updates:
+   ```typescript
+   const createMutation = useCreateWarehouse();  // ✅ Good
+   await warehouseApi.create(data);              // ❌ Bad
+   ```
+
+3. **Show connection status** to users:
+   ```typescript
+   <Badge color={wsConnected ? 'green' : 'red'}>
+     {wsConnected ? 'Live' : 'Offline'}
+   </Badge>
+   ```
+
+4. **Handle errors gracefully**:
+   ```typescript
+   try {
+     await mutation.mutateAsync(data);
+     toast.success('Success!');
+   } catch (error) {
+     toast.error(error.message);
+   }
+   ```
+
+5. **Keep query keys consistent**:
+   ```typescript
+   import { queryKeys } from '@/lib/query-client';
+
+   // Use centralized query keys
+   queryKey: queryKeys.warehouses.lists()
+   ```
+
+---
+
+## Next Steps
+
+- [ ] Implement error boundaries for better error handling
+- [ ] Add React Query DevTools for debugging
+- [ ] Set up E2E tests with Playwright
+- [ ] Add offline support with Service Workers
+- [ ] Implement data persistence with IndexedDB
+
+---
+
+**Last Updated**: 2025-11-21
+**Version**: 2.0 (WebSocket + React Query Integration)

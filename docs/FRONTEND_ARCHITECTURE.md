@@ -1,67 +1,302 @@
-# Frontend Architecture with DDD + tRPC Backend
+# Frontend Architecture with Real-Time WebSocket + React Query
 
 ## Overview
 
-This document describes how the frontend (Admin Dashboard) integrates with the DDD-based microservices architecture using tRPC and REST APIs.
+This document describes how the frontend (Admin Dashboard) integrates with the DDD-based microservices architecture using **WebSocket for real-time updates**, **TanStack React Query for data management**, and REST APIs.
+
+**Key Technologies:**
+- **@tanstack/react-query**: Modern data fetching and caching
+- **WebSocket**: Real-time bidirectional communication
+- **React Hooks**: Composable data management patterns
+- **TypeScript**: End-to-end type safety
+
+---
 
 ## Architecture Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Admin Dashboard (Frontend)                    │
-│                     React + TanStack Router                      │
-│                                                                   │
-│  ┌──────────────────────────────────────────────────────────┐  │
+┌──────────────────────────────────────────────────────────────────┐
+│                    Admin Dashboard (Frontend)                     │
+│              React + TanStack Router + React Query                │
+│                                                                    │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │      React Query Layer (@tanstack/react-query)            │  │
+│  │  - Automatic caching and cache invalidation               │  │
+│  │  - Optimistic updates for instant UI feedback             │  │
+│  │  - Automatic retry and error handling                     │  │
+│  │  - Query key management and cache coordination            │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                              │                                    │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │           Modern React Hooks (src/hooks/queries/)         │  │
+│  │  - useWarehouses: Warehouse CRUD + real-time WebSocket   │  │
+│  │  - useInventory: Inventory operations + real-time sync   │  │
+│  │  - useProducts: Product operations + real-time updates   │  │
+│  │  - useWebSocket: WebSocket connection management         │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                              │                                    │
+│  ┌───────────────────────────────────────────────────────────┐  │
 │  │           API Client Layer (src/lib/api.ts)               │  │
-│  │  - Type-safe interfaces matching DDD domain models       │  │
+│  │  - Type-safe interfaces matching DDD domain models        │  │
 │  │  - Service URL configuration                              │  │
 │  │  - Error handling and validation                          │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                              │                                   │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │           React Hooks (src/hooks/)                        │  │
-│  │  - useProducts: Product operations + polling             │  │
-│  │  - useWarehouses: Warehouse operations + polling         │  │
-│  │  - useInventory: Inventory operations + polling          │  │
-│  │  - usePolling: Generic polling utility                   │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                              │                                   │
-│  ┌──────────────────────────────────────────────────────────┐  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                              │                                    │
+│  ┌───────────────────────────────────────────────────────────┐  │
 │  │         Validation Layer (src/lib/validation.ts)          │  │
 │  │  - Business rule validation                               │  │
 │  │  - User-friendly error messages                           │  │
-│  │  - Frontend validation matching domain rules             │  │
-│  └──────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
+│  │  - Frontend validation matching domain rules              │  │
+│  └───────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────────┘
                               │
-                              │ REST API / tRPC
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Microservices Backend                         │
-│                                                                  │
-│  ┌────────────────────┐         ┌────────────────────┐         │
-│  │  Product Service   │         │ Inventory Service  │         │
-│  │                    │         │                    │         │
-│  │  REST: /api/*      │         │  REST: /api/*      │         │
-│  │  tRPC: /trpc/*     │◄────────┤  tRPC: /trpc/*     │         │
-│  │                    │  tRPC   │                    │         │
-│  │  DDD Architecture  │         │  DDD Architecture  │         │
-│  │  - Domain Layer    │         │  - Domain Layer    │         │
-│  │  - Application     │         │  - Application     │         │
-│  │  - Infrastructure  │         │  - Infrastructure  │         │
-│  └────────────────────┘         └────────────────────┘         │
-│          │                              │                       │
-│          ▼                              ▼                       │
-│  ┌────────────────┐           ┌────────────────┐              │
-│  │   Product DB   │           │  Inventory DB  │              │
-│  │  (D1 SQLite)   │           │  (D1 SQLite)   │              │
-│  └────────────────┘           └────────────────┘              │
-└─────────────────────────────────────────────────────────────────┘
+                 ┌────────────┴────────────┐
+                 │                         │
+            REST API                  WebSocket (ws://)
+                 │                         │
+                 ▼                         ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                    Microservices Backend                          │
+│                                                                   │
+│  ┌────────────────────┐         ┌────────────────────┐          │
+│  │  Product Service   │         │ Inventory Service  │          │
+│  │                    │         │                    │          │
+│  │  REST: /api/*      │         │  REST: /api/*      │          │
+│  │  tRPC: /trpc/*     │◄────────┤  tRPC: /trpc/*     │          │
+│  │                    │  tRPC   │  WebSocket:        │          │
+│  │  DDD Architecture  │         │    /ws/inventory   │          │
+│  │  - Domain Layer    │         │    /ws/warehouses  │          │
+│  │  - Application     │         │                    │          │
+│  │  - Infrastructure  │         │  DDD Architecture  │          │
+│  │                    │         │  + Durable Objects │          │
+│  └────────────────────┘         └────────────────────┘          │
+│          │                              │                        │
+│          ▼                              ▼                        │
+│  ┌────────────────┐           ┌────────────────┐               │
+│  │   Product DB   │           │  Inventory DB  │               │
+│  │  (D1 SQLite)   │           │  (D1 SQLite)   │               │
+│  └────────────────┘           └────────────────┘               │
+└──────────────────────────────────────────────────────────────────┘
 ```
+
+---
 
 ## Key Components
 
-### 1. API Client Layer
+### 1. React Query Layer
+
+**Location**: `apps/admin-dashboard/src/lib/query-client.ts`
+
+**Responsibilities**:
+- Configure React Query client with optimal defaults
+- Define query keys for consistent cache management
+- Handle automatic retries and error states
+- Manage cache invalidation strategies
+
+**Configuration**:
+```typescript
+import { QueryClient } from '@tanstack/react-query';
+
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30 * 1000,              // Data fresh for 30s
+      gcTime: 5 * 60 * 1000,             // Cache for 5 min
+      retry: 2,                           // Retry failed requests
+      refetchOnWindowFocus: false,        // Disabled - using WebSocket
+      refetchOnReconnect: true,
+      refetchOnMount: 'always',
+    },
+    mutations: {
+      retry: 1,
+      retryDelay: 1000,
+    },
+  },
+});
+```
+
+**Query Keys** (Centralized):
+```typescript
+export const queryKeys = {
+  warehouses: {
+    all: ['warehouses'],
+    lists: () => [...queryKeys.warehouses.all, 'list'],
+    list: (filters?) => [...queryKeys.warehouses.lists(), filters],
+    details: () => [...queryKeys.warehouses.all, 'detail'],
+    detail: (id: string) => [...queryKeys.warehouses.details(), id],
+  },
+  inventory: {
+    all: ['inventory'],
+    lists: () => [...queryKeys.inventory.all, 'list'],
+    list: (filters?) => [...queryKeys.inventory.lists(), filters],
+    detail: (productId, warehouseId?) => [...queryKeys.inventory.details(), productId, warehouseId],
+    movements: (productId) => [...queryKeys.inventory.all, 'movements', productId],
+  },
+};
+```
+
+---
+
+### 2. WebSocket Integration
+
+**Location**: `apps/admin-dashboard/src/hooks/useWebSocket.ts`
+
+**Purpose**: Manage real-time WebSocket connections with automatic reconnection and React Query integration.
+
+**Features**:
+- ✅ Automatic reconnection with exponential backoff
+- ✅ Heartbeat/ping-pong to keep connection alive
+- ✅ Subscription management
+- ✅ Automatic React Query cache invalidation
+- ✅ Type-safe message handling
+
+**Usage**:
+```typescript
+import { useWebSocket } from '@/hooks/useWebSocket';
+
+const { isConnected, send } = useWebSocket({
+  type: 'inventory',                    // or 'warehouses'
+  subscription: { productId: '123' },   // Optional filters
+  enabled: true,                        // Enable/disable connection
+  onMessage: (message) => {
+    console.log('Received:', message);
+  },
+});
+```
+
+**How It Works**:
+1. Connects to WebSocket endpoint (`ws://localhost:8792/ws/inventory`)
+2. Automatically subscribes to updates based on subscription filters
+3. Listens for messages from server (inventory_adjusted, warehouse_created, etc.)
+4. **Automatically invalidates React Query cache** when updates are received
+5. Reconnects automatically if connection drops
+
+**Message Types Handled**:
+- `inventory_adjusted`: Invalidates inventory queries
+- `inventory_updated`: Invalidates inventory queries
+- `stock_low`: Invalidates specific inventory item
+- `warehouse_created`: Invalidates warehouse queries
+- `warehouse_updated`: Invalidates warehouse queries
+- `warehouse_deleted`: Invalidates warehouse queries
+
+---
+
+### 3. React Query Hooks
+
+**Location**: `apps/admin-dashboard/src/hooks/queries/`
+
+Modern hooks that combine React Query with WebSocket for a complete data management solution.
+
+#### useWarehouses
+
+Fetch and manage warehouses with real-time updates.
+
+```typescript
+import { useWarehouses } from '@/hooks/queries/useWarehouses';
+
+const {
+  warehouses,      // Array of warehouses
+  total,           // Total count
+  isLoading,       // Loading state
+  isError,         // Error state
+  error,           // Error object
+  refetch,         // Manual refetch function
+  wsConnected,     // WebSocket connection status
+} = useWarehouses({
+  enabled: true,      // Enable query
+  realtime: true,     // Enable WebSocket real-time updates
+});
+```
+
+**Features**:
+- Fetches warehouses from API
+- Automatically connects to WebSocket for real-time updates
+- Cache automatically invalidated when updates received
+- Returns connection status
+
+#### useCreateWarehouse
+
+Create warehouse with optimistic updates.
+
+```typescript
+import { useCreateWarehouse } from '@/hooks/queries/useWarehouses';
+
+const createMutation = useCreateWarehouse();
+
+const handleCreate = async (data) => {
+  try {
+    await createMutation.mutateAsync(data);
+    toast.success('Warehouse created!');
+  } catch (error) {
+    toast.error('Failed to create warehouse');
+  }
+};
+```
+
+**Features**:
+- **Optimistic updates**: UI updates immediately before server confirms
+- **Automatic rollback**: Reverts on error
+- **Cache invalidation**: Refreshes all warehouse queries on success
+
+#### useInventory
+
+Fetch and manage inventory with real-time sync.
+
+```typescript
+import { useInventory } from '@/hooks/queries/useInventory';
+
+const {
+  inventory,       // Array of inventory items
+  total,           // Total count
+  isLoading,
+  wsConnected,     // WebSocket connected
+} = useInventory(
+  { productId: '123', warehouseId: '456' },  // Filters
+  { realtime: true }                          // Options
+);
+```
+
+**Features**:
+- Filters by productId and/or warehouseId
+- Real-time WebSocket updates
+- Automatic cache invalidation
+- Subscription to specific product/warehouse combinations
+
+#### useAdjustInventory
+
+Adjust inventory levels with optimistic updates and business rule validation.
+
+```typescript
+import { useAdjustInventory } from '@/hooks/queries/useInventory';
+
+const adjustMutation = useAdjustInventory();
+
+const handleAdjust = async () => {
+  try {
+    await adjustMutation.mutateAsync({
+      productId: '123',
+      warehouseId: '456',
+      quantity: 10,
+      movementType: 'in',    // 'in' | 'out' | 'adjustment'
+      source: 'warehouse',   // 'warehouse' | 'pos'
+      reason: 'Restock',
+    });
+  } catch (error) {
+    toast.error(error.message);
+  }
+};
+```
+
+**Features**:
+- **Optimistic updates** with business rule validation
+- **POS vs Warehouse** source handling
+- Prevents warehouse operations that would create negative stock
+- Allows POS sales with negative stock
+- Automatic rollback on error
+
+---
+
+### 4. API Client Layer
 
 **Location**: `apps/admin-dashboard/src/lib/api.ts`
 
@@ -73,206 +308,197 @@ This document describes how the frontend (Admin Dashboard) integrates with the D
 
 **Example**:
 ```typescript
-export interface Product {
+export interface Warehouse {
   id: string;
-  sku: string;
+  code: string;
   name: string;
-  price: number;
-  weight?: number;    // Physical attributes
-  length?: number;
-  width?: number;
-  height?: number;
-  // ... other fields
+  addressLine1: string;
+  city: string;
+  province: string;
+  postalCode: string;
+  country: string;
+  status: 'active' | 'inactive';
+  createdAt: string;
+  updatedAt: string;
 }
 
-export const productApi = {
-  getAll: async (filters?) => { /* ... */ },
-  getById: async (id: string) => { /* ... */ },
-  create: async (data: CreateProductInput) => { /* ... */ },
-  update: async (id: string, data: Partial<Product>) => { /* ... */ },
+export const warehouseApi = {
+  getAll: async (): Promise<{ warehouses: Warehouse[]; total: number }> => {
+    const response = await fetch(`${INVENTORY_SERVICE_URL}/api/warehouses`);
+    return await response.json();
+  },
+
+  create: async (data: CreateWarehouseInput): Promise<{ warehouse: Warehouse }> => {
+    const response = await fetch(`${INVENTORY_SERVICE_URL}/api/warehouses`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return await response.json();
+  },
+
   // ... other methods
 };
 ```
 
-### 2. React Hooks Layer
-
-**Location**: `apps/admin-dashboard/src/hooks/`
-
-**Purpose**: Encapsulate data fetching and state management with business logic.
-
-**Available Hooks**:
-
-#### `useProducts(params?, options?)`
-```typescript
-const {
-  products,
-  loading,
-  error,
-  refetch,
-  createProduct,
-  updateProduct,
-  deleteProduct,
-  updateStock,
-} = useProducts({ status: 'active' }, { polling: true, interval: 30000 });
-```
-
-#### `useWarehouses(options?)`
-```typescript
-const {
-  warehouses,
-  loading,
-  error,
-  refetch,
-  createWarehouse,
-  updateWarehouse,
-  deleteWarehouse,
-} = useWarehouses({ polling: true });
-```
-
-#### `useInventory(filters?, options?)`
-```typescript
-const {
-  inventory,
-  loading,
-  error,
-  refetch,
-  adjustInventory,
-  setMinimumStock,
-} = useInventory(
-  { productId: '123', warehouseId: '456' },
-  { polling: true, interval: 30000 }
-);
-```
-
-#### `usePolling(callback, options?)`
-```typescript
-// Generic polling utility
-usePolling(refetch, { interval: 30000, enabled: true });
-```
-
-**Features**:
-- ✅ Automatic polling for real-time updates
-- ✅ Loading and error states
-- ✅ CRUD operations built-in
-- ✅ Type-safe with TypeScript
-- ✅ Optimistic updates support
-
-### 3. Validation Layer
-
-**Location**: `apps/admin-dashboard/src/lib/validation.ts`
-
-**Purpose**: Validate user input against business rules before sending to backend.
-
-**Features**:
-```typescript
-// Parse backend errors into user-friendly messages
-const errors = parseApiError(error);
-
-// Validate specific business rules
-const skuError = businessRules.product.validateSKU('TEST-001');
-const priceError = businessRules.product.validatePrice(50000);
-const stockError = businessRules.inventory.validateAdjustment(
-  100,        // quantity
-  'out',      // movement type
-  50,         // current stock
-  'warehouse' // source
-);
-```
-
-**Business Rules Implemented**:
-- ✅ Product SKU uniqueness
-- ✅ Price validation (cannot be negative)
-- ✅ Physical attributes validation (weight, dimensions)
-- ✅ Warehouse code format validation
-- ✅ Inventory adjustment validation (prevents negative for warehouse)
-- ✅ Minimum stock validation
+---
 
 ## Data Flow
 
-### Example: Creating a Product with Physical Attributes
+### Example 1: Real-Time Inventory Update Flow
 
 ```
-User fills form → Validation layer checks → API client sends request
-                    (frontend)                      ↓
-                                          Product Service receives
-                                                    ↓
-                                          Domain validates (Product aggregate)
-                                                    ↓
-                                          PhysicalAttributes value object created
-                                                    ↓
-                                          Product entity persisted
-                                                    ↓
-                                          ProductCreated event published
-                                                    ↓
-                                          Response sent to frontend
-                                                    ↓
-                       Hook updates state ← API client receives response
-                                ↓
-                         UI re-renders with new data
+User adjusts inventory → useAdjustInventory mutation
+                              ↓
+                    Optimistic UI update (instant)
+                              ↓
+                    POST /api/inventory/adjust
+                              ↓
+                    Inventory Service processes
+                              ↓
+                    Database updated
+                              ↓
+                    Durable Object broadcasts WebSocket event
+                              ↓
+                    All connected clients receive message
+                              ↓
+                    useWebSocket receives message
+                              ↓
+                    Automatically invalidates React Query cache
+                              ↓
+                    React Query refetches inventory data
+                              ↓
+                    UI updates with latest data
 ```
 
-### Example: Inventory Adjustment (Warehouse vs POS)
+**Result**: Instant feedback + automatic sync across all clients
+
+---
+
+### Example 2: Warehouse Creation with Optimistic Updates
 
 ```
-User adjusts inventory
-        ↓
-Validation layer checks stock availability
-        ↓
-API client sends with source: 'warehouse' or 'pos'
-        ↓
-Inventory Service receives
-        ↓
-AdjustInventory use case routes to correct domain method:
-  - warehouseAdjustOut() → strict validation
-  - posSale() → allows negative
-        ↓
-Inventory aggregate adjusts stock
-        ↓
-InventoryAdjusted event published with source tracking
-        ↓
-Response sent (success or error)
-        ↓
-Frontend hook updates inventory state
-        ↓
-UI shows updated stock level
+User creates warehouse → useCreateWarehouse mutation
+                              ↓
+                    Optimistic: Add temp warehouse to cache
+                              ↓
+                    UI shows new warehouse immediately
+                              ↓
+                    POST /api/warehouses
+                              ↓
+                    Warehouse Service creates
+                              ↓
+                    Database persists
+                              ↓
+          ┌─────────────────┴──────────────────┐
+          │                                    │
+    Success Path                         Error Path
+          │                                    │
+    WebSocket broadcasts                 Rollback optimistic update
+          │                                    │
+    Cache invalidated                    Restore previous state
+          │                                    │
+    Refetch with real data               Show error message
+          │                                    │
+    UI updates with server ID            User sees original state
 ```
+
+**Result**: Instant UI updates with automatic error recovery
+
+---
 
 ## Service Communication
 
-### Frontend ↔ Backend: REST API
+### Frontend ↔ Backend: REST + WebSocket
 
-**Primary communication method for frontend**:
+**REST API** (for mutations and queries):
 - All CRUD operations use REST endpoints
 - Format: `http://service-url/api/{resource}`
 - Content-Type: `application/json`
 
-**Example**:
-```typescript
-// Product Service
-POST /api/products
-GET /api/products/:id
-PATCH /api/products/:id/price
+**WebSocket** (for real-time updates):
+- Bidirectional communication
+- Server pushes updates to clients
+- Format: `ws://service-url/ws/{type}`
+- Automatic reconnection and heartbeat
 
+**Example Endpoints**:
+```typescript
 // Inventory Service
-POST /api/inventory/adjust
-GET /api/inventory/:productId
+POST   /api/inventory/adjust        // Adjust inventory
+GET    /api/inventory/:productId    // Get inventory
+GET    /ws/inventory                // WebSocket for inventory updates
+GET    /ws/warehouses               // WebSocket for warehouse updates
 ```
 
-### Backend ↔ Backend: tRPC
+---
 
-**Service-to-service communication**:
-- Type-safe RPC calls between microservices
-- No HTTP overhead for internal calls
-- End-to-end TypeScript type safety
+## Real-Time Updates Strategy
 
-**Example**:
+### Why WebSocket Instead of Polling?
+
+| Feature | Polling (Old) | WebSocket (Current) |
+|---------|---------------|---------------------|
+| **Latency** | 10-30s | < 100ms |
+| **Network Overhead** | High (constant requests) | Low (single connection) |
+| **Server Load** | High (N requests/interval) | Low (push when needed) |
+| **Battery Usage** | High | Low |
+| **Scalability** | Poor | Excellent |
+| **Real-time Accuracy** | Delayed | Instant |
+
+### WebSocket Implementation with Durable Objects
+
+**Backend**: Cloudflare Workers + Durable Objects
+
 ```typescript
-// Inventory Service calls Product Service
-const productClient = createTRPCClient<ProductRouter>(ProductServiceBinding);
-const product = await productClient.product.getById.query({ id: '123' });
+// Inventory Service uses Durable Objects for WebSocket management
+export class InventoryUpdatesBroadcaster {
+  async fetch(request: Request) {
+    // Upgrade HTTP to WebSocket
+    const pair = new WebSocketPair();
+    const [client, server] = Object.values(pair);
 
-// Now Inventory Service has product details without REST call
+    server.accept();
+
+    // Handle messages, subscriptions, broadcasts
+    server.addEventListener('message', (event) => {
+      const message = JSON.parse(event.data);
+
+      if (message.type === 'subscribe') {
+        // Subscribe to specific product/warehouse
+        this.subscribe(server, message.payload);
+      }
+    });
+
+    return new Response(null, { status: 101, webSocket: client });
+  }
+
+  // Broadcast to all subscribed clients
+  broadcast(message: any) {
+    this.connections.forEach(conn => {
+      conn.send(JSON.stringify(message));
+    });
+  }
+}
 ```
+
+**Frontend**: Automatic cache invalidation
+
+```typescript
+// useWebSocket automatically invalidates React Query cache
+const handleMessage = (message) => {
+  switch (message.type) {
+    case 'inventory_adjusted':
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.inventory.all,
+      });
+      break;
+    // ... other message types
+  }
+};
+```
+
+---
 
 ## Environment Configuration
 
@@ -288,31 +514,11 @@ VITE_INVENTORY_SERVICE_URL=http://localhost:8792
 
 Configure via Cloudflare Workers environment variables:
 ```bash
-# For services
 wrangler secret put PRODUCT_SERVICE_URL
 wrangler secret put INVENTORY_SERVICE_URL
 ```
 
-## Real-Time Updates
-
-### Polling Strategy
-
-Since Cloudflare Workers don't support persistent connections (WebSocket/SSE):
-
-**Approach**: Configurable polling with React hooks
-
-```typescript
-// Enable polling with 30-second interval
-const { products } = useProducts({}, { polling: true, interval: 30000 });
-```
-
-**Benefits**:
-- ✅ Simple to implement
-- ✅ Works with stateless Workers
-- ✅ Configurable interval
-- ✅ Can be disabled when not needed
-
-**Future Consideration**: When moving to Cloudflare Durable Objects, can implement true WebSocket support.
+---
 
 ## Error Handling
 
@@ -332,121 +538,149 @@ const { products } = useProducts({}, { polling: true, interval: 30000 });
 try {
   await adjustInventory(data);
 } catch (error) {
-  const validationErrors = parseApiError(error);
-
-  validationErrors.forEach(err => {
-    if (err.type === 'error') {
-      toast.error(err.message);
-    } else if (err.type === 'info') {
-      toast.info(err.message);
-    }
-  });
+  if (error.message.includes('Insufficient stock')) {
+    toast.error('Cannot adjust: Not enough stock available');
+  } else {
+    toast.error('Adjustment failed. Please try again.');
+  }
 }
 ```
 
-### User-Friendly Messages
+### React Query Error Handling
 
-| Backend Error | Frontend Message |
-|---------------|------------------|
-| "Insufficient stock" | "Insufficient stock for warehouse adjustment. Warehouse operations cannot create negative stock." + "Note: Only POS sales can create negative stock." |
-| "SKU already exists" | "This SKU is already in use. Product SKUs must be unique." |
-| "Cannot change price of discontinued product" | "Cannot change price of discontinued product. Please reactivate the product first." |
-| "Weight cannot be negative" | Field validation shown inline in form |
+```typescript
+const { error, isError } = useInventory();
+
+if (isError) {
+  return (
+    <div className="error">
+      <p>Failed to load inventory</p>
+      <button onClick={() => refetch()}>Retry</button>
+    </div>
+  );
+}
+```
+
+---
 
 ## Best Practices
 
-### 1. Type Safety
+### 1. Always Use React Query Hooks
 
-**Always use TypeScript interfaces**:
+**✅ Good**:
 ```typescript
-// ✅ Good
-const product: Product = await productApi.getById(id);
-
-// ❌ Bad
-const product: any = await productApi.getById(id);
+const { warehouses } = useWarehouses({ realtime: true });
 ```
 
-### 2. Error Handling
-
-**Always handle errors gracefully**:
+**❌ Bad**:
 ```typescript
-// ✅ Good
-try {
-  await createProduct(data);
-  toast.success('Product created');
-} catch (error) {
-  const errors = parseApiError(error);
-  errors.forEach(err => toast.error(err.message));
-}
+const [warehouses, setWarehouses] = useState([]);
 
-// ❌ Bad
-await createProduct(data); // No error handling
+useEffect(() => {
+  fetch('/api/warehouses')
+    .then(res => res.json())
+    .then(data => setWarehouses(data.warehouses));
+}, []);
 ```
 
-### 3. Loading States
+### 2. Enable Real-Time Updates
 
-**Always show loading indicators**:
+**✅ Good**:
 ```typescript
-const { products, loading } = useProducts();
-
-if (loading) return <Spinner />;
-
-return <ProductList products={products} />;
+const { inventory, wsConnected } = useInventory(
+  { productId: '123' },
+  { realtime: true }  // ← Enable WebSocket
+);
 ```
 
-### 4. Validation
-
-**Validate on frontend before API call**:
+**❌ Bad**:
 ```typescript
-// ✅ Good
-const errors = businessRules.product.validatePhysicalAttributes(formData);
-if (errors.length > 0) {
-  // Show errors, don't send to backend
-  return;
-}
-await productApi.create(formData);
-
-// ❌ Bad
-await productApi.create(formData); // Let backend validate only
+const { inventory } = useInventory(
+  { productId: '123' },
+  { realtime: false }  // ← Missing real-time updates
+);
 ```
+
+### 3. Use Optimistic Updates for Better UX
+
+**✅ Good**:
+```typescript
+const createMutation = useCreateWarehouse();
+// Optimistic updates built-in - UI updates immediately
+```
+
+**❌ Bad**:
+```typescript
+await createWarehouse(data);
+await refetch(); // Slow - waits for server confirmation
+```
+
+### 4. Show Connection Status
+
+**✅ Good**:
+```typescript
+const { wsConnected } = useInventory({}, { realtime: true });
+
+return (
+  <div>
+    <Badge color={wsConnected ? 'green' : 'red'}>
+      {wsConnected ? 'Live' : 'Offline'}
+    </Badge>
+    {/* ... rest of UI */}
+  </div>
+);
+```
+
+---
 
 ## Performance Considerations
 
-### 1. Polling Intervals
+### React Query Caching Strategy
 
-- **Active editing**: 10-15 seconds
-- **List views**: 30-60 seconds
-- **Dashboard overview**: 60-120 seconds
-- **Background tabs**: Disable polling
+- **Stale Time**: 30 seconds (data considered fresh)
+- **Cache Time**: 5 minutes (data kept in cache when unused)
+- **Refetch on Mount**: Always (ensures fresh data)
+- **Refetch on Focus**: Disabled (WebSocket handles updates)
 
-### 2. Data Caching
+### WebSocket Connection Management
 
-Consider implementing:
-- React Query or SWR for automatic caching
-- LocalStorage for offline support
-- Optimistic updates for better UX
+- **Automatic Reconnection**: Exponential backoff (1s, 2s, 5s, 10s, 30s)
+- **Heartbeat**: Ping every 30 seconds to keep connection alive
+- **Subscription**: Filters reduce unnecessary messages
+- **Single Connection**: One WebSocket per type (inventory, warehouses)
 
-### 3. Bundle Size
+### Optimistic Updates
 
-Current approach:
-- Custom hooks: ~2-3KB
-- API client: ~5-10KB
-- Validation: ~3-5KB
-- **Total overhead**: ~10-18KB (acceptable)
+- **Instant Feedback**: UI updates before server confirms
+- **Automatic Rollback**: Reverts on error
+- **No Loading States**: Better UX for mutations
+
+---
 
 ## Testing
 
 ### Unit Tests (Hooks)
 
 ```typescript
-test('useProducts fetches products', async () => {
-  const { result } = renderHook(() => useProducts());
+import { renderHook, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useWarehouses } from './useWarehouses';
+
+test('fetches warehouses', async () => {
+  const queryClient = new QueryClient();
+  const wrapper = ({ children }) => (
+    <QueryClientProvider client={queryClient}>
+      {children}
+    </QueryClientProvider>
+  );
+
+  const { result } = renderHook(() => useWarehouses(), { wrapper });
 
   await waitFor(() => {
-    expect(result.current.loading).toBe(false);
+    expect(result.current.isLoading).toBe(false);
   });
 
-  expect(result.current.products.length).toBeGreaterThan(0);
+  expect(result.current.warehouses.length).toBeGreaterThan(0);
 });
 ```
 
@@ -454,67 +688,90 @@ test('useProducts fetches products', async () => {
 
 See `test-e2e-complete-workflow.js` for complete workflow testing.
 
-### E2E Tests (Future)
-
-```typescript
-// Playwright/Cypress
-test('user can create product with dimensions', async ({ page }) => {
-  await page.goto('/dashboard/products');
-  await page.click('text=Add Product');
-  await page.fill('[name=sku]', 'TEST-001');
-  await page.fill('[name=weight]', '2.5');
-  await page.click('text=Save');
-
-  await expect(page.locator('text=TEST-001')).toBeVisible();
-});
-```
+---
 
 ## Troubleshooting
 
 ### Common Issues
 
-**1. CORS errors**
+**1. WebSocket not connecting**
 
-Make sure `wrangler.jsonc` has CORS configured:
-```jsonc
-{
-  "cors": {
-    "origins": ["http://localhost:5173"],
-    "methods": ["GET", "POST", "PUT", "PATCH", "DELETE"],
-    "headers": ["Content-Type"]
-  }
-}
+Check:
+- Service is running (`npm run dev` in `services/inventory-service`)
+- URL starts with `ws://` not `http://`
+- Port is correct (8792 for inventory service)
+
+**2. Data not updating in real-time**
+
+Check:
+- `realtime: true` is set in hook options
+- WebSocket connection status: `wsConnected === true`
+- Browser console for WebSocket errors
+
+**3. React Query cache not updating**
+
+Check:
+- Query keys are consistent
+- Cache invalidation is called after mutations
+- WebSocket messages are handled correctly
+
+---
+
+## Migration from Polling
+
+If you have old code using polling, here's how to migrate:
+
+**Before (Polling)**:
+```typescript
+const [warehouses, setWarehouses] = useState([]);
+
+useEffect(() => {
+  const interval = setInterval(async () => {
+    const response = await fetch('/api/warehouses');
+    const data = await response.json();
+    setWarehouses(data.warehouses);
+  }, 30000); // Poll every 30 seconds
+
+  return () => clearInterval(interval);
+}, []);
 ```
 
-**2. Type mismatches**
-
-Always regenerate types after backend changes:
-```bash
-# Update interfaces in apps/admin-dashboard/src/lib/api.ts
+**After (React Query + WebSocket)**:
+```typescript
+const { warehouses, wsConnected } = useWarehouses({
+  realtime: true,  // Automatic real-time updates
+});
 ```
 
-**3. Polling not working**
+**Benefits**:
+- Less code
+- Better performance
+- Instant updates
+- Automatic error handling
+- Type safety
 
-Check browser console for errors and verify:
-- Service URLs are correct
-- Services are running
-- Network tab shows periodic requests
+---
 
 ## Future Enhancements
 
 ### Planned Improvements
 
-1. **Real-time with Durable Objects**: When scaling, move to WebSocket
-2. **Offline Support**: Service Workers + IndexedDB
-3. **Optimistic UI**: Update UI before backend confirms
-4. **GraphQL**: Consider if tRPC doesn't meet needs
-5. **React Query**: Replace custom hooks with React Query
+1. **Offline Support**: Service Workers + IndexedDB
+2. **GraphQL**: Consider if tRPC doesn't meet needs
+3. **Suspense**: React Suspense for cleaner loading states
+4. **DevTools**: React Query DevTools for debugging
 
-### Migration Path
+### Current vs. Future
 
-Current polling approach is intentionally simple to allow easy migration to more sophisticated solutions later without breaking changes.
+| Feature | Current | Future |
+|---------|---------|--------|
+| **Data Fetching** | React Query | React Query + Suspense |
+| **Real-time** | WebSocket | WebSocket + Server-Sent Events |
+| **Offline** | None | Service Worker + IndexedDB |
+| **State** | React Query cache | React Query + Zustand |
 
 ---
 
-**Last Updated**: November 20, 2025
+**Last Updated**: 2025-11-21
+**Version**: 3.0 (WebSocket + React Query Implementation)
 **Author**: Development Team
