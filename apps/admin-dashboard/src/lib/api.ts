@@ -441,6 +441,13 @@ export const uomApi = {
     });
   },
 
+  updateProductUOM: async (id: string, data: Partial<Omit<CreateProductUOMInput, 'productId'>>): Promise<ProductUOM> => {
+    return apiRequest(`/api/uoms/products/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
   updateProductUOMStock: async (id: string, stock: number): Promise<{ message: string }> => {
     return apiRequest(`/api/uoms/products/${id}/stock`, {
       method: 'PATCH',
