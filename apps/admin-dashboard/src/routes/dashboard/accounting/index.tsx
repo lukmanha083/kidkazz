@@ -127,20 +127,20 @@ function AccountingDashboardPage() {
   ];
 
   const colorClasses = {
-    blue: 'bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200',
-    green: 'bg-green-50 text-green-600 hover:bg-green-100 border-green-200',
-    purple: 'bg-purple-50 text-purple-600 hover:bg-purple-100 border-purple-200',
-    red: 'bg-red-50 text-red-600 hover:bg-red-100 border-red-200',
-    amber: 'bg-amber-50 text-amber-600 hover:bg-amber-100 border-amber-200',
-    indigo: 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-indigo-200',
+    blue: 'bg-muted/50 hover:bg-muted border-border hover:border-primary/50',
+    green: 'bg-muted/50 hover:bg-muted border-border hover:border-primary/50',
+    purple: 'bg-muted/50 hover:bg-muted border-border hover:border-primary/50',
+    red: 'bg-muted/50 hover:bg-muted border-border hover:border-primary/50',
+    amber: 'bg-muted/50 hover:bg-muted border-border hover:border-primary/50',
+    indigo: 'bg-muted/50 hover:bg-muted border-border hover:border-primary/50',
   };
 
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Accounting</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-3xl font-bold text-foreground">Accounting</h1>
+        <p className="text-muted-foreground mt-1">
           Manage your financial records with double-entry bookkeeping
         </p>
       </div>
@@ -149,72 +149,72 @@ function AccountingDashboardPage() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 animate-pulse">
-              <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
-              <div className="h-8 bg-gray-200 rounded w-16"></div>
+            <div key={i} className="bg-card rounded-lg shadow-sm border border-border p-6 animate-pulse">
+              <div className="h-4 bg-muted rounded w-24 mb-2"></div>
+              <div className="h-8 bg-muted rounded w-16"></div>
             </div>
           ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Accounts</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">{stats.totalAccounts}</p>
+                <p className="text-sm text-muted-foreground">Total Accounts</p>
+                <p className="text-3xl font-bold text-foreground mt-1">{stats.totalAccounts}</p>
               </div>
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <Layers className="h-6 w-6 text-blue-600" />
+              <div className="p-3 bg-primary/10 rounded-lg">
+                <Layers className="h-6 w-6 text-primary" />
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-muted-foreground mt-2">
               {stats.activeAccounts} active
             </p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Posted Entries</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">{stats.postedEntries}</p>
+                <p className="text-sm text-muted-foreground">Posted Entries</p>
+                <p className="text-3xl font-bold text-foreground mt-1">{stats.postedEntries}</p>
               </div>
-              <div className="p-3 bg-green-50 rounded-lg">
-                <FileText className="h-6 w-6 text-green-600" />
+              <div className="p-3 bg-primary/10 rounded-lg">
+                <FileText className="h-6 w-6 text-primary" />
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-muted-foreground mt-2">
               Finalized transactions
             </p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Draft Entries</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">{stats.draftEntries}</p>
+                <p className="text-sm text-muted-foreground">Draft Entries</p>
+                <p className="text-3xl font-bold text-foreground mt-1">{stats.draftEntries}</p>
               </div>
-              <div className="p-3 bg-amber-50 rounded-lg">
-                <Clock className="h-6 w-6 text-amber-600" />
+              <div className="p-3 bg-primary/10 rounded-lg">
+                <Clock className="h-6 w-6 text-primary" />
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-muted-foreground mt-2">
               Pending review
             </p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Entries</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">
+                <p className="text-sm text-muted-foreground">Total Entries</p>
+                <p className="text-3xl font-bold text-foreground mt-1">
                   {stats.postedEntries + stats.draftEntries}
                 </p>
               </div>
-              <div className="p-3 bg-purple-50 rounded-lg">
-                <BarChart3 className="h-6 w-6 text-purple-600" />
+              <div className="p-3 bg-primary/10 rounded-lg">
+                <BarChart3 className="h-6 w-6 text-primary" />
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-muted-foreground mt-2">
               All transactions
             </p>
           </div>
@@ -222,53 +222,53 @@ function AccountingDashboardPage() {
       )}
 
       {/* Quick Actions */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
+      <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+        <h2 className="text-lg font-semibold text-foreground mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <Link
             to="/dashboard/accounting/journal-entry"
-            className="flex items-center gap-3 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors group"
+            className="flex items-center gap-3 p-4 border-2 border-dashed border-border rounded-lg hover:border-primary hover:bg-muted/50 transition-colors group"
           >
-            <div className="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
-              <PlusCircle className="h-5 w-5 text-blue-600" />
+            <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+              <PlusCircle className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <div className="font-medium text-gray-900">New Journal Entry</div>
-              <div className="text-xs text-gray-500">Create a new transaction</div>
+              <div className="font-medium text-foreground">New Journal Entry</div>
+              <div className="text-xs text-muted-foreground">Create a new transaction</div>
             </div>
           </Link>
 
           <Link
             to="/dashboard/accounting/chart-of-accounts"
-            className="flex items-center gap-3 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors group"
+            className="flex items-center gap-3 p-4 border-2 border-dashed border-border rounded-lg hover:border-primary hover:bg-muted/50 transition-colors group"
           >
-            <div className="p-2 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
-              <Layers className="h-5 w-5 text-purple-600" />
+            <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+              <Layers className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <div className="font-medium text-gray-900">Manage Accounts</div>
-              <div className="text-xs text-gray-500">View chart of accounts</div>
+              <div className="font-medium text-foreground">Manage Accounts</div>
+              <div className="text-xs text-muted-foreground">View chart of accounts</div>
             </div>
           </Link>
 
           <Link
             to="/dashboard/accounting/income-statement"
-            className="flex items-center gap-3 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 hover:bg-green-50 transition-colors group"
+            className="flex items-center gap-3 p-4 border-2 border-dashed border-border rounded-lg hover:border-primary hover:bg-muted/50 transition-colors group"
           >
-            <div className="p-2 bg-green-100 rounded-lg group-hover:bg-green-200 transition-colors">
-              <BarChart3 className="h-5 w-5 text-green-600" />
+            <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+              <BarChart3 className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <div className="font-medium text-gray-900">View Reports</div>
-              <div className="text-xs text-gray-500">Financial statements</div>
+              <div className="font-medium text-foreground">View Reports</div>
+              <div className="text-xs text-muted-foreground">Financial statements</div>
             </div>
           </Link>
         </div>
       </div>
 
       {/* Navigation Cards */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold mb-4">Accounting Modules</h2>
+      <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+        <h2 className="text-lg font-semibold text-foreground mb-4">Accounting Modules</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {navigationCards.map((card) => {
             const Icon = card.icon;
@@ -281,12 +281,12 @@ function AccountingDashboardPage() {
                 }`}
               >
                 <div className="flex items-start gap-3">
-                  <div className="p-2 bg-white rounded-lg shadow-sm">
-                    <Icon className="h-6 w-6" />
+                  <div className="p-2 bg-card rounded-lg shadow-sm">
+                    <Icon className="h-6 w-6 text-primary" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 mb-1">{card.title}</h3>
-                    <p className="text-sm text-gray-600">{card.description}</p>
+                    <h3 className="font-semibold text-foreground mb-1">{card.title}</h3>
+                    <p className="text-sm text-muted-foreground">{card.description}</p>
                   </div>
                 </div>
               </Link>
@@ -296,8 +296,8 @@ function AccountingDashboardPage() {
       </div>
 
       {/* Sales Reports */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold mb-4">Sales Reports</h2>
+      <div className="bg-card rounded-lg shadow-sm border border-border p-6">
+        <h2 className="text-lg font-semibold text-foreground mb-4">Sales Reports</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {reportCards.map((card) => {
             const Icon = card.icon;
@@ -310,12 +310,12 @@ function AccountingDashboardPage() {
                 }`}
               >
                 <div className="flex items-start gap-3">
-                  <div className="p-2 bg-white rounded-lg shadow-sm">
-                    <Icon className="h-6 w-6" />
+                  <div className="p-2 bg-card rounded-lg shadow-sm">
+                    <Icon className="h-6 w-6 text-primary" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 mb-1">{card.title}</h3>
-                    <p className="text-sm text-gray-600">{card.description}</p>
+                    <h3 className="font-semibold text-foreground mb-1">{card.title}</h3>
+                    <p className="text-sm text-muted-foreground">{card.description}</p>
                   </div>
                 </div>
               </Link>
@@ -325,12 +325,12 @@ function AccountingDashboardPage() {
       </div>
 
       {/* Recent Journal Entries */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-card rounded-lg shadow-sm border border-border p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Recent Journal Entries</h2>
+          <h2 className="text-lg font-semibold text-foreground">Recent Journal Entries</h2>
           <Link
             to="/dashboard/accounting/journal-entry"
-            className="text-sm text-blue-600 hover:text-blue-800"
+            className="text-sm text-primary hover:text-primary/80"
           >
             View all →
           </Link>
@@ -339,20 +339,20 @@ function AccountingDashboardPage() {
         {loading ? (
           <div className="space-y-3">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="animate-pulse flex gap-4 p-4 border border-gray-200 rounded">
-                <div className="h-4 bg-gray-200 rounded w-24"></div>
-                <div className="h-4 bg-gray-200 rounded flex-1"></div>
-                <div className="h-4 bg-gray-200 rounded w-16"></div>
+              <div key={i} className="animate-pulse flex gap-4 p-4 border border-border rounded">
+                <div className="h-4 bg-muted rounded w-24"></div>
+                <div className="h-4 bg-muted rounded flex-1"></div>
+                <div className="h-4 bg-muted rounded w-16"></div>
               </div>
             ))}
           </div>
         ) : recentEntries.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
-            <FileText className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+          <div className="text-center py-12 text-muted-foreground">
+            <FileText className="h-12 w-12 mx-auto text-muted mb-3" />
             <p>No journal entries yet</p>
             <Link
               to="/dashboard/accounting/journal-entry"
-              className="text-blue-600 hover:text-blue-800 text-sm mt-2 inline-block"
+              className="text-primary hover:text-primary/80 text-sm mt-2 inline-block"
             >
               Create your first entry
             </Link>
@@ -362,18 +362,18 @@ function AccountingDashboardPage() {
             {recentEntries.map((entry) => (
               <div
                 key={entry.id}
-                className="flex items-center gap-4 p-4 border border-gray-200 rounded hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-4 p-4 border border-border rounded hover:bg-muted/50 transition-colors"
               >
                 <div className="flex-shrink-0">
-                  <span className="font-mono text-sm font-medium text-gray-900">
+                  <span className="font-mono text-sm font-medium text-foreground">
                     {entry.entryNumber}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
+                  <p className="text-sm font-medium text-foreground truncate">
                     {entry.description}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     {new Date(entry.entryDate).toLocaleDateString()} • {entry.entryType}
                   </p>
                 </div>
@@ -381,10 +381,10 @@ function AccountingDashboardPage() {
                   <span
                     className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                       entry.status === 'Posted'
-                        ? 'bg-green-100 text-green-800'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                         : entry.status === 'Draft'
-                        ? 'bg-gray-100 text-gray-800'
-                        : 'bg-red-100 text-red-800'
+                        ? 'bg-muted text-muted-foreground'
+                        : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                     }`}
                   >
                     {entry.status}
