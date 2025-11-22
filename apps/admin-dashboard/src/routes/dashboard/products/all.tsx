@@ -1311,12 +1311,12 @@ function AllProductsPage() {
             {formMode === 'add' && (
               <>
                 <Separator className="my-4" />
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="p-4 bg-muted/50 border border-border rounded-lg">
                   <div className="flex items-start gap-3">
-                    <ImageIcon className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <ImageIcon className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                     <div className="text-sm">
-                      <p className="font-medium text-blue-900">Upload images and videos after creation</p>
-                      <p className="text-blue-700 mt-1">
+                      <p className="font-medium text-foreground">Upload images and videos after creation</p>
+                      <p className="text-muted-foreground mt-1">
                         Create the product first, then edit it to add images and videos with our optimized upload features.
                       </p>
                     </div>
@@ -1411,18 +1411,18 @@ function AllProductsPage() {
               </div>
 
               {/* Stock allocation info */}
-              <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded">
+              <div className="flex items-center justify-between p-3 bg-muted/50 border border-border rounded">
                 <div className="text-sm">
-                  <span className="font-medium text-blue-900">Total Stock: </span>
-                  <span className="text-blue-700">{formData.stock || 0} PCS</span>
+                  <span className="font-medium text-foreground">Total Stock: </span>
+                  <span className="text-muted-foreground">{formData.stock || 0} PCS</span>
                 </div>
                 <div className="text-sm">
-                  <span className="font-medium text-blue-900">Allocated: </span>
-                  <span className="text-blue-700">{calculateAllocatedPCS(productUOMs)} PCS</span>
+                  <span className="font-medium text-foreground">Allocated: </span>
+                  <span className="text-muted-foreground">{calculateAllocatedPCS(productUOMs)} PCS</span>
                 </div>
                 <div className="text-sm">
-                  <span className="font-medium text-green-900">Available: </span>
-                  <span className="text-green-700 font-bold">{getRemainingPCS()} PCS</span>
+                  <span className="font-medium text-foreground">Available: </span>
+                  <span className="text-primary font-bold">{getRemainingPCS()} PCS</span>
                 </div>
               </div>
 

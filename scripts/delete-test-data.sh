@@ -11,10 +11,10 @@
 set -e # Exit on error
 
 echo "⚠️  WARNING: This will DELETE ALL TEST DATA from all microservices!"
-echo "Are you sure you want to continue? (yes/no)"
+echo "Are you sure you want to continue? (yes/y)"
 read -r confirmation
 
-if [ "$confirmation" != "yes" ]; then
+if [ "$confirmation" != "yes" ] && [ "$confirmation" != "y" ]; then
     echo "Aborted."
     exit 0
 fi
