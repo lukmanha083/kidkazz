@@ -1398,6 +1398,161 @@ function AllProductsPage() {
 
             <Separator className="my-4" />
 
+            {/* Product UOMs Section */}
+            <div className="space-y-4 border rounded-lg p-4 bg-muted/20">
+              <div className="flex items-start justify-between">
+                <div>
+                  <Label className="text-base font-semibold">Product UOMs (Units of Measure)</Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Add different packaging units for this product (e.g., Box, Dozen, Carton).
+                    Each UOM can have its own barcode and stock quantity.
+                  </p>
+                </div>
+              </div>
+
+              {/* Stock allocation info */}
+              <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded">
+                <div className="text-sm">
+                  <span className="font-medium text-blue-900">Total Stock: </span>
+                  <span className="text-blue-700">{formData.stock || 0} PCS</span>
+                </div>
+                <div className="text-sm">
+                  <span className="font-medium text-blue-900">Allocated: </span>
+                  <span className="text-blue-700">{calculateAllocatedPCS(productUOMs)} PCS</span>
+                </div>
+                <div className="text-sm">
+                  <span className="font-medium text-green-900">Available: </span>
+                  <span className="text-green-700 font-bold">{getRemainingPCS()} PCS</span>
+                </div>
+              </div>
+
+              {/* Existing UOMs List */}
+              {productUOMs.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Added UOMs</Label>
+                  <div className="space-y-2">
+                    {productUOMs.map((uom) => (
+                      <div key={uom.id} className="flex items-center justify-between p-3 border rounded bg-background">
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{uom.uomName} ({uom.uomCode})</span>
+                            {uom.isDefault && (
+                              <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                                Default
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground space-x-3">
+                            <span>Barcode: {uom.barcode}</span>
+                            <span>Stock: {uom.stock} {uom.uomCode}</span>
+                            <span>({uom.stock * uom.conversionFactor} PCS)</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Checkbox
+                            checked={uom.isDefault}
+                            onCheckedChange={() => handleSetDefaultUOM(uom.id)}
+                            id={`default-${uom.id}`}
+                          />
+                          <Label htmlFor={`default-${uom.id}`} className="text-xs text-muted-foreground cursor-pointer mr-2">
+                            Default
+                          </Label>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive"
+                            onClick={() => handleRemoveUOM(uom)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Add UOM Form */}
+              <div className="space-y-3 pt-2 border-t">
+                <Label className="text-sm font-medium">Add New UOM</Label>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="uom-select" className="text-xs">UOM Type</Label>
+                    <select
+                      id="uom-select"
+                      value={selectedUOM}
+                      onChange={(e) => setSelectedUOM(e.target.value)}
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                    >
+                      <option value="">Select UOM...</option>
+                      {availableUOMs.filter(u => u.code !== 'PCS').map(uom => (
+                        <option key={uom.code} value={uom.code}>
+                          {uom.name} (1 = {uom.conversionFactor} PCS)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="uom-barcode" className="text-xs">Barcode</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="uom-barcode"
+                        placeholder="UOM Barcode"
+                        value={uomBarcode}
+                        onChange={(e) => setUomBarcode(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          const newBarcode = generateUniqueBarcode();
+                          if (newBarcode) {
+                            setUomBarcode(newBarcode);
+                            toast.success('Barcode generated');
+                          }
+                        }}
+                        title="Generate unique barcode"
+                        className="h-9 w-9"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/>
+                        </svg>
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="uom-stock" className="text-xs">Stock Quantity</Label>
+                    <Input
+                      id="uom-stock"
+                      type="number"
+                      placeholder="Stock"
+                      value={uomStock}
+                      onChange={(e) => setUomStock(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddUOM}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add UOM
+                </Button>
+              </div>
+            </div>
+
+            <Separator className="my-4" />
+
             {/* Optional Location Section */}
             <div className="space-y-4 border rounded-lg p-4 bg-muted/20">
               <div className="flex items-start justify-between">
