@@ -26,6 +26,10 @@ export const warehouses = sqliteTable('warehouses', {
   // Status
   status: text('status').default('active').notNull(), // 'active' | 'inactive'
 
+  // Soft delete fields
+  deletedAt: integer('deleted_at', { mode: 'timestamp' }),
+  deletedBy: text('deleted_by'),
+
   // Audit fields
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
@@ -111,6 +115,11 @@ export const inventoryMovements = sqliteTable('inventory_movements', {
   notes: text('notes'),
 
   performedBy: text('performed_by'),
+
+  // Soft delete fields (audit trail - never hard delete)
+  deletedAt: integer('deleted_at', { mode: 'timestamp' }),
+  deletedBy: text('deleted_by'),
+
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });
 

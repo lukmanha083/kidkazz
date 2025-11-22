@@ -72,6 +72,11 @@ export const journalEntries = sqliteTable('journal_entries', {
   voidedAt: integer('voided_at', { mode: 'timestamp' }),
   voidReason: text('void_reason'),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+
+  // Soft delete fields (financial records - never hard delete)
+  deletedAt: integer('deleted_at', { mode: 'timestamp' }),
+  deletedBy: text('deleted_by'),
+  deleteReason: text('delete_reason'),
 });
 
 /**
