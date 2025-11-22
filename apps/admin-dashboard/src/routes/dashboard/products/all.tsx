@@ -69,6 +69,8 @@ import {
   uomApi,
   productLocationApi,
 } from '@/lib/api';
+import { ImageUpload, ImageUploadResult } from '@/components/ImageUpload';
+import { VideoUpload, VideoUploadResult } from '@/components/VideoUpload';
 
 export const Route = createFileRoute('/dashboard/products/all')({
   component: AllProductsPage,
@@ -154,6 +156,10 @@ function AllProductsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [uomToDelete, setUomToDelete] = useState<ProductUOM | null>(null);
+
+  // Media upload states
+  const [uploadedImages, setUploadedImages] = useState<ImageUploadResult[]>([]);
+  const [uploadedVideos, setUploadedVideos] = useState<VideoUploadResult[]>([]);
 
   // Fetch products
   const { data: productsData, isLoading, error } = useQuery({
@@ -691,6 +697,36 @@ function AllProductsPage() {
     );
   };
 
+  // Handle image upload success
+  const handleImageUploadSuccess = (result: ImageUploadResult) => {
+    setUploadedImages(prev => [...prev, result]);
+    toast.success('Image uploaded successfully', {
+      description: 'Your product image has been uploaded and optimized'
+    });
+  };
+
+  // Handle image upload error
+  const handleImageUploadError = (error: string) => {
+    toast.error('Image upload failed', {
+      description: error
+    });
+  };
+
+  // Handle video upload success
+  const handleVideoUploadSuccess = (result: VideoUploadResult) => {
+    setUploadedVideos(prev => [...prev, result]);
+    toast.success('Video uploaded successfully', {
+      description: 'Your product video has been uploaded'
+    });
+  };
+
+  // Handle video upload error
+  const handleVideoUploadError = (error: string) => {
+    toast.error('Video upload failed', {
+      description: error
+    });
+  };
+
   if (error) {
     return (
       <div className="space-y-6">
@@ -1226,6 +1262,69 @@ function AllProductsPage() {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
             </div>
+
+            {/* Image Upload Section - Only available in edit mode */}
+            {formMode === 'edit' && selectedProduct && (
+              <>
+                <Separator className="my-4" />
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-base font-semibold">Product Images</Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Upload product images. Images will be automatically optimized and resized.
+                    </p>
+                  </div>
+                  <ImageUpload
+                    productId={selectedProduct.id}
+                    onUploadSuccess={handleImageUploadSuccess}
+                    onUploadError={handleImageUploadError}
+                    maxSizeMB={5}
+                  />
+                </div>
+                <Separator className="my-4" />
+              </>
+            )}
+
+            {/* Video Upload Section - Only available in edit mode */}
+            {formMode === 'edit' && selectedProduct && (
+              <>
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-base font-semibold">Product Videos</Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Upload product demonstration or promotional videos.
+                    </p>
+                  </div>
+                  <VideoUpload
+                    productId={selectedProduct.id}
+                    onUploadSuccess={handleVideoUploadSuccess}
+                    onUploadError={handleVideoUploadError}
+                    maxSizeMB={500}
+                    defaultMode="stream"
+                  />
+                </div>
+                <Separator className="my-4" />
+              </>
+            )}
+
+            {/* Notice for add mode */}
+            {formMode === 'add' && (
+              <>
+                <Separator className="my-4" />
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <ImageIcon className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm">
+                      <p className="font-medium text-blue-900">Upload images and videos after creation</p>
+                      <p className="text-blue-700 mt-1">
+                        Create the product first, then edit it to add images and videos with our optimized upload features.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <Separator className="my-4" />
+              </>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
