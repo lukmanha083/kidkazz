@@ -1,5 +1,5 @@
-import { createFileRoute } from '@tantml:router';
-import { useState, useEffect } from 'react';
+import { createFileRoute } from '@tanstack/react-router';
+import { useState } from 'react';
 import { Download, Warehouse, TrendingUp, ShoppingCart } from 'lucide-react';
 
 export const Route = createFileRoute('/dashboard/accounting/reports/sales-by-warehouse')({
