@@ -74,7 +74,7 @@ function CategoryPage() {
 
   // Delete confirmation states
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [categoryToDelete, setCategory ToDelete] = useState<Category | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
 
   // Fetch categories
   const { data: categoriesData, isLoading, error } = useQuery({
