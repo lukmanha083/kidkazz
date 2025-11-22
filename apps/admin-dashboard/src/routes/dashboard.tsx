@@ -16,6 +16,7 @@ import {
   Tag,
   DollarSign,
   Warehouse,
+  Calculator,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -115,6 +116,22 @@ const navItems: NavItem[] = [
     href: '/dashboard/price-lists',
     icon: DollarSign
   },
+  {
+    id: 'accounting',
+    title: 'Accounting',
+    href: '/dashboard/accounting',
+    icon: Calculator,
+    submenu: [
+      { title: 'Chart of Accounts', href: '/dashboard/accounting/chart-of-accounts' },
+      { title: 'Journal Entry', href: '/dashboard/accounting/journal-entry' },
+      { title: 'General Ledger', href: '/dashboard/accounting/general-ledger' },
+      { title: 'Expenses', href: '/dashboard/accounting/expenses' },
+      { title: 'Income Statement', href: '/dashboard/accounting/income-statement' },
+      { title: 'Balance Sheet', href: '/dashboard/accounting/balance-sheet' },
+      { title: 'Sales by Warehouse', href: '/dashboard/accounting/reports/sales-by-warehouse' },
+      { title: 'Sales by Person', href: '/dashboard/accounting/reports/sales-by-person' },
+    ]
+  },
 ];
 
 function DashboardLayout() {
@@ -141,6 +158,7 @@ function DashboardLayout() {
     if (path.includes('/settings')) return 'Settings';
     if (path.includes('/promotions')) return 'Promotions';
     if (path.includes('/price-lists')) return 'Price Lists';
+    if (path.includes('/accounting')) return 'Accounting';
     return 'Dashboard';
   };
 
