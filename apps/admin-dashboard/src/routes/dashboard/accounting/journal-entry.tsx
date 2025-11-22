@@ -175,7 +175,7 @@ function JournalEntryPage() {
       </div>
 
       {/* Journal Entry Form */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-lg shadow-sm border border-gray-200 p-6">
         <h2 className="text-lg font-semibold mb-4">New Journal Entry</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -410,7 +410,7 @@ function JournalEntryPage() {
       </div>
 
       {/* Recent Journal Entries */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-lg shadow-sm border border-gray-200 p-6">
         <h2 className="text-lg font-semibold mb-4">Recent Journal Entries</h2>
 
         <div className="overflow-x-auto">
