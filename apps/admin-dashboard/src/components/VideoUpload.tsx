@@ -17,7 +17,7 @@ import {
   X,
   Film,
   Loader2,
-  CloudUpload,
+  Cloud,
   HardDrive,
   Play,
   AlertCircle,
@@ -355,7 +355,7 @@ export function VideoUpload({
                 : 'bg-white text-gray-700 hover:bg-gray-100'
             } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            <CloudUpload className="w-4 h-4" />
+            <Cloud className="w-4 h-4" />
             <span className="text-sm">Stream (Optimized)</span>
           </button>
           <button
