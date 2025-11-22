@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,8 +35,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Warehouse, MapPin, Package, ArrowRightLeft, History, AlertTriangle } from 'lucide-react';
-import { mockWarehouses } from '@/data/warehouses';
+import { Warehouse, MapPin, Package, ArrowRightLeft, History, AlertTriangle, Loader2 } from 'lucide-react';
+import { warehouseApi, productApi, uomApi } from '@/lib/api';
 
 export const Route = createFileRoute('/dashboard/inventory/uom-conversion')({
   component: UOMConversionPage,
@@ -74,53 +75,65 @@ interface ConversionHistory {
   timestamp: Date;
 }
 
-// Mock product inventory data
-const mockInventory: ProductInventory[] = [
-  {
-    id: '1',
-    name: 'Baby Bottle Set',
-    sku: 'BB-001',
-    barcode: '8901234567890',
-    category: 'Feeding',
-    totalStock: 100,
-    productUOMs: [
-      { id: 'uom-1-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567890', conversionFactor: 1, stock: 10, isDefault: true },
-      { id: 'uom-1-2', uomCode: 'BOX6', uomName: 'Box of 6', barcode: '8901234567906', conversionFactor: 6, stock: 10, isDefault: false },
-      { id: 'uom-1-3', uomCode: 'CARTON18', uomName: 'Carton (18 PCS)', barcode: '8901234567918', conversionFactor: 18, stock: 2, isDefault: false },
-    ],
-  },
-  {
-    id: '2',
-    name: 'Kids Backpack',
-    sku: 'KB-002',
-    barcode: '8901234567891',
-    category: 'School',
-    totalStock: 89,
-    productUOMs: [
-      { id: 'uom-2-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567891', conversionFactor: 1, stock: 5, isDefault: true },
-      { id: 'uom-2-2', uomCode: 'BOX6', uomName: 'Box of 6', barcode: '8901234567897', conversionFactor: 6, stock: 14, isDefault: false },
-    ],
-  },
-  {
-    id: '3',
-    name: 'Educational Puzzle Set',
-    sku: 'EP-003',
-    barcode: '8901234567892',
-    category: 'Education',
-    totalStock: 120,
-    productUOMs: [
-      { id: 'uom-3-1', uomCode: 'PCS', uomName: 'Pieces', barcode: '8901234567892', conversionFactor: 1, stock: 0, isDefault: true },
-      { id: 'uom-3-2', uomCode: 'BOX6', uomName: 'Box of 6', barcode: '8901234567898', conversionFactor: 6, stock: 20, isDefault: false },
-    ],
-  },
-];
-
 function UOMConversionPage() {
-  // Filter only active warehouses
-  const activeWarehouses = mockWarehouses.filter(wh => wh.status === 'Active');
-  const [selectedWarehouse, setSelectedWarehouse] = useState(activeWarehouses[0]?.id || '');
-  const [inventory, setInventory] = useState<ProductInventory[]>(mockInventory);
+  const queryClient = useQueryClient();
+
+  // Fetch warehouses from API
+  const { data: warehousesData, isLoading: warehousesLoading } = useQuery({
+    queryKey: ['warehouses'],
+    queryFn: () => warehouseApi.getAll(),
+  });
+
+  const warehouses = warehousesData?.warehouses || [];
+  const activeWarehouses = warehouses.filter(wh => wh.status === 'active');
+
+  // Fetch all products with their UOMs from API
+  const { data: productsData, isLoading: productsLoading } = useQuery({
+    queryKey: ['products'],
+    queryFn: () => productApi.getAll(),
+  });
+
+  const products = productsData?.products || [];
+
+  const [selectedWarehouse, setSelectedWarehouse] = useState('');
+  const [inventory, setInventory] = useState<ProductInventory[]>([]);
   const [conversions, setConversions] = useState<ConversionHistory[]>([]);
+
+  // Load product details with UOMs
+  useEffect(() => {
+    if (products.length > 0) {
+      const loadProductDetails = async () => {
+        const productDetails = await Promise.all(
+          products.map(async (product) => {
+            try {
+              const fullProduct = await productApi.getById(product.id);
+              return {
+                id: fullProduct.id,
+                name: fullProduct.name,
+                sku: fullProduct.sku,
+                barcode: fullProduct.barcode,
+                category: 'General', // You could fetch category name if needed
+                totalStock: fullProduct.stock,
+                productUOMs: fullProduct.productUOMs || [],
+              };
+            } catch (error) {
+              console.error(`Failed to load product ${product.id}:`, error);
+              return null;
+            }
+          })
+        );
+        setInventory(productDetails.filter(Boolean) as ProductInventory[]);
+      };
+      loadProductDetails();
+    }
+  }, [products]);
+
+  // Set default warehouse when warehouses load
+  useEffect(() => {
+    if (activeWarehouses.length > 0 && !selectedWarehouse) {
+      setSelectedWarehouse(activeWarehouses[0].id);
+    }
+  }, [activeWarehouses, selectedWarehouse]);
 
   // Drawer states
   const [conversionDrawerOpen, setConversionDrawerOpen] = useState(false);
@@ -210,56 +223,98 @@ function UOMConversionPage() {
     setConfirmDialogOpen(true);
   };
 
+  // Create UOM conversion mutation
+  const conversionMutation = useMutation({
+    mutationFn: async (data: {
+      fromUOMId: string;
+      toPCSUOMId: string;
+      fromQty: number;
+      toQty: number;
+    }) => {
+      // Update source UOM stock (decrease)
+      await uomApi.updateProductUOMStock(data.fromUOMId, -data.fromQty);
+
+      // Update PCS UOM stock (increase)
+      await uomApi.updateProductUOMStock(data.toPCSUOMId, data.toQty);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      toast.success('UOM Converted Successfully');
+    },
+    onError: (error: Error) => {
+      toast.error('Conversion failed', {
+        description: error.message,
+      });
+    },
+  });
+
   // Confirm and execute conversion
-  const executeConversion = () => {
+  const executeConversion = async () => {
     if (!selectedProduct || !selectedFromUOM) return;
 
     const qty = parseInt(conversionQuantity);
     const pcsToAdd = qty * selectedFromUOM.conversionFactor;
 
-    // Update inventory
-    setInventory(inventory.map(product => {
-      if (product.id === selectedProduct.id) {
-        return {
-          ...product,
-          productUOMs: product.productUOMs.map(uom => {
-            if (uom.id === selectedFromUOM.id) {
-              // Decrease source UOM stock
-              return { ...uom, stock: uom.stock - qty };
-            } else if (uom.uomCode === 'PCS') {
-              // Increase PCS stock
-              return { ...uom, stock: uom.stock + pcsToAdd };
-            }
-            return uom;
-          }),
-        };
-      }
-      return product;
-    }));
+    // Find the PCS UOM
+    const pcsUOM = selectedProduct.productUOMs.find(u => u.uomCode === 'PCS');
+    if (!pcsUOM) {
+      toast.error('Error', {
+        description: 'PCS UOM not found for this product'
+      });
+      return;
+    }
 
-    // Add to conversion history
-    const newConversion: ConversionHistory = {
-      id: `conv-${Date.now()}`,
-      productName: selectedProduct.name,
-      productSKU: selectedProduct.sku,
-      fromUOM: `${qty} ${selectedFromUOM.uomName}`,
-      fromQuantity: qty,
-      toQuantity: pcsToAdd,
-      reason: conversionReason,
-      notes: conversionNotes,
-      performedBy: 'Current User', // In real app, get from auth context
-      timestamp: new Date(),
-    };
-    setConversions([newConversion, ...conversions]);
+    try {
+      // Execute conversion via API
+      await conversionMutation.mutateAsync({
+        fromUOMId: selectedFromUOM.id,
+        toPCSUOMId: pcsUOM.id,
+        fromQty: qty,
+        toQty: pcsToAdd,
+      });
 
-    toast.success('UOM Converted Successfully', {
-      description: `Converted ${qty} ${selectedFromUOM.uomName} → ${pcsToAdd} PCS`
-    });
+      // Update local state
+      setInventory(inventory.map(product => {
+        if (product.id === selectedProduct.id) {
+          return {
+            ...product,
+            productUOMs: product.productUOMs.map(uom => {
+              if (uom.id === selectedFromUOM.id) {
+                return { ...uom, stock: uom.stock - qty };
+              } else if (uom.uomCode === 'PCS') {
+                return { ...uom, stock: uom.stock + pcsToAdd };
+              }
+              return uom;
+            }),
+          };
+        }
+        return product;
+      }));
 
-    setConfirmDialogOpen(false);
-    setConversionDrawerOpen(false);
-    setSelectedProduct(null);
-    setSelectedFromUOM(null);
+      // Add to conversion history
+      const newConversion: ConversionHistory = {
+        id: `conv-${Date.now()}`,
+        productName: selectedProduct.name,
+        productSKU: selectedProduct.sku,
+        fromUOM: `${qty} ${selectedFromUOM.uomName}`,
+        fromQuantity: qty,
+        toQuantity: pcsToAdd,
+        reason: conversionReason,
+        notes: conversionNotes,
+        performedBy: 'Current User',
+        timestamp: new Date(),
+      };
+      setConversions([newConversion, ...conversions]);
+
+      toast.success(`Converted ${qty} ${selectedFromUOM.uomName} → ${pcsToAdd} PCS`);
+
+      setConfirmDialogOpen(false);
+      setConversionDrawerOpen(false);
+      setSelectedProduct(null);
+      setSelectedFromUOM(null);
+    } catch (error) {
+      console.error('Conversion failed:', error);
+    }
   };
 
   // Get low stock products (PCS stock < 10)
@@ -267,6 +322,30 @@ function UOMConversionPage() {
     const pcsUOM = getPCSUOM(product);
     return pcsUOM && pcsUOM.stock < 10;
   });
+
+  // Show loading state while data is being fetched
+  if (warehousesLoading || productsLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Warehouse Inventory</h1>
+            <p className="text-muted-foreground mt-1">
+              Manage product inventory and perform UOM conversions
+            </p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex justify-center items-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <span className="ml-3 text-muted-foreground">Loading inventory data...</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
