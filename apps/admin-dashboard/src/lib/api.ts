@@ -136,48 +136,75 @@ export const warehouseApi = {
   // Get all warehouses
   getAll: async (): Promise<{ warehouses: Warehouse[]; total: number }> => {
     const url = `${INVENTORY_SERVICE_URL}/api/warehouses`;
-    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
+    const response = await fetch(url, { headers: { 'Content-Type': 'application/json' } });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch warehouses: ${response.statusText}`);
+    }
+    return response.json();
   },
 
   // Get only active warehouses
   getActive: async (): Promise<{ warehouses: Warehouse[]; total: number }> => {
     const url = `${INVENTORY_SERVICE_URL}/api/warehouses/active`;
-    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
+    const response = await fetch(url, { headers: { 'Content-Type': 'application/json' } });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch active warehouses: ${response.statusText}`);
+    }
+    return response.json();
   },
 
   // Get warehouse by ID
   getById: async (id: string): Promise<Warehouse> => {
     const url = `${INVENTORY_SERVICE_URL}/api/warehouses/${id}`;
-    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
+    const response = await fetch(url, { headers: { 'Content-Type': 'application/json' } });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch warehouse: ${response.statusText}`);
+    }
+    return response.json();
   },
 
   // Create new warehouse
   create: async (data: CreateWarehouseInput): Promise<{ id: string; code: string; name: string }> => {
     const url = `${INVENTORY_SERVICE_URL}/api/warehouses`;
-    return fetch(url, {
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
-    }).then(r => r.json());
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.message || `Failed to create warehouse: ${response.statusText}`);
+    }
+    return response.json();
   },
 
   // Update warehouse
   update: async (id: string, data: Partial<CreateWarehouseInput>): Promise<Warehouse> => {
     const url = `${INVENTORY_SERVICE_URL}/api/warehouses/${id}`;
-    return fetch(url, {
+    const response = await fetch(url, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
-    }).then(r => r.json());
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.message || `Failed to update warehouse: ${response.statusText}`);
+    }
+    return response.json();
   },
 
   // Delete warehouse
   delete: async (id: string): Promise<{ message: string }> => {
     const url = `${INVENTORY_SERVICE_URL}/api/warehouses/${id}`;
-    return fetch(url, {
+    const response = await fetch(url, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-    }).then(r => r.json());
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.message || `Failed to delete warehouse: ${response.statusText}`);
+    }
+    return response.json();
   },
 };
 
