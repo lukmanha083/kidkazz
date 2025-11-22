@@ -115,7 +115,7 @@ function SalesByWarehousePage() {
       </div>
 
       {/* Date Range Selector */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-gradient-to-br from-white to-blue-50/30 rounded-lg shadow-sm border border-gray-200 p-6">
         <h2 className="text-lg font-semibold mb-4">Period Selection</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -158,7 +158,7 @@ function SalesByWarehousePage() {
       {/* Summary Stats */}
       {summary && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-gradient-to-br from-white to-blue-50/50 rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Warehouses</p>
@@ -172,7 +172,7 @@ function SalesByWarehousePage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-gradient-to-br from-white to-green-50/50 rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Sales</p>
@@ -186,7 +186,7 @@ function SalesByWarehousePage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-gradient-to-br from-white to-purple-50/50 rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Transactions</p>
@@ -204,18 +204,18 @@ function SalesByWarehousePage() {
 
       {/* Report Data */}
       {loading ? (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+        <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-lg shadow-sm border border-gray-200 p-12 text-center">
           <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto"></div>
           <p className="text-gray-600 mt-4">Loading report data...</p>
         </div>
       ) : data.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+        <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-lg shadow-sm border border-gray-200 p-12 text-center">
           <Warehouse className="h-16 w-16 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-600 text-lg">No data available for the selected period</p>
           <p className="text-sm text-gray-500 mt-2">Try adjusting the date range or check if there are any sales transactions</p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-lg shadow-sm border border-gray-200">
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-lg font-semibold">Warehouse Sales Details</h2>
           </div>
