@@ -10,6 +10,8 @@ import {
   Layers,
   Clock,
   Receipt,
+  Warehouse,
+  Users,
 } from 'lucide-react';
 import { accountingApi } from '@/lib/api';
 
@@ -104,6 +106,23 @@ function AccountingDashboardPage() {
       icon: Scale,
       href: '/dashboard/accounting/balance-sheet',
       color: 'indigo',
+    },
+  ];
+
+  const reportCards = [
+    {
+      title: 'Sales by Warehouse',
+      description: 'Track sales performance by warehouse location',
+      icon: Warehouse,
+      href: '/dashboard/accounting/reports/sales-by-warehouse',
+      color: 'blue',
+    },
+    {
+      title: 'Sales by Person',
+      description: 'Commission report showing sales by sales person and channel',
+      icon: Users,
+      href: '/dashboard/accounting/reports/sales-by-person',
+      color: 'green',
     },
   ];
 
@@ -252,6 +271,35 @@ function AccountingDashboardPage() {
         <h2 className="text-lg font-semibold mb-4">Accounting Modules</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {navigationCards.map((card) => {
+            const Icon = card.icon;
+            return (
+              <Link
+                key={card.href}
+                to={card.href}
+                className={`p-5 border-2 rounded-lg transition-all ${
+                  colorClasses[card.color as keyof typeof colorClasses]
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-white rounded-lg shadow-sm">
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900 mb-1">{card.title}</h3>
+                    <p className="text-sm text-gray-600">{card.description}</p>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Sales Reports */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h2 className="text-lg font-semibold mb-4">Sales Reports</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {reportCards.map((card) => {
             const Icon = card.icon;
             return (
               <Link
