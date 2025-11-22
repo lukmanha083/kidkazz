@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import categoriesRoutes from './routes/categories';
 import productsRoutes from './routes/products';
 import variantsRoutes from './routes/variants';
+import bundlesRoutes from './routes/bundles';
 import uomsRoutes from './routes/uoms';
 import productLocationsRoutes from './routes/product-locations';
 
@@ -25,6 +26,7 @@ app.get('/health', (c) => {
 app.route('/categories', categoriesRoutes);
 app.route('/products', productsRoutes);
 app.route('/variants', variantsRoutes);
+app.route('/bundles', bundlesRoutes);
 app.route('/uoms', uomsRoutes);
 app.route('/product-locations', productLocationsRoutes);
 

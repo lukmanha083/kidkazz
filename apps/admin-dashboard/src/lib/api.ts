@@ -128,6 +128,7 @@ export interface CreateWarehouseInput {
   contactName?: string;
   contactPhone?: string;
   contactEmail?: string;
+  status?: 'active' | 'inactive';
 }
 
 // Updated to use Inventory Service URL
@@ -405,6 +406,96 @@ export const variantApi = {
 
   delete: async (id: string): Promise<{ message: string }> => {
     return apiRequest(`/api/variants/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// ============================================
+// PRODUCT BUNDLES API
+// ============================================
+
+export interface BundleItem {
+  id?: string;
+  bundleId?: string;
+  productId: string;
+  productSKU: string;
+  productName: string;
+  barcode: string;
+  quantity: number;
+  price: number;
+  createdAt?: Date;
+}
+
+export interface ProductBundle {
+  id: string;
+  bundleName: string;
+  bundleSKU: string;
+  bundleDescription?: string | null;
+  bundleImage?: string | null;
+  bundlePrice: number;
+  discountPercentage: number;
+  status: 'active' | 'inactive';
+  availableStock: number;
+  startDate?: string | null;
+  endDate?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreateBundleInput {
+  bundleName: string;
+  bundleSKU: string;
+  bundleDescription?: string | null;
+  bundleImage?: string | null;
+  bundlePrice: number;
+  discountPercentage: number;
+  status?: 'active' | 'inactive';
+  availableStock?: number;
+  startDate?: string | null;
+  endDate?: string | null;
+  items: BundleItem[];
+}
+
+export const bundleApi = {
+  getAll: async (): Promise<{ bundles: ProductBundle[]; total: number }> => {
+    return apiRequest('/api/bundles');
+  },
+
+  getById: async (id: string): Promise<{ bundle: ProductBundle; items: BundleItem[] }> => {
+    return apiRequest(`/api/bundles/${id}`);
+  },
+
+  create: async (data: CreateBundleInput): Promise<{ bundle: ProductBundle; items: BundleItem[] }> => {
+    return apiRequest('/api/bundles', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  update: async (id: string, data: Partial<Omit<CreateBundleInput, 'items'>>): Promise<ProductBundle> => {
+    return apiRequest(`/api/bundles/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateItems: async (id: string, items: BundleItem[]): Promise<{ items: BundleItem[] }> => {
+    return apiRequest(`/api/bundles/${id}/items`, {
+      method: 'PUT',
+      body: JSON.stringify({ items }),
+    });
+  },
+
+  updateStock: async (id: string, availableStock: number): Promise<{ message: string }> => {
+    return apiRequest(`/api/bundles/${id}/stock`, {
+      method: 'PATCH',
+      body: JSON.stringify({ availableStock }),
+    });
+  },
+
+  delete: async (id: string): Promise<{ message: string }> => {
+    return apiRequest(`/api/bundles/${id}`, {
       method: 'DELETE',
     });
   },
@@ -839,6 +930,7 @@ export default {
   warehouse: warehouseApi,
   product: productApi,
   variant: variantApi,
+  bundle: bundleApi,
   uom: uomApi,
   accounting: accountingApi,
   inventory: inventoryApi,

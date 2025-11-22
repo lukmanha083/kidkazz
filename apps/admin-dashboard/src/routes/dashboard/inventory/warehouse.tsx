@@ -50,6 +50,7 @@ export const Route = createFileRoute('/dashboard/inventory/warehouse')({
 
 function WarehouseManagementPage() {
   const queryClient = useQueryClient();
+  const [viewDrawerOpen, setViewDrawerOpen] = useState(false);
   const [formDrawerOpen, setFormDrawerOpen] = useState(false);
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
   const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(null);
@@ -126,6 +127,11 @@ function WarehouseManagementPage() {
     },
   });
 
+  const handleViewWarehouse = (warehouse: Warehouse) => {
+    setSelectedWarehouse(warehouse);
+    setViewDrawerOpen(true);
+  };
+
   const handleAddWarehouse = () => {
     setFormMode('add');
     setFormData({
@@ -162,6 +168,7 @@ function WarehouseManagementPage() {
       contactEmail: warehouse.contactEmail || '',
       status: warehouse.status,
     });
+    setViewDrawerOpen(false);
     setFormDrawerOpen(true);
   };
 
@@ -328,7 +335,11 @@ function WarehouseManagementPage() {
                     </TableRow>
                   ) : (
                     warehouses.map((warehouse) => (
-                      <TableRow key={warehouse.id}>
+                      <TableRow
+                        key={warehouse.id}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => handleViewWarehouse(warehouse)}
+                      >
                         <TableCell className="font-mono text-sm">{warehouse.code}</TableCell>
                         <TableCell>
                           <div>
@@ -355,7 +366,10 @@ function WarehouseManagementPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => handleEditWarehouse(warehouse)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditWarehouse(warehouse);
+                              }}
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
@@ -363,7 +377,10 @@ function WarehouseManagementPage() {
                               variant="ghost"
                               size="icon"
                               className="text-destructive"
-                              onClick={() => handleDeleteWarehouse(warehouse)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteWarehouse(warehouse);
+                              }}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -379,9 +396,106 @@ function WarehouseManagementPage() {
         </Card>
       )}
 
+      {/* View Drawer - Warehouse Details */}
+      <Drawer open={viewDrawerOpen} onOpenChange={setViewDrawerOpen}>
+        <DrawerContent side="right">
+          <DrawerHeader>
+            <DrawerTitle>{selectedWarehouse?.name}</DrawerTitle>
+            <DrawerDescription>Warehouse Details</DrawerDescription>
+          </DrawerHeader>
+
+          {selectedWarehouse && (
+            <div className="px-4 space-y-6 max-h-[70vh] overflow-y-auto">
+              {/* Basic Information */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase">Basic Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Warehouse Code</p>
+                    <p className="font-mono font-medium">{selectedWarehouse.code}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Status</p>
+                    <Badge variant={selectedWarehouse.status === 'active' ? 'default' : 'secondary'}>
+                      {selectedWarehouse.status}
+                    </Badge>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Warehouse Name</p>
+                  <p className="font-medium">{selectedWarehouse.name}</p>
+                </div>
+              </div>
+
+              {/* Address Information */}
+              <div className="space-y-4 border-t pt-4">
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase">Address</h3>
+                <div>
+                  <p className="text-sm text-muted-foreground">Address Line 1</p>
+                  <p className="font-medium">{selectedWarehouse.addressLine1}</p>
+                </div>
+                {selectedWarehouse.addressLine2 && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Address Line 2</p>
+                    <p className="font-medium">{selectedWarehouse.addressLine2}</p>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">City</p>
+                    <p className="font-medium">{selectedWarehouse.city}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Province</p>
+                    <p className="font-medium">{selectedWarehouse.province}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Postal Code</p>
+                    <p className="font-mono font-medium">{selectedWarehouse.postalCode}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Country</p>
+                    <p className="font-medium">{selectedWarehouse.country}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div className="space-y-4 border-t pt-4">
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase">Contact Information</h3>
+                <div>
+                  <p className="text-sm text-muted-foreground">Contact Name</p>
+                  <p className="font-medium">{selectedWarehouse.contactName || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Phone</p>
+                  <p className="font-mono font-medium">{selectedWarehouse.contactPhone || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Email</p>
+                  <p className="font-medium">{selectedWarehouse.contactEmail || '-'}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DrawerFooter>
+            <Button onClick={() => selectedWarehouse && handleEditWarehouse(selectedWarehouse)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit Warehouse
+            </Button>
+            <DrawerClose asChild>
+              <Button variant="outline">Close</Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+
       {/* Form Drawer */}
       <Drawer open={formDrawerOpen} onOpenChange={setFormDrawerOpen}>
-        <DrawerContent>
+        <DrawerContent side="left">
           <DrawerHeader>
             <DrawerTitle>
               {formMode === 'add' ? 'Add New Warehouse' : 'Edit Warehouse'}
