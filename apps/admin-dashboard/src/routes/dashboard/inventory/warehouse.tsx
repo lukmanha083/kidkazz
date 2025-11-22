@@ -405,7 +405,7 @@ function WarehouseManagementPage() {
           </DrawerHeader>
 
           {selectedWarehouse && (
-            <div className="px-4 space-y-6 max-h-[70vh] overflow-y-auto">
+            <div className="px-4 space-y-6">
               {/* Basic Information */}
               <div className="space-y-4">
                 <h3 className="font-semibold text-sm text-muted-foreground uppercase">Basic Information</h3>
@@ -507,7 +507,7 @@ function WarehouseManagementPage() {
             </DrawerDescription>
           </DrawerHeader>
 
-          <form onSubmit={handleSubmitForm} className="px-4 space-y-4 max-h-[60vh] overflow-y-auto">
+          <form onSubmit={handleSubmitForm} className="px-4 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="code">Warehouse Code *</Label>
