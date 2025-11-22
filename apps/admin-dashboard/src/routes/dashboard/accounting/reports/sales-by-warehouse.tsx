@@ -44,7 +44,7 @@ function SalesByWarehousePage() {
       if (toDate) params.append('endDate', toDate);
 
       const response = await fetch(
-        `http://localhost:8789/api/reports/sales-by-warehouse?${params.toString()}`
+        `http://localhost:8794/api/reports/sales-by-warehouse?${params.toString()}`
       );
 
       if (!response.ok) {

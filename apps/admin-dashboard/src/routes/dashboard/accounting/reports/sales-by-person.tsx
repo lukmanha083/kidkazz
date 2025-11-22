@@ -65,7 +65,7 @@ function SalesByPersonPage() {
       if (toDate) params.append('endDate', toDate);
 
       const response = await fetch(
-        `http://localhost:8789/api/reports/sales-by-person?${params.toString()}`
+        `http://localhost:8794/api/reports/sales-by-person?${params.toString()}`
       );
 
       if (!response.ok) {

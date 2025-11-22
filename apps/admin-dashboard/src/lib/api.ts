@@ -1,16 +1,24 @@
 // API base URLs for microservices
 const PRODUCT_SERVICE_URL = import.meta.env.VITE_PRODUCT_SERVICE_URL || 'http://localhost:8788';
 const INVENTORY_SERVICE_URL = import.meta.env.VITE_INVENTORY_SERVICE_URL || 'http://localhost:8792';
+const ACCOUNTING_SERVICE_URL = import.meta.env.VITE_ACCOUNTING_SERVICE_URL || 'http://localhost:8794';
 
 // For backward compatibility
 const API_BASE_URL = PRODUCT_SERVICE_URL;
 
-// Generic API request function
+// Generic API request function with service selection
 async function apiRequest<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  service: 'product' | 'inventory' | 'accounting' = 'product'
 ): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
+  const baseUrls = {
+    product: PRODUCT_SERVICE_URL,
+    inventory: INVENTORY_SERVICE_URL,
+    accounting: ACCOUNTING_SERVICE_URL,
+  };
+
+  const url = `${baseUrls[service]}${endpoint}`;
 
   const response = await fetch(url, {
     ...options,
@@ -583,35 +591,35 @@ export const accountingApi = {
   accounts: {
     getAll: async (params?: { type?: string; status?: string }): Promise<{ accounts: ChartOfAccount[] }> => {
       const queryParams = new URLSearchParams(params as any).toString();
-      return apiRequest(`/api/accounting/accounts${queryParams ? `?${queryParams}` : ''}`);
+      return apiRequest(`/api/accounting/accounts${queryParams ? `, {}, 'accounting?${queryParams}` : ''}`, {}, 'accounting');
     },
 
     getActive: async (): Promise<{ accounts: ChartOfAccount[] }> => {
-      return apiRequest('/api/accounting/accounts/active');
+      return apiRequest('/api/accounting/accounts/active', {}, 'accounting', {}, 'accounting');
     },
 
     getById: async (id: string): Promise<{ account: ChartOfAccount }> => {
-      return apiRequest(`/api/accounting/accounts/${id}`);
+      return apiRequest(`/api/accounting/accounts/${id}`, {}, 'accounting, {}, 'accounting');
     },
 
     create: async (data: Partial<ChartOfAccount>): Promise<{ account: ChartOfAccount }> => {
-      return apiRequest('/api/accounting/accounts', {
+      return apiRequest('/api/accounting/accounts', {}, 'accounting', {
         method: 'POST',
         body: JSON.stringify(data),
-      });
+      }, 'accounting');
     },
 
     update: async (id: string, data: Partial<ChartOfAccount>): Promise<{ account: ChartOfAccount }> => {
-      return apiRequest(`/api/accounting/accounts/${id}`, {
+      return apiRequest(`/api/accounting/accounts/${id}`, {}, 'accounting, {
         method: 'PUT',
         body: JSON.stringify(data),
-      });
+      }, 'accounting');
     },
 
     delete: async (id: string): Promise<{ message: string }> => {
-      return apiRequest(`/api/accounting/accounts/${id}`, {
+      return apiRequest(`/api/accounting/accounts/${id}`, {}, 'accounting, {
         method: 'DELETE',
-      });
+      }, 'accounting');
     },
   },
 
@@ -624,11 +632,11 @@ export const accountingApi = {
       limit?: number;
     }): Promise<{ journalEntries: JournalEntry[] }> => {
       const queryParams = new URLSearchParams(params as any).toString();
-      return apiRequest(`/api/accounting/journal-entries${queryParams ? `?${queryParams}` : ''}`);
+      return apiRequest(`/api/accounting/journal-entries${queryParams ? `, {}, 'accounting?${queryParams}` : ''}`);
     },
 
     getById: async (id: string): Promise<{ journalEntry: JournalEntry; lines: JournalLine[] }> => {
-      return apiRequest(`/api/accounting/journal-entries/${id}`);
+      return apiRequest(`/api/accounting/journal-entries/${id}`, {}, 'accounting);
     },
 
     create: async (data: {
@@ -641,21 +649,21 @@ export const accountingApi = {
       notes?: string;
       createdBy: string;
     }): Promise<{ journalEntry: JournalEntry; lines: JournalLine[] }> => {
-      return apiRequest('/api/accounting/journal-entries', {
+      return apiRequest('/api/accounting/journal-entries', {}, 'accounting', {
         method: 'POST',
         body: JSON.stringify(data),
       });
     },
 
     post: async (id: string, postedBy: string): Promise<{ message: string }> => {
-      return apiRequest(`/api/accounting/journal-entries/${id}/post`, {
+      return apiRequest(`/api/accounting/journal-entries/${id}/post`, {}, 'accounting, {
         method: 'POST',
         body: JSON.stringify({ postedBy }),
       });
     },
 
     void: async (id: string, voidedBy: string, reason: string): Promise<{ message: string }> => {
-      return apiRequest(`/api/accounting/journal-entries/${id}/void`, {
+      return apiRequest(`/api/accounting/journal-entries/${id}/void`, {}, 'accounting, {
         method: 'POST',
         body: JSON.stringify({ voidedBy, reason }),
       });
@@ -669,17 +677,17 @@ export const accountingApi = {
     closingBalance: number;
   }> => {
     const queryParams = new URLSearchParams(params as any).toString();
-    return apiRequest(`/api/accounting/ledger/${accountId}${queryParams ? `?${queryParams}` : ''}`);
+    return apiRequest(`/api/accounting/ledger/${accountId}${queryParams ? `, {}, 'accounting?${queryParams}` : ''}`);
   },
 
   // Reports
   reports: {
     incomeStatement: async (from: string, to: string): Promise<IncomeStatement> => {
-      return apiRequest(`/api/accounting/reports/income-statement?from=${from}&to=${to}`);
+      return apiRequest(`/api/accounting/reports/income-statement?from=${from}&to=${to}`, {}, 'accounting);
     },
 
     balanceSheet: async (asOf: string): Promise<BalanceSheet> => {
-      return apiRequest(`/api/accounting/reports/balance-sheet?asOf=${asOf}`);
+      return apiRequest(`/api/accounting/reports/balance-sheet?asOf=${asOf}`, {}, 'accounting);
     },
   },
 };
