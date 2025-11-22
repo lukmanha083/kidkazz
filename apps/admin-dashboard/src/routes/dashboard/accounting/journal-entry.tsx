@@ -2,6 +2,20 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, AlertCircle, CheckCircle2, Save } from 'lucide-react';
 import { accountingApi, type ChartOfAccount, type JournalLine, type JournalEntry } from '@/lib/api';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableFooter,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 
 export const Route = createFileRoute('/dashboard/accounting/journal-entry')({
   component: JournalEntryPage,
@@ -171,332 +185,311 @@ function JournalEntryPage() {
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Journal Entry</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Journal Entry</h1>
       </div>
 
       {/* Journal Entry Form */}
-      <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold mb-4">New Journal Entry</h2>
+      <Card className="bg-gradient-to-br from-white to-gray-50/50">
+        <CardHeader>
+          <CardTitle>New Journal Entry</CardTitle>
+          <CardDescription>Create a new journal entry for your accounting records</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="entryDate">Entry Date *</Label>
+              <Input
+                id="entryDate"
+                type="date"
+                value={entryDate}
+                onChange={(e) => setEntryDate(e.target.value)}
+              />
+            </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Entry Date *
-            </label>
-            <input
-              type="date"
-              value={entryDate}
-              onChange={(e) => setEntryDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+            <div className="space-y-2">
+              <Label htmlFor="entryType">Entry Type</Label>
+              <select
+                id="entryType"
+                value={entryType}
+                onChange={(e) => setEntryType(e.target.value as any)}
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                <option value="Manual">Manual</option>
+                <option value="System">System</option>
+                <option value="Recurring">Recurring</option>
+                <option value="Adjusting">Adjusting</option>
+                <option value="Closing">Closing</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="reference">Reference</Label>
+              <Input
+                id="reference"
+                type="text"
+                value={reference}
+                onChange={(e) => setReference(e.target.value)}
+                placeholder="Invoice #, PO #, etc."
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Entry Type
-            </label>
-            <select
-              value={entryType}
-              onChange={(e) => setEntryType(e.target.value as any)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="Manual">Manual</option>
-              <option value="System">System</option>
-              <option value="Recurring">Recurring</option>
-              <option value="Adjusting">Adjusting</option>
-              <option value="Closing">Closing</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Reference
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="description">Description *</Label>
+            <Input
+              id="description"
               type="text"
-              value={reference}
-              onChange={(e) => setReference(e.target.value)}
-              placeholder="Invoice #, PO #, etc."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Brief description of the transaction"
             />
           </div>
-        </div>
 
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Description *
-          </label>
-          <input
-            type="text"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Brief description of the transaction"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
+          {/* Journal Lines */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-base">Journal Lines</Label>
+              <Button onClick={addLine} size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Line
+              </Button>
+            </div>
 
-        {/* Journal Lines */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-md font-semibold">Journal Lines</h3>
-            <button
-              onClick={addLine}
-              className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm"
-            >
-              <Plus className="h-4 w-4" />
-              Add Line
-            </button>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Account</TableHead>
+                    <TableHead className="w-32">Type</TableHead>
+                    <TableHead className="text-right w-40">Debit</TableHead>
+                    <TableHead className="text-right w-40">Credit</TableHead>
+                    <TableHead className="w-12"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {lines.map((line) => {
+                    const account = accounts.find(a => a.id === line.accountId);
+                    return (
+                      <TableRow key={line.tempId}>
+                        <TableCell>
+                          <select
+                            value={line.accountId}
+                            onChange={(e) => updateLine(line.tempId, 'accountId', e.target.value)}
+                            className="w-full px-2 py-1.5 border border-input rounded text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                          >
+                            <option value="">Select account...</option>
+                            {accounts.map(acc => (
+                              <option key={acc.id} value={acc.id}>
+                                {acc.code} - {acc.name}
+                              </option>
+                            ))}
+                          </select>
+                        </TableCell>
+                        <TableCell>
+                          <select
+                            value={line.direction}
+                            onChange={(e) => updateLine(line.tempId, 'direction', e.target.value)}
+                            className="w-full px-2 py-1.5 border border-input rounded text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                          >
+                            <option value="Debit">Debit</option>
+                            <option value="Credit">Credit</option>
+                          </select>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {line.direction === 'Debit' ? (
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={line.amount || ''}
+                              onChange={(e) => updateLine(line.tempId, 'amount', parseFloat(e.target.value) || 0)}
+                              className="text-right h-8"
+                            />
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {line.direction === 'Credit' ? (
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={line.amount || ''}
+                              onChange={(e) => updateLine(line.tempId, 'amount', parseFloat(e.target.value) || 0)}
+                              className="text-right h-8"
+                            />
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeLine(line.tempId)}
+                            disabled={lines.length <= 2}
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+                <TableFooter>
+                  <TableRow>
+                    <TableCell colSpan={2} className="text-right font-semibold">
+                      Totals:
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">
+                      ${totalDebits.toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">
+                      ${totalCredits.toFixed(2)}
+                    </TableCell>
+                    <TableCell></TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell colSpan={2} className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {isBalanced ? (
+                          <>
+                            <CheckCircle2 className="h-5 w-5 text-green-600" />
+                            <span className="text-green-700 font-medium">Balanced</span>
+                          </>
+                        ) : (
+                          <>
+                            <AlertCircle className="h-5 w-5 text-amber-600" />
+                            <span className="text-amber-700 font-medium">
+                              Difference: ${Math.abs(difference).toFixed(2)}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell colSpan={3}></TableCell>
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            </div>
           </div>
 
-          <div className="border border-gray-200 rounded-lg overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Account
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
-                    Type
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
-                    Debit
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
-                    Credit
-                  </th>
-                  <th className="px-4 py-3 w-12"></th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {lines.map((line) => {
-                  const account = accounts.find(a => a.id === line.accountId);
-                  return (
-                    <tr key={line.tempId}>
-                      <td className="px-4 py-3">
-                        <select
-                          value={line.accountId}
-                          onChange={(e) => updateLine(line.tempId, 'accountId', e.target.value)}
-                          className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                          <option value="">Select account...</option>
-                          {accounts.map(acc => (
-                            <option key={acc.id} value={acc.id}>
-                              {acc.code} - {acc.name}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="px-4 py-3">
-                        <select
-                          value={line.direction}
-                          onChange={(e) => updateLine(line.tempId, 'direction', e.target.value)}
-                          className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                          <option value="Debit">Debit</option>
-                          <option value="Credit">Credit</option>
-                        </select>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {line.direction === 'Debit' ? (
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={line.amount || ''}
-                            onChange={(e) => updateLine(line.tempId, 'amount', parseFloat(e.target.value) || 0)}
-                            className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          />
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {line.direction === 'Credit' ? (
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={line.amount || ''}
-                            onChange={(e) => updateLine(line.tempId, 'amount', parseFloat(e.target.value) || 0)}
-                            className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm text-right focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          />
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <button
-                          onClick={() => removeLine(line.tempId)}
-                          disabled={lines.length <= 2}
-                          className="text-red-600 hover:text-red-800 disabled:text-gray-300 disabled:cursor-not-allowed"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-              <tfoot className="bg-gray-50 border-t-2 border-gray-300">
-                <tr>
-                  <td colSpan={2} className="px-4 py-3 text-right font-semibold">
-                    Totals:
-                  </td>
-                  <td className="px-4 py-3 text-right font-semibold">
-                    ${totalDebits.toFixed(2)}
-                  </td>
-                  <td className="px-4 py-3 text-right font-semibold">
-                    ${totalCredits.toFixed(2)}
-                  </td>
-                  <td></td>
-                </tr>
-                <tr>
-                  <td colSpan={2} className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      {isBalanced ? (
-                        <>
-                          <CheckCircle2 className="h-5 w-5 text-green-600" />
-                          <span className="text-green-700 font-medium">Balanced</span>
-                        </>
-                      ) : (
-                        <>
-                          <AlertCircle className="h-5 w-5 text-amber-600" />
-                          <span className="text-amber-700 font-medium">
-                            Difference: ${Math.abs(difference).toFixed(2)}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                  <td colSpan={3}></td>
-                </tr>
-              </tfoot>
-            </table>
+          {/* Notes */}
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notes (Optional)</Label>
+            <textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              placeholder="Additional notes or explanation..."
+              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
           </div>
-        </div>
 
-        {/* Notes */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Notes (Optional)
-          </label>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={3}
-            placeholder="Additional notes or explanation..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex gap-3">
-          <button
-            onClick={() => handleSave('Draft')}
-            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-          >
-            <Save className="h-4 w-4" />
-            Save as Draft
-          </button>
-          <button
-            onClick={() => handleSave('Posted')}
-            disabled={!isBalanced}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
-          >
-            <CheckCircle2 className="h-4 w-4" />
-            Post Entry
-          </button>
-        </div>
-      </div>
+          {/* Action Buttons */}
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => handleSave('Draft')}>
+              <Save className="h-4 w-4 mr-2" />
+              Save as Draft
+            </Button>
+            <Button onClick={() => handleSave('Posted')} disabled={!isBalanced}>
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Post Entry
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Recent Journal Entries */}
-      <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold mb-4">Recent Journal Entries</h2>
-
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Entry Number
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Description
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Type
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {journalEntries.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
-                    No journal entries yet. Create your first entry above.
-                  </td>
-                </tr>
-              ) : (
-                journalEntries.map((entry) => (
-                  <tr key={entry.id}>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                      {entry.entryNumber}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
-                      {new Date(entry.entryDate).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      {entry.description}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
-                      {entry.entryType}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                          entry.status === 'Posted'
-                            ? 'bg-green-100 text-green-800'
-                            : entry.status === 'Draft'
-                            ? 'bg-gray-100 text-gray-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}
-                      >
-                        {entry.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right text-sm">
-                      {entry.status === 'Draft' && (
-                        <button
-                          onClick={() => handlePost(entry.id)}
-                          className="text-blue-600 hover:text-blue-800 mr-3"
+      <Card className="bg-gradient-to-br from-white to-gray-50/50">
+        <CardHeader>
+          <CardTitle>Recent Journal Entries</CardTitle>
+          <CardDescription>View and manage your recent journal entries</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Entry Number</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {journalEntries.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                      No journal entries yet. Create your first entry above.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  journalEntries.map((entry) => (
+                    <TableRow key={entry.id}>
+                      <TableCell className="font-medium">
+                        {entry.entryNumber}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {new Date(entry.entryDate).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        {entry.description}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {entry.entryType}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            entry.status === 'Posted'
+                              ? 'default'
+                              : entry.status === 'Draft'
+                              ? 'secondary'
+                              : 'destructive'
+                          }
+                          className={
+                            entry.status === 'Posted'
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-500'
+                              : ''
+                          }
                         >
-                          Post
-                        </button>
-                      )}
-                      {entry.status === 'Posted' && (
-                        <button
-                          onClick={() => handleVoid(entry.id)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          Void
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                          {entry.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {entry.status === 'Draft' && (
+                          <Button
+                            variant="link"
+                            onClick={() => handlePost(entry.id)}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            Post
+                          </Button>
+                        )}
+                        {entry.status === 'Posted' && (
+                          <Button
+                            variant="link"
+                            onClick={() => handleVoid(entry.id)}
+                            className="text-destructive hover:text-destructive/90"
+                          >
+                            Void
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

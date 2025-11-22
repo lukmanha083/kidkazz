@@ -1,6 +1,18 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { Download, Warehouse, TrendingUp, ShoppingCart } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 export const Route = createFileRoute('/dashboard/accounting/reports/sales-by-warehouse')({
   component: SalesByWarehousePage,
@@ -100,171 +112,170 @@ function SalesByWarehousePage() {
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Sales by Warehouse</h1>
-          <p className="text-gray-600 mt-1">Track sales performance by warehouse location</p>
+          <h1 className="text-3xl font-bold tracking-tight">Sales by Warehouse</h1>
+          <p className="text-muted-foreground mt-1">Track sales performance by warehouse location</p>
         </div>
         {data.length > 0 && (
-          <button
-            onClick={handleExport}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-          >
+          <Button onClick={handleExport} className="gap-2">
             <Download className="h-4 w-4" />
             Export CSV
-          </button>
+          </Button>
         )}
       </div>
 
       {/* Date Range Selector */}
-      <div className="bg-gradient-to-br from-white to-blue-50/30 rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold mb-4">Period Selection</h2>
+      <Card className="bg-gradient-to-br from-white to-blue-50/30">
+        <CardHeader>
+          <CardTitle>Period Selection</CardTitle>
+          <CardDescription>Select the date range for the sales report</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="fromDate">From Date</Label>
+              <Input
+                id="fromDate"
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+              />
+            </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              From Date
-            </label>
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="toDate">To Date</Label>
+              <Input
+                id="toDate"
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              To Date
-            </label>
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
+            <div className="flex items-end">
+              <Button
+                onClick={loadReport}
+                disabled={loading}
+                className="w-full"
+              >
+                {loading ? 'Loading...' : 'Generate Report'}
+              </Button>
+            </div>
           </div>
-
-          <div className="flex items-end">
-            <button
-              onClick={loadReport}
-              disabled={loading}
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Loading...' : 'Generate Report'}
-            </button>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Summary Stats */}
       {summary && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-gradient-to-br from-white to-blue-50/50 rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Warehouses</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">
-                  {summary.totalWarehouses}
-                </p>
+          <Card className="bg-gradient-to-br from-white to-blue-50/50">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Warehouses</p>
+                  <p className="text-3xl font-bold mt-1">
+                    {summary.totalWarehouses}
+                  </p>
+                </div>
+                <div className="p-3 bg-blue-50 rounded-lg">
+                  <Warehouse className="h-6 w-6 text-blue-600" />
+                </div>
               </div>
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <Warehouse className="h-6 w-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-gradient-to-br from-white to-green-50/50 rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Sales</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">
-                  Rp {summary.totalSales.toLocaleString('id-ID')}
-                </p>
+          <Card className="bg-gradient-to-br from-white to-green-50/50">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Sales</p>
+                  <p className="text-3xl font-bold mt-1">
+                    Rp {summary.totalSales.toLocaleString('id-ID')}
+                  </p>
+                </div>
+                <div className="p-3 bg-green-50 rounded-lg">
+                  <TrendingUp className="h-6 w-6 text-green-600" />
+                </div>
               </div>
-              <div className="p-3 bg-green-50 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-green-600" />
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-gradient-to-br from-white to-purple-50/50 rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Transactions</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">
-                  {summary.totalTransactions.toLocaleString('id-ID')}
-                </p>
+          <Card className="bg-gradient-to-br from-white to-purple-50/50">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Transactions</p>
+                  <p className="text-3xl font-bold mt-1">
+                    {summary.totalTransactions.toLocaleString('id-ID')}
+                  </p>
+                </div>
+                <div className="p-3 bg-purple-50 rounded-lg">
+                  <ShoppingCart className="h-6 w-6 text-purple-600" />
+                </div>
               </div>
-              <div className="p-3 bg-purple-50 rounded-lg">
-                <ShoppingCart className="h-6 w-6 text-purple-600" />
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
       {/* Report Data */}
       {loading ? (
-        <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-          <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto"></div>
-          <p className="text-gray-600 mt-4">Loading report data...</p>
-        </div>
+        <Card className="bg-gradient-to-br from-white to-gray-50/50">
+          <CardContent className="py-12 text-center">
+            <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto"></div>
+            <p className="text-muted-foreground mt-4">Loading report data...</p>
+          </CardContent>
+        </Card>
       ) : data.length === 0 ? (
-        <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-          <Warehouse className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-600 text-lg">No data available for the selected period</p>
-          <p className="text-sm text-gray-500 mt-2">Try adjusting the date range or check if there are any sales transactions</p>
-        </div>
+        <Card className="bg-gradient-to-br from-white to-gray-50/50">
+          <CardContent className="py-12 text-center">
+            <Warehouse className="h-16 w-16 text-muted-foreground/40 mx-auto mb-4" />
+            <p className="text-muted-foreground text-lg">No data available for the selected period</p>
+            <p className="text-sm text-muted-foreground mt-2">Try adjusting the date range or check if there are any sales transactions</p>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-lg shadow-sm border border-gray-200">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold">Warehouse Sales Details</h2>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Warehouse ID
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total Sales
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Transactions
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Avg Transaction
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    % of Total
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {data.map((row, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {row.warehouse_id || 'Unknown'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                      Rp {row.total_sales.toLocaleString('id-ID', { minimumFractionDigits: 2 })}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-600">
-                      {row.transaction_count.toLocaleString('id-ID')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-600">
-                      Rp {row.avg_transaction_value.toLocaleString('id-ID', { minimumFractionDigits: 2 })}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-600">
-                      {summary ? ((row.total_sales / summary.totalSales) * 100).toFixed(1) : '0.0'}%
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <Card className="bg-gradient-to-br from-white to-gray-50/50">
+          <CardHeader>
+            <CardTitle>Warehouse Sales Details</CardTitle>
+            <CardDescription>Detailed breakdown of sales by warehouse</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Warehouse ID</TableHead>
+                    <TableHead className="text-right">Total Sales</TableHead>
+                    <TableHead className="text-right">Transactions</TableHead>
+                    <TableHead className="text-right">Avg Transaction</TableHead>
+                    <TableHead className="text-right">% of Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.map((row, index) => (
+                    <TableRow key={index}>
+                      <TableCell className="font-medium">
+                        {row.warehouse_id || 'Unknown'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        Rp {row.total_sales.toLocaleString('id-ID', { minimumFractionDigits: 2 })}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {row.transaction_count.toLocaleString('id-ID')}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        Rp {row.avg_transaction_value.toLocaleString('id-ID', { minimumFractionDigits: 2 })}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {summary ? ((row.total_sales / summary.totalSales) * 100).toFixed(1) : '0.0'}%
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
