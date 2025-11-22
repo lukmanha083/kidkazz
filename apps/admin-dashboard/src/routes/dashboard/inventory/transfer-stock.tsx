@@ -1,5 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,8 +36,9 @@ import {
   Trash2,
   Package,
   Calendar,
+  Loader2,
 } from 'lucide-react';
-import { mockWarehouses } from '@/data/warehouses';
+import { warehouseApi, productApi, inventoryApi } from '@/lib/api';
 
 export const Route = createFileRoute('/dashboard/inventory/transfer-stock')({
   component: TransferStockPage,
@@ -63,82 +66,34 @@ interface StockTransfer {
   notes?: string;
 }
 
-// Mock products for transfer
-const mockProducts = [
-  { id: '1', name: 'Baby Bottle Set', sku: 'BB-001', warehouseId: 'WH-001', stock: 145 },
-  { id: '2', name: 'Kids Backpack', sku: 'BP-002', warehouseId: 'WH-002', stock: 89 },
-  { id: '3', name: 'Toy Car Collection', sku: 'TC-003', warehouseId: 'WH-001', stock: 234 },
-  { id: '4', name: 'Children Books Set', sku: 'BK-004', warehouseId: 'WH-003', stock: 67 },
-  { id: '5', name: 'Baby Crib', sku: 'CR-005', warehouseId: 'WH-001', stock: 12 },
-  { id: '6', name: 'Toddler Shoes', sku: 'SH-006', warehouseId: 'WH-002', stock: 78 },
-  { id: '7', name: 'Educational Puzzle', sku: 'PZ-007', warehouseId: 'WH-001', stock: 156 },
-  { id: '8', name: 'Baby Monitor', sku: 'BM-008', warehouseId: 'WH-002', stock: 34 },
-  { id: '9', name: 'Diaper Bag', sku: 'DB-009', warehouseId: 'WH-003', stock: 91 },
-  { id: '10', name: 'Kids Lunch Box', sku: 'LB-010', warehouseId: 'WH-001', stock: 203 },
-];
-
-// Mock transfer history
-const mockTransfers: StockTransfer[] = [
-  {
-    id: 'TRF-001',
-    transferNumber: 'TRF-2024-001',
-    sourceWarehouseId: 'WH-001',
-    sourceWarehouseName: 'Main Warehouse Jakarta',
-    destinationWarehouseId: 'WH-002',
-    destinationWarehouseName: 'Distribution Center Surabaya',
-    items: [
-      { productId: '1', productName: 'Baby Bottle Set', sku: 'BB-001', quantity: 50 },
-      { productId: '7', productName: 'Educational Puzzle', sku: 'PZ-007', quantity: 30 },
-    ],
-    totalItems: 80,
-    status: 'Completed',
-    transferredBy: 'Admin User',
-    transferDate: '2024-11-15',
-    notes: 'Restocking North Branch',
-  },
-  {
-    id: 'TRF-002',
-    transferNumber: 'TRF-2024-002',
-    sourceWarehouseId: 'WH-003',
-    sourceWarehouseName: 'Regional Hub Bandung',
-    destinationWarehouseId: 'WH-001',
-    destinationWarehouseName: 'Main Warehouse Jakarta',
-    items: [
-      { productId: '4', productName: 'Children Books Set', sku: 'BK-004', quantity: 20 },
-    ],
-    totalItems: 20,
-    status: 'Completed',
-    transferredBy: 'Admin User',
-    transferDate: '2024-11-14',
-  },
-  {
-    id: 'TRF-003',
-    transferNumber: 'TRF-2024-003',
-    sourceWarehouseId: 'WH-001',
-    sourceWarehouseName: 'Main Warehouse Jakarta',
-    destinationWarehouseId: 'WH-003',
-    destinationWarehouseName: 'Regional Hub Bandung',
-    items: [
-      { productId: '3', productName: 'Toy Car Collection', sku: 'TC-003', quantity: 40 },
-      { productId: '5', productName: 'Baby Crib', sku: 'CR-005', quantity: 5 },
-      { productId: '10', productName: 'Kids Lunch Box', sku: 'LB-010', quantity: 25 },
-    ],
-    totalItems: 70,
-    status: 'Completed',
-    transferredBy: 'Admin User',
-    transferDate: '2024-11-13',
-    notes: 'Regional distribution',
-  },
-];
+// Transfer history is now stored in component state
+// In a production app, this would be fetched from an API endpoint
 
 function TransferStockPage() {
-  // Filter only active warehouses
-  const activeWarehouses = mockWarehouses.filter(wh => wh.status === 'Active');
+  const queryClient = useQueryClient();
 
-  const [transfers, setTransfers] = useState<StockTransfer[]>(mockTransfers);
+  // Fetch warehouses from API
+  const { data: warehousesData, isLoading: warehousesLoading } = useQuery({
+    queryKey: ['warehouses'],
+    queryFn: () => warehouseApi.getAll(),
+  });
+
+  const warehouses = warehousesData?.warehouses || [];
+  const activeWarehouses = warehouses.filter(wh => wh.status === 'active');
+
+  // Fetch all products from API
+  const { data: productsData, isLoading: productsLoading } = useQuery({
+    queryKey: ['products'],
+    queryFn: () => productApi.getAll(),
+  });
+
+  const products = productsData?.products || [];
+
+  const [transfers, setTransfers] = useState<StockTransfer[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [productInventories, setProductInventories] = useState<Record<string, any>>({});
 
   // Drawer states
   const [viewDrawerOpen, setViewDrawerOpen] = useState(false);
@@ -177,14 +132,95 @@ function TransferStockPage() {
   // Get available products for selected source warehouse
   const availableProducts = useMemo(() => {
     if (!formData.sourceWarehouseId) return [];
-    return mockProducts
-      .filter(p => p.warehouseId === formData.sourceWarehouseId)
+
+    // Filter products that have inventory in the selected warehouse
+    return products
+      .filter(p => {
+        const inventory = productInventories[`${p.id}-${formData.sourceWarehouseId}`];
+        return inventory && inventory.quantityAvailable > 0;
+      })
       .filter(p => !transferItems.some(item => item.productId === p.id))
-      .map(p => ({
-        value: p.id,
-        label: `${p.name} (${p.sku}) - ${p.stock} available`,
-      }));
-  }, [formData.sourceWarehouseId, transferItems]);
+      .map(p => {
+        const inventory = productInventories[`${p.id}-${formData.sourceWarehouseId}`];
+        return {
+          value: p.id,
+          label: `${p.name} (${p.sku}) - ${inventory?.quantityAvailable || 0} available`,
+        };
+      });
+  }, [formData.sourceWarehouseId, transferItems, products, productInventories]);
+
+  // Fetch inventory when source warehouse changes
+  React.useEffect(() => {
+    if (formData.sourceWarehouseId && products.length > 0) {
+      // Fetch inventory for all products in the selected warehouse
+      const fetchInventory = async () => {
+        const inventoryPromises = products.map(async (product) => {
+          try {
+            const inv = await inventoryApi.getByProductAndWarehouse(
+              product.id,
+              formData.sourceWarehouseId
+            );
+            return { key: `${product.id}-${formData.sourceWarehouseId}`, data: inv };
+          } catch (error) {
+            // Product doesn't have inventory in this warehouse
+            return null;
+          }
+        });
+
+        const results = await Promise.all(inventoryPromises);
+        const inventoryMap: Record<string, any> = {};
+        results.forEach(result => {
+          if (result) {
+            inventoryMap[result.key] = result.data;
+          }
+        });
+        setProductInventories(inventoryMap);
+      };
+
+      fetchInventory();
+    }
+  }, [formData.sourceWarehouseId, products]);
+
+  // Create transfer mutation
+  const transferMutation = useMutation({
+    mutationFn: async (transferData: {
+      items: TransferItem[];
+      sourceWarehouseId: string;
+      destinationWarehouseId: string;
+    }) => {
+      // Perform inventory adjustments for each item
+      const transferPromises = transferData.items.map(async (item) => {
+        // Decrease from source warehouse
+        await inventoryApi.adjust({
+          productId: item.productId,
+          warehouseId: transferData.sourceWarehouseId,
+          quantity: item.quantity,
+          movementType: 'out',
+          reason: `Transfer to warehouse ${transferData.destinationWarehouseId}`,
+        });
+
+        // Increase in destination warehouse
+        await inventoryApi.adjust({
+          productId: item.productId,
+          warehouseId: transferData.destinationWarehouseId,
+          quantity: item.quantity,
+          movementType: 'in',
+          reason: `Transfer from warehouse ${transferData.sourceWarehouseId}`,
+        });
+      });
+
+      await Promise.all(transferPromises);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      toast.success('Stock transfer completed successfully');
+    },
+    onError: (error: Error) => {
+      toast.error('Failed to complete transfer', {
+        description: error.message,
+      });
+    },
+  });
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -214,21 +250,31 @@ function TransferStockPage() {
 
   const handleAddItem = () => {
     if (!selectedProduct || !itemQuantity) {
-      alert('Please select a product and enter quantity');
+      toast.error('Missing information', {
+        description: 'Please select a product and enter quantity'
+      });
       return;
     }
 
-    const product = mockProducts.find(p => p.id === selectedProduct);
+    const product = products.find(p => p.id === selectedProduct);
     if (!product) return;
 
     const quantity = parseInt(itemQuantity);
     if (quantity <= 0) {
-      alert('Quantity must be greater than 0');
+      toast.error('Invalid quantity', {
+        description: 'Quantity must be greater than 0'
+      });
       return;
     }
 
-    if (quantity > product.stock) {
-      alert(`Insufficient stock. Available: ${product.stock} units`);
+    // Check available inventory
+    const inventory = productInventories[`${product.id}-${formData.sourceWarehouseId}`];
+    const availableStock = inventory?.quantityAvailable || 0;
+
+    if (quantity > availableStock) {
+      toast.error('Insufficient stock', {
+        description: `Only ${availableStock} units available`
+      });
       return;
     }
 
@@ -242,22 +288,27 @@ function TransferStockPage() {
     setTransferItems([...transferItems, newItem]);
     setSelectedProduct('');
     setItemQuantity('');
+    toast.success('Item added to transfer');
   };
 
   const handleRemoveItem = (productId: string) => {
     setTransferItems(transferItems.filter(item => item.productId !== productId));
   };
 
-  const handleSubmitForm = (e: React.FormEvent) => {
+  const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (transferItems.length === 0) {
-      alert('Please add at least one product to transfer');
+      toast.error('No items to transfer', {
+        description: 'Please add at least one product to transfer'
+      });
       return;
     }
 
     if (formData.sourceWarehouseId === formData.destinationWarehouseId) {
-      alert('Source and destination warehouses must be different');
+      toast.error('Invalid warehouses', {
+        description: 'Source and destination warehouses must be different'
+      });
       return;
     }
 
@@ -265,12 +316,13 @@ function TransferStockPage() {
     const destinationWarehouse = activeWarehouses.find(w => w.id === formData.destinationWarehouseId);
 
     if (!sourceWarehouse || !destinationWarehouse) {
-      alert('Invalid warehouse selection');
+      toast.error('Invalid warehouse selection');
       return;
     }
 
     const totalItems = transferItems.reduce((sum, item) => sum + item.quantity, 0);
 
+    // Create transfer record for history
     const newTransfer: StockTransfer = {
       id: `TRF-${String(transfers.length + 1).padStart(3, '0')}`,
       transferNumber: `TRF-2024-${String(transfers.length + 1).padStart(3, '0')}`,
@@ -286,9 +338,52 @@ function TransferStockPage() {
       notes: formData.notes,
     };
 
-    setTransfers([newTransfer, ...transfers]);
-    setFormDrawerOpen(false);
+    // Execute the transfer via API
+    try {
+      await transferMutation.mutateAsync({
+        items: transferItems,
+        sourceWarehouseId: formData.sourceWarehouseId,
+        destinationWarehouseId: formData.destinationWarehouseId,
+      });
+
+      // Add to local transfer history
+      setTransfers([newTransfer, ...transfers]);
+      setFormDrawerOpen(false);
+      setTransferItems([]);
+      setFormData({
+        sourceWarehouseId: '',
+        destinationWarehouseId: '',
+        notes: '',
+      });
+    } catch (error) {
+      // Error is already handled by mutation onError
+      console.error('Transfer failed:', error);
+    }
   };
+
+  // Show loading state while data is being fetched
+  if (warehousesLoading || productsLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Stock Transfer</h1>
+            <p className="text-muted-foreground mt-1">
+              Manage inventory movement between warehouses
+            </p>
+          </div>
+        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex justify-center items-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <span className="ml-3 text-muted-foreground">Loading data...</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -300,7 +395,7 @@ function TransferStockPage() {
             Manage inventory movement between warehouses
           </p>
         </div>
-        <Button onClick={handleAddTransfer} className="gap-2">
+        <Button onClick={handleAddTransfer} className="gap-2" disabled={activeWarehouses.length < 2}>
           <Plus className="h-4 w-4" />
           New Transfer
         </Button>
