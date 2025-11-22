@@ -128,6 +128,7 @@ export interface CreateWarehouseInput {
   contactName?: string;
   contactPhone?: string;
   contactEmail?: string;
+  status?: 'active' | 'inactive';
 }
 
 // Updated to use Inventory Service URL

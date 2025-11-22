@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { variantApi, productApi, type ProductVariant, type CreateVariantInput } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,20 +52,8 @@ export const Route = createFileRoute('/dashboard/products/variant')({
   component: ProductVariantPage,
 });
 
-interface ProductVariant {
-  id: string;
-  productName: string;
-  productSKU: string;
-  variantName: string;
-  variantSKU: string;
-  variantType: 'Color' | 'Size' | 'Material' | 'Style';
-  price: number;
-  stock: number;
-  status: 'Active' | 'Inactive';
-  image?: string;
-}
-
-const mockVariants: ProductVariant[] = [
+// Remove mock data - using API now
+const legacyMockForFallback: ProductVariant[] = [
   {
     id: '1',
     productName: 'Baby Bottle Set',
@@ -199,6 +189,8 @@ const mockVariants: ProductVariant[] = [
 ];
 
 function ProductVariantPage() {
+  const queryClient = useQueryClient();
+
   // Rupiah currency formatter
   const formatRupiah = (amount: number): string => {
     return new Intl.NumberFormat('id-ID', {
@@ -209,7 +201,21 @@ function ProductVariantPage() {
     }).format(amount);
   };
 
-  const [variants, setVariants] = useState<ProductVariant[]>(mockVariants);
+  // Fetch variants from API
+  const { data: variantsData, isLoading, error } = useQuery({
+    queryKey: ['variants'],
+    queryFn: () => variantApi.getAll(),
+  });
+
+  const variants = variantsData?.variants || [];
+
+  // Fetch products for the product selector
+  const { data: productsData } = useQuery({
+    queryKey: ['products'],
+    queryFn: () => productApi.getAll(),
+  });
+
+  const products = productsData?.products || [];
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -222,6 +228,7 @@ function ProductVariantPage() {
 
   // Form data
   const [formData, setFormData] = useState({
+    productId: '',
     productName: '',
     productSKU: '',
     variantName: '',
@@ -236,33 +243,62 @@ function ProductVariantPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [variantToDelete, setVariantToDelete] = useState<ProductVariant | null>(null);
 
-  // Extract unique products from variants
+  // Create variant mutation
+  const createVariantMutation = useMutation({
+    mutationFn: (data: CreateVariantInput) => variantApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['variants'] });
+      toast.success('Variant created successfully');
+      setFormDrawerOpen(false);
+    },
+    onError: (error: Error) => {
+      toast.error('Failed to create variant', {
+        description: error.message,
+      });
+    },
+  });
+
+  // Update variant mutation
+  const updateVariantMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateVariantInput> }) =>
+      variantApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['variants'] });
+      toast.success('Variant updated successfully');
+      setFormDrawerOpen(false);
+      setViewDrawerOpen(false);
+    },
+    onError: (error: Error) => {
+      toast.error('Failed to update variant', {
+        description: error.message,
+      });
+    },
+  });
+
+  // Delete variant mutation
+  const deleteVariantMutation = useMutation({
+    mutationFn: (id: string) => variantApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['variants'] });
+      toast.success('Variant deleted successfully');
+      setDeleteDialogOpen(false);
+      setVariantToDelete(null);
+    },
+    onError: (error: Error) => {
+      toast.error('Failed to delete variant', {
+        description: error.message,
+      });
+    },
+  });
+
+  // Get available products from API
   const availableProducts = useMemo(() => {
-    const productsMap = new Map<string, { name: string; sku: string; totalStock: number }>();
-
-    // Mock total stock for products (in real app, this would come from products API)
-    const mockProductStocks: Record<string, number> = {
-      'BB-001': 150,
-      'BF-002': 200,
-      'ST-003': 180,
-      'DB-004': 120,
-      'SH-006': 100,
-      'CR-005': 50,
-      'DB-009': 200,
-    };
-
-    mockVariants.forEach(variant => {
-      if (!productsMap.has(variant.productSKU)) {
-        productsMap.set(variant.productSKU, {
-          name: variant.productName,
-          sku: variant.productSKU,
-          totalStock: mockProductStocks[variant.productSKU] || 100,
-        });
-      }
-    });
-
-    return Array.from(productsMap.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [variants]);
+    return products.map(product => ({
+      name: product.name,
+      sku: product.sku,
+      totalStock: product.stock,
+    })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [products]);
 
   // Convert products to combobox options
   const productOptions: ComboboxOption[] = useMemo(() => {
@@ -296,10 +332,11 @@ function ProductVariantPage() {
 
   // Handle product selection
   const handleProductSelect = (productSKU: string) => {
-    const product = availableProducts.find(p => p.sku === productSKU);
+    const product = products.find(p => p.sku === productSKU);
     if (product) {
       setFormData({
         ...formData,
+        productId: product.id,
         productName: product.name,
         productSKU: product.sku,
         variantSKU: generateVariantSKU(product.sku, formData.variantName)
@@ -366,6 +403,7 @@ function ProductVariantPage() {
   const handleAddVariant = () => {
     setFormMode('add');
     setFormData({
+      productId: '',
       productName: '',
       productSKU: '',
       variantName: '',
@@ -382,6 +420,7 @@ function ProductVariantPage() {
     setFormMode('edit');
     setSelectedVariant(variant);
     setFormData({
+      productId: variant.productId,
       productName: variant.productName,
       productSKU: variant.productSKU,
       variantName: variant.variantName,
@@ -389,50 +428,37 @@ function ProductVariantPage() {
       variantType: variant.variantType,
       price: variant.price.toString(),
       stock: variant.stock.toString(),
-      status: variant.status,
+      status: variant.status === 'active' ? 'Active' : 'Inactive',
     });
     setFormDrawerOpen(true);
   };
 
   const handleSubmitForm = (e: React.FormEvent) => {
     e.preventDefault();
+
+    const variantData: CreateVariantInput = {
+      productId: formData.productId || selectedVariant?.productId || '',
+      productName: formData.productName,
+      productSKU: formData.productSKU,
+      variantName: formData.variantName,
+      variantSKU: formData.variantSKU,
+      variantType: formData.variantType,
+      price: parseFloat(formData.price),
+      stock: parseInt(formData.stock) || 0,
+      status: formData.status.toLowerCase() as 'active' | 'inactive',
+    };
+
     if (formMode === 'add') {
-      const newVariant: ProductVariant = {
-        id: String(variants.length + 1),
-        productName: formData.productName,
-        productSKU: formData.productSKU,
-        variantName: formData.variantName,
-        variantSKU: formData.variantSKU,
-        variantType: formData.variantType,
-        price: parseFloat(formData.price),
-        stock: parseInt(formData.stock),
-        status: formData.status,
-      };
-      setVariants([...variants, newVariant]);
-      toast.success('Variant created', {
-        description: `"${formData.variantName}" has been created successfully`
-      });
+      createVariantMutation.mutate(variantData);
     } else if (formMode === 'edit' && selectedVariant) {
-      setVariants(variants.map(v =>
-        v.id === selectedVariant.id
-          ? {
-              ...v,
-              productName: formData.productName,
-              productSKU: formData.productSKU,
-              variantName: formData.variantName,
-              variantSKU: formData.variantSKU,
-              variantType: formData.variantType,
-              price: parseFloat(formData.price),
-              stock: parseInt(formData.stock),
-              status: formData.status,
-            }
-          : v
-      ));
-      toast.success('Variant updated', {
-        description: `"${formData.variantName}" has been updated successfully`
-      });
+      updateVariantMutation.mutate({ id: selectedVariant.id, data: variantData });
     }
-    setFormDrawerOpen(false);
+  };
+
+  const handleDeleteVariant = () => {
+    if (variantToDelete) {
+      deleteVariantMutation.mutate(variantToDelete.id);
+    }
   };
 
   // Get variant type badge color
