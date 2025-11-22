@@ -76,15 +76,6 @@ export const Route = createFileRoute('/dashboard/products/all')({
   component: AllProductsPage,
 });
 
-// Available UOMs from master data (for selection in product form)
-const availableUOMs = [
-  { code: 'PCS', name: 'Pieces', conversionFactor: 1 },
-  { code: 'DOZEN', name: 'Dozen', conversionFactor: 12 },
-  { code: 'BOX6', name: 'Box of 6', conversionFactor: 6 },
-  { code: 'CARTON18', name: 'Carton (18 PCS)', conversionFactor: 18 },
-  { code: 'BOX24', name: 'Box (24 PCS)', conversionFactor: 24 },
-];
-
 // Available columns configuration
 const availableColumns = [
   { id: 'barcode', label: 'Barcode', default: true },
@@ -184,6 +175,14 @@ function AllProductsPage() {
   });
 
   const warehouses = warehousesData?.warehouses || [];
+
+  // Fetch UOMs from master data
+  const { data: uomsData } = useQuery({
+    queryKey: ['uoms'],
+    queryFn: () => uomApi.getAll(),
+  });
+
+  const availableUOMs = uomsData?.uoms || [];
 
   // Create product mutation
   const createProductMutation = useMutation({
@@ -1487,8 +1486,8 @@ function AllProductsPage() {
                       className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
                     >
                       <option value="">Select UOM...</option>
-                      {availableUOMs.filter(u => u.code !== 'PCS').map(uom => (
-                        <option key={uom.code} value={uom.code}>
+                      {availableUOMs.filter(u => u.code !== 'PCS' && !u.isBaseUnit).map(uom => (
+                        <option key={uom.id} value={uom.code}>
                           {uom.name} (1 = {uom.conversionFactor} PCS)
                         </option>
                       ))}
