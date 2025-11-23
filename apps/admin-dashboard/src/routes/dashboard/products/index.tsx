@@ -2,7 +2,7 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Package, TrendingUp, TrendingDown, DollarSign, Boxes, AlertCircle, ShoppingCart, Loader2 } from 'lucide-react';
+import { Package, TrendingUp, TrendingDown, Wallet, Boxes, AlertCircle, ShoppingCart, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { productApi, categoryApi } from '@/lib/api';
 
@@ -45,8 +45,17 @@ function ProductsReportPage() {
     activeProducts: products.filter(p => p.status === 'active').length,
     inactiveProducts: products.filter(p => p.status === 'inactive').length + products.filter(p => p.status === 'discontinued').length,
     totalValue: products.reduce((sum, p) => sum + (p.price * p.stock), 0),
-    lowStockProducts: products.filter(p => p.stock < 50 && p.stock >= 20).length,
-    outOfStock: products.filter(p => p.stock < 20).length,
+    // Use custom minimumStock if set, otherwise default to 50 for low stock and 20 for out of stock
+    lowStockProducts: products.filter(p => {
+      const minStock = p.minimumStock || 50;
+      const criticalStock = Math.floor(minStock * 0.4); // Critical is 40% of minimum
+      return p.stock < minStock && p.stock >= criticalStock;
+    }).length,
+    outOfStock: products.filter(p => {
+      const minStock = p.minimumStock || 50;
+      const criticalStock = Math.floor(minStock * 0.4);
+      return p.stock < criticalStock;
+    }).length,
   };
 
   // Top selling products (sorted by stock sold - assuming lower stock means higher sales for demo)
@@ -66,17 +75,24 @@ function ProductsReportPage() {
 
   // Low stock products
   const lowStockProducts = products
-    .filter(p => p.stock < 100)
+    .filter(p => {
+      const minStock = p.minimumStock || 50;
+      return p.stock < minStock;
+    })
     .sort((a, b) => a.stock - b.stock)
     .slice(0, 4)
-    .map(p => ({
-      id: p.id,
-      name: p.name,
-      sku: p.sku,
-      stock: p.stock,
-      minStock: 100,
-      status: p.stock < 20 ? 'Critical' : 'Low',
-    }));
+    .map(p => {
+      const minStock = p.minimumStock || 50;
+      const criticalStock = Math.floor(minStock * 0.4);
+      return {
+        id: p.id,
+        name: p.name,
+        sku: p.sku,
+        stock: p.stock,
+        minStock: minStock,
+        status: p.stock < criticalStock ? 'Critical' : 'Low',
+      };
+    });
 
   // Category breakdown
   const categoryBreakdown = categories.map(cat => {
@@ -130,7 +146,7 @@ function ProductsReportPage() {
       </div>
 
       {/* Overall Stats */}
-      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Products</CardTitle>
@@ -164,17 +180,20 @@ function ProductsReportPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-primary/50 bg-primary/5">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Value</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <Wallet className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatRupiah(productStats.totalValue)}</div>
+            <div className="text-2xl font-bold text-primary">{formatRupiah(productStats.totalValue)}</div>
             <p className="text-xs text-muted-foreground">Inventory value</p>
           </CardContent>
         </Card>
+      </div>
 
+      {/* Alert Stats Row */}
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Low Stock</CardTitle>

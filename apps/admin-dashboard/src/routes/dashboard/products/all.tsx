@@ -128,6 +128,7 @@ function AllProductsPage() {
     stock: '',
     baseUnit: 'PCS',
     wholesaleThreshold: '12',
+    minimumStock: '',
     status: 'active' as 'active' | 'inactive' | 'discontinued',
     // Physical dimensions for shipping cost calculation
     weight: '',
@@ -382,6 +383,7 @@ function AllProductsPage() {
       stock: '',
       baseUnit: 'PCS',
       wholesaleThreshold: '12',
+      minimumStock: '',
       status: 'active',
       // Physical dimensions for shipping cost calculation
       weight: '',
@@ -421,6 +423,7 @@ function AllProductsPage() {
       stock: fullProduct.stock.toString(),
       baseUnit: fullProduct.baseUnit,
       wholesaleThreshold: fullProduct.wholesaleThreshold.toString(),
+      minimumStock: fullProduct.minimumStock?.toString() || '',
       status: fullProduct.status,
       // Physical dimensions for shipping cost calculation
       weight: fullProduct.weight?.toString() || '',
@@ -619,6 +622,7 @@ function AllProductsPage() {
       stock: parseInt(formData.stock),
       baseUnit: formData.baseUnit,
       wholesaleThreshold: parseInt(formData.wholesaleThreshold),
+      minimumStock: formData.minimumStock ? parseInt(formData.minimumStock) : undefined,
       status: formData.status,
       availableForRetail: true,
       availableForWholesale: true,
@@ -1014,11 +1018,15 @@ function AllProductsPage() {
                             <TableCell className="text-right">
                               <span
                                 className={
-                                  product.stock < 20
-                                    ? 'text-destructive font-medium'
-                                    : product.stock < 50
-                                    ? 'text-yellow-600 font-medium'
-                                    : ''
+                                  (() => {
+                                    const minStock = product.minimumStock || 50;
+                                    const criticalStock = Math.floor(minStock * 0.4);
+                                    return product.stock < criticalStock
+                                      ? 'text-destructive font-medium'
+                                      : product.stock < minStock
+                                      ? 'text-yellow-600 font-medium'
+                                      : '';
+                                  })()
                                 }
                               >
                                 {product.stock}
@@ -1565,19 +1573,37 @@ function AllProductsPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <select
-                id="status"
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' | 'discontinued' })}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                required
-              >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="discontinued">Discontinued</option>
-              </select>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <select
+                  id="status"
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' | 'discontinued' })}
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                  required
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="discontinued">Discontinued</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="minimumStock">
+                  Minimum Stock Alert
+                  <span className="text-xs text-muted-foreground ml-1">(Optional)</span>
+                </Label>
+                <Input
+                  id="minimumStock"
+                  type="number"
+                  placeholder="50"
+                  value={formData.minimumStock}
+                  onChange={(e) => setFormData({ ...formData, minimumStock: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Trigger alert when stock falls below this level
+                </p>
+              </div>
             </div>
 
             <Separator className="my-4" />
