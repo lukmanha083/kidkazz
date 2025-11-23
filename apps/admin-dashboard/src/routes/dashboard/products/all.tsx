@@ -129,6 +129,11 @@ function AllProductsPage() {
     baseUnit: 'PCS',
     wholesaleThreshold: '12',
     status: 'active' as 'active' | 'inactive' | 'discontinued',
+    // Physical dimensions for shipping cost calculation
+    weight: '',
+    length: '',
+    width: '',
+    height: '',
     // Optional location fields
     warehouseId: '',
     rack: '',
@@ -378,6 +383,11 @@ function AllProductsPage() {
       baseUnit: 'PCS',
       wholesaleThreshold: '12',
       status: 'active',
+      // Physical dimensions for shipping cost calculation
+      weight: '',
+      length: '',
+      width: '',
+      height: '',
       // Optional location fields
       warehouseId: '',
       rack: '',
@@ -412,6 +422,11 @@ function AllProductsPage() {
       baseUnit: fullProduct.baseUnit,
       wholesaleThreshold: fullProduct.wholesaleThreshold.toString(),
       status: fullProduct.status,
+      // Physical dimensions for shipping cost calculation
+      weight: fullProduct.weight?.toString() || '',
+      length: fullProduct.length?.toString() || '',
+      width: fullProduct.width?.toString() || '',
+      height: fullProduct.height?.toString() || '',
       // Optional location fields - populate from first location if exists
       warehouseId: firstLocation?.warehouseId || '',
       rack: firstLocation?.rack || '',
@@ -608,6 +623,11 @@ function AllProductsPage() {
       availableForRetail: true,
       availableForWholesale: true,
       minimumOrderQuantity: 1,
+      // Physical dimensions for shipping cost calculation
+      weight: formData.weight ? parseFloat(formData.weight) : undefined,
+      length: formData.length ? parseFloat(formData.length) : undefined,
+      width: formData.width ? parseFloat(formData.width) : undefined,
+      height: formData.height ? parseFloat(formData.height) : undefined,
     };
 
     if (formMode === 'add') {
@@ -1182,6 +1202,41 @@ function AllProductsPage() {
                   </div>
                 </div>
 
+                {(selectedProduct.weight || selectedProduct.length || selectedProduct.width || selectedProduct.height) && (
+                  <>
+                    <Separator />
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Physical Dimensions</Label>
+                      <div className="grid grid-cols-2 gap-3 mt-2">
+                        {selectedProduct.weight && (
+                          <div>
+                            <p className="text-xs text-muted-foreground">Weight</p>
+                            <p className="text-sm font-medium">{selectedProduct.weight} kg</p>
+                          </div>
+                        )}
+                        {selectedProduct.length && (
+                          <div>
+                            <p className="text-xs text-muted-foreground">Length</p>
+                            <p className="text-sm font-medium">{selectedProduct.length} cm</p>
+                          </div>
+                        )}
+                        {selectedProduct.width && (
+                          <div>
+                            <p className="text-xs text-muted-foreground">Width</p>
+                            <p className="text-sm font-medium">{selectedProduct.width} cm</p>
+                          </div>
+                        )}
+                        {selectedProduct.height && (
+                          <div>
+                            <p className="text-xs text-muted-foreground">Height</p>
+                            <p className="text-sm font-medium">{selectedProduct.height} cm</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+
                 {selectedProduct.variants && selectedProduct.variants.length > 0 && (
                   <>
                     <Separator />
@@ -1523,6 +1578,66 @@ function AllProductsPage() {
                 <option value="inactive">Inactive</option>
                 <option value="discontinued">Discontinued</option>
               </select>
+            </div>
+
+            <Separator className="my-4" />
+
+            {/* Physical Dimensions for Shipping Cost Calculation */}
+            <div className="space-y-4 border rounded-lg p-4 bg-muted/20">
+              <div>
+                <Label className="text-base font-semibold">Physical Dimensions (Optional)</Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Product dimensions for shipping cost calculation
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="weight">Weight (kg)</Label>
+                <Input
+                  id="weight"
+                  type="number"
+                  step="0.01"
+                  placeholder="0.5"
+                  value={formData.weight}
+                  onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="length">Length (cm)</Label>
+                  <Input
+                    id="length"
+                    type="number"
+                    step="0.1"
+                    placeholder="10"
+                    value={formData.length}
+                    onChange={(e) => setFormData({ ...formData, length: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="width">Width (cm)</Label>
+                  <Input
+                    id="width"
+                    type="number"
+                    step="0.1"
+                    placeholder="10"
+                    value={formData.width}
+                    onChange={(e) => setFormData({ ...formData, width: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="height">Height (cm)</Label>
+                  <Input
+                    id="height"
+                    type="number"
+                    step="0.1"
+                    placeholder="10"
+                    value={formData.height}
+                    onChange={(e) => setFormData({ ...formData, height: e.target.value })}
+                  />
+                </div>
+              </div>
             </div>
 
             <Separator className="my-4" />
