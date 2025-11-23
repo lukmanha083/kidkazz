@@ -606,6 +606,28 @@ function AllProductsPage() {
         // Create product first
         const createdProduct = await productApi.create(productData);
 
+        // Create all product UOMs
+        if (finalProductUOMs.length > 0) {
+          try {
+            for (const uom of finalProductUOMs) {
+              await uomApi.addProductUOM({
+                productId: createdProduct.id,
+                uomCode: uom.uomCode,
+                uomName: uom.uomName,
+                barcode: uom.barcode,
+                conversionFactor: uom.conversionFactor,
+                stock: uom.stock,
+                isDefault: uom.isDefault,
+              });
+            }
+          } catch (uomError) {
+            console.error('Failed to create product UOMs:', uomError);
+            toast.warning('Product created, but some UOMs could not be added', {
+              description: 'You can add UOMs later by editing the product'
+            });
+          }
+        }
+
         // If warehouse is selected, create location (optional)
         if (formData.warehouseId) {
           try {
@@ -638,6 +660,57 @@ function AllProductsPage() {
       try {
         // Update product first
         await productApi.update(selectedProduct.id, productData);
+
+        // Sync Product UOMs
+        if (finalProductUOMs.length > 0) {
+          try {
+            const existingUOMs = selectedProduct.productUOMs || [];
+
+            // Add or update UOMs
+            for (const uom of finalProductUOMs) {
+              const existingUOM = existingUOMs.find(e => e.uomCode === uom.uomCode);
+
+              if (existingUOM) {
+                // Update existing UOM if there are changes
+                if (
+                  existingUOM.barcode !== uom.barcode ||
+                  existingUOM.stock !== uom.stock ||
+                  existingUOM.isDefault !== uom.isDefault
+                ) {
+                  await uomApi.updateProductUOM(existingUOM.id, {
+                    barcode: uom.barcode,
+                    stock: uom.stock,
+                    isDefault: uom.isDefault,
+                  });
+                }
+              } else {
+                // Add new UOM
+                await uomApi.addProductUOM({
+                  productId: selectedProduct.id,
+                  uomCode: uom.uomCode,
+                  uomName: uom.uomName,
+                  barcode: uom.barcode,
+                  conversionFactor: uom.conversionFactor,
+                  stock: uom.stock,
+                  isDefault: uom.isDefault,
+                });
+              }
+            }
+
+            // Delete removed UOMs
+            for (const existingUOM of existingUOMs) {
+              const stillExists = finalProductUOMs.find(u => u.uomCode === existingUOM.uomCode);
+              if (!stillExists) {
+                await uomApi.deleteProductUOM(existingUOM.id);
+              }
+            }
+          } catch (uomError) {
+            console.error('Failed to sync product UOMs:', uomError);
+            toast.warning('Product updated, but some UOM changes could not be saved', {
+              description: 'You may need to update UOMs separately'
+            });
+          }
+        }
 
         // Handle location update (optional)
         if (formData.warehouseId) {

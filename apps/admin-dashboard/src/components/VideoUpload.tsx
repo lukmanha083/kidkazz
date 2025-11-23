@@ -4,11 +4,11 @@
  * Features:
  * - Drag & drop or click to upload
  * - Video preview before upload
- * - Client-side compression (optional)
  * - File validation (size, type)
- * - Progress indicator
+ * - Progress indicator with percentage
  * - Mode selection (R2 or Stream)
  * - Upload cancellation
+ * - Shadcn UI components with dark mode support
  */
 
 import { useCallback, useState, useRef } from 'react';
@@ -21,7 +21,13 @@ import {
   HardDrive,
   Play,
   AlertCircle,
+  CheckCircle2,
 } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 
 const PRODUCT_SERVICE_URL =
   import.meta.env.VITE_PRODUCT_SERVICE_URL || 'http://localhost:8788';
@@ -74,6 +80,7 @@ export function VideoUpload({
     width: number;
     height: number;
   } | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
@@ -151,6 +158,7 @@ export function VideoUpload({
   const handleFileSelect = useCallback(
     async (file: File) => {
       setError(null);
+      setUploadSuccess(false);
 
       // Validate
       const validationError = validateFile(file);
@@ -218,20 +226,17 @@ export function VideoUpload({
       xhr.addEventListener('load', () => {
         if (xhr.status >= 200 && xhr.status < 300) {
           const result = JSON.parse(xhr.responseText);
+          setUploadSuccess(true);
           onUploadSuccess?.(result.video);
 
-          // Show success message
-          if (uploadMode === 'stream') {
-            alert(
-              'Video uploaded successfully! Encoding in progress. This may take a few minutes.'
-            );
-          }
-
-          // Reset form
-          setPreview(null);
-          setSelectedFile(null);
-          setVideoInfo(null);
-          setUploadProgress(0);
+          // Reset form after short delay
+          setTimeout(() => {
+            setPreview(null);
+            setSelectedFile(null);
+            setVideoInfo(null);
+            setUploadProgress(0);
+            setUploadSuccess(false);
+          }, 2000);
         } else {
           const errorData = JSON.parse(xhr.responseText);
           throw new Error(errorData.error || 'Upload failed');
@@ -320,6 +325,7 @@ export function VideoUpload({
     setVideoInfo(null);
     setError(null);
     setUploadProgress(0);
+    setUploadSuccess(false);
   };
 
   /**
@@ -343,166 +349,194 @@ export function VideoUpload({
   return (
     <div className="space-y-4">
       {/* Mode Selector */}
-      <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-        <span className="text-sm font-medium text-gray-700">Upload Mode:</span>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setUploadMode('stream')}
-            disabled={isUploading}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
-              uploadMode === 'stream'
-                ? 'bg-green-500 text-white'
-                : 'bg-white text-gray-700 hover:bg-gray-100'
-            } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            <Cloud className="w-4 h-4" />
-            <span className="text-sm">Stream (Optimized)</span>
-          </button>
-          <button
-            onClick={() => setUploadMode('r2')}
-            disabled={isUploading}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
-              uploadMode === 'r2'
-                ? 'bg-blue-500 text-white'
-                : 'bg-white text-gray-700 hover:bg-gray-100'
-            } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            <HardDrive className="w-4 h-4" />
-            <span className="text-sm">R2 (Basic)</span>
-          </button>
-        </div>
-      </div>
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-medium text-foreground">Upload Mode:</span>
+            <div className="flex gap-2">
+              <Button
+                variant={uploadMode === 'stream' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setUploadMode('stream')}
+                disabled={isUploading}
+                className="gap-2"
+              >
+                <Cloud className="w-4 h-4" />
+                Stream (Optimized)
+              </Button>
+              <Button
+                variant={uploadMode === 'r2' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setUploadMode('r2')}
+                disabled={isUploading}
+                className="gap-2"
+              >
+                <HardDrive className="w-4 h-4" />
+                R2 (Basic)
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Upload Area */}
-      <div
-        className={`
-          relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
-          transition-colors duration-200
-          ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'}
-          ${isUploading ? 'pointer-events-none opacity-50' : ''}
-        `}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={handleClick}
-      >
-        {isUploading ? (
-          <div className="flex flex-col items-center gap-3">
-            <Loader2 className="w-12 h-12 text-blue-500 animate-spin" />
-            <p className="text-sm text-gray-600">
-              Uploading video... {uploadProgress}%
-            </p>
-            <div className="w-full max-w-xs bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${uploadProgress}%` }}
-              />
-            </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                cancelUpload();
-              }}
-              className="mt-2 px-4 py-2 text-sm text-red-600 hover:text-red-700 transition"
-            >
-              Cancel Upload
-            </button>
-          </div>
-        ) : preview ? (
-          <div className="relative">
-            <video
-              ref={videoPreviewRef}
-              src={preview}
-              className="max-w-full max-h-64 mx-auto rounded-lg"
-              controls
-            />
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleClear();
-              }}
-              className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            {/* Video Info */}
-            {videoInfo && (
-              <div className="mt-4 text-sm text-gray-600 space-y-1">
-                <p>
-                  Resolution: {videoInfo.width} × {videoInfo.height}
+      <Card>
+        <CardContent className="p-0">
+          <div
+            className={`
+              relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
+              transition-all duration-200
+              ${
+                isDragging
+                  ? 'border-primary bg-primary/5 dark:bg-primary/10'
+                  : 'border-border hover:border-primary/50 dark:border-border dark:hover:border-primary/50'
+              }
+              ${isUploading ? 'pointer-events-none opacity-50' : ''}
+            `}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={!isUploading && !preview ? handleClick : undefined}
+          >
+            {isUploading ? (
+              <div className="flex flex-col items-center gap-3">
+                <Loader2 className="w-12 h-12 text-primary animate-spin" />
+                <p className="text-sm text-muted-foreground">
+                  Uploading video... {uploadProgress}%
                 </p>
-                <p>Duration: {formatDuration(videoInfo.duration)}</p>
-                {selectedFile && (
-                  <p>Size: {formatFileSize(selectedFile.size)}</p>
+                <Progress value={uploadProgress} className="w-full max-w-xs" />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    cancelUpload();
+                  }}
+                >
+                  Cancel Upload
+                </Button>
+              </div>
+            ) : preview ? (
+              <div className="relative">
+                <video
+                  ref={videoPreviewRef}
+                  src={preview}
+                  className="max-w-full max-h-64 mx-auto rounded-lg"
+                  controls
+                />
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-2 right-2 rounded-full"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleClear();
+                  }}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+
+                {/* Video Info */}
+                {videoInfo && (
+                  <div className="mt-4 space-y-2">
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      <Badge variant="secondary">
+                        {videoInfo.width} × {videoInfo.height}
+                      </Badge>
+                      <Badge variant="secondary">
+                        {formatDuration(videoInfo.duration)}
+                      </Badge>
+                      {selectedFile && (
+                        <Badge variant="secondary">
+                          {formatFileSize(selectedFile.size)}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Upload Button or Success Message */}
+                {uploadSuccess ? (
+                  <div className="mt-4 flex items-center justify-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-500" />
+                    <span className="text-sm font-medium text-green-600 dark:text-green-500">
+                      Upload successful
+                      {uploadMode === 'stream' && ' - Video is encoding'}
+                    </span>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      uploadVideo();
+                    }}
+                    className="mt-4 gap-2"
+                  >
+                    <Upload className="w-4 h-4" />
+                    Upload Video
+                  </Button>
                 )}
               </div>
-            )}
-
-            {/* Upload Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                uploadVideo();
-              }}
-              className="mt-4 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition font-medium"
-            >
-              Upload Video
-            </button>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-3">
-            {isDragging ? (
-              <Upload className="w-12 h-12 text-blue-500" />
             ) : (
-              <Film className="w-12 h-12 text-gray-400" />
+              <div className="flex flex-col items-center gap-3">
+                {isDragging ? (
+                  <Upload className="w-12 h-12 text-primary" />
+                ) : (
+                  <Film className="w-12 h-12 text-muted-foreground" />
+                )}
+                <div>
+                  <p className="text-lg font-medium text-foreground">
+                    {isDragging ? 'Drop video here' : 'Click to upload or drag & drop'}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    MP4, WebM, MOV, AVI, or MKV (max {maxSizeMB}MB)
+                  </p>
+                </div>
+              </div>
             )}
-            <div>
-              <p className="text-lg font-medium text-gray-700">
-                {isDragging ? 'Drop video here' : 'Click to upload or drag & drop'}
-              </p>
-              <p className="text-sm text-gray-500 mt-1">
-                MP4, WebM, MOV, AVI, or MKV (max {maxSizeMB}MB)
-              </p>
-            </div>
           </div>
-        )}
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Mode Info */}
-      <div className="text-xs text-gray-600 space-y-1">
+      <div className="flex flex-wrap gap-2">
         {uploadMode === 'stream' ? (
           <>
-            <p>✓ Automatic encoding to multiple qualities (1080p, 720p, 480p, 360p)</p>
-            <p>✓ Adaptive bitrate streaming for best viewing experience</p>
-            <p>✓ Automatic thumbnail generation</p>
-            <p>✓ Global CDN delivery with analytics</p>
+            <Badge variant="secondary" className="text-xs">
+              ✓ Multi-quality encoding
+            </Badge>
+            <Badge variant="secondary" className="text-xs">
+              ✓ Adaptive streaming
+            </Badge>
+            <Badge variant="secondary" className="text-xs">
+              ✓ Auto thumbnails
+            </Badge>
+            <Badge variant="secondary" className="text-xs">
+              ✓ Global CDN
+            </Badge>
           </>
         ) : (
           <>
-            <p>• Basic video storage without optimization</p>
-            <p>• Simple HTML5 video playback</p>
-            <p>• Cost-effective for simple use cases</p>
+            <Badge variant="secondary" className="text-xs">
+              • Basic storage
+            </Badge>
+            <Badge variant="secondary" className="text-xs">
+              • HTML5 playback
+            </Badge>
+            <Badge variant="secondary" className="text-xs">
+              • Cost-effective
+            </Badge>
           </>
         )}
       </div>
 
       {/* Error Message */}
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-red-600">{error}</p>
-        </div>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
-
-      {/* Info */}
-      <div className="text-xs text-gray-500 space-y-1">
-        <p>💡 Tips for best results:</p>
-        <p>• Use MP4 format with H.264 codec for best compatibility</p>
-        <p>• Keep videos under 5 minutes for optimal user experience</p>
-        <p>• Use Stream mode for professional quality with adaptive streaming</p>
-        {enableCompression && <p>• Client-side compression is enabled (experimental)</p>}
-      </div>
     </div>
   );
 }
