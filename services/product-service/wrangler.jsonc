@@ -30,12 +30,12 @@
 	// R2 buckets for product images and videos
 	"r2_buckets": [
 		{
-			"binding": "kidkazz_product_images",
+			"binding": "PRODUCT_IMAGES",
 			"bucket_name": "kidkazz-product-images"
 		},
 		{
-			"bucket_name": "kidkazz-product-videos",
-			"binding": "kidkazz_product_videos"
+			"binding": "PRODUCT_VIDEOS",
+			"bucket_name": "kidkazz-product-videos"
 		}
 	],
 	// KV namespaces for image and video CDN cache
