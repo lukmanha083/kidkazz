@@ -152,10 +152,10 @@ function AllProductsPage() {
   const [uploadedImages, setUploadedImages] = useState<ImageUploadResult[]>([]);
   const [uploadedVideos, setUploadedVideos] = useState<VideoUploadResult[]>([]);
 
-  // Fetch products
+  // Fetch products - removed searchTerm from queryKey to fix invalidation issue
   const { data: productsData, isLoading, error } = useQuery({
-    queryKey: ['products', searchTerm],
-    queryFn: () => productApi.getAll({ search: searchTerm || undefined }),
+    queryKey: ['products'],
+    queryFn: () => productApi.getAll(),
   });
 
   const products = productsData?.products || [];
@@ -188,6 +188,7 @@ function AllProductsPage() {
   const createProductMutation = useMutation({
     mutationFn: (data: CreateProductInput) => productApi.create(data),
     onSuccess: () => {
+      // Invalidate all products queries (including those with search term)
       queryClient.invalidateQueries({ queryKey: ['products'] });
       toast.success('Product created successfully');
       setFormDrawerOpen(false);
