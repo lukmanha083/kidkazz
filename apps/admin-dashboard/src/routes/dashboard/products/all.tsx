@@ -561,6 +561,15 @@ function AllProductsPage() {
     if (!finalProductUOMs.some(u => u.uomCode === 'PCS')) {
       const hasDefault = finalProductUOMs.some(u => u.isDefault);
 
+      // Calculate allocated stock from other UOMs
+      const allocatedStock = productUOMs.reduce((total, uom) => {
+        return total + (uom.stock * uom.conversionFactor);
+      }, 0);
+
+      // Calculate remaining stock for PCS UOM
+      const totalStock = parseInt(formData.stock) || 0;
+      const remainingStock = totalStock - allocatedStock;
+
       const pcsUOM: ProductUOM = {
         id: `uom-pcs-${Date.now()}`,
         productId: selectedProduct?.id || '',
@@ -568,7 +577,7 @@ function AllProductsPage() {
         uomName: 'Pieces',
         barcode: formData.barcode,
         conversionFactor: 1,
-        stock: parseInt(formData.stock),
+        stock: remainingStock, // Use remaining stock, not total stock
         isDefault: !hasDefault,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -620,10 +629,11 @@ function AllProductsPage() {
                 isDefault: uom.isDefault,
               });
             }
-          } catch (uomError) {
+          } catch (uomError: any) {
             console.error('Failed to create product UOMs:', uomError);
-            toast.warning('Product created, but some UOMs could not be added', {
-              description: 'You can add UOMs later by editing the product'
+            const errorMessage = uomError?.message || 'Unknown error occurred';
+            toast.error('Failed to add UOMs', {
+              description: errorMessage
             });
           }
         }
@@ -704,10 +714,11 @@ function AllProductsPage() {
                 await uomApi.deleteProductUOM(existingUOM.id);
               }
             }
-          } catch (uomError) {
+          } catch (uomError: any) {
             console.error('Failed to sync product UOMs:', uomError);
-            toast.warning('Product updated, but some UOM changes could not be saved', {
-              description: 'You may need to update UOMs separately'
+            const errorMessage = uomError?.message || 'Unknown error occurred';
+            toast.error('Failed to sync UOMs', {
+              description: errorMessage
             });
           }
         }
