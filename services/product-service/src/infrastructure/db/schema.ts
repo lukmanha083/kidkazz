@@ -53,6 +53,7 @@ export const products = sqliteTable('products', {
 
   // Stock
   stock: integer('stock').default(0).notNull(),
+  minimumStock: integer('minimum_stock'), // Minimum stock threshold for alert reports
 
   // Base unit
   baseUnit: text('base_unit').default('PCS').notNull(),

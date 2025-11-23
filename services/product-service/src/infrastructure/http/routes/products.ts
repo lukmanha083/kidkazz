@@ -27,6 +27,7 @@ const createProductSchema = z.object({
   baseUnit: z.string().default('PCS'),
   wholesaleThreshold: z.number().default(100),
   minimumOrderQuantity: z.number().default(1),
+  minimumStock: z.number().optional().nullable(),
   rating: z.number().default(0),
   reviews: z.number().default(0),
   availableForRetail: z.boolean().default(true),

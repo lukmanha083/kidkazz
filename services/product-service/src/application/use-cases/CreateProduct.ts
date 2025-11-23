@@ -15,6 +15,7 @@ interface CreateProductInput {
   baseUnit: string;
   wholesaleThreshold?: number;
   minimumOrderQuantity?: number;
+  minimumStock?: number;
   availableForRetail?: boolean;
   availableForWholesale?: boolean;
   createdBy?: string;
