@@ -8,10 +8,15 @@
  * - File validation (size, type)
  * - Progress indicator
  * - Multiple size variants displayed
+ * - Shadcn UI components with dark mode support
  */
 
 import { useCallback, useState } from 'react';
-import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 
 const PRODUCT_SERVICE_URL =
   import.meta.env.VITE_PRODUCT_SERVICE_URL || 'http://localhost:8788';
@@ -51,6 +56,7 @@ export function ImageUpload({
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
 
   /**
    * Validate file
@@ -141,6 +147,7 @@ export function ImageUpload({
   const handleFileSelect = useCallback(
     async (file: File) => {
       setError(null);
+      setUploadSuccess(false);
 
       // Validate
       const validationError = validateFile(file);
@@ -183,6 +190,7 @@ export function ImageUpload({
         const result = await response.json();
 
         // Success
+        setUploadSuccess(true);
         onUploadSuccess?.(result.image);
         setPreview(result.image.urls.medium); // Show medium size preview
       } catch (err) {
@@ -244,76 +252,102 @@ export function ImageUpload({
   const handleClear = () => {
     setPreview(null);
     setError(null);
+    setUploadSuccess(false);
   };
 
   return (
     <div className="space-y-4">
       {/* Upload Area */}
-      <div
-        className={`
-          relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
-          transition-colors duration-200
-          ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'}
-          ${isUploading ? 'pointer-events-none opacity-50' : ''}
-        `}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={handleClick}
-      >
-        {isUploading ? (
-          <div className="flex flex-col items-center gap-3">
-            <Loader2 className="w-12 h-12 text-blue-500 animate-spin" />
-            <p className="text-sm text-gray-600">Uploading and optimizing...</p>
-          </div>
-        ) : preview ? (
-          <div className="relative">
-            <img
-              src={preview}
-              alt="Preview"
-              className="max-w-full max-h-64 mx-auto rounded-lg"
-            />
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleClear();
-              }}
-              className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-3">
-            {isDragging ? (
-              <Upload className="w-12 h-12 text-blue-500" />
+      <Card>
+        <CardContent className="p-0">
+          <div
+            className={`
+              relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
+              transition-all duration-200
+              ${
+                isDragging
+                  ? 'border-primary bg-primary/5 dark:bg-primary/10'
+                  : 'border-border hover:border-primary/50 dark:border-border dark:hover:border-primary/50'
+              }
+              ${isUploading ? 'pointer-events-none opacity-50' : ''}
+            `}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={handleClick}
+          >
+            {isUploading ? (
+              <div className="flex flex-col items-center gap-3">
+                <Loader2 className="w-12 h-12 text-primary animate-spin" />
+                <p className="text-sm text-muted-foreground">Uploading and optimizing...</p>
+              </div>
+            ) : preview ? (
+              <div className="relative">
+                <img
+                  src={preview}
+                  alt="Preview"
+                  className="max-w-full max-h-64 mx-auto rounded-lg"
+                />
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-2 right-2 rounded-full"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleClear();
+                  }}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+                {uploadSuccess && (
+                  <div className="mt-4 flex items-center justify-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-500" />
+                    <span className="text-sm font-medium text-green-600 dark:text-green-500">
+                      Upload successful
+                    </span>
+                  </div>
+                )}
+              </div>
             ) : (
-              <ImageIcon className="w-12 h-12 text-gray-400" />
+              <div className="flex flex-col items-center gap-3">
+                {isDragging ? (
+                  <Upload className="w-12 h-12 text-primary" />
+                ) : (
+                  <ImageIcon className="w-12 h-12 text-muted-foreground" />
+                )}
+                <div>
+                  <p className="text-lg font-medium text-foreground">
+                    {isDragging ? 'Drop image here' : 'Click to upload or drag & drop'}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    JPEG, PNG, WebP, or GIF (max {maxSizeMB}MB)
+                  </p>
+                </div>
+              </div>
             )}
-            <div>
-              <p className="text-lg font-medium text-gray-700">
-                {isDragging ? 'Drop image here' : 'Click to upload or drag & drop'}
-              </p>
-              <p className="text-sm text-gray-500 mt-1">
-                JPEG, PNG, WebP, or GIF (max {maxSizeMB}MB)
-              </p>
-            </div>
           </div>
-        )}
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Error Message */}
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm text-red-600">{error}</p>
-        </div>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       {/* Info */}
-      <div className="text-xs text-gray-500 space-y-1">
-        <p>✓ Images are automatically compressed before upload</p>
-        <p>✓ Multiple sizes generated (thumbnail, medium, large)</p>
-        <p>✓ Served via Cloudflare CDN for fast loading</p>
+      <div className="flex flex-wrap gap-2">
+        <Badge variant="secondary" className="text-xs">
+          ✓ Auto-compressed
+        </Badge>
+        <Badge variant="secondary" className="text-xs">
+          ✓ Multiple sizes
+        </Badge>
+        <Badge variant="secondary" className="text-xs">
+          ✓ CDN delivery
+        </Badge>
       </div>
     </div>
   );
