@@ -1182,6 +1182,51 @@ function AllProductsPage() {
                   </div>
                 </div>
 
+                {selectedProduct.variants && selectedProduct.variants.length > 0 && (
+                  <>
+                    <Separator />
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Product Variants</Label>
+                      <div className="mt-2 space-y-2">
+                        {selectedProduct.variants.map((variant) => (
+                          <div key={variant.id} className="p-3 border rounded bg-muted/30 dark:bg-muted/20">
+                            <div className="flex items-start justify-between mb-2">
+                              <div>
+                                <p className="text-sm font-medium">{variant.variantName}</p>
+                                <p className="text-xs text-muted-foreground font-mono">{variant.variantSKU}</p>
+                              </div>
+                              <Badge
+                                variant={variant.status === 'Active' ? 'default' : 'secondary'}
+                                className={
+                                  variant.status === 'Active'
+                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-500'
+                                    : ''
+                                }
+                              >
+                                {variant.status}
+                              </Badge>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 text-xs">
+                              <div>
+                                <span className="text-muted-foreground">Type:</span>
+                                <span className="ml-1 font-medium">{variant.variantType}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Price:</span>
+                                <span className="ml-1 font-medium">{formatRupiah(variant.price)}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Stock:</span>
+                                <span className="ml-1 font-medium">{variant.stock}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+
                 {selectedProduct.productUOMs && selectedProduct.productUOMs.length > 0 && (
                   <>
                     <Separator />

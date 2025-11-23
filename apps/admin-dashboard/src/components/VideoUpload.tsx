@@ -317,6 +317,17 @@ export function VideoUpload({
   };
 
   /**
+   * Handle mode change - open file picker if no file selected
+   */
+  const handleModeChange = (mode: 'r2' | 'stream') => {
+    setUploadMode(mode);
+    // If no file is selected, open file picker immediately
+    if (!selectedFile && !preview) {
+      handleClick();
+    }
+  };
+
+  /**
    * Clear selection
    */
   const handleClear = () => {
@@ -357,7 +368,7 @@ export function VideoUpload({
               <Button
                 variant={uploadMode === 'stream' ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setUploadMode('stream')}
+                onClick={() => handleModeChange('stream')}
                 disabled={isUploading}
                 className="gap-2"
               >
@@ -367,7 +378,7 @@ export function VideoUpload({
               <Button
                 variant={uploadMode === 'r2' ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setUploadMode('r2')}
+                onClick={() => handleModeChange('r2')}
                 disabled={isUploading}
                 className="gap-2"
               >

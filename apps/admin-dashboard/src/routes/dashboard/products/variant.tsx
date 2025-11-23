@@ -310,11 +310,25 @@ function ProductVariantPage() {
     }));
   }, [availableProducts]);
 
-  // Get product stock (variants have independent stock, not allocated from product)
+  // Get product stock
   const getProductStock = (productSKU: string) => {
     const product = availableProducts.find(p => p.sku === productSKU);
     if (!product) return 0;
     return product.totalStock;
+  };
+
+  // Calculate total stock allocated to existing variants of the selected product
+  const getAllocatedStockForProduct = (productSKU: string, excludeVariantId?: string) => {
+    return variants
+      .filter(v => v.productSKU === productSKU && v.id !== excludeVariantId)
+      .reduce((total, variant) => total + variant.stock, 0);
+  };
+
+  // Get remaining stock available for allocation
+  const getRemainingStock = (productSKU: string, excludeVariantId?: string) => {
+    const totalStock = getProductStock(productSKU);
+    const allocatedStock = getAllocatedStockForProduct(productSKU, excludeVariantId);
+    return totalStock - allocatedStock;
   };
 
   // Auto-generate variant SKU from product SKU and variant name
@@ -435,6 +449,17 @@ function ProductVariantPage() {
 
   const handleSubmitForm = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate stock allocation
+    const requestedStock = parseInt(formData.stock) || 0;
+    const maxAllowedStock = getRemainingStock(formData.productSKU, selectedVariant?.id) + (formMode === 'edit' && selectedVariant ? selectedVariant.stock : 0);
+
+    if (requestedStock > maxAllowedStock) {
+      toast.error('Insufficient stock available', {
+        description: `Only ${maxAllowedStock} units available. Reduce the stock or increase the product's total stock.`,
+      });
+      return;
+    }
 
     const variantData: CreateVariantInput = {
       productId: formData.productId || selectedVariant?.productId || '',
@@ -792,13 +817,25 @@ function ProductVariantPage() {
                   <span className="font-mono">{formData.productSKU}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Product Stock:</span>
-                  <span className="font-medium text-green-600">
+                  <span className="text-muted-foreground">Total Product Stock:</span>
+                  <span className="font-medium">
                     {getProductStock(formData.productSKU)} units
                   </span>
                 </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Allocated to Variants:</span>
+                  <span className="font-medium text-orange-600 dark:text-orange-500">
+                    {getAllocatedStockForProduct(formData.productSKU, selectedVariant?.id)} units
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Remaining Available:</span>
+                  <span className="font-medium text-green-600 dark:text-green-500">
+                    {getRemainingStock(formData.productSKU, selectedVariant?.id)} units
+                  </span>
+                </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Variant stock is tracked independently from the main product
+                  Variant stock is allocated from the product's total stock
                 </p>
               </div>
             )}
@@ -873,11 +910,12 @@ function ProductVariantPage() {
                   value={formData.stock}
                   onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
                   min="0"
+                  max={formData.productSKU ? getRemainingStock(formData.productSKU, selectedVariant?.id) + (formMode === 'edit' ? parseInt(formData.stock) || 0 : 0) : undefined}
                   required
                 />
                 {formData.productSKU && (
                   <p className="text-xs text-muted-foreground">
-                    Product has {getProductStock(formData.productSKU)} units in stock
+                    Maximum {getRemainingStock(formData.productSKU, selectedVariant?.id) + (formMode === 'edit' ? parseInt(formData.stock) || 0 : 0)} units available for this variant
                   </p>
                 )}
               </div>
