@@ -41,7 +41,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Warehouse as WarehouseIcon, Plus, Pencil, Trash2, MapPin, Building2, Loader2 } from 'lucide-react';
+import { Warehouse as WarehouseIcon, Plus, Eye, Edit, Trash2, MapPin, Building2, Loader2 } from 'lucide-react';
 import { warehouseApi, type Warehouse, type CreateWarehouseInput } from '@/lib/api';
 
 export const Route = createFileRoute('/dashboard/inventory/warehouse')({
@@ -361,26 +361,29 @@ function WarehouseManagementPage() {
                             {warehouse.status}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1">
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditWarehouse(warehouse);
-                              }}
+                              className="h-8 w-8"
+                              onClick={() => handleViewWarehouse(warehouse)}
                             >
-                              <Pencil className="h-4 w-4" />
+                              <Eye className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="text-destructive"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteWarehouse(warehouse);
-                              }}
+                              className="h-8 w-8"
+                              onClick={() => handleEditWarehouse(warehouse)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={() => handleDeleteWarehouse(warehouse)}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -483,7 +486,7 @@ function WarehouseManagementPage() {
 
           <DrawerFooter>
             <Button onClick={() => selectedWarehouse && handleEditWarehouse(selectedWarehouse)}>
-              <Pencil className="mr-2 h-4 w-4" />
+              <Edit className="h-4 w-4 mr-2" />
               Edit Warehouse
             </Button>
             <DrawerClose asChild>
