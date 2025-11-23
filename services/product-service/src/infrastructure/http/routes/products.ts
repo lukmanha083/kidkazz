@@ -140,6 +140,44 @@ app.post('/', zValidator('json', createProductSchema), async (c) => {
   const data = c.req.valid('json');
   const db = drizzle(c.env.DB);
 
+  // Check if SKU already exists (Business Rule #3: SKU must be unique)
+  const existingProductWithSku = await db
+    .select()
+    .from(products)
+    .where(eq(products.sku, data.sku))
+    .get();
+
+  if (existingProductWithSku) {
+    return c.json({
+      error: 'SKU_ALREADY_EXISTS',
+      message: `Product with SKU "${data.sku}" already exists. Product SKUs must be unique.`,
+      existingProduct: {
+        id: existingProductWithSku.id,
+        name: existingProductWithSku.name,
+        sku: existingProductWithSku.sku,
+      },
+    }, 400);
+  }
+
+  // Check if barcode already exists
+  const existingProductWithBarcode = await db
+    .select()
+    .from(products)
+    .where(eq(products.barcode, data.barcode))
+    .get();
+
+  if (existingProductWithBarcode) {
+    return c.json({
+      error: 'BARCODE_ALREADY_EXISTS',
+      message: `Product with barcode "${data.barcode}" already exists. Product barcodes must be unique.`,
+      existingProduct: {
+        id: existingProductWithBarcode.id,
+        name: existingProductWithBarcode.name,
+        barcode: existingProductWithBarcode.barcode,
+      },
+    }, 400);
+  }
+
   const now = new Date();
   const newProduct = {
     id: generateId(),
@@ -150,9 +188,17 @@ app.post('/', zValidator('json', createProductSchema), async (c) => {
     updatedBy: null,
   };
 
-  await db.insert(products).values(newProduct).run();
-
-  return c.json(newProduct, 201);
+  try {
+    await db.insert(products).values(newProduct).run();
+    return c.json(newProduct, 201);
+  } catch (error) {
+    console.error('Product Service Error:', error);
+    return c.json({
+      error: 'DATABASE_ERROR',
+      message: 'Failed to create product. Please try again.',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    }, 500);
+  }
 });
 
 // PUT /api/products/:id - Update product
@@ -171,19 +217,70 @@ app.put('/:id', zValidator('json', updateProductSchema), async (c) => {
     return c.json({ error: 'Product not found' }, 404);
   }
 
-  await db
-    .update(products)
-    .set({ ...data, updatedAt: new Date() })
-    .where(eq(products.id, id))
-    .run();
+  // Check if SKU is being updated and if the new SKU already exists (Business Rule #3)
+  if (data.sku && data.sku !== existing.sku) {
+    const existingProductWithSku = await db
+      .select()
+      .from(products)
+      .where(eq(products.sku, data.sku))
+      .get();
 
-  const updated = await db
-    .select()
-    .from(products)
-    .where(eq(products.id, id))
-    .get();
+    if (existingProductWithSku) {
+      return c.json({
+        error: 'SKU_ALREADY_EXISTS',
+        message: `Product with SKU "${data.sku}" already exists. Product SKUs must be unique.`,
+        existingProduct: {
+          id: existingProductWithSku.id,
+          name: existingProductWithSku.name,
+          sku: existingProductWithSku.sku,
+        },
+      }, 400);
+    }
+  }
 
-  return c.json(updated);
+  // Check if barcode is being updated and if the new barcode already exists
+  if (data.barcode && data.barcode !== existing.barcode) {
+    const existingProductWithBarcode = await db
+      .select()
+      .from(products)
+      .where(eq(products.barcode, data.barcode))
+      .get();
+
+    if (existingProductWithBarcode) {
+      return c.json({
+        error: 'BARCODE_ALREADY_EXISTS',
+        message: `Product with barcode "${data.barcode}" already exists. Product barcodes must be unique.`,
+        existingProduct: {
+          id: existingProductWithBarcode.id,
+          name: existingProductWithBarcode.name,
+          barcode: existingProductWithBarcode.barcode,
+        },
+      }, 400);
+    }
+  }
+
+  try {
+    await db
+      .update(products)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(products.id, id))
+      .run();
+
+    const updated = await db
+      .select()
+      .from(products)
+      .where(eq(products.id, id))
+      .get();
+
+    return c.json(updated);
+  } catch (error) {
+    console.error('Product Service Error:', error);
+    return c.json({
+      error: 'DATABASE_ERROR',
+      message: 'Failed to update product. Please try again.',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    }, 500);
+  }
 });
 
 // PATCH /api/products/:id/price - Update product price
