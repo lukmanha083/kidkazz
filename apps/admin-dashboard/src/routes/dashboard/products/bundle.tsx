@@ -260,6 +260,17 @@ function ProductBundlePage() {
       return;
     }
 
+    // Validate bundle stock against component stock
+    const maxPossibleBundles = calculateMaxBundles(selectedProducts);
+    const requestedBundleStock = parseInt(formData.availableStock) || 0;
+
+    if (requestedBundleStock > maxPossibleBundles) {
+      toast.error('Insufficient component stock', {
+        description: `Cannot create ${requestedBundleStock} bundles. Maximum possible: ${maxPossibleBundles} bundles based on component stock.`
+      });
+      return;
+    }
+
     // Use the calculated bundle price
     const bundleData: CreateBundleInput = {
       bundleName: formData.bundleName,
@@ -268,7 +279,7 @@ function ProductBundlePage() {
       bundlePrice: calculatedBundlePrice,
       discountPercentage: parseFloat(formData.discountPercentage) || 0,
       status: formData.status,
-      availableStock: parseInt(formData.availableStock) || 0,
+      availableStock: requestedBundleStock,
       items: selectedProducts,
     };
 
@@ -331,6 +342,28 @@ function ProductBundlePage() {
   // Calculate bundle totals
   const calculateOriginalPrice = (items: BundleItem[]) => {
     return items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  };
+
+  // Calculate maximum possible bundles based on component stock
+  const calculateMaxBundles = (items: BundleItem[]) => {
+    if (items.length === 0) return 0;
+
+    // For each product, calculate how many complete bundles can be formed
+    const possibleBundles = items.map(item => {
+      const product = products.find(p => p.id === item.productId);
+      if (!product || !product.stock) return 0;
+
+      // Calculate how many bundles we can make from this product's stock
+      return Math.floor(product.stock / item.quantity);
+    });
+
+    // Return the minimum (bottleneck)
+    return Math.min(...possibleBundles);
+  };
+
+  // Calculate stock allocated to bundles for each component product
+  const calculateAllocatedStock = (productId: string, quantityPerBundle: number, bundleStock: number) => {
+    return quantityPerBundle * bundleStock;
   };
 
   // Auto-calculate bundle price based on selected products and discount
@@ -806,7 +839,7 @@ function ProductBundlePage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="availableStock">Available Stock</Label>
+              <Label htmlFor="availableStock">Available Bundle Stock</Label>
               <Input
                 id="availableStock"
                 type="number"
@@ -815,9 +848,64 @@ function ProductBundlePage() {
                 value={formData.availableStock}
                 onChange={(e) => setFormData({ ...formData, availableStock: e.target.value })}
               />
-              <p className="text-xs text-muted-foreground">
-                Product bundles have no expiration date. Stock is managed separately.
-              </p>
+
+              {/* Stock Breakdown Info */}
+              {selectedProducts.length > 0 && (
+                <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                      Maximum Possible Bundles:
+                    </span>
+                    <Badge variant="default" className="bg-blue-600">
+                      {calculateMaxBundles(selectedProducts)} bundles
+                    </Badge>
+                  </div>
+
+                  <Separator className="bg-blue-200 dark:bg-blue-900" />
+
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-blue-900 dark:text-blue-100">
+                      Component Stock Breakdown:
+                    </p>
+                    {selectedProducts.map((item, index) => {
+                      const product = products.find(p => p.id === item.productId);
+                      const bundleStock = parseInt(formData.availableStock) || 0;
+                      const allocatedStock = item.quantity * bundleStock;
+                      const remainingStock = (product?.stock || 0) - allocatedStock;
+
+                      return (
+                        <div key={index} className="text-xs space-y-1 p-2 bg-white/50 dark:bg-black/20 rounded">
+                          <p className="font-medium text-blue-900 dark:text-blue-100">{item.productName}</p>
+                          <div className="grid grid-cols-2 gap-2 text-muted-foreground">
+                            <div>
+                              <span>Total Stock:</span>
+                              <span className="ml-1 font-semibold">{product?.stock || 0} PCS</span>
+                            </div>
+                            <div>
+                              <span>Per Bundle:</span>
+                              <span className="ml-1 font-semibold">×{item.quantity}</span>
+                            </div>
+                            <div>
+                              <span>Allocated to Bundles:</span>
+                              <span className="ml-1 font-semibold text-orange-600">{allocatedStock} PCS</span>
+                            </div>
+                            <div>
+                              <span>Remaining Base Stock:</span>
+                              <span className={`ml-1 font-semibold ${remainingStock < 0 ? 'text-destructive' : 'text-green-600'}`}>
+                                {remainingStock} PCS
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
+                    💡 Bundle stock is split from component base stock, similar to custom UOM allocations.
+                  </p>
+                </div>
+              )}
             </div>
 
             <DrawerFooter className="px-0">

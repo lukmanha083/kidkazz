@@ -58,6 +58,7 @@ import {
   Package,
   X,
   Loader2,
+  Film,
 } from 'lucide-react';
 import {
   Product,
@@ -71,6 +72,7 @@ import {
 } from '@/lib/api';
 import { ImageGallery } from '@/components/ImageGallery';
 import { VideoGallery } from '@/components/VideoGallery';
+import { DatePicker } from '@/components/ui/date-picker';
 
 export const Route = createFileRoute('/dashboard/products/all')({
   component: AllProductsPage,
@@ -1335,6 +1337,34 @@ function AllProductsPage() {
                     </div>
                   </>
                 )}
+
+                {/* Product Media (Images & Videos) */}
+                <Separator />
+                <Tabs defaultValue="images" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="images" className="gap-2">
+                      <ImageIcon className="h-4 w-4" />
+                      Images
+                    </TabsTrigger>
+                    <TabsTrigger value="videos" className="gap-2">
+                      <Film className="h-4 w-4" />
+                      Videos
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="images" className="mt-4">
+                    <ImageGallery
+                      productId={selectedProduct.id}
+                      maxImages={10}
+                    />
+                  </TabsContent>
+                  <TabsContent value="videos" className="mt-4">
+                    <VideoGallery
+                      productId={selectedProduct.id}
+                      maxVideos={5}
+                      defaultMode="r2"
+                    />
+                  </TabsContent>
+                </Tabs>
               </div>
             </div>
           )}
@@ -1648,19 +1678,18 @@ function AllProductsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="alertDate">Alert Date</Label>
-                  <Input
-                    id="alertDate"
-                    type="date"
-                    value={formData.alertDate}
-                    onChange={(e) => {
-                      const alertDate = e.target.value;
+                  <DatePicker
+                    date={formData.alertDate ? new Date(formData.alertDate) : undefined}
+                    onDateChange={(date) => {
+                      const alertDate = date ? date.toISOString().split('T')[0] : '';
                       // Validate: alert date should be before expiration date
-                      if (formData.expirationDate && alertDate >= formData.expirationDate) {
+                      if (formData.expirationDate && date && new Date(alertDate) >= new Date(formData.expirationDate)) {
                         toast.error('Alert date must be before expiration date');
                         return;
                       }
                       setFormData({ ...formData, alertDate });
                     }}
+                    placeholder="Select alert date"
                   />
                   <p className="text-xs text-muted-foreground">
                     Date to receive notification before expiration
@@ -1669,19 +1698,18 @@ function AllProductsPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="expirationDate">Expiration Date</Label>
-                  <Input
-                    id="expirationDate"
-                    type="date"
-                    value={formData.expirationDate}
-                    onChange={(e) => {
-                      const expirationDate = e.target.value;
+                  <DatePicker
+                    date={formData.expirationDate ? new Date(formData.expirationDate) : undefined}
+                    onDateChange={(date) => {
+                      const expirationDate = date ? date.toISOString().split('T')[0] : '';
                       // Validate: expiration date should be after alert date
-                      if (formData.alertDate && expirationDate <= formData.alertDate) {
+                      if (formData.alertDate && date && new Date(expirationDate) <= new Date(formData.alertDate)) {
                         toast.error('Expiration date must be after alert date');
                         return;
                       }
                       setFormData({ ...formData, expirationDate });
                     }}
+                    placeholder="Select expiration date"
                   />
                   <p className="text-xs text-muted-foreground">
                     Date when product expires or should be removed

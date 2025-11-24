@@ -31,6 +31,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 
 const PRODUCT_SERVICE_URL =
@@ -68,6 +78,8 @@ export function ImageGallery({ productId, maxImages = 10 }: ImageGalleryProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [previewImage, setPreviewImage] = useState<ProductImage | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [imageToDelete, setImageToDelete] = useState<string | null>(null);
 
   // Fetch images for this product
   const { data: imagesData, isLoading } = useQuery({
@@ -280,8 +292,16 @@ export function ImageGallery({ productId, maxImages = 10 }: ImageGalleryProps) {
 
   // Handle delete image
   const handleDeleteImage = (imageId: string) => {
-    if (confirm('Are you sure you want to delete this image?')) {
-      deleteImageMutation.mutate(imageId);
+    setImageToDelete(imageId);
+    setDeleteDialogOpen(true);
+  };
+
+  // Confirm delete image
+  const confirmDeleteImage = () => {
+    if (imageToDelete) {
+      deleteImageMutation.mutate(imageToDelete);
+      setDeleteDialogOpen(false);
+      setImageToDelete(null);
     }
   };
 
@@ -485,6 +505,33 @@ export function ImageGallery({ productId, maxImages = 10 }: ImageGalleryProps) {
           ✓ CDN delivery
         </Badge>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the image
+              from R2 storage and remove it from the database.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setDeleteDialogOpen(false);
+              setImageToDelete(null);
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteImage}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Image
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
