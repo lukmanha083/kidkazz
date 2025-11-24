@@ -311,7 +311,7 @@ export function VideoGallery({
 
       {/* Upload Area */}
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-4">
           <div
             className={`
               relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
@@ -421,6 +421,7 @@ export function VideoGallery({
                   {/* Actions Overlay */}
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                     <Button
+                      type="button"
                       variant="secondary"
                       size="icon"
                       className="rounded-full"
@@ -432,6 +433,7 @@ export function VideoGallery({
                       <Play className="w-4 h-4" />
                     </Button>
                     <Button
+                      type="button"
                       variant="destructive"
                       size="icon"
                       className="rounded-full"
