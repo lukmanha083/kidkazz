@@ -21,7 +21,7 @@ import {
   Play,
   Loader2,
   Film,
-  CloudUpload,
+  Cloud,
   HardDrive,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -291,7 +291,7 @@ export function VideoGallery({
                   </SelectItem>
                   <SelectItem value="stream">
                     <div className="flex items-center gap-2">
-                      <CloudUpload className="w-4 h-4" />
+                      <Cloud className="w-4 h-4" />
                       <span>Cloudflare Stream (Optimized)</span>
                     </div>
                   </SelectItem>
@@ -407,7 +407,7 @@ export function VideoGallery({
                   >
                     {video.storageMode === 'stream' ? (
                       <>
-                        <CloudUpload className="w-3 h-3" />
+                        <Cloud className="w-3 h-3" />
                         Stream
                       </>
                     ) : (
