@@ -69,8 +69,8 @@ import {
   uomApi,
   productLocationApi,
 } from '@/lib/api';
-import { ImageUpload, ImageUploadResult } from '@/components/ImageUpload';
-import { VideoUpload, VideoUploadResult } from '@/components/VideoUpload';
+import { ImageGallery } from '@/components/ImageGallery';
+import { VideoGallery } from '@/components/VideoGallery';
 
 export const Route = createFileRoute('/dashboard/products/all')({
   component: AllProductsPage,
@@ -153,10 +153,6 @@ function AllProductsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [uomToDelete, setUomToDelete] = useState<ProductUOM | null>(null);
-
-  // Media upload states
-  const [uploadedImages, setUploadedImages] = useState<ImageUploadResult[]>([]);
-  const [uploadedVideos, setUploadedVideos] = useState<VideoUploadResult[]>([]);
 
   // Fetch products - removed searchTerm from queryKey to fix invalidation issue
   const { data: productsData, isLoading, error } = useQuery({
@@ -805,36 +801,6 @@ function AllProductsPage() {
     );
   };
 
-  // Handle image upload success
-  const handleImageUploadSuccess = (result: ImageUploadResult) => {
-    setUploadedImages(prev => [...prev, result]);
-    toast.success('Image uploaded successfully', {
-      description: 'Your product image has been uploaded and optimized'
-    });
-  };
-
-  // Handle image upload error
-  const handleImageUploadError = (error: string) => {
-    toast.error('Image upload failed', {
-      description: error
-    });
-  };
-
-  // Handle video upload success
-  const handleVideoUploadSuccess = (result: VideoUploadResult) => {
-    setUploadedVideos(prev => [...prev, result]);
-    toast.success('Video uploaded successfully', {
-      description: 'Your product video has been uploaded'
-    });
-  };
-
-  // Handle video upload error
-  const handleVideoUploadError = (error: string) => {
-    toast.error('Video upload failed', {
-      description: error
-    });
-  };
-
   if (error) {
     return (
       <div className="space-y-6">
@@ -1455,7 +1421,7 @@ function AllProductsPage() {
               />
             </div>
 
-            {/* Image Upload Section - Only available in edit mode */}
+            {/* Image Gallery Section - Only available in edit mode */}
             {formMode === 'edit' && selectedProduct && (
               <>
                 <Separator className="my-4" />
@@ -1463,36 +1429,32 @@ function AllProductsPage() {
                   <div>
                     <Label className="text-base font-semibold">Product Images</Label>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Upload product images. Images will be automatically optimized and resized.
+                      Upload and manage product images. Supports multiple images with automatic optimization.
                     </p>
                   </div>
-                  <ImageUpload
+                  <ImageGallery
                     productId={selectedProduct.id}
-                    onUploadSuccess={handleImageUploadSuccess}
-                    onUploadError={handleImageUploadError}
-                    maxSizeMB={5}
+                    maxImages={10}
                   />
                 </div>
                 <Separator className="my-4" />
               </>
             )}
 
-            {/* Video Upload Section - Only available in edit mode */}
+            {/* Video Gallery Section - Only available in edit mode */}
             {formMode === 'edit' && selectedProduct && (
               <>
                 <div className="space-y-4">
                   <div>
                     <Label className="text-base font-semibold">Product Videos</Label>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Upload product demonstration or promotional videos.
+                      Upload and manage product videos. Choose between R2 storage or Cloudflare Stream.
                     </p>
                   </div>
-                  <VideoUpload
+                  <VideoGallery
                     productId={selectedProduct.id}
-                    onUploadSuccess={handleVideoUploadSuccess}
-                    onUploadError={handleVideoUploadError}
-                    maxSizeMB={500}
-                    defaultMode="stream"
+                    maxVideos={5}
+                    defaultMode="r2"
                   />
                 </div>
                 <Separator className="my-4" />

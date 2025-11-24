@@ -9,8 +9,12 @@
 
 import { Hono } from 'hono';
 import { VideoService } from '../infrastructure/video-service';
+import { drizzle } from 'drizzle-orm/d1';
+import { productVideos } from '../infrastructure/db/schema';
+import { eq } from 'drizzle-orm';
 
 type Bindings = {
+  DB: D1Database;
   PRODUCT_VIDEOS: R2Bucket;
   VIDEO_CACHE: KVNamespace;
   CLOUDFLARE_STREAM_API_TOKEN?: string;
@@ -54,6 +58,9 @@ app.post('/upload', async (c) => {
     const isPrimary = isPrimaryStr === 'true';
     const sortOrder = sortOrderStr ? parseInt(sortOrderStr, 10) : undefined;
 
+    // Initialize database
+    const db = drizzle(c.env.DB);
+
     // Initialize video service
     const videoService = new VideoService(
       c.env.PRODUCT_VIDEOS,
@@ -63,6 +70,22 @@ app.post('/upload', async (c) => {
 
     // Determine upload mode
     const uploadMode = mode || (c.env.CLOUDFLARE_STREAM_API_TOKEN ? 'stream' : 'r2');
+
+    // If this is set as primary, unset all other primary videos for this product
+    if (isPrimary) {
+      await db.update(productVideos)
+        .set({ isPrimary: false })
+        .where(eq(productVideos.productId, productId));
+    }
+
+    // Get the next sort order if not provided
+    let finalSortOrder = sortOrder;
+    if (finalSortOrder === undefined) {
+      const existingVideos = await db.select()
+        .from(productVideos)
+        .where(eq(productVideos.productId, productId));
+      finalSortOrder = existingVideos.length;
+    }
 
     let result;
 
@@ -84,9 +107,35 @@ app.post('/upload', async (c) => {
         file.name,
         {
           isPrimary,
-          sortOrder,
+          sortOrder: finalSortOrder,
         }
       );
+
+      // Save video metadata to database
+      const videoId = `vid-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      const now = new Date();
+
+      await db.insert(productVideos).values({
+        id: videoId,
+        productId,
+        filename: null,
+        originalName: file.name,
+        mimeType: file.type,
+        size: file.size,
+        isPrimary,
+        sortOrder: finalSortOrder,
+        storageMode: 'stream',
+        streamId: result.videoId,
+        streamStatus: result.metadata.streamStatus || 'queued',
+        originalUrl: null,
+        hlsUrl: result.urls.hls,
+        dashUrl: result.urls.dash,
+        thumbnailUrl: result.urls.thumbnail,
+        downloadUrl: result.urls.download,
+        uploadedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      });
 
       return c.json(
         {
@@ -94,6 +143,7 @@ app.post('/upload', async (c) => {
           message: 'Video uploaded to Cloudflare Stream successfully',
           mode: 'stream',
           video: {
+            id: videoId,
             videoId: result.videoId,
             urls: result.urls,
             metadata: result.metadata,
@@ -115,9 +165,35 @@ app.post('/upload', async (c) => {
         file.name,
         {
           isPrimary,
-          sortOrder,
+          sortOrder: finalSortOrder,
         }
       );
+
+      // Save video metadata to database
+      const videoId = `vid-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      const now = new Date();
+
+      await db.insert(productVideos).values({
+        id: videoId,
+        productId,
+        filename: result.filename,
+        originalName: file.name,
+        mimeType: file.type,
+        size: file.size,
+        isPrimary,
+        sortOrder: finalSortOrder,
+        storageMode: 'r2',
+        streamId: null,
+        streamStatus: null,
+        originalUrl: result.urls.original,
+        hlsUrl: null,
+        dashUrl: null,
+        thumbnailUrl: null,
+        downloadUrl: result.urls.download,
+        uploadedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      });
 
       return c.json(
         {
@@ -125,6 +201,7 @@ app.post('/upload', async (c) => {
           message: 'Video uploaded to R2 successfully',
           mode: 'r2',
           video: {
+            id: videoId,
             filename: result.filename,
             urls: result.urls,
             metadata: result.metadata,
@@ -144,6 +221,57 @@ app.post('/upload', async (c) => {
     }
 
     return c.json({ error: 'Failed to upload video' }, 500);
+  }
+});
+
+/**
+ * GET /api/videos/product/:productId
+ *
+ * Get all videos for a product
+ */
+app.get('/product/:productId', async (c) => {
+  try {
+    const productId = c.req.param('productId');
+    const db = drizzle(c.env.DB);
+
+    // Fetch all videos for the product, ordered by sortOrder
+    const videos = await db.select()
+      .from(productVideos)
+      .where(eq(productVideos.productId, productId))
+      .orderBy(productVideos.sortOrder);
+
+    return c.json({
+      success: true,
+      videos: videos.map(vid => ({
+        id: vid.id,
+        productId: vid.productId,
+        filename: vid.filename,
+        originalName: vid.originalName,
+        mimeType: vid.mimeType,
+        size: vid.size,
+        width: vid.width,
+        height: vid.height,
+        duration: vid.duration,
+        isPrimary: vid.isPrimary,
+        sortOrder: vid.sortOrder,
+        storageMode: vid.storageMode,
+        streamId: vid.streamId,
+        streamStatus: vid.streamStatus,
+        urls: {
+          original: vid.originalUrl,
+          hls: vid.hlsUrl,
+          dash: vid.dashUrl,
+          thumbnail: vid.thumbnailUrl,
+          download: vid.downloadUrl,
+        },
+        uploadedAt: vid.uploadedAt,
+        createdAt: vid.createdAt,
+        updatedAt: vid.updatedAt,
+      })),
+    });
+  } catch (error) {
+    console.error('Fetch product videos error:', error);
+    return c.json({ error: 'Failed to fetch product videos' }, 500);
   }
 });
 
@@ -229,13 +357,25 @@ app.get('/stream/:videoId', async (c) => {
 });
 
 /**
- * DELETE /api/videos/:filename
+ * DELETE /api/videos/video/:videoId
  *
- * Delete video from R2 (basic mode)
+ * Delete video by ID (from database, R2, or Stream)
  */
-app.delete('/:filename{.+}', async (c) => {
+app.delete('/video/:videoId', async (c) => {
   try {
-    const filename = c.req.param('filename');
+    const videoId = c.req.param('videoId');
+    const db = drizzle(c.env.DB);
+
+    // Get video metadata from database
+    const videos = await db.select()
+      .from(productVideos)
+      .where(eq(productVideos.id, videoId));
+
+    if (videos.length === 0) {
+      return c.json({ error: 'Video not found' }, 404);
+    }
+
+    const video = videos[0];
 
     // Initialize video service
     const videoService = new VideoService(
@@ -244,8 +384,16 @@ app.delete('/:filename{.+}', async (c) => {
       c.env.CLOUDFLARE_STREAM_API_TOKEN
     );
 
-    // Delete video from R2
-    await videoService.deleteVideoR2(filename);
+    // Delete video based on storage mode
+    if (video.storageMode === 'stream' && video.streamId) {
+      await videoService.deleteVideoStream(video.streamId);
+    } else if (video.filename) {
+      await videoService.deleteVideoR2(video.filename);
+    }
+
+    // Delete from database
+    await db.delete(productVideos)
+      .where(eq(productVideos.id, videoId));
 
     return c.json({
       success: true,
@@ -296,9 +444,15 @@ app.delete('/stream/:videoId', async (c) => {
  *
  * Delete all videos for a product (both R2 and Stream)
  */
-app.delete('/product/:productId', async (c) => {
+app.delete('/product/delete/:productId', async (c) => {
   try {
     const productId = c.req.param('productId');
+    const db = drizzle(c.env.DB);
+
+    // Get all videos for this product
+    const videos = await db.select()
+      .from(productVideos)
+      .where(eq(productVideos.productId, productId));
 
     // Initialize video service
     const videoService = new VideoService(
@@ -307,8 +461,18 @@ app.delete('/product/:productId', async (c) => {
       c.env.CLOUDFLARE_STREAM_API_TOKEN
     );
 
-    // Delete all R2 videos for product
-    await videoService.deleteProductVideos(productId);
+    // Delete each video from storage
+    for (const video of videos) {
+      if (video.storageMode === 'stream' && video.streamId) {
+        await videoService.deleteVideoStream(video.streamId);
+      } else if (video.filename) {
+        await videoService.deleteVideoR2(video.filename);
+      }
+    }
+
+    // Delete all videos from database
+    await db.delete(productVideos)
+      .where(eq(productVideos.productId, productId));
 
     return c.json({
       success: true,
