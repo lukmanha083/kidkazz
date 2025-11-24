@@ -267,7 +267,118 @@ public getChargeableWeight(): number {
 
 ## Warehouse Management Rules
 
-### Rule 9: Warehouse Code Format
+### Rule 9: Multi-Warehouse Product Allocation
+
+**Rule**: Products, product bundles, and product variants must support multi-warehouse allocation. Stock must be tracked separately per warehouse.
+
+**Business Rationale**:
+- Businesses often operate multiple warehouse locations
+- Each warehouse needs independent stock tracking for accurate inventory management
+- Product bundles and variants must maintain warehouse-specific stock levels
+- Enables location-based inventory visibility and stock transfers
+
+**Implementation**:
+
+**Product Level**:
+- Products can be allocated to multiple warehouses simultaneously
+- Each warehouse allocation tracks its own stock quantity
+- Total product stock = sum of stock across all warehouses
+- Product locations stored in `product_locations` table with warehouse reference
+
+**Product Bundle Level**:
+- Bundles can be assembled at specific warehouses
+- Bundle stock tracked per warehouse location
+- Bundle components must exist in the same warehouse
+- Warehouse-specific bundle availability
+
+**Product Variant Level**:
+- Variants inherit multi-warehouse capability from parent product
+- Each variant can have different stock levels per warehouse
+- Variant locations tracked separately from base product
+- Warehouse-specific variant pricing and availability
+
+**Domain Layer**:
+```typescript
+// Product can have multiple locations
+interface ProductLocation {
+  productId: string;
+  warehouseId: string;
+  quantity: number;
+  rack?: string;
+  bin?: string;
+  zone?: string;
+  aisle?: string;
+}
+
+// Stock is aggregated from all warehouse locations
+public getTotalStock(): number {
+  return this.productLocations.reduce(
+    (total, location) => total + location.quantity,
+    0
+  );
+}
+
+// Get stock at specific warehouse
+public getWarehouseStock(warehouseId: string): number {
+  const location = this.productLocations.find(
+    loc => loc.warehouseId === warehouseId
+  );
+  return location?.quantity || 0;
+}
+```
+
+**API Usage**:
+```typescript
+// Allocate product to warehouse
+POST /api/product-locations
+{
+  "productId": "product-123",
+  "warehouseId": "WH-001",
+  "quantity": 100,
+  "rack": "A1",
+  "bin": "TOP",
+  "zone": "Zone A",
+  "aisle": "1"
+}
+
+// Get product stock by warehouse
+GET /api/products/{productId}/locations
+// Returns array of warehouse locations with quantities
+
+// Transfer stock between warehouses
+POST /api/inventory/transfer
+{
+  "productId": "product-123",
+  "fromWarehouseId": "WH-001",
+  "toWarehouseId": "WH-002",
+  "quantity": 20
+}
+```
+
+**Frontend Validation**:
+- Product form must allow multiple warehouse selection
+- Stock allocation UI must show warehouse breakdown
+- Prevent negative stock at warehouse level (unless POS transaction)
+- Warn when transferring more stock than available at source warehouse
+
+**Warehouse Breakdown Requirements**:
+- Product report page: Shows aggregate stock (no warehouse breakdown)
+- Inventory report page: Shows detailed warehouse breakdown with:
+  - Stock levels per warehouse
+  - Stock alerts per warehouse
+  - Expiration dates per warehouse location
+- Product detail view: Shows all warehouse locations with quantities
+
+**Business Rules**:
+1. Product can exist in zero, one, or multiple warehouses
+2. Stock transfers between warehouses must maintain stock integrity
+3. Product bundles can only be created if all components exist in target warehouse
+4. Product variants follow parent product's warehouse allocation rules
+5. Expiration dates tracked per warehouse location (different batches may expire at different times)
+
+---
+
+### Rule 10: Warehouse Code Format
 
 **Rule**: Warehouse code must contain only uppercase letters, numbers, and hyphens.
 
@@ -287,7 +398,7 @@ const error = businessRules.warehouse.validateCode(code);
 
 ---
 
-### Rule 10: Warehouse Location Required Fields
+### Rule 11: Warehouse Location Required Fields
 
 **Rule**: Address line 1, city, province, and postal code are required.
 
@@ -315,7 +426,7 @@ const errors = businessRules.warehouse.validateLocation({
 
 ## Price Management Rules
 
-### Rule 11: Price Cannot Be Negative
+### Rule 12: Price Cannot Be Negative
 
 **Rule**: All prices (base, retail, wholesale) must be non-negative.
 
@@ -346,7 +457,7 @@ const error = businessRules.product.validatePrice(price);
 
 ## Event Business Rules
 
-### Rule 12: Domain Events Must Be Published
+### Rule 13: Domain Events Must Be Published
 
 **Rule**: All state-changing operations must publish domain events.
 
