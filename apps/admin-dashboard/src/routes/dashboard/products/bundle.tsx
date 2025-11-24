@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { bundleApi, productApi, type ProductBundle, type BundleItem, type CreateBundleInput, type Product } from '@/lib/api';
+import { bundleApi, productApi, warehouseApi, type ProductBundle, type BundleItem, type CreateBundleInput, type Product } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -72,6 +72,14 @@ function ProductBundlePage() {
 
   const products = productsData?.products || [];
 
+  // Fetch warehouses for warehouse selector
+  const { data: warehousesData } = useQuery({
+    queryKey: ['warehouses'],
+    queryFn: () => warehouseApi.getAll(),
+  });
+
+  const warehouses = warehousesData?.warehouses || [];
+
   const [searchTerm, setSearchTerm] = useState('');
   const [viewDrawerOpen, setViewDrawerOpen] = useState(false);
   const [formDrawerOpen, setFormDrawerOpen] = useState(false);
@@ -89,6 +97,7 @@ function ProductBundlePage() {
     discountPercentage: '',
     availableStock: '',
     status: 'active' as 'active' | 'inactive',
+    warehouseId: '', // Warehouse where bundle is assembled
   });
 
   // Selected products for the bundle
@@ -185,6 +194,7 @@ function ProductBundlePage() {
       discountPercentage: '0',
       availableStock: '',
       status: 'active',
+      warehouseId: '',
     });
     setSelectedProducts([]);
     setFormDrawerOpen(true);
@@ -202,6 +212,7 @@ function ProductBundlePage() {
       discountPercentage: bundle.discountPercentage.toString(),
       availableStock: bundle.availableStock.toString(),
       status: bundle.status,
+      warehouseId: (bundle as any).warehouseId || '',
     });
     // Fetch bundle items
     const { items } = await bundleApi.getById(bundle.id);
@@ -281,7 +292,8 @@ function ProductBundlePage() {
       status: formData.status,
       availableStock: requestedBundleStock,
       items: selectedProducts,
-    };
+      warehouseId: formData.warehouseId, // Warehouse where bundle is assembled
+    } as any;
 
     if (formMode === 'add') {
       createBundleMutation.mutate(bundleData);
@@ -733,6 +745,28 @@ function ProductBundlePage() {
                 value={formData.bundleDescription}
                 onChange={(e) => setFormData({ ...formData, bundleDescription: e.target.value })}
               />
+            </div>
+
+            {/* Warehouse Selection */}
+            <div className="space-y-2 border rounded-lg p-3 bg-blue-50/50 dark:bg-blue-950/20">
+              <Label htmlFor="warehouseId">Assembly Warehouse *</Label>
+              <select
+                id="warehouseId"
+                value={formData.warehouseId}
+                onChange={(e) => setFormData({ ...formData, warehouseId: e.target.value })}
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                required
+              >
+                <option value="">Select warehouse...</option>
+                {warehouses.map(warehouse => (
+                  <option key={warehouse.id} value={warehouse.id}>
+                    {warehouse.name} - {warehouse.city}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">
+                Select the warehouse where this bundle will be assembled. All component products must be available in this warehouse.
+              </p>
             </div>
 
             {/* Products Selection */}

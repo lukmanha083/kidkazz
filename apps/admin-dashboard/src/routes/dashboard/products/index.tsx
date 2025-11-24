@@ -109,13 +109,18 @@ function ProductsReportPage() {
   }).filter(c => c.products > 0); // Only show categories with products
 
   // Products approaching expiration
+  // Normalize dates to start of day to avoid timezone and time-of-day comparison issues
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+  thirtyDaysFromNow.setHours(23, 59, 59, 999); // End of day
 
   const expiringProducts = products
     .filter(p => {
       if (!p.expirationDate) return false;
       const expirationDate = new Date(p.expirationDate);
+      expirationDate.setHours(0, 0, 0, 0); // Normalize to start of day
       return expirationDate >= today && expirationDate <= thirtyDaysFromNow;
     })
     .sort((a, b) => {
@@ -136,7 +141,9 @@ function ProductsReportPage() {
 
   const expiredProducts = products.filter(p => {
     if (!p.expirationDate) return false;
-    return new Date(p.expirationDate) < today;
+    const expirationDate = new Date(p.expirationDate);
+    expirationDate.setHours(0, 0, 0, 0); // Normalize to start of day
+    return expirationDate < today;
   }).length;
 
   const formatDate = (dateString: string) => {
@@ -183,6 +190,46 @@ function ProductsReportPage() {
           </Button>
         </Link>
       </div>
+
+      {/* Info Notice about Reports */}
+      <Card className="border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-blue-950/20">
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <div className="rounded-full bg-blue-100 dark:bg-blue-900/50 p-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600 dark:text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+              </div>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                Product vs Inventory Reports
+              </h3>
+              <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
+                This <strong>Product Report</strong> shows aggregate product data across all warehouses. Stock levels, expiration dates, and alerts shown here are totals.
+              </p>
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                For detailed warehouse-specific information including:
+              </p>
+              <ul className="list-disc list-inside text-sm text-blue-800 dark:text-blue-200 mt-1 ml-2">
+                <li>Stock breakdown by warehouse location</li>
+                <li>Warehouse-specific stock alerts</li>
+                <li>Product expiration dates per warehouse</li>
+              </ul>
+              <Link to="/dashboard/inventory" className="inline-block mt-3">
+                <Button variant="default" size="sm" className="gap-2 bg-blue-600 hover:bg-blue-700">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
+                    <path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd" />
+                  </svg>
+                  View Inventory Report
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Overall Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

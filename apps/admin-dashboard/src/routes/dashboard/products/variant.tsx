@@ -2,7 +2,8 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { variantApi, productApi, type ProductVariant, type CreateVariantInput } from '@/lib/api';
+import { variantApi, productApi, warehouseApi, type ProductVariant, type CreateVariantInput } from '@/lib/api';
+import { ProductWarehouseAllocation, type WarehouseAllocation } from '@/components/products/ProductWarehouseAllocation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -216,6 +217,15 @@ function ProductVariantPage() {
   });
 
   const products = productsData?.products || [];
+
+  // Fetch warehouses for warehouse allocation
+  const { data: warehousesData } = useQuery({
+    queryKey: ['warehouses'],
+    queryFn: () => warehouseApi.getAll(),
+  });
+
+  const warehouses = warehousesData?.warehouses || [];
+
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -238,6 +248,9 @@ function ProductVariantPage() {
     stock: '',
     status: 'Active' as 'Active' | 'Inactive',
   });
+
+  // Warehouse allocations state
+  const [warehouseAllocations, setWarehouseAllocations] = useState<WarehouseAllocation[]>([]);
 
   // Delete confirmation states
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -427,6 +440,7 @@ function ProductVariantPage() {
       stock: '',
       status: 'Active',
     });
+    setWarehouseAllocations([]); // Reset warehouse allocations
     setFormDrawerOpen(true);
   };
 
@@ -444,6 +458,8 @@ function ProductVariantPage() {
       stock: variant.stock.toString(),
       status: variant.status === 'active' ? 'Active' : 'Inactive',
     });
+    // Load warehouse allocations if available (to be implemented with backend support)
+    setWarehouseAllocations([]);
     setFormDrawerOpen(true);
   };
 
@@ -937,6 +953,17 @@ function ProductVariantPage() {
                 Inactive variants won't be visible to customers
               </p>
             </div>
+
+            <Separator className="my-4" />
+
+            {/* Multi-Warehouse Allocation Section */}
+            <ProductWarehouseAllocation
+              warehouses={warehouses}
+              allocations={warehouseAllocations}
+              onAllocationsChange={setWarehouseAllocations}
+              totalStock={parseInt(formData.stock) || 0}
+              readOnly={false}
+            />
 
             <DrawerFooter className="px-0">
               <Button type="submit" className="w-full">
