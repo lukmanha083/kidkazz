@@ -389,6 +389,7 @@ export function ImageGallery({ productId, maxImages = 10 }: ImageGalleryProps) {
                   {/* Actions Overlay */}
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                     <Button
+                      type="button"
                       variant="secondary"
                       size="icon"
                       className="rounded-full"
@@ -400,6 +401,7 @@ export function ImageGallery({ productId, maxImages = 10 }: ImageGalleryProps) {
                       <Eye className="w-4 h-4" />
                     </Button>
                     <Button
+                      type="button"
                       variant="destructive"
                       size="icon"
                       className="rounded-full"

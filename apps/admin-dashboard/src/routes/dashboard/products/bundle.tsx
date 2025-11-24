@@ -82,6 +82,7 @@ function ProductBundlePage() {
   const [formData, setFormData] = useState({
     bundleName: '',
     bundleSKU: '',
+    barcode: '',
     bundleDescription: '',
     bundlePrice: '',
     discountPercentage: '',
@@ -172,12 +173,14 @@ function ProductBundlePage() {
 
   const handleAddBundle = () => {
     setFormMode('add');
+    const newBarcode = generateBarcode();
     setFormData({
       bundleName: '',
       bundleSKU: '',
+      barcode: newBarcode,
       bundleDescription: '',
       bundlePrice: '',
-      discountPercentage: '',
+      discountPercentage: '0',
       availableStock: '',
       status: 'active',
       startDate: '',
@@ -193,6 +196,7 @@ function ProductBundlePage() {
     setFormData({
       bundleName: bundle.bundleName,
       bundleSKU: bundle.bundleSKU,
+      barcode: (bundle as any).barcode || '',
       bundleDescription: bundle.bundleDescription || '',
       bundlePrice: bundle.bundlePrice.toString(),
       discountPercentage: bundle.discountPercentage.toString(),
@@ -239,17 +243,13 @@ function ProductBundlePage() {
       return;
     }
 
-    // Calculate original price and discount
-    const originalPrice = selectedProducts.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const discountPercent = parseFloat(formData.discountPercentage) || 0;
-    const bundlePrice = parseFloat(formData.bundlePrice) || originalPrice * (1 - discountPercent / 100);
-
+    // Use the calculated bundle price
     const bundleData: CreateBundleInput = {
       bundleName: formData.bundleName,
       bundleSKU: formData.bundleSKU,
       bundleDescription: formData.bundleDescription || null,
-      bundlePrice,
-      discountPercentage: discountPercent,
+      bundlePrice: calculatedBundlePrice,
+      discountPercentage: parseFloat(formData.discountPercentage) || 0,
       status: formData.status,
       availableStock: parseInt(formData.availableStock) || 0,
       startDate: formData.startDate || null,
@@ -304,10 +304,27 @@ function ProductBundlePage() {
     return `${nameCode}-${nextNumber}`;
   };
 
+  // Helper function: Generate unique barcode for bundle
+  const generateBarcode = () => {
+    // Generate a 13-digit barcode (EAN-13 format)
+    // Format: 890 (country code for India/others) + 10 random digits
+    const countryCode = '890';
+    const randomDigits = Math.floor(Math.random() * 10000000000).toString().padStart(10, '0');
+    return countryCode + randomDigits;
+  };
+
   // Calculate bundle totals
   const calculateOriginalPrice = (items: BundleItem[]) => {
     return items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   };
+
+  // Auto-calculate bundle price based on selected products and discount
+  const calculatedBundlePrice = useMemo(() => {
+    const originalPrice = calculateOriginalPrice(selectedProducts);
+    const discountPercent = parseFloat(formData.discountPercentage) || 0;
+    const finalPrice = originalPrice * (1 - discountPercent / 100);
+    return Math.round(finalPrice); // Round to nearest integer
+  }, [selectedProducts, formData.discountPercentage]);
 
   // Filter bundles based on search
   const filteredBundles = useMemo(() => {
@@ -634,6 +651,33 @@ function ProductBundlePage() {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="barcode">Barcode</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="barcode"
+                  placeholder="8901234567890"
+                  value={formData.barcode}
+                  onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    const generatedBarcode = generateBarcode();
+                    setFormData({ ...formData, barcode: generatedBarcode });
+                    toast.success('Barcode generated');
+                  }}
+                >
+                  Generate
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Auto-generate a unique barcode or enter manually.
+              </p>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="bundleDescription">Description</Label>
               <Input
                 id="bundleDescription"
@@ -651,7 +695,7 @@ function ProductBundlePage() {
                   <Combobox
                     options={availableProducts}
                     value={selectedProductSKU}
-                    onChange={setSelectedProductSKU}
+                    onValueChange={setSelectedProductSKU}
                     placeholder="Select product..."
                     searchPlaceholder="Search products..."
                   />
@@ -702,22 +746,9 @@ function ProductBundlePage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4 border-t pt-4">
               <div className="space-y-2">
-                <Label htmlFor="bundlePrice">Bundle Price *</Label>
-                <Input
-                  id="bundlePrice"
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={formData.bundlePrice}
-                  onChange={(e) => setFormData({ ...formData, bundlePrice: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="discountPercentage">Discount %</Label>
+                <Label htmlFor="discountPercentage">Discount Percentage</Label>
                 <Input
                   id="discountPercentage"
                   type="number"
@@ -727,6 +758,28 @@ function ProductBundlePage() {
                   value={formData.discountPercentage}
                   onChange={(e) => setFormData({ ...formData, discountPercentage: e.target.value })}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Set discount percentage to calculate bundle price automatically.
+                </p>
+              </div>
+
+              {/* Price Summary */}
+              <div className="p-4 bg-muted/50 border border-border rounded-lg space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Original Price:</span>
+                  <span className="font-medium">{formatRupiah(calculateOriginalPrice(selectedProducts))}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Discount ({formData.discountPercentage || 0}%):</span>
+                  <span className="font-medium text-destructive">
+                    -{formatRupiah(calculateOriginalPrice(selectedProducts) * (parseFloat(formData.discountPercentage) || 0) / 100)}
+                  </span>
+                </div>
+                <Separator />
+                <div className="flex justify-between">
+                  <span className="font-semibold">Bundle Price:</span>
+                  <span className="font-semibold text-primary text-lg">{formatRupiah(calculatedBundlePrice)}</span>
+                </div>
               </div>
             </div>
 
