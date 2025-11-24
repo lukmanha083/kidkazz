@@ -2,7 +2,7 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Package, TrendingUp, TrendingDown, Wallet, Boxes, AlertCircle, ShoppingCart, Loader2 } from 'lucide-react';
+import { Package, TrendingUp, TrendingDown, Wallet, Boxes, AlertCircle, ShoppingCart, Loader2, Calendar, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { productApi, categoryApi } from '@/lib/api';
 
@@ -108,6 +108,45 @@ function ProductsReportPage() {
     };
   }).filter(c => c.products > 0); // Only show categories with products
 
+  // Products approaching expiration
+  const today = new Date();
+  const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+  const expiringProducts = products
+    .filter(p => {
+      if (!p.expirationDate) return false;
+      const expirationDate = new Date(p.expirationDate);
+      return expirationDate >= today && expirationDate <= thirtyDaysFromNow;
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.expirationDate!).getTime();
+      const dateB = new Date(b.expirationDate!).getTime();
+      return dateA - dateB;
+    })
+    .slice(0, 5)
+    .map(p => ({
+      id: p.id,
+      name: p.name,
+      sku: p.sku,
+      expirationDate: p.expirationDate!,
+      alertDate: p.alertDate,
+      daysUntilExpiration: Math.ceil((new Date(p.expirationDate!).getTime() - today.getTime()) / (1000 * 60 * 60 * 24)),
+      status: p.status,
+    }));
+
+  const expiredProducts = products.filter(p => {
+    if (!p.expirationDate) return false;
+    return new Date(p.expirationDate) < today;
+  }).length;
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -193,7 +232,7 @@ function ProductsReportPage() {
       </div>
 
       {/* Alert Stats Row */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
@@ -213,6 +252,28 @@ function ProductsReportPage() {
           <CardContent>
             <div className="text-2xl font-bold text-destructive">{productStats.outOfStock}</div>
             <p className="text-xs text-muted-foreground">Critical</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Expiring Soon</CardTitle>
+            <Calendar className="h-4 w-4 text-orange-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">{expiringProducts.length}</div>
+            <p className="text-xs text-muted-foreground">Within 30 days</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Expired</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-destructive" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-destructive">{expiredProducts}</div>
+            <p className="text-xs text-muted-foreground">Needs removal</p>
           </CardContent>
         </Card>
       </div>
@@ -273,6 +334,85 @@ function ProductsReportPage() {
                 </tbody>
               </table>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Expiring Products Card - Full Width */}
+      {expiringProducts.length > 0 && (
+        <Card className="border-orange-200 dark:border-orange-900">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-orange-600" />
+              Expiration Alert
+            </CardTitle>
+            <CardDescription>Products expiring within the next 30 days</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {expiringProducts.map((product) => {
+                const isUrgent = product.daysUntilExpiration <= 7;
+                const isWarning = product.daysUntilExpiration <= 14 && product.daysUntilExpiration > 7;
+
+                return (
+                  <div
+                    key={product.id}
+                    className={`flex items-center justify-between p-4 border rounded-md ${
+                      isUrgent
+                        ? 'bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-900'
+                        : isWarning
+                        ? 'bg-orange-50 border-orange-200 dark:bg-orange-950/20 dark:border-orange-900'
+                        : 'bg-yellow-50 border-yellow-200 dark:bg-yellow-950/20 dark:border-yellow-900'
+                    }`}
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-sm">{product.name}</p>
+                        <Badge
+                          variant="outline"
+                          className={
+                            isUrgent
+                              ? 'bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-400'
+                              : isWarning
+                              ? 'bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-400'
+                              : 'bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400'
+                          }
+                        >
+                          {product.daysUntilExpiration} {product.daysUntilExpiration === 1 ? 'day' : 'days'} left
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground font-mono mt-1">{product.sku}</p>
+                      <div className="flex items-center gap-4 mt-2 text-xs">
+                        <div>
+                          <span className="text-muted-foreground">Expires: </span>
+                          <span className="font-medium">{formatDate(product.expirationDate)}</span>
+                        </div>
+                        {product.alertDate && (
+                          <div>
+                            <span className="text-muted-foreground">Alert: </span>
+                            <span className="font-medium">{formatDate(product.alertDate)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="ml-4">
+                      <Calendar className={`h-8 w-8 ${
+                        isUrgent
+                          ? 'text-red-600'
+                          : isWarning
+                          ? 'text-orange-600'
+                          : 'text-yellow-600'
+                      }`} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <Link to="/dashboard/products/all" className="block mt-4">
+              <Button variant="outline" className="w-full">
+                View All Products
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       )}

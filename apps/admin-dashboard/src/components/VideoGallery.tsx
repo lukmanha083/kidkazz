@@ -34,6 +34,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -90,6 +100,8 @@ export function VideoGallery({
   const [isDragging, setIsDragging] = useState(false);
   const [previewVideo, setPreviewVideo] = useState<ProductVideo | null>(null);
   const [uploadMode, setUploadMode] = useState<'r2' | 'stream'>(defaultMode);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [videoToDelete, setVideoToDelete] = useState<string | null>(null);
 
   // Fetch videos for this product
   const { data: videosData, isLoading } = useQuery({
@@ -251,8 +263,16 @@ export function VideoGallery({
 
   // Handle delete video
   const handleDeleteVideo = (videoId: string) => {
-    if (confirm('Are you sure you want to delete this video?')) {
-      deleteVideoMutation.mutate(videoId);
+    setVideoToDelete(videoId);
+    setDeleteDialogOpen(true);
+  };
+
+  // Confirm delete video
+  const confirmDeleteVideo = () => {
+    if (videoToDelete) {
+      deleteVideoMutation.mutate(videoToDelete);
+      setDeleteDialogOpen(false);
+      setVideoToDelete(null);
     }
   };
 
@@ -532,6 +552,33 @@ export function VideoGallery({
           </Badge>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the video
+              from {uploadMode === 'stream' ? 'Cloudflare Stream' : 'R2 storage'} and remove it from the database.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setDeleteDialogOpen(false);
+              setVideoToDelete(null);
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteVideo}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Video
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -361,29 +361,29 @@ export function VideoUpload({
     <div className="space-y-4">
       {/* Mode Selector */}
       <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-medium text-foreground">Upload Mode:</span>
+        <CardContent className="p-3">
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-medium text-muted-foreground">Upload Mode</span>
             <div className="flex gap-2">
               <Button
                 variant={uploadMode === 'stream' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => handleModeChange('stream')}
                 disabled={isUploading}
-                className="gap-2"
+                className="gap-1.5 text-xs h-8"
               >
-                <Cloud className="w-4 h-4" />
-                Stream (Optimized)
+                <Cloud className="w-3.5 h-3.5" />
+                Stream
               </Button>
               <Button
                 variant={uploadMode === 'r2' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => handleModeChange('r2')}
                 disabled={isUploading}
-                className="gap-2"
+                className="gap-1.5 text-xs h-8"
               >
-                <HardDrive className="w-4 h-4" />
-                R2 (Basic)
+                <HardDrive className="w-3.5 h-3.5" />
+                R2 Storage
               </Button>
             </div>
           </div>
