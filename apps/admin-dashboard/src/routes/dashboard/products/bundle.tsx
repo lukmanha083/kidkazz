@@ -35,6 +35,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Separator } from '@/components/ui/separator';
 import { Plus, Search, Edit, Trash2, Eye, X, Gift, Minus, Loader2 } from 'lucide-react';
 import { Combobox } from '@/components/ui/combobox';
 
