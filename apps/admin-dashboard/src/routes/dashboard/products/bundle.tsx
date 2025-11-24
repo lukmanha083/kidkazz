@@ -273,6 +273,37 @@ function ProductBundlePage() {
     }
   };
 
+  // Helper function: Generate bundle SKU from bundle name
+  const generateBundleSKU = (bundleName: string) => {
+    if (!bundleName) return '';
+
+    // Get first 2 letters from bundle name (remove special chars, convert to uppercase)
+    const nameCode = bundleName
+      .replace(/[^a-zA-Z]/g, '')
+      .toUpperCase()
+      .substring(0, 2)
+      .padEnd(2, 'A'); // Default to 'AA' if less than 2 letters
+
+    // Find existing bundles with the same prefix
+    const existingBundles = bundles.filter(b =>
+      b.bundleSKU.startsWith(nameCode + '-')
+    );
+
+    // Extract numbers from existing SKUs and find the highest
+    let maxNumber = 0;
+    existingBundles.forEach(b => {
+      const match = b.bundleSKU.match(/(\d+)$/);
+      if (match) {
+        const num = parseInt(match[1]);
+        if (num > maxNumber) maxNumber = num;
+      }
+    });
+
+    // Generate next number
+    const nextNumber = (maxNumber + 1).toString().padStart(3, '0');
+    return `${nameCode}-${nextNumber}`;
+  };
+
   // Calculate bundle totals
   const calculateOriginalPrice = (items: BundleItem[]) => {
     return items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -556,20 +587,50 @@ function ProductBundlePage() {
                 id="bundleName"
                 placeholder="Back to School Bundle"
                 value={formData.bundleName}
-                onChange={(e) => setFormData({ ...formData, bundleName: e.target.value })}
+                onChange={(e) => {
+                  const bundleName = e.target.value;
+                  setFormData({ ...formData, bundleName });
+                  // Auto-generate SKU only when adding new bundle (not editing)
+                  if (formMode === 'add' && bundleName) {
+                    const generatedSKU = generateBundleSKU(bundleName);
+                    setFormData(prev => ({ ...prev, bundleSKU: generatedSKU }));
+                  }
+                }}
                 required
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="bundleSKU">Bundle SKU *</Label>
-              <Input
-                id="bundleSKU"
-                placeholder="BUNDLE-001"
-                value={formData.bundleSKU}
-                onChange={(e) => setFormData({ ...formData, bundleSKU: e.target.value })}
-                required
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="bundleSKU"
+                  placeholder="BA-001"
+                  value={formData.bundleSKU}
+                  onChange={(e) => setFormData({ ...formData, bundleSKU: e.target.value })}
+                  required
+                  className="flex-1"
+                />
+                {formMode === 'add' && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      const generatedSKU = generateBundleSKU(formData.bundleName);
+                      setFormData({ ...formData, bundleSKU: generatedSKU });
+                      toast.success('SKU generated');
+                    }}
+                    disabled={!formData.bundleName}
+                  >
+                    Generate
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {formMode === 'add'
+                  ? 'SKU is auto-generated from bundle name. You can modify it if needed.'
+                  : 'Bundle SKU cannot be changed after creation.'}
+              </p>
             </div>
 
             <div className="space-y-2">
