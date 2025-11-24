@@ -1754,23 +1754,23 @@ function AllProductsPage() {
                   <Label className="text-sm font-medium">Added UOMs</Label>
                   <div className="space-y-2">
                     {productUOMs.map((uom) => (
-                      <div key={uom.id} className="flex items-center justify-between p-3 border rounded bg-background">
-                        <div className="flex-1 space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{uom.uomName} ({uom.uomCode})</span>
+                      <div key={uom.id} className="flex items-start justify-between gap-3 p-3 border rounded bg-background">
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-medium break-words">{uom.uomName} ({uom.uomCode})</span>
                             {uom.isDefault && (
                               <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
                                 Default
                               </Badge>
                             )}
                           </div>
-                          <div className="text-xs text-muted-foreground space-x-3">
-                            <span>Barcode: {uom.barcode}</span>
-                            <span>Stock: {uom.stock} {uom.uomCode}</span>
-                            <span>({uom.stock * uom.conversionFactor} PCS)</span>
+                          <div className="text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
+                            <span className="break-all">Barcode: {uom.barcode}</span>
+                            <span className="whitespace-nowrap">Stock: {uom.stock} {uom.uomCode}</span>
+                            <span className="whitespace-nowrap">({uom.stock * uom.conversionFactor} PCS)</span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 flex-shrink-0">
                           <Checkbox
                             checked={uom.isDefault}
                             onCheckedChange={() => handleSetDefaultUOM(uom.id)}

@@ -26,6 +26,24 @@ export function DatePicker({
   placeholder = "Pick a date",
   disabled = false,
 }: DatePickerProps) {
+  const handleDateChange = (selectedDate: Date | undefined) => {
+    if (selectedDate) {
+      // Normalize to local timezone midnight to avoid off-by-one errors
+      const normalizedDate = new Date(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth(),
+        selectedDate.getDate(),
+        12, // Set to noon to avoid timezone edge cases
+        0,
+        0,
+        0
+      );
+      onDateChange?.(normalizedDate);
+    } else {
+      onDateChange?.(undefined);
+    }
+  };
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -45,7 +63,7 @@ export function DatePicker({
         <Calendar
           mode="single"
           selected={date}
-          onSelect={onDateChange}
+          onSelect={handleDateChange}
           initialFocus
         />
       </PopoverContent>

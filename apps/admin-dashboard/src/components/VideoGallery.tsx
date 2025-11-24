@@ -306,13 +306,13 @@ export function VideoGallery({
                   <SelectItem value="r2">
                     <div className="flex items-center gap-2">
                       <HardDrive className="w-4 h-4" />
-                      <span>R2 Basic Storage (Cost-effective)</span>
+                      <span>R2</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="stream">
                     <div className="flex items-center gap-2">
                       <Cloud className="w-4 h-4" />
-                      <span>Cloudflare Stream (Optimized)</span>
+                      <span>Stream</span>
                     </div>
                   </SelectItem>
                 </SelectContent>
