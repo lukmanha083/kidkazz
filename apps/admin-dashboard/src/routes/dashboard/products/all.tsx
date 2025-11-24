@@ -73,6 +73,7 @@ import {
 import { ImageGallery } from '@/components/ImageGallery';
 import { VideoGallery } from '@/components/VideoGallery';
 import { DatePicker } from '@/components/ui/date-picker';
+import { ProductWarehouseAllocation, type WarehouseAllocation } from '@/components/products/ProductWarehouseAllocation';
 
 export const Route = createFileRoute('/dashboard/products/all')({
   component: AllProductsPage,
@@ -153,6 +154,9 @@ function AllProductsPage() {
   const [selectedUOM, setSelectedUOM] = useState('');
   const [uomBarcode, setUomBarcode] = useState('');
   const [uomStock, setUomStock] = useState('');
+
+  // Warehouse allocations state
+  const [warehouseAllocations, setWarehouseAllocations] = useState<WarehouseAllocation[]>([]);
 
   // Delete confirmation states
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -402,6 +406,7 @@ function AllProductsPage() {
     setSelectedUOM('');
     setUomBarcode('');
     setUomStock('');
+    setWarehouseAllocations([]); // Reset warehouse allocations
     setFormDrawerOpen(true);
   };
 
@@ -411,7 +416,7 @@ function AllProductsPage() {
     const fullProduct = await productApi.getById(product.id);
     setSelectedProduct(fullProduct);
 
-    // Get first location if exists (for editing)
+    // Get first location if exists (for backward compatibility)
     const firstLocation = fullProduct.productLocations?.[0];
 
     setFormData({
@@ -431,7 +436,7 @@ function AllProductsPage() {
       length: fullProduct.length?.toString() || '',
       width: fullProduct.width?.toString() || '',
       height: fullProduct.height?.toString() || '',
-      // Optional location fields - populate from first location if exists
+      // Optional location fields - kept for backward compatibility
       warehouseId: firstLocation?.warehouseId || '',
       rack: firstLocation?.rack || '',
       bin: firstLocation?.bin || '',
@@ -442,6 +447,22 @@ function AllProductsPage() {
     setSelectedUOM('');
     setUomBarcode('');
     setUomStock('');
+
+    // Load warehouse allocations from product locations
+    const allocations: WarehouseAllocation[] = (fullProduct.productLocations || []).map(location => {
+      const warehouse = warehouses.find(w => w.id === location.warehouseId);
+      return {
+        warehouseId: location.warehouseId,
+        warehouseName: warehouse?.name,
+        quantity: location.quantity,
+        rack: location.rack || undefined,
+        bin: location.bin || undefined,
+        zone: location.zone || undefined,
+        aisle: location.aisle || undefined,
+      };
+    });
+    setWarehouseAllocations(allocations);
+
     setFormDrawerOpen(true);
   };
 
@@ -666,22 +687,24 @@ function AllProductsPage() {
           }
         }
 
-        // If warehouse is selected, create location (optional)
-        if (formData.warehouseId) {
+        // Create multiple warehouse locations if allocated
+        if (warehouseAllocations.length > 0) {
           try {
-            await productLocationApi.create({
-              productId: createdProduct.id,
-              warehouseId: formData.warehouseId,
-              rack: formData.rack || null,
-              bin: formData.bin || null,
-              zone: formData.zone || null,
-              aisle: formData.aisle || null,
-              quantity: parseInt(formData.stock),
-            });
+            for (const allocation of warehouseAllocations) {
+              await productLocationApi.create({
+                productId: createdProduct.id,
+                warehouseId: allocation.warehouseId,
+                rack: allocation.rack || null,
+                bin: allocation.bin || null,
+                zone: allocation.zone || null,
+                aisle: allocation.aisle || null,
+                quantity: allocation.quantity,
+              });
+            }
           } catch (locationError) {
-            console.error('Failed to create product location:', locationError);
-            toast.info('Product created, but location could not be set', {
-              description: 'You can add the location later'
+            console.error('Failed to create product locations:', locationError);
+            toast.info('Product created, but some locations could not be set', {
+              description: 'You can add the locations later'
             });
           }
         }
@@ -751,42 +774,53 @@ function AllProductsPage() {
           }
         }
 
-        // Handle location update (optional)
-        if (formData.warehouseId) {
-          // Check if location already exists for this product-warehouse combo
+        // Sync warehouse locations
+        try {
           const existingLocations = selectedProduct.productLocations || [];
-          const existingLocation = existingLocations.find(
-            loc => loc.warehouseId === formData.warehouseId
-          );
 
-          try {
+          // Create or update allocations
+          for (const allocation of warehouseAllocations) {
+            const existingLocation = existingLocations.find(
+              loc => loc.warehouseId === allocation.warehouseId
+            );
+
             if (existingLocation) {
               // Update existing location
               await productLocationApi.update(existingLocation.id, {
-                rack: formData.rack || null,
-                bin: formData.bin || null,
-                zone: formData.zone || null,
-                aisle: formData.aisle || null,
-                quantity: parseInt(formData.stock),
+                rack: allocation.rack || null,
+                bin: allocation.bin || null,
+                zone: allocation.zone || null,
+                aisle: allocation.aisle || null,
+                quantity: allocation.quantity,
               });
             } else {
               // Create new location
               await productLocationApi.create({
                 productId: selectedProduct.id,
-                warehouseId: formData.warehouseId,
-                rack: formData.rack || null,
-                bin: formData.bin || null,
-                zone: formData.zone || null,
-                aisle: formData.aisle || null,
-                quantity: parseInt(formData.stock),
+                warehouseId: allocation.warehouseId,
+                rack: allocation.rack || null,
+                bin: allocation.bin || null,
+                zone: allocation.zone || null,
+                aisle: allocation.aisle || null,
+                quantity: allocation.quantity,
               });
             }
-          } catch (locationError) {
-            console.error('Failed to update product location:', locationError);
-            toast.info('Product updated, but location could not be set', {
-              description: 'You can update the location later'
-            });
           }
+
+          // Delete removed locations
+          for (const existingLocation of existingLocations) {
+            const stillExists = warehouseAllocations.find(
+              alloc => alloc.warehouseId === existingLocation.warehouseId
+            );
+            if (!stillExists) {
+              await productLocationApi.delete(existingLocation.id);
+            }
+          }
+        } catch (locationError) {
+          console.error('Failed to sync product locations:', locationError);
+          toast.info('Product updated, but some locations could not be synced', {
+            description: 'You can update the locations later'
+          });
         }
 
         queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -1875,78 +1909,14 @@ function AllProductsPage() {
 
             <Separator className="my-4" />
 
-            {/* Optional Location Section */}
-            <div className="space-y-4 border rounded-lg p-4 bg-muted/20">
-              <div className="flex items-start justify-between">
-                <div>
-                  <Label className="text-base font-semibold">Product Location (Optional)</Label>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Set the warehouse and precise location for this product. This is optional and can be added later.
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="warehouseId">Warehouse</Label>
-                <select
-                  id="warehouseId"
-                  value={formData.warehouseId}
-                  onChange={(e) => setFormData({ ...formData, warehouseId: e.target.value })}
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                >
-                  <option value="">No warehouse selected</option>
-                  {warehouses.map(warehouse => (
-                    <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {formData.warehouseId && (
-                <>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="rack">Rack (Optional)</Label>
-                      <Input
-                        id="rack"
-                        placeholder="A1, B3, R-01"
-                        value={formData.rack}
-                        onChange={(e) => setFormData({ ...formData, rack: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="bin">Bin (Optional)</Label>
-                      <Input
-                        id="bin"
-                        placeholder="01, A, TOP"
-                        value={formData.bin}
-                        onChange={(e) => setFormData({ ...formData, bin: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="zone">Zone (Optional)</Label>
-                      <Input
-                        id="zone"
-                        placeholder="Zone A, Cold Storage"
-                        value={formData.zone}
-                        onChange={(e) => setFormData({ ...formData, zone: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="aisle">Aisle (Optional)</Label>
-                      <Input
-                        id="aisle"
-                        placeholder="1, 2A, Main"
-                        value={formData.aisle}
-                        onChange={(e) => setFormData({ ...formData, aisle: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
+            {/* Multi-Warehouse Allocation Section */}
+            <ProductWarehouseAllocation
+              warehouses={warehouses}
+              allocations={warehouseAllocations}
+              onAllocationsChange={setWarehouseAllocations}
+              totalStock={parseInt(formData.stock) || 0}
+              readOnly={false}
+            />
 
             <DrawerFooter className="px-0">
               <Button
