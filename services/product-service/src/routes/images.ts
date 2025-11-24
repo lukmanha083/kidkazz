@@ -7,8 +7,12 @@
 
 import { Hono } from 'hono';
 import { ImageService } from '../infrastructure/image-service';
+import { drizzle } from 'drizzle-orm/d1';
+import { productImages } from '../infrastructure/db/schema';
+import { eq } from 'drizzle-orm';
 
 type Bindings = {
+  DB: D1Database;
   PRODUCT_IMAGES: R2Bucket;
   IMAGE_CACHE: KVNamespace;
 };
@@ -53,13 +57,16 @@ app.post('/upload', async (c) => {
     const isPrimary = isPrimaryStr === 'true';
     const sortOrder = sortOrderStr ? parseInt(sortOrderStr, 10) : undefined;
 
+    // Initialize database
+    const db = drizzle(c.env.DB);
+
     // Initialize image service
     const imageService = new ImageService(
       c.env.PRODUCT_IMAGES,
       c.env.IMAGE_CACHE
     );
 
-    // Upload image
+    // Upload image to R2
     const result = await imageService.uploadImage(
       productId,
       file,
@@ -73,10 +80,50 @@ app.post('/upload', async (c) => {
       }
     );
 
+    // If this is set as primary, unset all other primary images for this product
+    if (isPrimary) {
+      await db.update(productImages)
+        .set({ isPrimary: false })
+        .where(eq(productImages.productId, productId));
+    }
+
+    // Get the next sort order if not provided
+    let finalSortOrder = sortOrder;
+    if (finalSortOrder === undefined) {
+      const existingImages = await db.select()
+        .from(productImages)
+        .where(eq(productImages.productId, productId));
+      finalSortOrder = existingImages.length;
+    }
+
+    // Save image metadata to database
+    const imageId = `img-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const now = new Date();
+
+    await db.insert(productImages).values({
+      id: imageId,
+      productId,
+      filename: result.filename,
+      originalName: file.name,
+      mimeType: file.type,
+      size: file.size,
+      isPrimary,
+      sortOrder: finalSortOrder,
+      cropArea: cropArea ? JSON.stringify(cropArea) : null,
+      thumbnailUrl: result.sizes.thumbnail,
+      mediumUrl: result.sizes.medium,
+      largeUrl: result.sizes.large,
+      originalUrl: result.sizes.original,
+      uploadedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
+
     return c.json({
       success: true,
       message: 'Image uploaded successfully',
       image: {
+        id: imageId,
         filename: result.filename,
         urls: result.sizes,
         metadata: result.metadata,
@@ -90,6 +137,51 @@ app.post('/upload', async (c) => {
     }
 
     return c.json({ error: 'Failed to upload image' }, 500);
+  }
+});
+
+/**
+ * GET /api/images/product/:productId
+ *
+ * Get all images for a product
+ */
+app.get('/product/:productId', async (c) => {
+  try {
+    const productId = c.req.param('productId');
+    const db = drizzle(c.env.DB);
+
+    // Fetch all images for the product, ordered by sortOrder
+    const images = await db.select()
+      .from(productImages)
+      .where(eq(productImages.productId, productId))
+      .orderBy(productImages.sortOrder);
+
+    return c.json({
+      success: true,
+      images: images.map(img => ({
+        id: img.id,
+        productId: img.productId,
+        filename: img.filename,
+        originalName: img.originalName,
+        mimeType: img.mimeType,
+        size: img.size,
+        isPrimary: img.isPrimary,
+        sortOrder: img.sortOrder,
+        cropArea: img.cropArea ? JSON.parse(img.cropArea as string) : null,
+        urls: {
+          thumbnail: img.thumbnailUrl,
+          medium: img.mediumUrl,
+          large: img.largeUrl,
+          original: img.originalUrl,
+        },
+        uploadedAt: img.uploadedAt,
+        createdAt: img.createdAt,
+        updatedAt: img.updatedAt,
+      })),
+    });
+  } catch (error) {
+    console.error('Fetch product images error:', error);
+    return c.json({ error: 'Failed to fetch product images' }, 500);
   }
 });
 
@@ -142,13 +234,25 @@ app.get('/:filename{.+}', async (c) => {
 });
 
 /**
- * DELETE /api/images/:filename
+ * DELETE /api/images/image/:imageId
  *
- * Delete image and clear cache
+ * Delete image by ID (from database and R2)
  */
-app.delete('/:filename{.+}', async (c) => {
+app.delete('/image/:imageId', async (c) => {
   try {
-    const filename = c.req.param('filename');
+    const imageId = c.req.param('imageId');
+    const db = drizzle(c.env.DB);
+
+    // Get image metadata from database
+    const images = await db.select()
+      .from(productImages)
+      .where(eq(productImages.id, imageId));
+
+    if (images.length === 0) {
+      return c.json({ error: 'Image not found' }, 404);
+    }
+
+    const image = images[0];
 
     // Initialize image service
     const imageService = new ImageService(
@@ -156,8 +260,12 @@ app.delete('/:filename{.+}', async (c) => {
       c.env.IMAGE_CACHE
     );
 
-    // Delete image
-    await imageService.deleteImage(filename);
+    // Delete image from R2 and cache
+    await imageService.deleteImage(image.filename);
+
+    // Delete from database
+    await db.delete(productImages)
+      .where(eq(productImages.id, imageId));
 
     return c.json({
       success: true,
@@ -174,9 +282,10 @@ app.delete('/:filename{.+}', async (c) => {
  *
  * Delete all images for a product
  */
-app.delete('/product/:productId', async (c) => {
+app.delete('/product/delete/:productId', async (c) => {
   try {
     const productId = c.req.param('productId');
+    const db = drizzle(c.env.DB);
 
     // Initialize image service
     const imageService = new ImageService(
@@ -184,8 +293,12 @@ app.delete('/product/:productId', async (c) => {
       c.env.IMAGE_CACHE
     );
 
-    // Delete all product images
+    // Delete all product images from R2
     await imageService.deleteProductImages(productId);
+
+    // Delete all product images from database
+    await db.delete(productImages)
+      .where(eq(productImages.productId, productId));
 
     return c.json({
       success: true,
