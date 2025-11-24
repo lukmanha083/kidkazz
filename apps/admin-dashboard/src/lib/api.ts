@@ -281,6 +281,7 @@ export interface Product {
   baseUnit: string;
   wholesaleThreshold: number;
   minimumOrderQuantity: number;
+  minimumStock?: number | null; // Minimum stock threshold for alert reports
   weight?: number | null; // NEW: in kg
   length?: number | null; // NEW: in cm (panjang)
   width?: number | null; // NEW: in cm (lebar)
@@ -319,6 +320,7 @@ export interface CreateProductInput {
   baseUnit?: string;
   wholesaleThreshold?: number;
   minimumOrderQuantity?: number;
+  minimumStock?: number; // Minimum stock threshold for alert reports
   rating?: number;
   reviews?: number;
   availableForRetail?: boolean;

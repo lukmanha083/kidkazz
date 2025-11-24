@@ -22,6 +22,13 @@
       "when": 1732376280000,
       "tag": "0006_seed_common_uoms",
       "breakpoints": false
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1732377600000,
+      "tag": "0007_add_minimum_stock_to_products",
+      "breakpoints": true
     }
   ]
 }

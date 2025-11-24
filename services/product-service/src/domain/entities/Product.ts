@@ -25,6 +25,7 @@ interface ProductProps {
   baseUnit: string;
   wholesaleThreshold: number;
   minimumOrderQuantity: number;
+  minimumStock?: number; // Minimum stock threshold for alert reports
   physicalAttributes?: PhysicalAttributes; // NEW: Physical dimensions and weight
   rating: number;
   reviews: number;
@@ -66,6 +67,7 @@ export class Product extends AggregateRoot {
     baseUnit: string;
     wholesaleThreshold?: number;
     minimumOrderQuantity?: number;
+    minimumStock?: number;
     physicalAttributes?: { weight: number; length: number; width: number; height: number }; // NEW
     availableForRetail?: boolean;
     availableForWholesale?: boolean;
@@ -100,6 +102,7 @@ export class Product extends AggregateRoot {
       baseUnit: input.baseUnit,
       wholesaleThreshold: input.wholesaleThreshold || 10,
       minimumOrderQuantity: input.minimumOrderQuantity || 1,
+      minimumStock: input.minimumStock,
       physicalAttributes, // NEW
       rating: 0,
       reviews: 0,
@@ -138,6 +141,7 @@ export class Product extends AggregateRoot {
     baseUnit: string;
     wholesaleThreshold: number;
     minimumOrderQuantity: number;
+    minimumStock?: number;
     weight?: number; // NEW
     length?: number; // NEW
     width?: number; // NEW
@@ -180,6 +184,7 @@ export class Product extends AggregateRoot {
       baseUnit: data.baseUnit,
       wholesaleThreshold: data.wholesaleThreshold,
       minimumOrderQuantity: data.minimumOrderQuantity,
+      minimumStock: data.minimumStock,
       physicalAttributes, // NEW
       rating: data.rating,
       reviews: data.reviews,
@@ -331,6 +336,7 @@ export class Product extends AggregateRoot {
   public getStatus(): ProductStatus { return this.props.status; }
   public getBarcode(): string { return this.props.barcode; }
   public getCategoryId(): string | undefined { return this.props.categoryId; }
+  public getMinimumStock(): number | undefined { return this.props.minimumStock; }
 
   /**
    * Get physical attributes (weight and dimensions)
@@ -385,6 +391,7 @@ export class Product extends AggregateRoot {
       baseUnit: this.props.baseUnit,
       wholesaleThreshold: this.props.wholesaleThreshold,
       minimumOrderQuantity: this.props.minimumOrderQuantity,
+      minimumStock: this.props.minimumStock,
       weight: physicalData.weight, // NEW
       length: physicalData.length, // NEW
       width: physicalData.width, // NEW

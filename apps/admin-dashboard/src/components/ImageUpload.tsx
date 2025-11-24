@@ -192,7 +192,8 @@ export function ImageUpload({
         // Success
         setUploadSuccess(true);
         onUploadSuccess?.(result.image);
-        setPreview(result.image.urls.medium); // Show medium size preview
+        // Show medium size preview with full URL
+        setPreview(`${PRODUCT_SERVICE_URL}${result.image.urls.medium}`);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Upload failed';
         setError(errorMessage);
