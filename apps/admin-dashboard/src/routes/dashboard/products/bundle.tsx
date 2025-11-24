@@ -89,8 +89,6 @@ function ProductBundlePage() {
     discountPercentage: '',
     availableStock: '',
     status: 'active' as 'active' | 'inactive',
-    startDate: '',
-    endDate: '',
   });
 
   // Selected products for the bundle
@@ -151,17 +149,20 @@ function ProductBundlePage() {
     },
   });
 
-  // Available products for combobox
+  // Available products for combobox - only show products with base UOM (PCS)
   const availableProducts = useMemo(() => {
-    return products.map(p => ({
-      value: p.id,
-      label: `${p.name} (${p.sku})`,
-      barcode: p.barcode,
-      name: p.name,
-      sku: p.sku,
-      price: p.price,
-      stock: p.stock,
-    }));
+    return products
+      .filter(p => p.baseUnit === 'PCS') // Only allow base UOM (PCS) for bundles
+      .map(p => ({
+        value: p.id,
+        label: `${p.name} (${p.sku}) - Stock: ${p.stock} PCS`,
+        barcode: p.barcode,
+        name: p.name,
+        sku: p.sku,
+        price: p.price,
+        stock: p.stock,
+        baseUnit: p.baseUnit,
+      }));
   }, [products]);
 
   const handleViewBundle = async (bundle: ProductBundle) => {
@@ -184,8 +185,6 @@ function ProductBundlePage() {
       discountPercentage: '0',
       availableStock: '',
       status: 'active',
-      startDate: '',
-      endDate: '',
     });
     setSelectedProducts([]);
     setFormDrawerOpen(true);
@@ -203,8 +202,6 @@ function ProductBundlePage() {
       discountPercentage: bundle.discountPercentage.toString(),
       availableStock: bundle.availableStock.toString(),
       status: bundle.status,
-      startDate: bundle.startDate || '',
-      endDate: bundle.endDate || '',
     });
     // Fetch bundle items
     const { items } = await bundleApi.getById(bundle.id);
@@ -219,6 +216,23 @@ function ProductBundlePage() {
 
     const quantity = parseInt(productQuantity) || 1;
 
+    // Validate: Only allow base UOM (PCS)
+    if (product.baseUnit !== 'PCS') {
+      toast.error('Only products with base UOM (PCS) can be added to bundles', {
+        description: 'Custom UOMs are not supported for product bundles.',
+      });
+      return;
+    }
+
+    // Check if product already exists in bundle
+    const existingProduct = selectedProducts.find(p => p.productId === product.id);
+    if (existingProduct) {
+      toast.error('Product already added to bundle', {
+        description: 'You can modify the quantity of existing products.',
+      });
+      return;
+    }
+
     setSelectedProducts([...selectedProducts, {
       productId: product.id,
       productSKU: product.sku,
@@ -226,6 +240,8 @@ function ProductBundlePage() {
       barcode: product.barcode,
       quantity,
       price: product.price,
+      stock: product.stock, // Add stock information
+      baseUnit: product.baseUnit, // Add base unit
     }]);
 
     setSelectedProductSKU('');
@@ -253,8 +269,6 @@ function ProductBundlePage() {
       discountPercentage: parseFloat(formData.discountPercentage) || 0,
       status: formData.status,
       availableStock: parseInt(formData.availableStock) || 0,
-      startDate: formData.startDate || null,
-      endDate: formData.endDate || null,
       items: selectedProducts,
     };
 
@@ -722,9 +736,16 @@ function ProductBundlePage() {
               <div className="space-y-2 mt-4">
                 {selectedProducts.map((item, index) => (
                   <div key={index} className="flex items-center justify-between p-2 border rounded bg-muted/50">
-                    <div>
+                    <div className="flex-1">
                       <p className="font-medium">{item.productName}</p>
-                      <p className="text-sm text-muted-foreground">{item.productSKU} × {item.quantity}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {item.productSKU} × {item.quantity}
+                        {item.stock !== undefined && (
+                          <span className="ml-2 text-xs">
+                            (Available: <span className="font-semibold">{item.stock} PCS</span>)
+                          </span>
+                        )}
+                      </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <p className="font-medium">{formatRupiah(item.price * item.quantity)}</p>
@@ -741,7 +762,7 @@ function ProductBundlePage() {
                 ))}
                 {selectedProducts.length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    No products added yet
+                    No products added yet. Only products with base UOM (PCS) can be added.
                   </p>
                 )}
               </div>
@@ -794,28 +815,9 @@ function ProductBundlePage() {
                 value={formData.availableStock}
                 onChange={(e) => setFormData({ ...formData, availableStock: e.target.value })}
               />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="startDate">Start Date</Label>
-                <Input
-                  id="startDate"
-                  type="date"
-                  value={formData.startDate}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="endDate">End Date</Label>
-                <Input
-                  id="endDate"
-                  type="date"
-                  value={formData.endDate}
-                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                />
-              </div>
+              <p className="text-xs text-muted-foreground">
+                Product bundles have no expiration date. Stock is managed separately.
+              </p>
             </div>
 
             <DrawerFooter className="px-0">

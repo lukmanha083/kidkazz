@@ -135,6 +135,9 @@ function AllProductsPage() {
     length: '',
     width: '',
     height: '',
+    // Product expiration and alert dates
+    expirationDate: '',
+    alertDate: '',
     // Optional location fields
     warehouseId: '',
     rack: '',
@@ -628,6 +631,9 @@ function AllProductsPage() {
       length: formData.length ? parseFloat(formData.length) : undefined,
       width: formData.width ? parseFloat(formData.width) : undefined,
       height: formData.height ? parseFloat(formData.height) : undefined,
+      // Product expiration and alert dates
+      expirationDate: formData.expirationDate || undefined,
+      alertDate: formData.alertDate || undefined,
     };
 
     if (formMode === 'add') {
@@ -1624,6 +1630,62 @@ function AllProductsPage() {
                     value={formData.height}
                     onChange={(e) => setFormData({ ...formData, height: e.target.value })}
                   />
+                </div>
+              </div>
+            </div>
+
+            <Separator className="my-4" />
+
+            {/* Product Expiration Section */}
+            <div className="space-y-4 border rounded-lg p-4 bg-muted/20">
+              <div>
+                <Label className="text-base font-semibold">Product Expiration &amp; Alert</Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Set expiration date and alert date for product lifecycle management
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="alertDate">Alert Date</Label>
+                  <Input
+                    id="alertDate"
+                    type="date"
+                    value={formData.alertDate}
+                    onChange={(e) => {
+                      const alertDate = e.target.value;
+                      // Validate: alert date should be before expiration date
+                      if (formData.expirationDate && alertDate >= formData.expirationDate) {
+                        toast.error('Alert date must be before expiration date');
+                        return;
+                      }
+                      setFormData({ ...formData, alertDate });
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Date to receive notification before expiration
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="expirationDate">Expiration Date</Label>
+                  <Input
+                    id="expirationDate"
+                    type="date"
+                    value={formData.expirationDate}
+                    onChange={(e) => {
+                      const expirationDate = e.target.value;
+                      // Validate: expiration date should be after alert date
+                      if (formData.alertDate && expirationDate <= formData.alertDate) {
+                        toast.error('Expiration date must be after alert date');
+                        return;
+                      }
+                      setFormData({ ...formData, expirationDate });
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Date when product expires or should be removed
+                  </p>
                 </div>
               </div>
             </div>

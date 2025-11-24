@@ -286,6 +286,8 @@ export interface Product {
   length?: number | null; // NEW: in cm (panjang)
   width?: number | null; // NEW: in cm (lebar)
   height?: number | null; // NEW: in cm (tinggi)
+  expirationDate?: string | null; // Product expiration date (ISO date string)
+  alertDate?: string | null; // Alert date for notification before expiration (ISO date string)
   rating: number;
   reviews: number;
   availableForRetail: boolean;
@@ -316,6 +318,8 @@ export interface CreateProductInput {
   length?: number; // NEW: in cm
   width?: number; // NEW: in cm
   height?: number; // NEW: in cm
+  expirationDate?: string; // Product expiration date (ISO date string)
+  alertDate?: string; // Alert date for notification before expiration (ISO date string)
   stock?: number;
   baseUnit?: string;
   wholesaleThreshold?: number;
@@ -453,6 +457,8 @@ export interface BundleItem {
   barcode: string;
   quantity: number;
   price: number;
+  stock?: number; // Available stock (only for display, not stored in DB)
+  baseUnit?: string; // Base unit of measure (only for display, not stored in DB)
   createdAt?: Date;
 }
 
@@ -466,8 +472,6 @@ export interface ProductBundle {
   discountPercentage: number;
   status: 'active' | 'inactive';
   availableStock: number;
-  startDate?: string | null;
-  endDate?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -481,8 +485,6 @@ export interface CreateBundleInput {
   discountPercentage: number;
   status?: 'active' | 'inactive';
   availableStock?: number;
-  startDate?: string | null;
-  endDate?: string | null;
   items: BundleItem[];
 }
 

@@ -80,6 +80,10 @@ export const products = sqliteTable('products', {
   status: text('status').default('active'), // 'active' | 'inactive' | 'discontinued'
   isBundle: integer('is_bundle', { mode: 'boolean' }).default(false),
 
+  // Product Expiration and Alert
+  expirationDate: text('expiration_date'), // ISO date string - product expiration date
+  alertDate: text('alert_date'), // ISO date string - alert/notification date (must be before expiration date)
+
   // Accounting Integration (links to Accounting Service Chart of Accounts)
   revenueAccountId: text('revenue_account_id'), // Revenue account for sales
   revenueAccountCode: text('revenue_account_code'), // e.g., "4010" - Product Sales
@@ -162,6 +166,7 @@ export const productVariants = sqliteTable('product_variants', {
 /**
  * Product Bundles table
  * Bundled product packages with discounts
+ * Note: Product bundles do not have expiration dates as per business requirements
  */
 export const productBundles = sqliteTable('product_bundles', {
   id: text('id').primaryKey(),
@@ -177,10 +182,6 @@ export const productBundles = sqliteTable('product_bundles', {
   // Availability
   status: text('status').default('active').notNull(), // 'active' | 'inactive'
   availableStock: integer('available_stock').default(0).notNull(),
-
-  // Dates
-  startDate: text('start_date'), // ISO date string
-  endDate: text('end_date'), // ISO date string
 
   // Audit fields
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
