@@ -31,8 +31,6 @@ const createBundleSchema = z.object({
   discountPercentage: z.number().min(0).max(100),
   status: z.enum(['active', 'inactive']).default('active'),
   availableStock: z.number().int().min(0).default(0),
-  startDate: z.string().optional().nullable(),
-  endDate: z.string().optional().nullable(),
   items: z.array(bundleItemSchema).min(1, 'Bundle must contain at least one product'),
 });
 
@@ -97,8 +95,6 @@ app.post('/', zValidator('json', createBundleSchema), async (c) => {
     discountPercentage: data.discountPercentage,
     status: data.status,
     availableStock: data.availableStock,
-    startDate: data.startDate || null,
-    endDate: data.endDate || null,
     createdAt: now,
     updatedAt: now,
   };
