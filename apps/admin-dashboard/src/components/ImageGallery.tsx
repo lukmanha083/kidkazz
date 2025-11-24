@@ -3,14 +3,16 @@
  *
  * Features:
  * - Multiple images per product
+ * - Fetch images from database
  * - Drag & drop reordering
  * - Primary image selection
  * - Image preview modal
- * - Bulk upload support
+ * - Upload with compression
  * - Delete confirmation
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Upload,
   X,
@@ -18,13 +20,20 @@ import {
   Trash2,
   GripVertical,
   Eye,
-  Crop,
+  Loader2,
 } from 'lucide-react';
-import { ImageCropper, type CropArea } from './ImageCropper';
+import { toast } from 'sonner';
+
+const PRODUCT_SERVICE_URL =
+  import.meta.env.VITE_PRODUCT_SERVICE_URL || 'http://localhost:8788';
 
 export interface ProductImage {
   id: string;
+  productId: string;
   filename: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
   urls: {
     thumbnail: string;
     medium: string;
@@ -33,30 +42,63 @@ export interface ProductImage {
   };
   isPrimary: boolean;
   sortOrder: number;
+  uploadedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 interface ImageGalleryProps {
   productId: string;
-  images: ProductImage[];
-  onImagesChange: (images: ProductImage[]) => void;
   maxImages?: number;
 }
 
 export function ImageGallery({
   productId,
-  images,
-  onImagesChange,
   maxImages = 10,
 }: ImageGalleryProps) {
+  const queryClient = useQueryClient();
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [previewImage, setPreviewImage] = useState<ProductImage | null>(null);
-  const [cropImage, setCropImage] = useState<{
-    url: string;
-    file: File;
-    tempId: string;
-  } | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
+  // Fetch images for this product
+  const { data: imagesData, isLoading } = useQuery({
+    queryKey: ['product-images', productId],
+    queryFn: async () => {
+      const response = await fetch(`${PRODUCT_SERVICE_URL}/api/images/product/${productId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch images');
+      }
+      const data = await response.json();
+      return data.images as ProductImage[];
+    },
+    enabled: !!productId,
+  });
+
+  const images = imagesData || [];
+
+  // Delete image mutation
+  const deleteImageMutation = useMutation({
+    mutationFn: async (imageId: string) => {
+      const response = await fetch(`${PRODUCT_SERVICE_URL}/api/images/image/${imageId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to delete image');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['product-images', productId] });
+      toast.success('Image deleted successfully');
+    },
+    onError: (error: Error) => {
+      toast.error('Failed to delete image', {
+        description: error.message,
+      });
+    },
+  });
 
   /**
    * Handle file selection
