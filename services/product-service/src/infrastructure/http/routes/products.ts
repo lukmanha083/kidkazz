@@ -3,7 +3,7 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { drizzle } from 'drizzle-orm/d1';
 import { eq, and, like } from 'drizzle-orm';
-import { products, productVariants, productUOMs, productLocations } from '../../db/schema';
+import { products, productVariants, productUOMs, productLocations, productUOMLocations } from '../../db/schema';
 import { generateId } from '../../../shared/utils/helpers';
 
 type Bindings = {
@@ -39,6 +39,9 @@ const createProductSchema = z.object({
   length: z.number().optional().nullable(),
   width: z.number().optional().nullable(),
   height: z.number().optional().nullable(),
+  // Product expiration tracking
+  expirationDate: z.string().optional().nullable(), // ISO date string
+  alertDate: z.string().optional().nullable(), // ISO date string (should be before expiration)
 });
 
 const updateProductSchema = createProductSchema.partial();
@@ -346,6 +349,257 @@ app.patch('/:id/stock', zValidator('json', z.object({
     .run();
 
   return c.json({ message: 'Stock updated successfully' });
+});
+
+// POST /api/products/:id/deduct-sale - Deduct stock for sales order
+// This endpoint handles UOM-based sales and updates all related tables atomically
+app.post('/:id/deduct-sale', zValidator('json', z.object({
+  uomCode: z.string(), // e.g., 'PCS', 'BOX6', 'CARTON18'
+  warehouseId: z.string(),
+  quantity: z.number().int().positive(), // Quantity in the specified UOM
+  orderId: z.string().optional(), // Reference to sales order
+  reason: z.string().optional(),
+})), async (c) => {
+  const productId = c.req.param('id');
+  const { uomCode, warehouseId, quantity, orderId, reason } = c.req.valid('json');
+  const db = drizzle(c.env.DB);
+
+  try {
+    // 1. Get product
+    const product = await db
+      .select()
+      .from(products)
+      .where(eq(products.id, productId))
+      .get();
+
+    if (!product) {
+      return c.json({ error: 'Product not found' }, 404);
+    }
+
+    // 2. Get the specific UOM for this product
+    const productUOM = await db
+      .select()
+      .from(productUOMs)
+      .where(
+        and(
+          eq(productUOMs.productId, productId),
+          eq(productUOMs.uomCode, uomCode)
+        )
+      )
+      .get();
+
+    if (!productUOM) {
+      return c.json({
+        error: 'Product UOM not found',
+        message: `UOM "${uomCode}" not configured for this product`
+      }, 404);
+    }
+
+    const conversionFactor = productUOM.conversionFactor;
+    const baseUnitsToDeduct = quantity * conversionFactor;
+
+    // 3. Get UOM location at the warehouse
+    const uomLocation = await db
+      .select()
+      .from(productUOMLocations)
+      .where(
+        and(
+          eq(productUOMLocations.productUOMId, productUOM.id),
+          eq(productUOMLocations.warehouseId, warehouseId)
+        )
+      )
+      .get();
+
+    if (!uomLocation) {
+      return c.json({
+        error: 'UOM location not found',
+        message: `${uomCode} not available at this warehouse`
+      }, 404);
+    }
+
+    if (uomLocation.quantity < quantity) {
+      return c.json({
+        error: 'Insufficient UOM stock',
+        message: `Requested ${quantity} ${uomCode}, but only ${uomLocation.quantity} available at this warehouse`,
+        available: uomLocation.quantity,
+        requested: quantity
+      }, 400);
+    }
+
+    // 4. Get product location at the warehouse
+    const productLocation = await db
+      .select()
+      .from(productLocations)
+      .where(
+        and(
+          eq(productLocations.productId, productId),
+          eq(productLocations.warehouseId, warehouseId)
+        )
+      )
+      .get();
+
+    if (!productLocation) {
+      return c.json({
+        error: 'Product location not found',
+        message: 'Product not available at this warehouse'
+      }, 404);
+    }
+
+    if (productLocation.quantity < baseUnitsToDeduct) {
+      return c.json({
+        error: 'Insufficient base unit stock',
+        message: `Need ${baseUnitsToDeduct} base units, but only ${productLocation.quantity} available`,
+        available: productLocation.quantity,
+        required: baseUnitsToDeduct
+      }, 400);
+    }
+
+    // 5. Perform atomic updates (all or nothing)
+    const now = new Date();
+
+    // Update product_uom_locations (deduct UOM at warehouse)
+    await db
+      .update(productUOMLocations)
+      .set({
+        quantity: uomLocation.quantity - quantity,
+        updatedAt: now,
+      })
+      .where(eq(productUOMLocations.id, uomLocation.id))
+      .run();
+
+    // Update product_uoms (aggregate UOM stock)
+    await db
+      .update(productUOMs)
+      .set({
+        stock: productUOM.stock - quantity,
+        updatedAt: now,
+      })
+      .where(eq(productUOMs.id, productUOM.id))
+      .run();
+
+    // Update product_locations (deduct base units at warehouse)
+    await db
+      .update(productLocations)
+      .set({
+        quantity: productLocation.quantity - baseUnitsToDeduct,
+        updatedAt: now,
+      })
+      .where(eq(productLocations.id, productLocation.id))
+      .run();
+
+    // Update products (aggregate product stock in base units)
+    await db
+      .update(products)
+      .set({
+        stock: product.stock - baseUnitsToDeduct,
+        updatedAt: now,
+      })
+      .where(eq(products.id, productId))
+      .run();
+
+    // Return success with detailed information
+    return c.json({
+      success: true,
+      message: 'Stock deducted successfully',
+      deduction: {
+        productId,
+        productName: product.name,
+        uomCode,
+        uomQuantityDeducted: quantity,
+        baseUnitsDeducted: baseUnitsToDeduct,
+        warehouseId,
+        orderId: orderId || null,
+        reason: reason || 'Sales order',
+      },
+      remainingStock: {
+        uomAtWarehouse: uomLocation.quantity - quantity,
+        baseUnitsAtWarehouse: productLocation.quantity - baseUnitsToDeduct,
+        totalUOM: productUOM.stock - quantity,
+        totalBaseUnits: product.stock - baseUnitsToDeduct,
+      },
+    }, 200);
+
+  } catch (error) {
+    console.error('Sales deduction error:', error);
+    return c.json({
+      error: 'SALES_DEDUCTION_FAILED',
+      message: 'Failed to deduct stock. Transaction rolled back.',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    }, 500);
+  }
+});
+
+// GET /api/products/:id/uom-warehouse-stock - Get UOM stock breakdown by warehouse
+app.get('/:id/uom-warehouse-stock', async (c) => {
+  const productId = c.req.param('id');
+  const db = drizzle(c.env.DB);
+
+  // Get product
+  const product = await db
+    .select()
+    .from(products)
+    .where(eq(products.id, productId))
+    .get();
+
+  if (!product) {
+    return c.json({ error: 'Product not found' }, 404);
+  }
+
+  // Get all UOMs for this product
+  const uoms = await db
+    .select()
+    .from(productUOMs)
+    .where(eq(productUOMs.productId, productId))
+    .all();
+
+  // Get all UOM locations for this product
+  const uomLocations = [];
+  for (const uom of uoms) {
+    const locations = await db
+      .select()
+      .from(productUOMLocations)
+      .where(eq(productUOMLocations.productUOMId, uom.id))
+      .all();
+
+    uomLocations.push({
+      uomCode: uom.uomCode,
+      uomName: uom.uomName,
+      conversionFactor: uom.conversionFactor,
+      totalStock: uom.stock,
+      warehouseStocks: locations.map(loc => ({
+        warehouseId: loc.warehouseId,
+        quantity: loc.quantity,
+        rack: loc.rack,
+        bin: loc.bin,
+        zone: loc.zone,
+        aisle: loc.aisle,
+      })),
+    });
+  }
+
+  // Get base unit (PCS) locations
+  const baseLocations = await db
+    .select()
+    .from(productLocations)
+    .where(eq(productLocations.productId, productId))
+    .all();
+
+  return c.json({
+    productId,
+    productName: product.name,
+    productSKU: product.sku,
+    baseUnit: product.baseUnit,
+    totalStock: product.stock,
+    uomStocks: uomLocations,
+    baseUnitLocations: baseLocations.map(loc => ({
+      warehouseId: loc.warehouseId,
+      quantity: loc.quantity,
+      rack: loc.rack,
+      bin: loc.bin,
+      zone: loc.zone,
+      aisle: loc.aisle,
+    })),
+  });
 });
 
 // DELETE /api/products/:id - Delete product
