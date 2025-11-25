@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { bundleApi, productApi, warehouseApi, type ProductBundle, type BundleItem, type CreateBundleInput, type Product } from '@/lib/api';
+import { bundleApi, productApi, warehouseApi, productLocationApi, type ProductBundle, type BundleItem, type CreateBundleInput, type Product } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -79,6 +79,14 @@ function ProductBundlePage() {
   });
 
   const warehouses = warehousesData?.warehouses || [];
+
+  // Fetch all product locations to filter products by warehouse
+  const { data: productLocationsData } = useQuery({
+    queryKey: ['productLocations'],
+    queryFn: () => productLocationApi.getAll(),
+  });
+
+  const productLocations = productLocationsData?.locations || [];
 
   const [searchTerm, setSearchTerm] = useState('');
   const [viewDrawerOpen, setViewDrawerOpen] = useState(false);
@@ -158,21 +166,49 @@ function ProductBundlePage() {
     },
   });
 
-  // Available products for combobox - only show products with base UOM (PCS)
+  // Available products for combobox - only show products with base UOM (PCS) and allocated in selected warehouse
   const availableProducts = useMemo(() => {
+    const selectedWarehouse = formData.warehouseId;
+
     return products
-      .filter(p => p.baseUnit === 'PCS') // Only allow base UOM (PCS) for bundles
-      .map(p => ({
-        value: p.id,
-        label: `${p.name} (${p.sku}) - Stock: ${p.stock} PCS`,
-        barcode: p.barcode,
-        name: p.name,
-        sku: p.sku,
-        price: p.price,
-        stock: p.stock,
-        baseUnit: p.baseUnit,
-      }));
-  }, [products]);
+      .filter(p => {
+        // Only allow base UOM (PCS) for bundles
+        if (p.baseUnit !== 'PCS') return false;
+
+        // If warehouse is selected, only show products allocated to that warehouse
+        if (selectedWarehouse) {
+          const productLocation = productLocations.find(
+            loc => loc.productId === p.id && loc.warehouseId === selectedWarehouse
+          );
+          // Only include products that have stock in the selected warehouse
+          return productLocation && productLocation.quantity > 0;
+        }
+
+        // If no warehouse selected, show all products
+        return true;
+      })
+      .map(p => {
+        // Calculate warehouse-specific stock if warehouse is selected
+        let stockToShow = p.stock;
+        if (selectedWarehouse) {
+          const productLocation = productLocations.find(
+            loc => loc.productId === p.id && loc.warehouseId === selectedWarehouse
+          );
+          stockToShow = productLocation?.quantity || 0;
+        }
+
+        return {
+          value: p.id,
+          label: `${p.name} (${p.sku}) - Stock: ${stockToShow} PCS`,
+          barcode: p.barcode,
+          name: p.name,
+          sku: p.sku,
+          price: p.price,
+          stock: stockToShow,
+          baseUnit: p.baseUnit,
+        };
+      });
+  }, [products, productLocations, formData.warehouseId]);
 
   const handleViewBundle = async (bundle: ProductBundle) => {
     setSelectedBundle(bundle);

@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { variantApi, productApi, warehouseApi, type ProductVariant, type CreateVariantInput } from '@/lib/api';
+import { variantApi, productApi, warehouseApi, productLocationApi, type ProductVariant, type CreateVariantInput } from '@/lib/api';
 import { ProductWarehouseAllocation, type WarehouseAllocation } from '@/components/products/ProductWarehouseAllocation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -358,7 +358,7 @@ function ProductVariantPage() {
   };
 
   // Handle product selection
-  const handleProductSelect = (productSKU: string) => {
+  const handleProductSelect = async (productSKU: string) => {
     const product = products.find(p => p.sku === productSKU);
     if (product) {
       setFormData({
@@ -368,6 +368,34 @@ function ProductVariantPage() {
         productSKU: product.sku,
         variantSKU: generateVariantSKU(product.sku, formData.variantName)
       });
+
+      // Auto-inherit warehouse allocations from parent product
+      try {
+        const productLocations = await productLocationApi.getByProduct(product.id);
+        if (productLocations.locations && productLocations.locations.length > 0) {
+          const allocations: WarehouseAllocation[] = productLocations.locations.map(loc => {
+            const warehouse = warehouses.find(w => w.id === loc.warehouseId);
+            return {
+              warehouseId: loc.warehouseId,
+              warehouseName: warehouse?.name || 'Unknown',
+              quantity: 0, // Start with 0, user can adjust based on variant stock
+              rack: loc.rack || '',
+              bin: loc.bin || '',
+              zone: loc.zone || '',
+              aisle: loc.aisle || '',
+            };
+          });
+          setWarehouseAllocations(allocations);
+          toast.info('Warehouse allocations inherited from parent product', {
+            description: 'Adjust quantities for this variant as needed',
+          });
+        } else {
+          setWarehouseAllocations([]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch product locations:', error);
+        setWarehouseAllocations([]);
+      }
     }
   };
 
