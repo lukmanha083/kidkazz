@@ -1491,41 +1491,47 @@ function AllProductsPage() {
               />
             </div>
 
-            {/* Image Gallery Section - Only available in edit mode */}
+            {/* Product Media (Images & Videos) - Only available in edit mode */}
             {formMode === 'edit' && selectedProduct && (
               <>
                 <Separator className="my-4" />
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-base font-semibold">Product Images</Label>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Upload and manage product images. Supports multiple images with automatic optimization.
-                    </p>
-                  </div>
-                  <ImageGallery
-                    productId={selectedProduct.id}
-                    maxImages={10}
-                  />
-                </div>
-                <Separator className="my-4" />
-              </>
-            )}
-
-            {/* Video Gallery Section - Only available in edit mode */}
-            {formMode === 'edit' && selectedProduct && (
-              <>
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-base font-semibold">Product Videos</Label>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Upload and manage product videos. Choose between R2 storage or Cloudflare Stream.
-                    </p>
-                  </div>
-                  <VideoGallery
-                    productId={selectedProduct.id}
-                    maxVideos={5}
-                    defaultMode="r2"
-                  />
+                <div>
+                  <Label className="text-base font-semibold mb-3">Product Media</Label>
+                  <Tabs defaultValue="images" className="w-full mt-3">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="images" className="gap-2">
+                        <ImageIcon className="h-4 w-4" />
+                        Images
+                      </TabsTrigger>
+                      <TabsTrigger value="videos" className="gap-2">
+                        <Film className="h-4 w-4" />
+                        Videos
+                      </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="images" className="mt-4">
+                      <div className="space-y-3">
+                        <p className="text-xs text-muted-foreground">
+                          Upload and manage product images. Supports multiple images with automatic optimization.
+                        </p>
+                        <ImageGallery
+                          productId={selectedProduct.id}
+                          maxImages={10}
+                        />
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="videos" className="mt-4">
+                      <div className="space-y-3">
+                        <p className="text-xs text-muted-foreground">
+                          Upload and manage product videos. Choose between R2 storage or Cloudflare Stream.
+                        </p>
+                        <VideoGallery
+                          productId={selectedProduct.id}
+                          maxVideos={5}
+                          defaultMode="r2"
+                        />
+                      </div>
+                    </TabsContent>
+                  </Tabs>
                 </div>
                 <Separator className="my-4" />
               </>
