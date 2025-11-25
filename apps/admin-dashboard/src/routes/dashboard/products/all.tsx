@@ -69,11 +69,13 @@ import {
   warehouseApi,
   uomApi,
   productLocationApi,
+  productUOMLocationApi,
 } from '@/lib/api';
 import { ImageGallery } from '@/components/ImageGallery';
 import { VideoGallery } from '@/components/VideoGallery';
 import { DatePicker } from '@/components/ui/date-picker';
 import { ProductWarehouseAllocation, type WarehouseAllocation } from '@/components/products/ProductWarehouseAllocation';
+import { ProductUOMWarehouseAllocation, type UOMWarehouseAllocation } from '@/components/products/ProductUOMWarehouseAllocation';
 
 export const Route = createFileRoute('/dashboard/products/all')({
   component: AllProductsPage,
@@ -157,6 +159,9 @@ function AllProductsPage() {
 
   // Warehouse allocations state
   const [warehouseAllocations, setWarehouseAllocations] = useState<WarehouseAllocation[]>([]);
+
+  // UOM warehouse allocations state - Map of UOM ID to warehouse allocations
+  const [uomWarehouseAllocations, setUomWarehouseAllocations] = useState<Record<string, UOMWarehouseAllocation[]>>({});
 
   // Delete confirmation states
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -407,6 +412,7 @@ function AllProductsPage() {
     setUomBarcode('');
     setUomStock('');
     setWarehouseAllocations([]); // Reset warehouse allocations
+    setUomWarehouseAllocations({}); // Reset UOM warehouse allocations
     setFormDrawerOpen(true);
   };
 
@@ -462,6 +468,36 @@ function AllProductsPage() {
       };
     });
     setWarehouseAllocations(allocations);
+
+    // Load UOM warehouse allocations
+    const uomAllocationsMap: Record<string, UOMWarehouseAllocation[]> = {};
+    if (fullProduct.productUOMs && fullProduct.productUOMs.length > 0) {
+      try {
+        for (const uom of fullProduct.productUOMs) {
+          const uomLocations = await productUOMLocationApi.getByProductUOM(uom.id);
+          if (uomLocations.locations && uomLocations.locations.length > 0) {
+            uomAllocationsMap[uom.id] = uomLocations.locations.map(loc => {
+              const warehouse = warehouses.find(w => w.id === loc.warehouseId);
+              return {
+                warehouseId: loc.warehouseId,
+                warehouseName: warehouse?.name,
+                quantity: loc.quantity,
+                rack: loc.rack || undefined,
+                bin: loc.bin || undefined,
+                zone: loc.zone || undefined,
+                aisle: loc.aisle || undefined,
+              };
+            });
+          }
+        }
+        setUomWarehouseAllocations(uomAllocationsMap);
+      } catch (error) {
+        console.error('Failed to load UOM warehouse allocations:', error);
+        setUomWarehouseAllocations({});
+      }
+    } else {
+      setUomWarehouseAllocations({});
+    }
 
     setFormDrawerOpen(true);
   };
@@ -577,12 +613,24 @@ function AllProductsPage() {
   const confirmDeleteUOM = () => {
     if (uomToDelete) {
       setProductUOMs(productUOMs.filter(uom => uom.id !== uomToDelete.id));
+      // Also remove UOM warehouse allocations
+      const newAllocations = { ...uomWarehouseAllocations };
+      delete newAllocations[uomToDelete.id];
+      setUomWarehouseAllocations(newAllocations);
       toast.success('UOM removed', {
         description: `${uomToDelete.uomName} has been removed`
       });
       setDeleteDialogOpen(false);
       setUomToDelete(null);
     }
+  };
+
+  // Handler to update UOM warehouse allocations for a specific UOM
+  const handleUOMAllocationsChange = (uomId: string, allocations: UOMWarehouseAllocation[]) => {
+    setUomWarehouseAllocations(prev => ({
+      ...prev,
+      [uomId]: allocations,
+    }));
   };
 
   const handleSubmitForm = async (e: React.FormEvent) => {
@@ -667,7 +715,9 @@ function AllProductsPage() {
         // Create all product UOMs
         if (finalProductUOMs.length > 0) {
           try {
+            const uomCodeMap = new Map<string, string>(); // Map UOM code to temp ID for lookup
             for (const uom of finalProductUOMs) {
+              uomCodeMap.set(uom.uomCode, uom.id);
               await uomApi.addProductUOM({
                 productId: createdProduct.id,
                 uomCode: uom.uomCode,
@@ -677,6 +727,34 @@ function AllProductsPage() {
                 stock: uom.stock,
                 isDefault: uom.isDefault,
               });
+            }
+
+            // Fetch the created product to get the actual UOM IDs
+            const createdProductWithUOMs = await productApi.getById(createdProduct.id);
+
+            // Create UOM warehouse locations
+            if (createdProductWithUOMs.productUOMs && createdProductWithUOMs.productUOMs.length > 0) {
+              for (const createdUOM of createdProductWithUOMs.productUOMs) {
+                const tempId = uomCodeMap.get(createdUOM.uomCode);
+                if (tempId && uomWarehouseAllocations[tempId]) {
+                  const allocations = uomWarehouseAllocations[tempId];
+                  for (const allocation of allocations) {
+                    try {
+                      await productUOMLocationApi.create({
+                        productUOMId: createdUOM.id,
+                        warehouseId: allocation.warehouseId,
+                        rack: allocation.rack || null,
+                        bin: allocation.bin || null,
+                        zone: allocation.zone || null,
+                        aisle: allocation.aisle || null,
+                        quantity: allocation.quantity,
+                      });
+                    } catch (locationError) {
+                      console.error('Failed to create UOM warehouse location:', locationError);
+                    }
+                  }
+                }
+              }
             }
           } catch (uomError: any) {
             console.error('Failed to create product UOMs:', uomError);
@@ -763,6 +841,50 @@ function AllProductsPage() {
               const stillExists = finalProductUOMs.find(u => u.uomCode === existingUOM.uomCode);
               if (!stillExists) {
                 await uomApi.deleteProductUOM(existingUOM.id);
+              }
+            }
+
+            // Sync UOM warehouse locations
+            // Refetch product to get updated UOM IDs
+            const updatedProduct = await productApi.getById(selectedProduct.id);
+            if (updatedProduct.productUOMs && updatedProduct.productUOMs.length > 0) {
+              for (const currentUOM of updatedProduct.productUOMs) {
+                // Find the UOM in finalProductUOMs to get the temp ID
+                const matchingUOM = finalProductUOMs.find(u => u.uomCode === currentUOM.uomCode);
+                if (matchingUOM) {
+                  const tempId = matchingUOM.id;
+                  const newAllocations = uomWarehouseAllocations[tempId] || [];
+
+                  // Get existing UOM locations
+                  const existingLocationsResponse = await productUOMLocationApi.getByProductUOM(currentUOM.id);
+                  const existingLocations = existingLocationsResponse.locations || [];
+
+                  // Delete all existing locations and create new ones
+                  for (const existingLocation of existingLocations) {
+                    try {
+                      await productUOMLocationApi.delete(existingLocation.id);
+                    } catch (deleteError) {
+                      console.error('Failed to delete UOM location:', deleteError);
+                    }
+                  }
+
+                  // Create new locations
+                  for (const allocation of newAllocations) {
+                    try {
+                      await productUOMLocationApi.create({
+                        productUOMId: currentUOM.id,
+                        warehouseId: allocation.warehouseId,
+                        rack: allocation.rack || null,
+                        bin: allocation.bin || null,
+                        zone: allocation.zone || null,
+                        aisle: allocation.aisle || null,
+                        quantity: allocation.quantity,
+                      });
+                    } catch (createError) {
+                      console.error('Failed to create UOM location:', createError);
+                    }
+                  }
+                }
               }
             }
           } catch (uomError: any) {
@@ -1491,41 +1613,47 @@ function AllProductsPage() {
               />
             </div>
 
-            {/* Image Gallery Section - Only available in edit mode */}
+            {/* Product Media (Images & Videos) - Only available in edit mode */}
             {formMode === 'edit' && selectedProduct && (
               <>
                 <Separator className="my-4" />
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-base font-semibold">Product Images</Label>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Upload and manage product images. Supports multiple images with automatic optimization.
-                    </p>
-                  </div>
-                  <ImageGallery
-                    productId={selectedProduct.id}
-                    maxImages={10}
-                  />
-                </div>
-                <Separator className="my-4" />
-              </>
-            )}
-
-            {/* Video Gallery Section - Only available in edit mode */}
-            {formMode === 'edit' && selectedProduct && (
-              <>
-                <div className="space-y-4">
-                  <div>
-                    <Label className="text-base font-semibold">Product Videos</Label>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Upload and manage product videos. Choose between R2 storage or Cloudflare Stream.
-                    </p>
-                  </div>
-                  <VideoGallery
-                    productId={selectedProduct.id}
-                    maxVideos={5}
-                    defaultMode="r2"
-                  />
+                <div>
+                  <Label className="text-base font-semibold mb-3">Product Media</Label>
+                  <Tabs defaultValue="images" className="w-full mt-3">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="images" className="gap-2">
+                        <ImageIcon className="h-4 w-4" />
+                        Images
+                      </TabsTrigger>
+                      <TabsTrigger value="videos" className="gap-2">
+                        <Film className="h-4 w-4" />
+                        Videos
+                      </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="images" className="mt-4">
+                      <div className="space-y-3">
+                        <p className="text-xs text-muted-foreground">
+                          Upload and manage product images. Supports multiple images with automatic optimization.
+                        </p>
+                        <ImageGallery
+                          productId={selectedProduct.id}
+                          maxImages={10}
+                        />
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="videos" className="mt-4">
+                      <div className="space-y-3">
+                        <p className="text-xs text-muted-foreground">
+                          Upload and manage product videos. Choose between R2 storage or Cloudflare Stream.
+                        </p>
+                        <VideoGallery
+                          productId={selectedProduct.id}
+                          maxVideos={5}
+                          defaultMode="r2"
+                        />
+                      </div>
+                    </TabsContent>
+                  </Tabs>
                 </div>
                 <Separator className="my-4" />
               </>
@@ -1786,42 +1914,57 @@ function AllProductsPage() {
               {productUOMs.length > 0 && (
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Added UOMs</Label>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {productUOMs.map((uom) => (
-                      <div key={uom.id} className="flex items-start justify-between gap-3 p-3 border rounded bg-background">
-                        <div className="flex-1 min-w-0 space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-medium break-words">{uom.uomName} ({uom.uomCode})</span>
-                            {uom.isDefault && (
-                              <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                                Default
-                              </Badge>
-                            )}
+                      <div key={uom.id} className="border rounded bg-background">
+                        <div className="flex items-start justify-between gap-3 p-3">
+                          <div className="flex-1 min-w-0 space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-medium break-words">{uom.uomName} ({uom.uomCode})</span>
+                              {uom.isDefault && (
+                                <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                                  Default
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
+                              <span className="break-all">Barcode: {uom.barcode}</span>
+                              <span className="whitespace-nowrap">Stock: {uom.stock} {uom.uomCode}</span>
+                              <span className="whitespace-nowrap">({uom.stock * uom.conversionFactor} PCS)</span>
+                            </div>
                           </div>
-                          <div className="text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
-                            <span className="break-all">Barcode: {uom.barcode}</span>
-                            <span className="whitespace-nowrap">Stock: {uom.stock} {uom.uomCode}</span>
-                            <span className="whitespace-nowrap">({uom.stock * uom.conversionFactor} PCS)</span>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <Checkbox
+                              checked={uom.isDefault}
+                              onCheckedChange={() => handleSetDefaultUOM(uom.id)}
+                              id={`default-${uom.id}`}
+                            />
+                            <Label htmlFor={`default-${uom.id}`} className="text-xs text-muted-foreground cursor-pointer mr-2">
+                              Default
+                            </Label>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => handleRemoveUOM(uom)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          <Checkbox
-                            checked={uom.isDefault}
-                            onCheckedChange={() => handleSetDefaultUOM(uom.id)}
-                            id={`default-${uom.id}`}
+
+                        {/* UOM Warehouse Allocations */}
+                        <div className="px-3 pb-3 pt-2 border-t bg-muted/10">
+                          <ProductUOMWarehouseAllocation
+                            warehouses={warehouses}
+                            allocations={uomWarehouseAllocations[uom.id] || []}
+                            onAllocationsChange={(allocations) => handleUOMAllocationsChange(uom.id, allocations)}
+                            uomCode={uom.uomCode}
+                            uomName={uom.uomName}
+                            totalStock={uom.stock}
+                            readOnly={false}
                           />
-                          <Label htmlFor={`default-${uom.id}`} className="text-xs text-muted-foreground cursor-pointer mr-2">
-                            Default
-                          </Label>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive"
-                            onClick={() => handleRemoveUOM(uom)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
                         </div>
                       </div>
                     ))}

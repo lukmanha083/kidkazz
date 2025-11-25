@@ -266,6 +266,35 @@ export interface CreateProductLocationInput {
   quantity?: number;
 }
 
+// ============================================
+// PRODUCT UOM LOCATIONS
+// ============================================
+
+export interface ProductUOMLocation {
+  id: string;
+  productUOMId: string;
+  warehouseId: string;
+  rack?: string | null;
+  bin?: string | null;
+  zone?: string | null;
+  aisle?: string | null;
+  quantity: number;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: string | null;
+  updatedBy?: string | null;
+}
+
+export interface CreateProductUOMLocationInput {
+  productUOMId: string;
+  warehouseId: string;
+  rack?: string | null;
+  bin?: string | null;
+  zone?: string | null;
+  aisle?: string | null;
+  quantity?: number;
+}
+
 export interface Product {
   id: string;
   barcode: string;
@@ -959,6 +988,60 @@ export const productLocationApi = {
 };
 
 // ============================================
+// PRODUCT UOM LOCATIONS API
+// ============================================
+
+export const productUOMLocationApi = {
+  getAll: async (filters?: {
+    productUOMId?: string;
+    warehouseId?: string;
+    productId?: string;
+  }): Promise<{ locations: ProductUOMLocation[]; total: number }> => {
+    const queryParams = filters ? new URLSearchParams(filters as any).toString() : '';
+    return apiRequest(`/api/product-uom-locations${queryParams ? `?${queryParams}` : ''}`);
+  },
+
+  getById: async (id: string): Promise<ProductUOMLocation> => {
+    return apiRequest(`/api/product-uom-locations/${id}`);
+  },
+
+  getByProductUOM: async (productUOMId: string): Promise<{ locations: ProductUOMLocation[]; total: number }> => {
+    return apiRequest(`/api/product-uom-locations/uom/${productUOMId}`);
+  },
+
+  getByWarehouse: async (warehouseId: string): Promise<{ locations: ProductUOMLocation[]; total: number }> => {
+    return apiRequest(`/api/product-uom-locations/warehouse/${warehouseId}`);
+  },
+
+  create: async (data: CreateProductUOMLocationInput): Promise<ProductUOMLocation> => {
+    return apiRequest('/api/product-uom-locations', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  update: async (id: string, data: Partial<Omit<CreateProductUOMLocationInput, 'productUOMId'>>): Promise<ProductUOMLocation> => {
+    return apiRequest(`/api/product-uom-locations/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateQuantity: async (id: string, quantity: number): Promise<{ message: string }> => {
+    return apiRequest(`/api/product-uom-locations/${id}/quantity`, {
+      method: 'PATCH',
+      body: JSON.stringify({ quantity }),
+    });
+  },
+
+  delete: async (id: string): Promise<{ message: string }> => {
+    return apiRequest(`/api/product-uom-locations/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// ============================================
 // VARIANT LOCATIONS API
 // ============================================
 
@@ -1046,5 +1129,6 @@ export default {
   accounting: accountingApi,
   inventory: inventoryApi,
   productLocation: productLocationApi,
+  productUOMLocation: productUOMLocationApi,
   variantLocation: variantLocationApi,
 };

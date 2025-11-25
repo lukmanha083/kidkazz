@@ -389,6 +389,39 @@ export const variantLocations = sqliteTable('variant_locations', {
   updatedBy: text('updated_by'),
 });
 
+/**
+ * Product UOM Locations table
+ * Tracks the physical location and stock of product UOMs (BOX6, CARTON18, etc.) in warehouses
+ * This allows multi-warehouse support for different packaging units
+ *
+ * Example:
+ * - Product "Baby Bottle" BOX6 in Jakarta: 6 boxes = 36 PCS
+ * - Product "Baby Bottle" BOX6 in Cilangkap: 4 boxes = 24 PCS
+ */
+export const productUOMLocations = sqliteTable('product_uom_locations', {
+  id: text('id').primaryKey(),
+  productUOMId: text('product_uom_id')
+    .notNull()
+    .references(() => productUOMs.id, { onDelete: 'cascade' }),
+
+  warehouseId: text('warehouse_id').notNull(), // Reference to warehouse (foreign service)
+  rack: text('rack'), // Rack identifier (e.g., 'A1', 'B3', 'R-01')
+  bin: text('bin'), // Bin identifier within rack (e.g., '01', 'A', 'TOP')
+
+  // Optional additional location details
+  zone: text('zone'), // Warehouse zone (e.g., 'Zone A', 'Cold Storage')
+  aisle: text('aisle'), // Aisle number/identifier
+
+  // Stock tracking at this specific location (in this UOM unit)
+  quantity: integer('quantity').default(0).notNull(), // Quantity in this UOM (e.g., 6 boxes, 2 cartons)
+
+  // Audit fields
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+  createdBy: text('created_by'),
+  updatedBy: text('updated_by'),
+});
+
 // Types inferred from the schema
 export type Category = typeof categories.$inferSelect;
 export type InsertCategory = typeof categories.$inferInsert;
@@ -428,3 +461,6 @@ export type InsertProductLocation = typeof productLocations.$inferInsert;
 
 export type VariantLocation = typeof variantLocations.$inferSelect;
 export type InsertVariantLocation = typeof variantLocations.$inferInsert;
+
+export type ProductUOMLocation = typeof productUOMLocations.$inferSelect;
+export type InsertProductUOMLocation = typeof productUOMLocations.$inferInsert;
