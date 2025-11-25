@@ -369,32 +369,28 @@ function ProductVariantPage() {
         variantSKU: generateVariantSKU(product.sku, formData.variantName)
       });
 
-      // Auto-inherit warehouse allocations from parent product
+      // Reset warehouse allocations - let user allocate manually
+      // The parent product's warehouse structure is available but not pre-filled
+      setWarehouseAllocations([]);
+
+      // Show info about parent product's warehouses for reference
       try {
         const productLocations = await productLocationApi.getByProduct(product.id);
         if (productLocations.locations && productLocations.locations.length > 0) {
-          const allocations: WarehouseAllocation[] = productLocations.locations.map(loc => {
-            const warehouse = warehouses.find(w => w.id === loc.warehouseId);
-            return {
-              warehouseId: loc.warehouseId,
-              warehouseName: warehouse?.name || 'Unknown',
-              quantity: 0, // Start with 0, user can adjust based on variant stock
-              rack: loc.rack || '',
-              bin: loc.bin || '',
-              zone: loc.zone || '',
-              aisle: loc.aisle || '',
-            };
+          const warehouseNames = productLocations.locations
+            .map(loc => {
+              const warehouse = warehouses.find(w => w.id === loc.warehouseId);
+              return warehouse?.name || 'Unknown';
+            })
+            .join(', ');
+
+          toast.info('Parent product warehouses', {
+            description: `Parent is in: ${warehouseNames}. Allocate this variant to warehouses based on your variant stock.`,
+            duration: 5000,
           });
-          setWarehouseAllocations(allocations);
-          toast.info('Warehouse allocations inherited from parent product', {
-            description: 'Adjust quantities for this variant as needed',
-          });
-        } else {
-          setWarehouseAllocations([]);
         }
       } catch (error) {
         console.error('Failed to fetch product locations:', error);
-        setWarehouseAllocations([]);
       }
     }
   };
