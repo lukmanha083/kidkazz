@@ -163,6 +163,24 @@ function AllProductsPage() {
   // UOM warehouse allocations state - Map of UOM ID to warehouse allocations
   const [uomWarehouseAllocations, setUomWarehouseAllocations] = useState<Record<string, UOMWarehouseAllocation[]>>({});
 
+  // UOM warehouse stock data for product detail view
+  const [uomWarehouseStock, setUomWarehouseStock] = useState<{
+    uomStocks: Array<{
+      uomCode: string;
+      uomName: string;
+      conversionFactor: number;
+      totalStock: number;
+      warehouseStocks: Array<{
+        warehouseId: string;
+        quantity: number;
+        rack?: string;
+        bin?: string;
+        zone?: string;
+        aisle?: string;
+      }>;
+    }>;
+  } | null>(null);
+
   // Delete confirmation states
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
@@ -378,6 +396,16 @@ function AllProductsPage() {
     // Fetch full product details with variants and UOMs
     const fullProduct = await productApi.getById(product.id);
     setSelectedProduct(fullProduct);
+
+    // Fetch UOM warehouse stock breakdown
+    try {
+      const uomStock = await productApi.getUOMWarehouseStock(product.id);
+      setUomWarehouseStock(uomStock);
+    } catch (error) {
+      console.error('Failed to fetch UOM warehouse stock:', error);
+      setUomWarehouseStock(null);
+    }
+
     setProductDetailDrawerOpen(true);
   };
 
@@ -1420,26 +1448,60 @@ function AllProductsPage() {
                   </>
                 )}
 
-                {selectedProduct.productUOMs && selectedProduct.productUOMs.length > 0 && (
+                {uomWarehouseStock && uomWarehouseStock.uomStocks && uomWarehouseStock.uomStocks.length > 0 && (
                   <>
                     <Separator />
                     <div>
-                      <Label className="text-xs text-muted-foreground">Product UOMs</Label>
-                      <div className="mt-2 space-y-2">
-                        {selectedProduct.productUOMs.map((uom) => (
-                          <div key={uom.id} className="flex items-center justify-between p-2 border rounded">
-                            <div>
-                              <p className="text-sm font-medium">{uom.uomName} ({uom.uomCode})</p>
-                              <p className="text-xs text-muted-foreground">Barcode: {uom.barcode}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm font-semibold">Stock: {uom.stock}</p>
-                              {uom.isDefault && (
-                                <Badge variant="outline" className="text-xs">Default</Badge>
+                      <Label className="text-xs text-muted-foreground">Product UOMs (By Warehouse)</Label>
+                      <div className="mt-2 space-y-3">
+                        {uomWarehouseStock.uomStocks.map((uom) => {
+                          const productUOM = selectedProduct.productUOMs?.find(u => u.uomCode === uom.uomCode);
+                          return (
+                            <div key={uom.uomCode} className="border rounded-lg overflow-hidden">
+                              <div className="bg-muted/50 p-3 flex items-center justify-between border-b">
+                                <div>
+                                  <p className="text-sm font-medium">{uom.uomName} ({uom.uomCode})</p>
+                                  {productUOM && (
+                                    <p className="text-xs text-muted-foreground">
+                                      Barcode: {productUOM.barcode} | Conversion: {uom.conversionFactor}x
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-sm font-semibold">Total: {uom.totalStock}</p>
+                                  {productUOM?.isDefault && (
+                                    <Badge variant="outline" className="text-xs mt-1">Default</Badge>
+                                  )}
+                                </div>
+                              </div>
+                              {uom.warehouseStocks.length > 0 ? (
+                                <div className="p-3 space-y-2">
+                                  {uom.warehouseStocks.map((stock, idx) => {
+                                    const warehouse = warehouses.find(w => w.id === stock.warehouseId);
+                                    return (
+                                      <div key={idx} className="flex items-center justify-between text-sm p-2 bg-muted/20 rounded">
+                                        <div>
+                                          <p className="font-medium">{warehouse?.name || 'Unknown Warehouse'}</p>
+                                          <div className="flex gap-3 text-xs text-muted-foreground mt-1">
+                                            {stock.rack && <span>Rack: {stock.rack}</span>}
+                                            {stock.bin && <span>Bin: {stock.bin}</span>}
+                                            {stock.zone && <span>Zone: {stock.zone}</span>}
+                                            {stock.aisle && <span>Aisle: {stock.aisle}</span>}
+                                          </div>
+                                        </div>
+                                        <p className="font-semibold">{stock.quantity}</p>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <div className="p-3 text-center text-sm text-muted-foreground">
+                                  No warehouse allocations
+                                </div>
                               )}
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   </>

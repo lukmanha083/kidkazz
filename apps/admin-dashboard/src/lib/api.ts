@@ -416,6 +416,39 @@ export const productApi = {
       method: 'DELETE',
     });
   },
+
+  // Get UOM warehouse stock breakdown
+  getUOMWarehouseStock: async (id: string): Promise<{
+    productId: string;
+    productName: string;
+    productSKU: string;
+    baseUnit: string;
+    totalStock: number;
+    uomStocks: Array<{
+      uomCode: string;
+      uomName: string;
+      conversionFactor: number;
+      totalStock: number;
+      warehouseStocks: Array<{
+        warehouseId: string;
+        quantity: number;
+        rack?: string;
+        bin?: string;
+        zone?: string;
+        aisle?: string;
+      }>;
+    }>;
+    baseUnitLocations: Array<{
+      warehouseId: string;
+      quantity: number;
+      rack?: string;
+      bin?: string;
+      zone?: string;
+      aisle?: string;
+    }>;
+  }> => {
+    return apiRequest(`/api/products/${id}/uom-warehouse-stock`);
+  },
 };
 
 // ============================================
