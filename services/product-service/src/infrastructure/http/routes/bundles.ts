@@ -27,6 +27,7 @@ const createBundleSchema = z.object({
   bundleSKU: z.string().min(1),
   bundleDescription: z.string().optional().nullable(),
   bundleImage: z.string().optional().nullable(),
+  warehouseId: z.string().optional().nullable(), // Warehouse where bundle is assembled
   bundlePrice: z.number().positive(),
   discountPercentage: z.number().min(0).max(100),
   status: z.enum(['active', 'inactive']).default('active'),
@@ -91,6 +92,7 @@ app.post('/', zValidator('json', createBundleSchema), async (c) => {
     bundleSKU: data.bundleSKU,
     bundleDescription: data.bundleDescription || null,
     bundleImage: data.bundleImage || null,
+    warehouseId: data.warehouseId || null, // Warehouse where bundle is assembled
     bundlePrice: data.bundlePrice,
     discountPercentage: data.discountPercentage,
     status: data.status,
