@@ -468,6 +468,7 @@ export interface ProductBundle {
   bundleSKU: string;
   bundleDescription?: string | null;
   bundleImage?: string | null;
+  warehouseId?: string | null; // Warehouse where bundle is assembled
   bundlePrice: number;
   discountPercentage: number;
   status: 'active' | 'inactive';
@@ -481,6 +482,7 @@ export interface CreateBundleInput {
   bundleSKU: string;
   bundleDescription?: string | null;
   bundleImage?: string | null;
+  warehouseId?: string | null; // Warehouse where bundle is assembled
   bundlePrice: number;
   discountPercentage: number;
   status?: 'active' | 'inactive';
@@ -956,6 +958,84 @@ export const productLocationApi = {
   },
 };
 
+// ============================================
+// VARIANT LOCATIONS API
+// ============================================
+
+export interface VariantLocation {
+  id: string;
+  variantId: string;
+  warehouseId: string;
+  rack?: string | null;
+  bin?: string | null;
+  zone?: string | null;
+  aisle?: string | null;
+  quantity: number;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: string | null;
+  updatedBy?: string | null;
+}
+
+export interface CreateVariantLocationInput {
+  variantId: string;
+  warehouseId: string;
+  rack?: string | null;
+  bin?: string | null;
+  zone?: string | null;
+  aisle?: string | null;
+  quantity: number;
+}
+
+export const variantLocationApi = {
+  getAll: async (filters?: {
+    variantId?: string;
+    warehouseId?: string;
+  }): Promise<{ variantLocations: VariantLocation[]; total: number }> => {
+    const queryParams = filters ? new URLSearchParams(filters as any).toString() : '';
+    return apiRequest(`/api/variant-locations${queryParams ? `?${queryParams}` : ''}`);
+  },
+
+  getById: async (id: string): Promise<VariantLocation> => {
+    return apiRequest(`/api/variant-locations/${id}`);
+  },
+
+  getByVariant: async (variantId: string): Promise<{ variantLocations: VariantLocation[]; total: number }> => {
+    return apiRequest(`/api/variant-locations/variant/${variantId}`);
+  },
+
+  getByWarehouse: async (warehouseId: string): Promise<{ variantLocations: VariantLocation[]; total: number }> => {
+    return apiRequest(`/api/variant-locations/warehouse/${warehouseId}`);
+  },
+
+  create: async (data: CreateVariantLocationInput): Promise<VariantLocation> => {
+    return apiRequest('/api/variant-locations', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  update: async (id: string, data: Partial<Omit<CreateVariantLocationInput, 'variantId'>>): Promise<VariantLocation> => {
+    return apiRequest(`/api/variant-locations/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateQuantity: async (id: string, quantity: number): Promise<{ message: string }> => {
+    return apiRequest(`/api/variant-locations/${id}/quantity`, {
+      method: 'PATCH',
+      body: JSON.stringify({ quantity }),
+    });
+  },
+
+  delete: async (id: string): Promise<{ message: string }> => {
+    return apiRequest(`/api/variant-locations/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
 export default {
   category: categoryApi,
   warehouse: warehouseApi,
@@ -966,4 +1046,5 @@ export default {
   accounting: accountingApi,
   inventory: inventoryApi,
   productLocation: productLocationApi,
+  variantLocation: variantLocationApi,
 };

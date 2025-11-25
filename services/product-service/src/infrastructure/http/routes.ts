@@ -5,6 +5,7 @@ import variantsRoutes from './routes/variants';
 import bundlesRoutes from './routes/bundles';
 import uomsRoutes from './routes/uoms';
 import productLocationsRoutes from './routes/product-locations';
+import variantLocationsRoutes from './routes/variant-locations';
 
 type Bindings = {
   DB: D1Database;
@@ -29,5 +30,6 @@ app.route('/variants', variantsRoutes);
 app.route('/bundles', bundlesRoutes);
 app.route('/uoms', uomsRoutes);
 app.route('/product-locations', productLocationsRoutes);
+app.route('/variant-locations', variantLocationsRoutes);
 
 export default app;
