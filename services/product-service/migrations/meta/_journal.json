@@ -13,21 +13,84 @@
       "idx": 1,
       "version": "6",
       "when": 1732195000000,
-      "tag": "0005_add_accounting_fields_to_products",
+      "tag": "0001_add_physical_attributes",
       "breakpoints": true
     },
     {
       "idx": 2,
+      "version": "6",
+      "when": 1732195100000,
+      "tag": "0002_add_product_images_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1732195200000,
+      "tag": "0003_add_product_videos_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1732195300000,
+      "tag": "0004_add_product_locations_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1732195400000,
+      "tag": "0005_add_accounting_fields_to_products",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
       "version": "6",
       "when": 1732376280000,
       "tag": "0006_seed_common_uoms",
       "breakpoints": false
     },
     {
-      "idx": 3,
+      "idx": 7,
       "version": "6",
       "when": 1732377600000,
       "tag": "0007_add_minimum_stock_to_products",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1732377700000,
+      "tag": "0008_remove_bundle_dates",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1732377800000,
+      "tag": "0009_add_product_expiration_dates",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1732377900000,
+      "tag": "0010_add_warehouse_to_bundles",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1732378000000,
+      "tag": "0011_add_variant_locations_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1732550000000,
+      "tag": "0012_add_product_uom_locations_table",
       "breakpoints": true
     }
   ]
