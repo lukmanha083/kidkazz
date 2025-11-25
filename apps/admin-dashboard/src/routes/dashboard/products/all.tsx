@@ -470,6 +470,9 @@ function AllProductsPage() {
       length: fullProduct.length?.toString() || '',
       width: fullProduct.width?.toString() || '',
       height: fullProduct.height?.toString() || '',
+      // Product expiration and alert dates
+      expirationDate: fullProduct.expirationDate || '',
+      alertDate: fullProduct.alertDate || '',
       // Optional location fields - kept for backward compatibility
       warehouseId: firstLocation?.warehouseId || '',
       rack: firstLocation?.rack || '',
@@ -1448,61 +1451,69 @@ function AllProductsPage() {
                   </>
                 )}
 
-                {uomWarehouseStock && uomWarehouseStock.uomStocks && uomWarehouseStock.uomStocks.length > 0 && (
+                {selectedProduct.productUOMs && selectedProduct.productUOMs.length > 0 && (
                   <>
                     <Separator />
                     <div>
                       <Label className="text-xs text-muted-foreground">Product UOMs (By Warehouse)</Label>
-                      <div className="mt-2 space-y-3">
-                        {uomWarehouseStock.uomStocks.map((uom) => {
-                          const productUOM = selectedProduct.productUOMs?.find(u => u.uomCode === uom.uomCode);
-                          return (
-                            <div key={uom.uomCode} className="border rounded-lg overflow-hidden">
-                              <div className="bg-muted/50 p-3 flex items-center justify-between border-b">
-                                <div>
-                                  <p className="text-sm font-medium">{uom.uomName} ({uom.uomCode})</p>
-                                  {productUOM && (
-                                    <p className="text-xs text-muted-foreground">
-                                      Barcode: {productUOM.barcode} | Conversion: {uom.conversionFactor}x
-                                    </p>
-                                  )}
+                      {uomWarehouseStock && uomWarehouseStock.uomStocks && uomWarehouseStock.uomStocks.length > 0 ? (
+                        <div className="mt-2 space-y-3">
+                          {uomWarehouseStock.uomStocks.map((uom) => {
+                            const productUOM = selectedProduct.productUOMs?.find(u => u.uomCode === uom.uomCode);
+                            return (
+                              <div key={uom.uomCode} className="border rounded-lg overflow-hidden">
+                                <div className="bg-muted/50 p-3 flex items-center justify-between border-b">
+                                  <div>
+                                    <p className="text-sm font-medium">{uom.uomName} ({uom.uomCode})</p>
+                                    {productUOM && (
+                                      <p className="text-xs text-muted-foreground">
+                                        Barcode: {productUOM.barcode} | Conversion: {uom.conversionFactor}x
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-sm font-semibold">Total: {uom.totalStock}</p>
+                                    {productUOM?.isDefault && (
+                                      <Badge variant="outline" className="text-xs mt-1">Default</Badge>
+                                    )}
+                                  </div>
                                 </div>
-                                <div className="text-right">
-                                  <p className="text-sm font-semibold">Total: {uom.totalStock}</p>
-                                  {productUOM?.isDefault && (
-                                    <Badge variant="outline" className="text-xs mt-1">Default</Badge>
-                                  )}
-                                </div>
-                              </div>
-                              {uom.warehouseStocks.length > 0 ? (
-                                <div className="p-3 space-y-2">
-                                  {uom.warehouseStocks.map((stock, idx) => {
-                                    const warehouse = warehouses.find(w => w.id === stock.warehouseId);
-                                    return (
-                                      <div key={idx} className="flex items-center justify-between text-sm p-2 bg-muted/20 rounded">
-                                        <div>
-                                          <p className="font-medium">{warehouse?.name || 'Unknown Warehouse'}</p>
-                                          <div className="flex gap-3 text-xs text-muted-foreground mt-1">
-                                            {stock.rack && <span>Rack: {stock.rack}</span>}
-                                            {stock.bin && <span>Bin: {stock.bin}</span>}
-                                            {stock.zone && <span>Zone: {stock.zone}</span>}
-                                            {stock.aisle && <span>Aisle: {stock.aisle}</span>}
+                                {uom.warehouseStocks.length > 0 ? (
+                                  <div className="p-3 space-y-2">
+                                    {uom.warehouseStocks.map((stock, idx) => {
+                                      const warehouse = warehouses.find(w => w.id === stock.warehouseId);
+                                      return (
+                                        <div key={idx} className="flex items-center justify-between text-sm p-2 bg-muted/20 rounded">
+                                          <div>
+                                            <p className="font-medium">{warehouse?.name || 'Unknown Warehouse'}</p>
+                                            <div className="flex gap-3 text-xs text-muted-foreground mt-1">
+                                              {stock.rack && <span>Rack: {stock.rack}</span>}
+                                              {stock.bin && <span>Bin: {stock.bin}</span>}
+                                              {stock.zone && <span>Zone: {stock.zone}</span>}
+                                              {stock.aisle && <span>Aisle: {stock.aisle}</span>}
+                                            </div>
                                           </div>
+                                          <p className="font-semibold">{stock.quantity}</p>
                                         </div>
-                                        <p className="font-semibold">{stock.quantity}</p>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              ) : (
-                                <div className="p-3 text-center text-sm text-muted-foreground">
-                                  No warehouse allocations
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
+                                      );
+                                    })}
+                                  </div>
+                                ) : (
+                                  <div className="p-3 text-center text-sm text-muted-foreground">
+                                    No warehouse allocations for this UOM
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="mt-2 p-4 border rounded-lg bg-muted/20 text-center">
+                          <p className="text-sm text-muted-foreground">
+                            UOM warehouse stock data not available. Configure UOM warehouse allocations to see breakdown.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </>
                 )}
