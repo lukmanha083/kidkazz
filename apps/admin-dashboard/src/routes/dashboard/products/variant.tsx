@@ -46,7 +46,8 @@ import {
   Trash2,
   Eye,
   X,
-  Palette
+  Palette,
+  Package
 } from 'lucide-react';
 
 export const Route = createFileRoute('/dashboard/products/variant')({
