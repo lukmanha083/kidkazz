@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { variantApi, productApi, warehouseApi, productLocationApi, type ProductVariant, type CreateVariantInput } from '@/lib/api';
+import { variantApi, productApi, warehouseApi, productLocationApi, variantLocationApi, type ProductVariant, type CreateVariantInput } from '@/lib/api';
 import { ProductWarehouseAllocation, type WarehouseAllocation } from '@/components/products/ProductWarehouseAllocation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -268,7 +268,27 @@ function ProductVariantPage() {
 
   // Create variant mutation
   const createVariantMutation = useMutation({
-    mutationFn: (data: CreateVariantInput) => variantApi.create(data),
+    mutationFn: async (data: CreateVariantInput) => {
+      // Create the variant first
+      const variant = await variantApi.create(data);
+
+      // Then save warehouse allocations if any
+      if (warehouseAllocations.length > 0) {
+        await Promise.all(
+          warehouseAllocations.map((allocation) =>
+            variantLocationApi.create({
+              variantId: variant.id,
+              warehouseId: allocation.warehouseId,
+              quantity: allocation.quantity,
+              rack: allocation.rack || null,
+              bin: allocation.bin || null,
+            })
+          )
+        );
+      }
+
+      return variant;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['variants'] });
       toast.success('Variant created successfully');
@@ -283,8 +303,49 @@ function ProductVariantPage() {
 
   // Update variant mutation
   const updateVariantMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<CreateVariantInput> }) =>
-      variantApi.update(id, data),
+    mutationFn: async ({ id, data }: { id: string; data: Partial<CreateVariantInput> }) => {
+      // Update the variant first
+      const variant = await variantApi.update(id, data);
+
+      // Get existing variant locations
+      const existingLocations = await variantLocationApi.getByVariant(id);
+      const existingLocs = existingLocations.variantLocations || [];
+
+      // Create or update allocations
+      for (const allocation of warehouseAllocations) {
+        const existing = existingLocs.find((loc) => loc.warehouseId === allocation.warehouseId);
+
+        if (existing) {
+          // Update existing location
+          await variantLocationApi.update(existing.id, {
+            quantity: allocation.quantity,
+            rack: allocation.rack || null,
+            bin: allocation.bin || null,
+          });
+        } else {
+          // Create new location
+          await variantLocationApi.create({
+            variantId: id,
+            warehouseId: allocation.warehouseId,
+            quantity: allocation.quantity,
+            rack: allocation.rack || null,
+            bin: allocation.bin || null,
+          });
+        }
+      }
+
+      // Delete removed allocations
+      for (const existingLoc of existingLocs) {
+        const stillExists = warehouseAllocations.find(
+          (alloc) => alloc.warehouseId === existingLoc.warehouseId
+        );
+        if (!stillExists) {
+          await variantLocationApi.delete(existingLoc.id);
+        }
+      }
+
+      return variant;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['variants'] });
       toast.success('Variant updated successfully');
@@ -508,8 +569,25 @@ function ProductVariantPage() {
       stock: variant.stock.toString(),
       status: variant.status === 'active' ? 'Active' : 'Inactive',
     });
-    // Load warehouse allocations if available (to be implemented with backend support)
-    setWarehouseAllocations([]);
+
+    // Load existing warehouse allocations for this variant
+    try {
+      const variantLocations = await variantLocationApi.getByVariant(variant.id);
+      if (variantLocations.variantLocations && variantLocations.variantLocations.length > 0) {
+        const allocations: WarehouseAllocation[] = variantLocations.variantLocations.map(loc => ({
+          warehouseId: loc.warehouseId,
+          quantity: loc.quantity,
+          rack: loc.rack || '',
+          bin: loc.bin || '',
+        }));
+        setWarehouseAllocations(allocations);
+      } else {
+        setWarehouseAllocations([]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch variant locations:', error);
+      setWarehouseAllocations([]);
+    }
 
     // Fetch parent product locations for edit mode
     try {
@@ -547,6 +625,15 @@ function ProductVariantPage() {
     if (requestedStock > maxAllowedStock) {
       toast.error('Insufficient stock available', {
         description: `Only ${maxAllowedStock} units available. Reduce the stock or increase the product's total stock.`,
+      });
+      return;
+    }
+
+    // Validate warehouse allocations match total stock
+    const totalAllocated = warehouseAllocations.reduce((sum, alloc) => sum + alloc.quantity, 0);
+    if (warehouseAllocations.length > 0 && totalAllocated !== requestedStock) {
+      toast.error('Warehouse allocation mismatch', {
+        description: `Total warehouse allocation (${totalAllocated}) must equal variant stock (${requestedStock})`,
       });
       return;
     }
