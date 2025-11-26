@@ -77,6 +77,7 @@ import { VideoGallery } from '@/components/VideoGallery';
 import { DatePicker } from '@/components/ui/date-picker';
 import { ProductWarehouseAllocation, type WarehouseAllocation } from '@/components/products/ProductWarehouseAllocation';
 import { ProductUOMWarehouseAllocation, type UOMWarehouseAllocation } from '@/components/products/ProductUOMWarehouseAllocation';
+import { WarehouseDetailModal, type WarehouseStockDetail } from '@/components/products/WarehouseDetailModal';
 
 export const Route = createFileRoute('/dashboard/products/all')({
   component: AllProductsPage,
@@ -202,6 +203,17 @@ function AllProductsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [uomToDelete, setUomToDelete] = useState<ProductUOM | null>(null);
+
+  // Warehouse detail modal states
+  const [warehouseModalOpen, setWarehouseModalOpen] = useState(false);
+  const [warehouseModalData, setWarehouseModalData] = useState<{
+    title: string;
+    subtitle?: string;
+    warehouseStocks: WarehouseStockDetail[];
+    reportType: 'variant' | 'uom' | 'product';
+    itemName: string;
+    itemSKU?: string;
+  } | null>(null);
 
   // Fetch products - removed searchTerm from queryKey to fix invalidation issue
   const { data: productsData, isLoading, error } = useQuery({
@@ -1547,23 +1559,36 @@ function AllProductsPage() {
                                       );
                                     })}
                                   </div>
-                                  {variant.warehouseStocks.length > 10 && (
-                                    <div className="px-3 pb-3">
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="w-full"
-                                        onClick={() => {
-                                          // TODO: Open modal with full details and PDF export
-                                          toast.info('Feature coming soon', {
-                                            description: 'Full warehouse detail view with PDF export will be available soon.',
-                                          });
-                                        }}
-                                      >
-                                        View all {variant.warehouseStocks.length} warehouses & Export PDF
-                                      </Button>
-                                    </div>
-                                  )}
+                                  <div className="px-3 pb-3">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="w-full"
+                                      onClick={() => {
+                                        const warehouseStockDetails: WarehouseStockDetail[] = variant.warehouseStocks.map(stock => {
+                                          const warehouse = warehouses.find(w => w.id === stock.warehouseId);
+                                          return {
+                                            warehouseId: stock.warehouseId,
+                                            warehouseName: warehouse?.name || 'Unknown Warehouse',
+                                            quantity: stock.quantity,
+                                            rack: stock.rack,
+                                            bin: stock.bin,
+                                          };
+                                        });
+                                        setWarehouseModalData({
+                                          title: `Variant: ${variant.variantName}`,
+                                          subtitle: `SKU: ${variant.variantSKU} | Total Stock: ${variant.totalStock} units`,
+                                          warehouseStocks: warehouseStockDetails,
+                                          reportType: 'variant',
+                                          itemName: variant.variantName,
+                                          itemSKU: variant.variantSKU,
+                                        });
+                                        setWarehouseModalOpen(true);
+                                      }}
+                                    >
+                                      View Full Report
+                                    </Button>
+                                  </div>
                                 </>
                               ) : (
                                 <div className="p-3 text-center text-sm text-muted-foreground">
@@ -1612,25 +1637,59 @@ function AllProductsPage() {
                                   </div>
                                 </div>
                                 {uom.warehouseStocks.length > 0 ? (
-                                  <div className="p-3 space-y-2">
-                                    {uom.warehouseStocks.map((stock, idx) => {
-                                      const warehouse = warehouses.find(w => w.id === stock.warehouseId);
-                                      return (
-                                        <div key={idx} className="flex items-center justify-between text-sm p-2 bg-muted/20 rounded">
-                                          <div>
-                                            <p className="font-medium">{warehouse?.name || 'Unknown Warehouse'}</p>
-                                            <div className="flex gap-3 text-xs text-muted-foreground mt-1">
-                                              {stock.rack && <span>Rack: {stock.rack}</span>}
-                                              {stock.bin && <span>Bin: {stock.bin}</span>}
-                                              {stock.zone && <span>Zone: {stock.zone}</span>}
-                                              {stock.aisle && <span>Aisle: {stock.aisle}</span>}
+                                  <>
+                                    <div className="p-3 space-y-2">
+                                      {uom.warehouseStocks.slice(0, 10).map((stock, idx) => {
+                                        const warehouse = warehouses.find(w => w.id === stock.warehouseId);
+                                        return (
+                                          <div key={idx} className="flex items-center justify-between text-sm p-2 bg-muted/20 rounded">
+                                            <div>
+                                              <p className="font-medium">{warehouse?.name || 'Unknown Warehouse'}</p>
+                                              <div className="flex gap-3 text-xs text-muted-foreground mt-1">
+                                                {stock.rack && <span>Rack: {stock.rack}</span>}
+                                                {stock.bin && <span>Bin: {stock.bin}</span>}
+                                                {stock.zone && <span>Zone: {stock.zone}</span>}
+                                                {stock.aisle && <span>Aisle: {stock.aisle}</span>}
+                                              </div>
                                             </div>
+                                            <p className="font-semibold">{stock.quantity}</p>
                                           </div>
-                                          <p className="font-semibold">{stock.quantity}</p>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
+                                        );
+                                      })}
+                                    </div>
+                                    <div className="px-3 pb-3">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full"
+                                        onClick={() => {
+                                          const warehouseStockDetails: WarehouseStockDetail[] = uom.warehouseStocks.map(stock => {
+                                            const warehouse = warehouses.find(w => w.id === stock.warehouseId);
+                                            return {
+                                              warehouseId: stock.warehouseId,
+                                              warehouseName: warehouse?.name || 'Unknown Warehouse',
+                                              quantity: stock.quantity,
+                                              rack: stock.rack,
+                                              bin: stock.bin,
+                                              zone: stock.zone,
+                                              aisle: stock.aisle,
+                                            };
+                                          });
+                                          setWarehouseModalData({
+                                            title: `UOM: ${uom.uomName} (${uom.uomCode})`,
+                                            subtitle: `Conversion: ${uom.conversionFactor}x | Total Stock: ${uom.totalStock} units`,
+                                            warehouseStocks: warehouseStockDetails,
+                                            reportType: 'uom',
+                                            itemName: uom.uomName,
+                                            itemSKU: uom.uomCode,
+                                          });
+                                          setWarehouseModalOpen(true);
+                                        }}
+                                      >
+                                        View Full Report
+                                      </Button>
+                                    </div>
+                                  </>
                                 ) : (
                                   <div className="p-3 text-center text-sm text-muted-foreground">
                                     No warehouse allocations for this UOM
@@ -1657,7 +1716,7 @@ function AllProductsPage() {
                     <div>
                       <Label className="text-xs text-muted-foreground">Product Locations</Label>
                       <div className="mt-2 space-y-2">
-                        {selectedProduct.productLocations.map((location) => {
+                        {selectedProduct.productLocations.slice(0, 10).map((location) => {
                           const warehouse = warehouses.find(w => w.id === location.warehouseId);
                           return (
                             <div key={location.id} className="p-3 border rounded bg-muted/30">
@@ -1695,6 +1754,38 @@ function AllProductsPage() {
                             </div>
                           );
                         })}
+                      </div>
+                      <div className="mt-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => {
+                            const warehouseStockDetails: WarehouseStockDetail[] = selectedProduct.productLocations!.map(location => {
+                              const warehouse = warehouses.find(w => w.id === location.warehouseId);
+                              return {
+                                warehouseId: location.warehouseId,
+                                warehouseName: warehouse?.name || 'Unknown Warehouse',
+                                quantity: location.quantity,
+                                rack: location.rack,
+                                bin: location.bin,
+                                zone: location.zone,
+                                aisle: location.aisle,
+                              };
+                            });
+                            setWarehouseModalData({
+                              title: `Product: ${selectedProduct.name}`,
+                              subtitle: `SKU: ${selectedProduct.sku} | Total Stock: ${selectedProduct.stock} units`,
+                              warehouseStocks: warehouseStockDetails,
+                              reportType: 'product',
+                              itemName: selectedProduct.name,
+                              itemSKU: selectedProduct.sku,
+                            });
+                            setWarehouseModalOpen(true);
+                          }}
+                        >
+                          View Full Report
+                        </Button>
                       </div>
                     </div>
                   </>
@@ -2343,6 +2434,20 @@ function AllProductsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Warehouse Detail Modal with PDF Export */}
+      {warehouseModalData && (
+        <WarehouseDetailModal
+          open={warehouseModalOpen}
+          onOpenChange={setWarehouseModalOpen}
+          title={warehouseModalData.title}
+          subtitle={warehouseModalData.subtitle}
+          warehouseStocks={warehouseModalData.warehouseStocks}
+          reportType={warehouseModalData.reportType}
+          itemName={warehouseModalData.itemName}
+          itemSKU={warehouseModalData.itemSKU}
+        />
+      )}
     </div>
   );
 }
