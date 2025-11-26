@@ -119,7 +119,7 @@ export function WarehouseDetailModal({
         body: tableData,
         theme: 'grid',
         headStyles: {
-          fillColor: [59, 130, 246], // Blue color
+          fillColor: [0, 0, 0], // Black color
           textColor: [255, 255, 255],
           fontStyle: 'bold',
         },
