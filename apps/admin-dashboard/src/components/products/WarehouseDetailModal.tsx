@@ -33,6 +33,9 @@ interface WarehouseDetailModalProps {
   reportType: 'variant' | 'uom' | 'product';
   itemName: string; // Variant name, UOM name, or Product name
   itemSKU?: string; // Optional SKU or code
+  productBarcode?: string; // Optional product barcode
+  productSKU?: string; // Optional product SKU
+  productName?: string; // Optional product name
 }
 
 export function WarehouseDetailModal({
@@ -44,6 +47,9 @@ export function WarehouseDetailModal({
   reportType,
   itemName,
   itemSKU,
+  productBarcode,
+  productSKU,
+  productName,
 }: WarehouseDetailModalProps) {
   const [isExporting, setIsExporting] = useState(false);
 
@@ -60,13 +66,41 @@ export function WarehouseDetailModal({
 
       // Add report details
       doc.setFontSize(11);
-      doc.text(`Report Type: ${reportType.charAt(0).toUpperCase() + reportType.slice(1)}`, 14, 30);
-      doc.text(`Item: ${itemName}`, 14, 37);
-      if (itemSKU) {
-        doc.text(`SKU/Code: ${itemSKU}`, 14, 44);
+      let yPos = 30;
+
+      doc.text(`Report Type: ${reportType.charAt(0).toUpperCase() + reportType.slice(1)}`, 14, yPos);
+      yPos += 7;
+
+      // For product reports, show product details first
+      if (reportType === 'product' && productName) {
+        doc.text(`Product: ${productName}`, 14, yPos);
+        yPos += 7;
+
+        if (productSKU) {
+          doc.text(`Product SKU: ${productSKU}`, 14, yPos);
+          yPos += 7;
+        }
+
+        if (productBarcode) {
+          doc.text(`Barcode: ${productBarcode}`, 14, yPos);
+          yPos += 7;
+        }
+      } else {
+        // For variant/UOM reports
+        doc.text(`Item: ${itemName}`, 14, yPos);
+        yPos += 7;
+
+        if (itemSKU) {
+          doc.text(`SKU/Code: ${itemSKU}`, 14, yPos);
+          yPos += 7;
+        }
       }
-      doc.text(`Total Stock: ${totalStock} units`, 14, itemSKU ? 51 : 44);
-      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, itemSKU ? 58 : 51);
+
+      doc.text(`Total Stock: ${totalStock} units`, 14, yPos);
+      yPos += 7;
+
+      doc.text(`Generated: ${new Date().toLocaleString()}`, 14, yPos);
+      yPos += 7;
 
       // Prepare table data
       const tableData = warehouseStocks.map((stock) => [
@@ -80,7 +114,7 @@ export function WarehouseDetailModal({
 
       // Add table
       autoTable(doc, {
-        startY: itemSKU ? 65 : 58,
+        startY: yPos,
         head: [['Warehouse', 'Quantity', 'Rack', 'Bin', 'Zone', 'Aisle']],
         body: tableData,
         theme: 'grid',

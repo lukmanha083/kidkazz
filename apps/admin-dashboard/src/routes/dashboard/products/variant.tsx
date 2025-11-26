@@ -711,7 +711,14 @@ function ProductVariantPage() {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => handleEditVariant(variant)}
+                          onClick={() => {
+                            handleEditVariant(variant).catch(error => {
+                              console.error('Failed to open edit variant:', error);
+                              toast.error('Failed to load variant details', {
+                                description: error instanceof Error ? error.message : 'Unknown error',
+                              });
+                            });
+                          }}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -845,7 +852,16 @@ function ProductVariantPage() {
           )}
 
           <DrawerFooter>
-            <Button onClick={() => selectedVariant && handleEditVariant(selectedVariant)}>
+            <Button onClick={() => {
+              if (selectedVariant) {
+                handleEditVariant(selectedVariant).catch(error => {
+                  console.error('Failed to open edit variant:', error);
+                  toast.error('Failed to load variant details', {
+                    description: error instanceof Error ? error.message : 'Unknown error',
+                  });
+                });
+              }
+            }}>
               <Edit className="h-4 w-4 mr-2" />
               Edit Variant
             </Button>
