@@ -252,6 +252,15 @@ function ProductVariantPage() {
   // Warehouse allocations state
   const [warehouseAllocations, setWarehouseAllocations] = useState<WarehouseAllocation[]>([]);
 
+  // Parent product warehouse locations state (for reference in variant form)
+  const [parentProductLocations, setParentProductLocations] = useState<Array<{
+    warehouseId: string;
+    warehouseName: string;
+    quantity: number;
+    rack?: string | null;
+    bin?: string | null;
+  }>>([]);
+
   // Delete confirmation states
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [variantToDelete, setVariantToDelete] = useState<ProductVariant | null>(null);
@@ -373,24 +382,39 @@ function ProductVariantPage() {
       // The parent product's warehouse structure is available but not pre-filled
       setWarehouseAllocations([]);
 
-      // Show info about parent product's warehouses for reference
+      // Fetch and display parent product's warehouse locations for reference
       try {
         const productLocations = await productLocationApi.getByProduct(product.id);
         if (productLocations.locations && productLocations.locations.length > 0) {
-          const warehouseNames = productLocations.locations
-            .map(loc => {
-              const warehouse = warehouses.find(w => w.id === loc.warehouseId);
-              return warehouse?.name || 'Unknown';
-            })
+          // Build parent locations array with warehouse names and quantities
+          const parentLocs = productLocations.locations.map(loc => {
+            const warehouse = warehouses.find(w => w.id === loc.warehouseId);
+            return {
+              warehouseId: loc.warehouseId,
+              warehouseName: warehouse?.name || 'Unknown Warehouse',
+              quantity: loc.quantity,
+              rack: loc.rack,
+              bin: loc.bin,
+            };
+          });
+
+          setParentProductLocations(parentLocs);
+
+          // Create toast message with warehouse names and stock quantities
+          const warehouseInfo = parentLocs
+            .map(loc => `${loc.warehouseName} (${loc.quantity} units)`)
             .join(', ');
 
-          toast.info('Parent product warehouses', {
-            description: `Parent is in: ${warehouseNames}. Allocate this variant to warehouses based on your variant stock.`,
-            duration: 5000,
+          toast.info('Parent Product Stock', {
+            description: `Parent is in: ${warehouseInfo}`,
+            duration: 6000,
           });
+        } else {
+          setParentProductLocations([]);
         }
       } catch (error) {
         console.error('Failed to fetch product locations:', error);
+        setParentProductLocations([]);
       }
     }
   };
@@ -465,10 +489,11 @@ function ProductVariantPage() {
       status: 'Active',
     });
     setWarehouseAllocations([]); // Reset warehouse allocations
+    setParentProductLocations([]); // Reset parent product locations
     setFormDrawerOpen(true);
   };
 
-  const handleEditVariant = (variant: ProductVariant) => {
+  const handleEditVariant = async (variant: ProductVariant) => {
     setFormMode('edit');
     setSelectedVariant(variant);
     setFormData({
@@ -484,6 +509,30 @@ function ProductVariantPage() {
     });
     // Load warehouse allocations if available (to be implemented with backend support)
     setWarehouseAllocations([]);
+
+    // Fetch parent product locations for edit mode
+    try {
+      const productLocations = await productLocationApi.getByProduct(variant.productId);
+      if (productLocations.locations && productLocations.locations.length > 0) {
+        const parentLocs = productLocations.locations.map(loc => {
+          const warehouse = warehouses.find(w => w.id === loc.warehouseId);
+          return {
+            warehouseId: loc.warehouseId,
+            warehouseName: warehouse?.name || 'Unknown Warehouse',
+            quantity: loc.quantity,
+            rack: loc.rack,
+            bin: loc.bin,
+          };
+        });
+        setParentProductLocations(parentLocs);
+      } else {
+        setParentProductLocations([]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch product locations:', error);
+      setParentProductLocations([]);
+    }
+
     setFormDrawerOpen(true);
   };
 
@@ -877,6 +926,37 @@ function ProductVariantPage() {
                 <p className="text-xs text-muted-foreground mt-1">
                   Variant stock is allocated from the product's total stock
                 </p>
+              </div>
+            )}
+
+            {/* Parent Product Warehouse Stock Breakdown */}
+            {formData.productSKU && parentProductLocations.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground flex items-center gap-2">
+                  <Package className="h-3 w-3" />
+                  Parent Stock by Warehouse (Reference)
+                </Label>
+                <div className="border rounded-md bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+                  <div className="p-3 space-y-2">
+                    {parentProductLocations.map((loc, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-sm p-2 bg-white dark:bg-slate-900 rounded border border-blue-100 dark:border-blue-900">
+                        <div>
+                          <p className="font-medium text-blue-900 dark:text-blue-100">{loc.warehouseName}</p>
+                          <div className="flex gap-2 text-xs text-muted-foreground mt-1">
+                            {loc.rack && <span>Rack: {loc.rack}</span>}
+                            {loc.bin && <span>Bin: {loc.bin}</span>}
+                          </div>
+                        </div>
+                        <p className="font-semibold text-blue-700 dark:text-blue-300">{loc.quantity} units</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="px-3 pb-3">
+                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                      💡 Use this as a guide to allocate variant stock to warehouses below
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
 

@@ -70,12 +70,14 @@ import {
   uomApi,
   productLocationApi,
   productUOMLocationApi,
+  variantLocationApi,
 } from '@/lib/api';
 import { ImageGallery } from '@/components/ImageGallery';
 import { VideoGallery } from '@/components/VideoGallery';
 import { DatePicker } from '@/components/ui/date-picker';
 import { ProductWarehouseAllocation, type WarehouseAllocation } from '@/components/products/ProductWarehouseAllocation';
 import { ProductUOMWarehouseAllocation, type UOMWarehouseAllocation } from '@/components/products/ProductUOMWarehouseAllocation';
+import { WarehouseDetailModal, type WarehouseStockDetail } from '@/components/products/WarehouseDetailModal';
 
 export const Route = createFileRoute('/dashboard/products/all')({
   component: AllProductsPage,
@@ -181,10 +183,37 @@ function AllProductsPage() {
     }>;
   } | null>(null);
 
+  // Variant warehouse stock data for product detail view
+  const [variantWarehouseStock, setVariantWarehouseStock] = useState<{
+    variants: Array<{
+      variantId: string;
+      variantName: string;
+      variantSKU: string;
+      totalStock: number;
+      warehouseStocks: Array<{
+        warehouseId: string;
+        quantity: number;
+        rack?: string;
+        bin?: string;
+      }>;
+    }>;
+  } | null>(null);
+
   // Delete confirmation states
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [uomToDelete, setUomToDelete] = useState<ProductUOM | null>(null);
+
+  // Warehouse detail modal states
+  const [warehouseModalOpen, setWarehouseModalOpen] = useState(false);
+  const [warehouseModalData, setWarehouseModalData] = useState<{
+    title: string;
+    subtitle?: string;
+    warehouseStocks: WarehouseStockDetail[];
+    reportType: 'variant' | 'uom' | 'product';
+    itemName: string;
+    itemSKU?: string;
+  } | null>(null);
 
   // Fetch products - removed searchTerm from queryKey to fix invalidation issue
   const { data: productsData, isLoading, error } = useQuery({
@@ -404,6 +433,46 @@ function AllProductsPage() {
     } catch (error) {
       console.error('Failed to fetch UOM warehouse stock:', error);
       setUomWarehouseStock(null);
+    }
+
+    // Fetch variant warehouse stock breakdown
+    try {
+      if (fullProduct.variants && fullProduct.variants.length > 0) {
+        const variantStockData = await Promise.all(
+          fullProduct.variants.map(async (variant) => {
+            try {
+              const variantLocs = await variantLocationApi.getByVariant(variant.id);
+              return {
+                variantId: variant.id,
+                variantName: variant.variantName,
+                variantSKU: variant.variantSKU,
+                totalStock: variant.stock,
+                warehouseStocks: variantLocs.variantLocations.map(loc => ({
+                  warehouseId: loc.warehouseId,
+                  quantity: loc.quantity,
+                  rack: loc.rack || undefined,
+                  bin: loc.bin || undefined,
+                })),
+              };
+            } catch (error) {
+              console.error(`Failed to fetch locations for variant ${variant.id}:`, error);
+              return {
+                variantId: variant.id,
+                variantName: variant.variantName,
+                variantSKU: variant.variantSKU,
+                totalStock: variant.stock,
+                warehouseStocks: [],
+              };
+            }
+          })
+        );
+        setVariantWarehouseStock({ variants: variantStockData });
+      } else {
+        setVariantWarehouseStock(null);
+      }
+    } catch (error) {
+      console.error('Failed to fetch variant warehouse stock:', error);
+      setVariantWarehouseStock(null);
     }
 
     setProductDetailDrawerOpen(true);
@@ -1451,6 +1520,95 @@ function AllProductsPage() {
                   </>
                 )}
 
+                {selectedProduct.variants && selectedProduct.variants.length > 0 && variantWarehouseStock && (
+                  <>
+                    <Separator />
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Product Variants (By Warehouse)</Label>
+                      {variantWarehouseStock.variants && variantWarehouseStock.variants.length > 0 ? (
+                        <div className="mt-2 space-y-3">
+                          {variantWarehouseStock.variants.map((variant) => (
+                            <div key={variant.variantId} className="border rounded-lg overflow-hidden">
+                              <div className="bg-muted/50 p-3 flex items-center justify-between border-b">
+                                <div>
+                                  <p className="text-sm font-medium">{variant.variantName}</p>
+                                  <p className="text-xs text-muted-foreground font-mono">
+                                    SKU: {variant.variantSKU}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-sm font-semibold">Total: {variant.totalStock}</p>
+                                </div>
+                              </div>
+                              {variant.warehouseStocks.length > 0 ? (
+                                <>
+                                  <div className="p-3 space-y-2">
+                                    {variant.warehouseStocks.slice(0, 10).map((stock, idx) => {
+                                      const warehouse = warehouses.find(w => w.id === stock.warehouseId);
+                                      return (
+                                        <div key={idx} className="flex items-center justify-between text-sm p-2 bg-muted/20 rounded">
+                                          <div>
+                                            <p className="font-medium">{warehouse?.name || 'Unknown Warehouse'}</p>
+                                            <div className="flex gap-3 text-xs text-muted-foreground mt-1">
+                                              {stock.rack && <span>Rack: {stock.rack}</span>}
+                                              {stock.bin && <span>Bin: {stock.bin}</span>}
+                                            </div>
+                                          </div>
+                                          <p className="font-semibold">{stock.quantity}</p>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                  <div className="px-3 pb-3">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="w-full"
+                                      onClick={() => {
+                                        const warehouseStockDetails: WarehouseStockDetail[] = variant.warehouseStocks.map(stock => {
+                                          const warehouse = warehouses.find(w => w.id === stock.warehouseId);
+                                          return {
+                                            warehouseId: stock.warehouseId,
+                                            warehouseName: warehouse?.name || 'Unknown Warehouse',
+                                            quantity: stock.quantity,
+                                            rack: stock.rack,
+                                            bin: stock.bin,
+                                          };
+                                        });
+                                        setWarehouseModalData({
+                                          title: `Variant: ${variant.variantName}`,
+                                          subtitle: `SKU: ${variant.variantSKU} | Total Stock: ${variant.totalStock} units`,
+                                          warehouseStocks: warehouseStockDetails,
+                                          reportType: 'variant',
+                                          itemName: variant.variantName,
+                                          itemSKU: variant.variantSKU,
+                                        });
+                                        setWarehouseModalOpen(true);
+                                      }}
+                                    >
+                                      View Full Report
+                                    </Button>
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="p-3 text-center text-sm text-muted-foreground">
+                                  No warehouse allocations for this variant
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="mt-2 p-4 border rounded-lg bg-muted/20 text-center">
+                          <p className="text-sm text-muted-foreground">
+                            Variant warehouse stock data not available. Configure variant warehouse allocations to see breakdown.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+
                 {selectedProduct.productUOMs && selectedProduct.productUOMs.length > 0 && (
                   <>
                     <Separator />
@@ -1479,25 +1637,59 @@ function AllProductsPage() {
                                   </div>
                                 </div>
                                 {uom.warehouseStocks.length > 0 ? (
-                                  <div className="p-3 space-y-2">
-                                    {uom.warehouseStocks.map((stock, idx) => {
-                                      const warehouse = warehouses.find(w => w.id === stock.warehouseId);
-                                      return (
-                                        <div key={idx} className="flex items-center justify-between text-sm p-2 bg-muted/20 rounded">
-                                          <div>
-                                            <p className="font-medium">{warehouse?.name || 'Unknown Warehouse'}</p>
-                                            <div className="flex gap-3 text-xs text-muted-foreground mt-1">
-                                              {stock.rack && <span>Rack: {stock.rack}</span>}
-                                              {stock.bin && <span>Bin: {stock.bin}</span>}
-                                              {stock.zone && <span>Zone: {stock.zone}</span>}
-                                              {stock.aisle && <span>Aisle: {stock.aisle}</span>}
+                                  <>
+                                    <div className="p-3 space-y-2">
+                                      {uom.warehouseStocks.slice(0, 10).map((stock, idx) => {
+                                        const warehouse = warehouses.find(w => w.id === stock.warehouseId);
+                                        return (
+                                          <div key={idx} className="flex items-center justify-between text-sm p-2 bg-muted/20 rounded">
+                                            <div>
+                                              <p className="font-medium">{warehouse?.name || 'Unknown Warehouse'}</p>
+                                              <div className="flex gap-3 text-xs text-muted-foreground mt-1">
+                                                {stock.rack && <span>Rack: {stock.rack}</span>}
+                                                {stock.bin && <span>Bin: {stock.bin}</span>}
+                                                {stock.zone && <span>Zone: {stock.zone}</span>}
+                                                {stock.aisle && <span>Aisle: {stock.aisle}</span>}
+                                              </div>
                                             </div>
+                                            <p className="font-semibold">{stock.quantity}</p>
                                           </div>
-                                          <p className="font-semibold">{stock.quantity}</p>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
+                                        );
+                                      })}
+                                    </div>
+                                    <div className="px-3 pb-3">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full"
+                                        onClick={() => {
+                                          const warehouseStockDetails: WarehouseStockDetail[] = uom.warehouseStocks.map(stock => {
+                                            const warehouse = warehouses.find(w => w.id === stock.warehouseId);
+                                            return {
+                                              warehouseId: stock.warehouseId,
+                                              warehouseName: warehouse?.name || 'Unknown Warehouse',
+                                              quantity: stock.quantity,
+                                              rack: stock.rack,
+                                              bin: stock.bin,
+                                              zone: stock.zone,
+                                              aisle: stock.aisle,
+                                            };
+                                          });
+                                          setWarehouseModalData({
+                                            title: `UOM: ${uom.uomName} (${uom.uomCode})`,
+                                            subtitle: `Conversion: ${uom.conversionFactor}x | Total Stock: ${uom.totalStock} units`,
+                                            warehouseStocks: warehouseStockDetails,
+                                            reportType: 'uom',
+                                            itemName: uom.uomName,
+                                            itemSKU: uom.uomCode,
+                                          });
+                                          setWarehouseModalOpen(true);
+                                        }}
+                                      >
+                                        View Full Report
+                                      </Button>
+                                    </div>
+                                  </>
                                 ) : (
                                   <div className="p-3 text-center text-sm text-muted-foreground">
                                     No warehouse allocations for this UOM
@@ -1524,7 +1716,7 @@ function AllProductsPage() {
                     <div>
                       <Label className="text-xs text-muted-foreground">Product Locations</Label>
                       <div className="mt-2 space-y-2">
-                        {selectedProduct.productLocations.map((location) => {
+                        {selectedProduct.productLocations.slice(0, 10).map((location) => {
                           const warehouse = warehouses.find(w => w.id === location.warehouseId);
                           return (
                             <div key={location.id} className="p-3 border rounded bg-muted/30">
@@ -1562,6 +1754,38 @@ function AllProductsPage() {
                             </div>
                           );
                         })}
+                      </div>
+                      <div className="mt-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => {
+                            const warehouseStockDetails: WarehouseStockDetail[] = selectedProduct.productLocations!.map(location => {
+                              const warehouse = warehouses.find(w => w.id === location.warehouseId);
+                              return {
+                                warehouseId: location.warehouseId,
+                                warehouseName: warehouse?.name || 'Unknown Warehouse',
+                                quantity: location.quantity,
+                                rack: location.rack,
+                                bin: location.bin,
+                                zone: location.zone,
+                                aisle: location.aisle,
+                              };
+                            });
+                            setWarehouseModalData({
+                              title: `Product: ${selectedProduct.name}`,
+                              subtitle: `SKU: ${selectedProduct.sku} | Total Stock: ${selectedProduct.stock} units`,
+                              warehouseStocks: warehouseStockDetails,
+                              reportType: 'product',
+                              itemName: selectedProduct.name,
+                              itemSKU: selectedProduct.sku,
+                            });
+                            setWarehouseModalOpen(true);
+                          }}
+                        >
+                          View Full Report
+                        </Button>
                       </div>
                     </div>
                   </>
@@ -2210,6 +2434,20 @@ function AllProductsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Warehouse Detail Modal with PDF Export */}
+      {warehouseModalData && (
+        <WarehouseDetailModal
+          open={warehouseModalOpen}
+          onOpenChange={setWarehouseModalOpen}
+          title={warehouseModalData.title}
+          subtitle={warehouseModalData.subtitle}
+          warehouseStocks={warehouseModalData.warehouseStocks}
+          reportType={warehouseModalData.reportType}
+          itemName={warehouseModalData.itemName}
+          itemSKU={warehouseModalData.itemSKU}
+        />
+      )}
     </div>
   );
 }
