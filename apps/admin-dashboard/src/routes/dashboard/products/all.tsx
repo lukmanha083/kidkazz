@@ -213,6 +213,9 @@ function AllProductsPage() {
     reportType: 'variant' | 'uom' | 'product';
     itemName: string;
     itemSKU?: string;
+    productBarcode?: string;
+    productSKU?: string;
+    productName?: string;
   } | null>(null);
 
   // Fetch products - removed searchTerm from queryKey to fix invalidation issue
@@ -1775,11 +1778,14 @@ function AllProductsPage() {
                             });
                             setWarehouseModalData({
                               title: `Product: ${selectedProduct.name}`,
-                              subtitle: `SKU: ${selectedProduct.sku} | Total Stock: ${selectedProduct.stock} units`,
+                              subtitle: `SKU: ${selectedProduct.sku} | Barcode: ${selectedProduct.barcode} | Total Stock: ${selectedProduct.stock} units`,
                               warehouseStocks: warehouseStockDetails,
                               reportType: 'product',
                               itemName: selectedProduct.name,
                               itemSKU: selectedProduct.sku,
+                              productBarcode: selectedProduct.barcode,
+                              productSKU: selectedProduct.sku,
+                              productName: selectedProduct.name,
                             });
                             setWarehouseModalOpen(true);
                           }}
@@ -2446,6 +2452,9 @@ function AllProductsPage() {
           reportType={warehouseModalData.reportType}
           itemName={warehouseModalData.itemName}
           itemSKU={warehouseModalData.itemSKU}
+          productBarcode={warehouseModalData.productBarcode}
+          productSKU={warehouseModalData.productSKU}
+          productName={warehouseModalData.productName}
         />
       )}
     </div>
