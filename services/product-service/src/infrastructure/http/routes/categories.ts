@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { categories } from '../../db/schema';
 import { generateId, generateTimestamp } from '../../../shared/utils/helpers';
 
@@ -26,14 +26,17 @@ const updateCategorySchema = createCategorySchema.partial();
 
 // Helper function to get categories with parent names
 async function getCategoriesWithParentNames(db: any) {
-  const result = await db.execute(sql`
-    SELECT
-      c.*,
-      p.name as parentCategoryName
-    FROM ${categories} c
-    LEFT JOIN ${categories} p ON c.parent_id = p.id
-  `);
-  return result.rows;
+  // Get all categories
+  const allCategories = await db.select().from(categories).all();
+
+  // Create a map for quick parent lookup
+  const categoryMap = new Map(allCategories.map(cat => [cat.id, cat]));
+
+  // Add parentCategoryName to each category
+  return allCategories.map(cat => ({
+    ...cat,
+    parentCategoryName: cat.parentId ? categoryMap.get(cat.parentId)?.name || null : null,
+  }));
 }
 
 // Helper function to check if a category already has a parent (is a subcategory)
@@ -78,15 +81,20 @@ app.get('/', async (c) => {
 // GET /api/categories/active - List active categories
 app.get('/active', async (c) => {
   const db = drizzle(c.env.DB);
-  const result = await db.execute(sql`
-    SELECT
-      c.*,
-      p.name as parentCategoryName
-    FROM ${categories} c
-    LEFT JOIN ${categories} p ON c.parent_id = p.id
-    WHERE c.status = 'active'
-  `);
-  const activeCategories = result.rows;
+
+  // Get all categories first
+  const allCategories = await db.select().from(categories).all();
+
+  // Create a map for quick parent lookup
+  const categoryMap = new Map(allCategories.map(cat => [cat.id, cat]));
+
+  // Filter active categories and add parentCategoryName
+  const activeCategories = allCategories
+    .filter(cat => cat.status === 'active')
+    .map(cat => ({
+      ...cat,
+      parentCategoryName: cat.parentId ? categoryMap.get(cat.parentId)?.name || null : null,
+    }));
 
   return c.json({
     categories: activeCategories,

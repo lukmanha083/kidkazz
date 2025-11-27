@@ -250,6 +250,9 @@ function AllProductsPage() {
 
   const availableUOMs = uomsData?.uoms || [];
 
+  // Filter base units for Base Unit dropdown
+  const baseUnits = availableUOMs.filter(uom => uom.isBaseUnit);
+
   // Create product mutation
   const createProductMutation = useMutation({
     mutationFn: (data: CreateProductInput) => productApi.create(data),
@@ -2078,15 +2081,23 @@ function AllProductsPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="baseUnit">Base Unit</Label>
-                <Input
+                <select
                   id="baseUnit"
                   value={formData.baseUnit}
                   onChange={(e) => setFormData({ ...formData, baseUnit: e.target.value })}
-                  placeholder="PCS"
                   required
-                  className="bg-muted/30"
-                  readOnly
-                />
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                >
+                  {baseUnits.length === 0 ? (
+                    <option value="PCS">PCS (Default)</option>
+                  ) : (
+                    baseUnits.map(uom => (
+                      <option key={uom.id} value={uom.code}>
+                        {uom.code} - {uom.name}
+                      </option>
+                    ))
+                  )}
+                </select>
                 <p className="text-xs text-muted-foreground">
                   Base unit for inventory tracking
                 </p>
