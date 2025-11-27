@@ -12,6 +12,9 @@ export const categories = sqliteTable('categories', {
   color: text('color'),
   status: text('status').default('active').notNull(), // 'active' | 'inactive'
 
+  // Subcategory support
+  parentId: text('parent_id'), // Reference to parent category (self-referential)
+
   // Audit fields
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
