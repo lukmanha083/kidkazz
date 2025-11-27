@@ -96,6 +96,8 @@ const navItems: NavItem[] = [
       { title: 'Warehouse', href: '/dashboard/inventory/warehouse' },
       { title: 'UOM Conversion', href: '/dashboard/inventory/uom-conversion' },
       { title: 'Transfer Stock', href: '/dashboard/inventory/transfer-stock' },
+      { title: 'Low Stock', href: '/dashboard/inventory/low-stock' },
+      { title: 'Expired Stock', href: '/dashboard/inventory/expired-stock' },
     ]
   },
   {
