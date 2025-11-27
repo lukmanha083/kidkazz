@@ -457,15 +457,23 @@ function CategoryPage() {
               >
                 <option value="">None (Top-level category)</option>
                 {categories
-                  .filter(cat => formMode === 'edit' ? cat.id !== selectedCategory?.id : true)
+                  .filter(cat => {
+                    // Don't show the current category being edited as an option
+                    if (formMode === 'edit' && cat.id === selectedCategory?.id) {
+                      return false;
+                    }
+                    // Only show top-level categories (categories without parents) as selectable parents
+                    // This ensures we only have 2 levels: category and subcategory
+                    return !cat.parentId;
+                  })
                   .map(cat => (
                     <option key={cat.id} value={cat.id}>
-                      {cat.parentCategoryName ? `${cat.parentCategoryName} > ${cat.name}` : cat.name}
+                      {cat.name}
                     </option>
                   ))}
               </select>
               <p className="text-xs text-muted-foreground">
-                Select a parent category to create a subcategory
+                Only top-level categories can be selected as parents. We support 2 levels: category and subcategory.
               </p>
             </div>
 

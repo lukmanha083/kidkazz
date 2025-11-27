@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { drizzle } from 'drizzle-orm/d1';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { categories } from '../../db/schema';
 import { generateId, generateTimestamp } from '../../../shared/utils/helpers';
 
@@ -24,10 +24,50 @@ const createCategorySchema = z.object({
 
 const updateCategorySchema = createCategorySchema.partial();
 
+// Helper function to get categories with parent names
+async function getCategoriesWithParentNames(db: any) {
+  const result = await db.execute(sql`
+    SELECT
+      c.*,
+      p.name as parentCategoryName
+    FROM ${categories} c
+    LEFT JOIN ${categories} p ON c.parent_id = p.id
+  `);
+  return result.rows;
+}
+
+// Helper function to check if a category already has a parent (is a subcategory)
+async function categoryHasParent(db: any, categoryId: string): Promise<boolean> {
+  const category = await db
+    .select()
+    .from(categories)
+    .where(eq(categories.id, categoryId))
+    .get();
+
+  return category && category.parentId !== null && category.parentId !== undefined;
+}
+
+// Helper function to check for circular parent reference
+async function wouldCreateCircularReference(db: any, categoryId: string, newParentId: string): Promise<boolean> {
+  // A category cannot be its own parent
+  if (categoryId === newParentId) {
+    return true;
+  }
+
+  // Check if the new parent is actually a child of this category
+  // This prevents circular references in 2-level hierarchy
+  const allCategories = await db.select().from(categories).all();
+  const childrenIds = allCategories
+    .filter(cat => cat.parentId === categoryId)
+    .map(cat => cat.id);
+
+  return childrenIds.includes(newParentId);
+}
+
 // GET /api/categories - List all categories
 app.get('/', async (c) => {
   const db = drizzle(c.env.DB);
-  const allCategories = await db.select().from(categories).all();
+  const allCategories = await getCategoriesWithParentNames(db);
 
   return c.json({
     categories: allCategories,
@@ -38,11 +78,15 @@ app.get('/', async (c) => {
 // GET /api/categories/active - List active categories
 app.get('/active', async (c) => {
   const db = drizzle(c.env.DB);
-  const activeCategories = await db
-    .select()
-    .from(categories)
-    .where(eq(categories.status, 'active'))
-    .all();
+  const result = await db.execute(sql`
+    SELECT
+      c.*,
+      p.name as parentCategoryName
+    FROM ${categories} c
+    LEFT JOIN ${categories} p ON c.parent_id = p.id
+    WHERE c.status = 'active'
+  `);
+  const activeCategories = result.rows;
 
   return c.json({
     categories: activeCategories,
@@ -73,6 +117,32 @@ app.post('/', zValidator('json', createCategorySchema), async (c) => {
   const data = c.req.valid('json');
   const db = drizzle(c.env.DB);
 
+  // If parentId is provided, validate it
+  if (data.parentId) {
+    // Check if the parent category exists
+    const parentCategory = await db
+      .select()
+      .from(categories)
+      .where(eq(categories.id, data.parentId))
+      .get();
+
+    if (!parentCategory) {
+      return c.json({ error: 'Parent category not found' }, 404);
+    }
+
+    // Check if the parent already has a parent (only 2-level hierarchy: category and subcategory)
+    const parentHasParent = await categoryHasParent(db, data.parentId);
+    if (parentHasParent) {
+      return c.json(
+        {
+          error: 'Invalid parent category',
+          message: 'Cannot create a subcategory under another subcategory. Only 2 levels are supported: category and subcategory.',
+        },
+        400
+      );
+    }
+  }
+
   const now = new Date();
   const newCategory = {
     id: generateId(),
@@ -100,6 +170,46 @@ app.put('/:id', zValidator('json', updateCategorySchema), async (c) => {
 
   if (!existing) {
     return c.json({ error: 'Category not found' }, 404);
+  }
+
+  // If updating parentId, validate it
+  if (data.parentId !== undefined) {
+    if (data.parentId !== null) {
+      // Check if the parent category exists
+      const parentCategory = await db
+        .select()
+        .from(categories)
+        .where(eq(categories.id, data.parentId))
+        .get();
+
+      if (!parentCategory) {
+        return c.json({ error: 'Parent category not found' }, 404);
+      }
+
+      // Check if the parent already has a parent (only 2-level hierarchy)
+      const parentHasParent = await categoryHasParent(db, data.parentId);
+      if (parentHasParent) {
+        return c.json(
+          {
+            error: 'Invalid parent category',
+            message: 'Cannot create a subcategory under another subcategory. Only 2 levels are supported: category and subcategory.',
+          },
+          400
+        );
+      }
+
+      // Check for circular reference
+      const wouldBeCircular = await wouldCreateCircularReference(db, id, data.parentId);
+      if (wouldBeCircular) {
+        return c.json(
+          {
+            error: 'Circular reference detected',
+            message: 'Cannot set a category as parent of its own parent category.',
+          },
+          400
+        );
+      }
+    }
   }
 
   await db
