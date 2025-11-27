@@ -172,6 +172,7 @@ export const productBundles = sqliteTable('product_bundles', {
   id: text('id').primaryKey(),
   bundleName: text('bundle_name').notNull(),
   bundleSKU: text('bundle_sku').unique().notNull(),
+  barcode: text('barcode'),
   bundleDescription: text('bundle_description'),
   bundleImage: text('bundle_image'),
 

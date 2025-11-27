@@ -1585,6 +1585,9 @@ function AllProductsPage() {
                                           reportType: 'variant',
                                           itemName: variant.variantName,
                                           itemSKU: variant.variantSKU,
+                                          productBarcode: selectedProduct.barcode,
+                                          productSKU: selectedProduct.sku,
+                                          productName: selectedProduct.name,
                                         });
                                         setWarehouseModalOpen(true);
                                       }}
@@ -1685,6 +1688,9 @@ function AllProductsPage() {
                                             reportType: 'uom',
                                             itemName: uom.uomName,
                                             itemSKU: uom.uomCode,
+                                            productBarcode: selectedProduct.barcode,
+                                            productSKU: selectedProduct.sku,
+                                            productName: selectedProduct.name,
                                           });
                                           setWarehouseModalOpen(true);
                                         }}

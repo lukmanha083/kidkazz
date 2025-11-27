@@ -25,6 +25,7 @@ const bundleItemSchema = z.object({
 const createBundleSchema = z.object({
   bundleName: z.string().min(1),
   bundleSKU: z.string().min(1),
+  barcode: z.string().optional().nullable(),
   bundleDescription: z.string().optional().nullable(),
   bundleImage: z.string().optional().nullable(),
   warehouseId: z.string().optional().nullable(), // Warehouse where bundle is assembled
@@ -90,6 +91,7 @@ app.post('/', zValidator('json', createBundleSchema), async (c) => {
     id: bundleId,
     bundleName: data.bundleName,
     bundleSKU: data.bundleSKU,
+    barcode: data.barcode || null,
     bundleDescription: data.bundleDescription || null,
     bundleImage: data.bundleImage || null,
     warehouseId: data.warehouseId || null, // Warehouse where bundle is assembled
