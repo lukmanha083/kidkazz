@@ -47,6 +47,8 @@ export interface Category {
   icon?: string;
   color?: string;
   status: 'active' | 'inactive';
+  parentId?: string | null;
+  parentCategoryName?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -57,6 +59,7 @@ export interface CreateCategoryInput {
   icon?: string;
   color?: string;
   status?: 'active' | 'inactive';
+  parentId?: string | null;
 }
 
 export const categoryApi = {

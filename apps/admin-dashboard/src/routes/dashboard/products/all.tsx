@@ -2069,6 +2069,40 @@ function AllProductsPage() {
               </div>
             </div>
 
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="baseUnit">Base Unit</Label>
+                <Input
+                  id="baseUnit"
+                  value={formData.baseUnit}
+                  onChange={(e) => setFormData({ ...formData, baseUnit: e.target.value })}
+                  placeholder="PCS"
+                  required
+                  className="bg-muted/30"
+                  readOnly
+                />
+                <p className="text-xs text-muted-foreground">
+                  Base unit for inventory tracking
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="wholesaleThreshold">
+                  Wholesale Threshold
+                  <span className="text-xs text-muted-foreground ml-1">(Optional)</span>
+                </Label>
+                <Input
+                  id="wholesaleThreshold"
+                  type="number"
+                  placeholder="12"
+                  value={formData.wholesaleThreshold}
+                  onChange={(e) => setFormData({ ...formData, wholesaleThreshold: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Minimum quantity for wholesale pricing
+                </p>
+              </div>
+            </div>
+
             <Separator className="my-4" />
 
             {/* Physical Dimensions for Shipping Cost Calculation */}

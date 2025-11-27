@@ -70,6 +70,7 @@ function CategoryPage() {
     icon: '',
     color: '',
     status: 'active' as 'active' | 'inactive',
+    parentId: '' as string | null,
   });
 
   // Delete confirmation states
@@ -174,6 +175,7 @@ function CategoryPage() {
       icon: '',
       color: '',
       status: 'active',
+      parentId: null,
     });
     setFormDrawerOpen(true);
   };
@@ -187,6 +189,7 @@ function CategoryPage() {
       icon: category.icon || '',
       color: category.color || '',
       status: category.status,
+      parentId: category.parentId || null,
     });
     setFormDrawerOpen(true);
   };
@@ -200,6 +203,7 @@ function CategoryPage() {
       icon: formData.icon || undefined,
       color: formData.color || undefined,
       status: formData.status,
+      parentId: formData.parentId || null,
     };
 
     if (formMode === 'add') {
@@ -304,6 +308,7 @@ function CategoryPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
+                      <TableHead>Parent Category</TableHead>
                       <TableHead>Description</TableHead>
                       <TableHead className="w-[100px]">Status</TableHead>
                       <TableHead className="w-[140px] text-right">Actions</TableHead>
@@ -312,7 +317,15 @@ function CategoryPage() {
                   <TableBody>
                     {paginatedCategories.map((category) => (
                       <TableRow key={category.id}>
-                        <TableCell className="font-medium">{category.name}</TableCell>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            {category.parentId && <span className="text-muted-foreground">└─</span>}
+                            {category.name}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {category.parentCategoryName || '-'}
+                        </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {category.description || 'No description'}
                         </TableCell>
@@ -429,6 +442,31 @@ function CategoryPage() {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="parentId">
+                Parent Category
+                <span className="text-xs text-muted-foreground ml-1">(Optional)</span>
+              </Label>
+              <select
+                id="parentId"
+                value={formData.parentId || ''}
+                onChange={(e) => setFormData({ ...formData, parentId: e.target.value || null })}
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+              >
+                <option value="">None (Top-level category)</option>
+                {categories
+                  .filter(cat => formMode === 'edit' ? cat.id !== selectedCategory?.id : true)
+                  .map(cat => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.parentCategoryName ? `${cat.parentCategoryName} > ${cat.name}` : cat.name}
+                    </option>
+                  ))}
+              </select>
+              <p className="text-xs text-muted-foreground">
+                Select a parent category to create a subcategory
+              </p>
             </div>
 
             <div className="space-y-2">

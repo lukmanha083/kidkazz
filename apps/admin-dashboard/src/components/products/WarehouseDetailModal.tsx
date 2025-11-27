@@ -71,27 +71,29 @@ export function WarehouseDetailModal({
       doc.text(`Report Type: ${reportType.charAt(0).toUpperCase() + reportType.slice(1)}`, 14, yPos);
       yPos += 7;
 
-      // For product reports, show product details first
-      if (reportType === 'product' && productName) {
+      // Always show product details if available (for all report types)
+      if (productName) {
         doc.text(`Product: ${productName}`, 14, yPos);
         yPos += 7;
+      }
 
-        if (productSKU) {
-          doc.text(`Product SKU: ${productSKU}`, 14, yPos);
-          yPos += 7;
-        }
+      if (productSKU) {
+        doc.text(`Product SKU: ${productSKU}`, 14, yPos);
+        yPos += 7;
+      }
 
-        if (productBarcode) {
-          doc.text(`Barcode: ${productBarcode}`, 14, yPos);
-          yPos += 7;
-        }
-      } else {
-        // For variant/UOM reports
-        doc.text(`Item: ${itemName}`, 14, yPos);
+      if (productBarcode) {
+        doc.text(`Barcode: ${productBarcode}`, 14, yPos);
+        yPos += 7;
+      }
+
+      // For variant/UOM reports, also show the specific item details
+      if (reportType !== 'product') {
+        doc.text(`${reportType.charAt(0).toUpperCase() + reportType.slice(1)}: ${itemName}`, 14, yPos);
         yPos += 7;
 
         if (itemSKU) {
-          doc.text(`SKU/Code: ${itemSKU}`, 14, yPos);
+          doc.text(`${reportType.charAt(0).toUpperCase() + reportType.slice(1)} SKU/Code: ${itemSKU}`, 14, yPos);
           yPos += 7;
         }
       }
