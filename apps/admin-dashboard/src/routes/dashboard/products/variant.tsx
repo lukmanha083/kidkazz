@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { variantApi, productApi, warehouseApi, productLocationApi, variantLocationApi, type ProductVariant, type CreateVariantInput } from '@/lib/api';
 import { ProductWarehouseAllocation, type WarehouseAllocation } from '@/components/products/ProductWarehouseAllocation';
+import { WarehouseDetailModal, type WarehouseStockDetail } from '@/components/products/WarehouseDetailModal';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -261,6 +262,20 @@ function ProductVariantPage() {
     rack?: string | null;
     bin?: string | null;
   }>>([]);
+
+  // Warehouse modal state for parent product locations
+  const [warehouseModalOpen, setWarehouseModalOpen] = useState(false);
+  const [warehouseModalData, setWarehouseModalData] = useState<{
+    title: string;
+    subtitle?: string;
+    warehouseStocks: WarehouseStockDetail[];
+    reportType: 'variant' | 'uom' | 'product';
+    itemName: string;
+    itemSKU?: string;
+    productBarcode?: string;
+    productSKU?: string;
+    productName?: string;
+  } | null>(null);
 
   // Delete confirmation states
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -1042,7 +1057,7 @@ function ProductVariantPage() {
                 </Label>
                 <div className="border rounded-md bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
                   <div className="p-3 space-y-2">
-                    {parentProductLocations.map((loc, idx) => (
+                    {parentProductLocations.slice(0, 3).map((loc, idx) => (
                       <div key={idx} className="flex items-center justify-between text-sm p-2 bg-white dark:bg-slate-900 rounded border border-blue-100 dark:border-blue-900">
                         <div>
                           <p className="font-medium text-blue-900 dark:text-blue-100">{loc.warehouseName}</p>
@@ -1054,6 +1069,46 @@ function ProductVariantPage() {
                         <p className="font-semibold text-blue-700 dark:text-blue-300">{loc.quantity} units</p>
                       </div>
                     ))}
+                    {parentProductLocations.length > 3 && (
+                      <p className="text-xs text-center text-muted-foreground pt-2">
+                        +{parentProductLocations.length - 3} more warehouses
+                      </p>
+                    )}
+                  </div>
+                  <div className="px-3 pb-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => {
+                        const product = products.find(p => p.sku === formData.productSKU);
+                        const warehouseStockDetails: WarehouseStockDetail[] = parentProductLocations.map(loc => ({
+                          warehouseId: loc.warehouseId,
+                          warehouseName: loc.warehouseName,
+                          quantity: loc.quantity,
+                          rack: loc.rack,
+                          bin: loc.bin,
+                          zone: null,
+                          aisle: null,
+                        }));
+                        const totalStock = parentProductLocations.reduce((sum, loc) => sum + loc.quantity, 0);
+                        setWarehouseModalData({
+                          title: `Parent Product: ${formData.productName}`,
+                          subtitle: `SKU: ${formData.productSKU} | Total Stock: ${totalStock} units`,
+                          warehouseStocks: warehouseStockDetails,
+                          reportType: 'product',
+                          itemName: formData.productName,
+                          itemSKU: formData.productSKU,
+                          productBarcode: product?.barcode,
+                          productSKU: formData.productSKU,
+                          productName: formData.productName,
+                        });
+                        setWarehouseModalOpen(true);
+                      }}
+                    >
+                      View Full Report
+                    </Button>
                   </div>
                   <div className="px-3 pb-3">
                     <p className="text-xs text-blue-700 dark:text-blue-300">
@@ -1219,6 +1274,23 @@ function ProductVariantPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Warehouse Detail Modal for Parent Product Locations */}
+      {warehouseModalData && (
+        <WarehouseDetailModal
+          open={warehouseModalOpen}
+          onOpenChange={setWarehouseModalOpen}
+          title={warehouseModalData.title}
+          subtitle={warehouseModalData.subtitle}
+          warehouseStocks={warehouseModalData.warehouseStocks}
+          reportType={warehouseModalData.reportType}
+          itemName={warehouseModalData.itemName}
+          itemSKU={warehouseModalData.itemSKU}
+          productBarcode={warehouseModalData.productBarcode}
+          productSKU={warehouseModalData.productSKU}
+          productName={warehouseModalData.productName}
+        />
+      )}
     </div>
   );
 }

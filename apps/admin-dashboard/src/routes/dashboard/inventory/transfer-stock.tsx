@@ -94,6 +94,7 @@ function TransferStockPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [productInventories, setProductInventories] = useState<Record<string, any>>({});
+  const [loadingInventory, setLoadingInventory] = useState(false);
 
   // Drawer states
   const [viewDrawerOpen, setViewDrawerOpen] = useState(false);
@@ -154,30 +155,37 @@ function TransferStockPage() {
     if (formData.sourceWarehouseId && products.length > 0) {
       // Fetch inventory for all products in the selected warehouse
       const fetchInventory = async () => {
-        const inventoryPromises = products.map(async (product) => {
-          try {
-            const inv = await inventoryApi.getByProductAndWarehouse(
-              product.id,
-              formData.sourceWarehouseId
-            );
-            return { key: `${product.id}-${formData.sourceWarehouseId}`, data: inv };
-          } catch (error) {
-            // Product doesn't have inventory in this warehouse
-            return null;
-          }
-        });
+        setLoadingInventory(true);
+        try {
+          const inventoryPromises = products.map(async (product) => {
+            try {
+              const inv = await inventoryApi.getByProductAndWarehouse(
+                product.id,
+                formData.sourceWarehouseId
+              );
+              return { key: `${product.id}-${formData.sourceWarehouseId}`, data: inv };
+            } catch (error) {
+              // Product doesn't have inventory in this warehouse
+              return null;
+            }
+          });
 
-        const results = await Promise.all(inventoryPromises);
-        const inventoryMap: Record<string, any> = {};
-        results.forEach(result => {
-          if (result) {
-            inventoryMap[result.key] = result.data;
-          }
-        });
-        setProductInventories(inventoryMap);
+          const results = await Promise.all(inventoryPromises);
+          const inventoryMap: Record<string, any> = {};
+          results.forEach(result => {
+            if (result) {
+              inventoryMap[result.key] = result.data;
+            }
+          });
+          setProductInventories(inventoryMap);
+        } finally {
+          setLoadingInventory(false);
+        }
       };
 
       fetchInventory();
+    } else {
+      setProductInventories({});
     }
   }, [formData.sourceWarehouseId, products]);
 
@@ -786,13 +794,24 @@ function TransferStockPage() {
                   options={availableProducts}
                   value={selectedProduct}
                   onValueChange={setSelectedProduct}
-                  placeholder="Search products..."
-                  emptyText="No products found"
-                  disabled={!formData.sourceWarehouseId}
+                  placeholder={loadingInventory ? "Loading products..." : "Search products..."}
+                  emptyText={loadingInventory ? "Loading..." : "No products with stock in this warehouse"}
+                  disabled={!formData.sourceWarehouseId || loadingInventory}
                 />
                 {!formData.sourceWarehouseId && (
                   <p className="text-xs text-muted-foreground">
                     Select source warehouse first
+                  </p>
+                )}
+                {formData.sourceWarehouseId && loadingInventory && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-2">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Fetching products from warehouse...
+                  </p>
+                )}
+                {formData.sourceWarehouseId && !loadingInventory && availableProducts.length === 0 && (
+                  <p className="text-xs text-amber-600 dark:text-amber-500">
+                    No products with available stock in selected warehouse
                   </p>
                 )}
               </div>
