@@ -136,7 +136,7 @@ function AllProductsPage() {
     baseUnit: 'PCS',
     wholesaleThreshold: '12',
     minimumStock: '',
-    status: 'active' as 'active' | 'inactive' | 'discontinued',
+    status: 'omnichannel sales' as 'online sales' | 'offline sales' | 'omnichannel sales' | 'inactive' | 'discontinued',
     // Physical dimensions for shipping cost calculation
     weight: '',
     length: '',
@@ -2051,11 +2051,13 @@ function AllProductsPage() {
                 <select
                   id="status"
                   value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' | 'discontinued' })}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as 'online sales' | 'offline sales' | 'omnichannel sales' | 'inactive' | 'discontinued' })}
                   className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
                   required
                 >
-                  <option value="active">Active</option>
+                  <option value="online sales">Online Sales</option>
+                  <option value="offline sales">Offline Sales</option>
+                  <option value="omnichannel sales">Omnichannel Sales</option>
                   <option value="inactive">Inactive</option>
                   <option value="discontinued">Discontinued</option>
                 </select>

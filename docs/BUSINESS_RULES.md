@@ -130,7 +130,54 @@ const error = businessRules.product.validateSKU(sku);
 
 ---
 
-### Rule 4: Price Restrictions for Discontinued Products
+### Rule 4: Product Sales Channel Status
+
+**Rule**: Product status must be one of: 'online sales', 'offline sales', 'omnichannel sales', 'inactive', or 'discontinued'.
+
+**Business Rationale**: Products can be sold through different channels (online and/or offline) and this needs to be explicitly controlled.
+
+**Status Definitions**:
+- **Online Sales**: Product is available for sale through:
+  - Retail website
+  - Wholesale website (automatically displayed if stock is above wholesale threshold)
+  - Mobile retail app (Android/iOS via React Native/Expo)
+- **Offline Sales**: Product is available for sale through:
+  - Point of Sales (POS) for retail sales
+  - Sales invoice (for wholesale via salesperson)
+- **Omnichannel Sales**: Product is available for both online and offline sales channels
+- **Inactive**: Product does not display on both online and offline sales channels (temporarily unavailable)
+- **Discontinued**: Product is no longer available for sale and cannot be restocked. Data is preserved in database but no longer indexed.
+
+**Implementation**:
+```typescript
+export type ProductStatus =
+  | 'online sales'
+  | 'offline sales'
+  | 'omnichannel sales'
+  | 'inactive'
+  | 'discontinued';
+
+interface ProductProps {
+  status: ProductStatus;
+  // ... other props
+}
+```
+
+**Frontend Validation**:
+- All product forms must use dropdown with these 5 status options
+- Display appropriate icons/badges for each status
+- Discontinued products cannot be edited (except to change status)
+
+**Business Rules**:
+1. Online sales products automatically appear on wholesale website when stock > wholesale threshold
+2. Discontinued products cannot have prices changed
+3. Discontinued products cannot be restocked
+4. Inactive products can be reactivated to any active status
+5. Status changes must be logged for audit purposes
+
+---
+
+### Rule 5: Price Restrictions for Discontinued Products
 
 **Rule**: Cannot change prices of discontinued products.
 
@@ -154,7 +201,7 @@ public changePrice(priceType: 'retail' | 'wholesale' | 'base', newPrice: number)
 
 ---
 
-### Rule 5: Stock Adjustments for Products
+### Rule 6: Stock Adjustments for Products
 
 **Rule**: Stock can go negative (aligns with Inventory Rule #1).
 
@@ -177,7 +224,7 @@ export class Stock extends ValueObject<number> {
 
 ## Physical Attributes Rules
 
-### Rule 6: Weight Validation
+### Rule 7: Weight Validation
 
 **Rule**:
 - Weight cannot be negative
@@ -217,7 +264,7 @@ const errors = businessRules.product.validatePhysicalAttributes({
 
 ---
 
-### Rule 7: Dimension Validation
+### Rule 8: Dimension Validation
 
 **Rule**:
 - Length, width, height must be positive
@@ -244,7 +291,7 @@ if (props.length > MAX_DIMENSION_CM || props.width > MAX_DIMENSION_CM || props.h
 
 ---
 
-### Rule 8: Volume Weight Calculation
+### Rule 9: Volume Weight Calculation
 
 **Formula**: `(Length × Width × Height) / 5000 = Volume Weight (kg)`
 
@@ -267,7 +314,7 @@ public getChargeableWeight(): number {
 
 ## Warehouse Management Rules
 
-### Rule 9: Multi-Warehouse Product Allocation
+### Rule 10: Multi-Warehouse Product Allocation
 
 **Rule**: Products, product bundles, and product variants must support multi-warehouse allocation. Stock must be tracked separately per warehouse.
 
@@ -378,7 +425,94 @@ POST /api/inventory/transfer
 
 ---
 
-### Rule 10: Warehouse Code Format
+### Rule 11: Product Stock Consistency Across Warehouses
+
+**Rule**: Total stock of a product across all warehouses must match between Product UOMs and Product Locations. All calculations use base units for comparison.
+
+**Business Rationale**: Ensures data integrity and consistency between different stock tracking tables (product_uoms and product_locations) across multiple warehouses.
+
+**Implementation**:
+
+**Validation Logic**:
+```typescript
+// Calculate total stock from product_locations (base units)
+const totalBaseUnitsFromLocations = productLocations.reduce((sum, loc) => sum + loc.quantity, 0);
+
+// Calculate total stock from product_uoms converted to base units
+const totalBaseUnitsFromUOMs = productUOMs.reduce((sum, uom) => {
+  const uomLocations = getUOMLocations(uom.id);
+  const uomTotalInBaseUnits = uomLocations.reduce((locSum, loc) => {
+    return locSum + (loc.quantity * uom.conversionFactor);
+  }, 0);
+  return sum + uomTotalInBaseUnits;
+}, 0);
+
+// Validation: Both totals must match
+if (totalBaseUnitsFromLocations !== totalBaseUnitsFromUOMs) {
+  throw new Error(
+    `Stock mismatch: Product locations total is ${totalBaseUnitsFromLocations} PCS, ` +
+    `but UOM locations total is ${totalBaseUnitsFromUOMs} PCS. ` +
+    `They must be equal.`
+  );
+}
+```
+
+**API Validation**:
+```typescript
+// When creating/updating product allocations
+POST /api/products/:id/validate-stock-consistency
+{
+  "productId": "product-123"
+}
+
+// Response:
+{
+  "isValid": true|false,
+  "locationTotal": 500,    // Total from product_locations in base units
+  "uomTotal": 500,         // Total from product_uom_locations in base units
+  "difference": 0,
+  "message": "Stock totals match" | "Stock mismatch detected"
+}
+```
+
+**Frontend Validation**:
+- Show real-time validation when editing warehouse allocations
+- Display warning badge if totals don't match
+- Block form submission if validation fails
+- Show detailed breakdown of stock per warehouse and UOM
+
+**Error Messages**:
+- ❌ "Stock validation failed: Product locations show 500 PCS total, but UOM locations show 520 PCS total. Please adjust allocations."
+- ⚠️ "Warning: Stock totals will be inconsistent after this change. Location total: 500 PCS, UOM total: 480 PCS."
+
+**Business Rules**:
+1. When adding stock via UOM (e.g., adding 10 BOX6), both product_uom_locations and product_locations must be updated
+2. When transferring stock between warehouses, both tables must be updated atomically
+3. When removing UOM from a warehouse, corresponding base units must be removed from product_locations
+4. Validation runs automatically before any stock operation completes
+5. Reports must use base units (PCS) as the single source of truth
+
+**Example Scenario**:
+```typescript
+Product: "Baby Bottle"
+Base Unit: PCS
+
+Warehouse Jakarta:
+- product_locations: 100 PCS
+- product_uom_locations: 16 BOX6 (16 × 6 = 96 PCS) + 4 PCS (4 × 1 = 4 PCS)
+- Validation: 100 PCS (locations) === 96 + 4 = 100 PCS (UOMs) ✅
+
+Warehouse Cilangkap:
+- product_locations: 200 PCS
+- product_uom_locations: 30 BOX6 (30 × 6 = 180 PCS) + 25 PCS (25 × 1 = 25 PCS)
+- Validation: 200 PCS (locations) !== 180 + 25 = 205 PCS (UOMs) ❌ FAIL
+
+Error: "Stock mismatch in Cilangkap warehouse. Product locations: 200 PCS, UOM locations: 205 PCS"
+```
+
+---
+
+### Rule 12: Warehouse Code Format
 
 **Rule**: Warehouse code must contain only uppercase letters, numbers, and hyphens.
 
@@ -398,7 +532,7 @@ const error = businessRules.warehouse.validateCode(code);
 
 ---
 
-### Rule 11: Warehouse Location Required Fields
+### Rule 13: Warehouse Location Required Fields
 
 **Rule**: Address line 1, city, province, and postal code are required.
 
@@ -426,7 +560,7 @@ const errors = businessRules.warehouse.validateLocation({
 
 ## Price Management Rules
 
-### Rule 12: Price Cannot Be Negative
+### Rule 14: Price Cannot Be Negative
 
 **Rule**: All prices (base, retail, wholesale) must be non-negative.
 
@@ -457,7 +591,7 @@ const error = businessRules.product.validatePrice(price);
 
 ## Event Business Rules
 
-### Rule 13: Domain Events Must Be Published
+### Rule 15: Domain Events Must Be Published
 
 **Rule**: All state-changing operations must publish domain events.
 
