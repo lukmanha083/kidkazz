@@ -83,6 +83,105 @@ export const Route = createFileRoute('/dashboard/products/all')({
   component: AllProductsPage,
 });
 
+// Helper function to get status badge color
+const getStatusBadgeColor = (status: string) => {
+  switch (status) {
+    case 'online sales':
+      return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200';
+    case 'offline sales':
+      return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200';
+    case 'omnichannel sales':
+      return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200';
+    case 'inactive':
+      return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400 border-gray-200';
+    case 'discontinued':
+      return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200';
+    // Legacy support
+    case 'active':
+      return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200';
+    default:
+      return 'bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400 border-gray-200';
+  }
+};
+
+// Helper function to format status display text
+const formatStatusText = (status: string) => {
+  // Capitalize each word
+  return status
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
+// Helper function to get category badge color (based on category color from database)
+const getCategoryBadgeColor = (color?: string | null) => {
+  if (!color) {
+    return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
+  }
+
+  // Map color names to Tailwind classes
+  const colorMap: Record<string, string> = {
+    'blue': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+    'green': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+    'red': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+    'yellow': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
+    'purple': 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+    'pink': 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300',
+    'indigo': 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300',
+    'orange': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
+    'teal': 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300',
+    'cyan': 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300',
+  };
+
+  return colorMap[color.toLowerCase()] || 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
+};
+
+// Helper function to extract error message from various error types
+const getErrorMessage = (error: any): string => {
+  // Handle string errors
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  // Handle Error objects
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  // Handle API response errors with different structures
+  if (error?.response?.data) {
+    const data = error.response.data;
+
+    // Check for message field
+    if (typeof data.message === 'string') {
+      return data.message;
+    }
+
+    // Check for error field
+    if (typeof data.error === 'string') {
+      return data.error;
+    }
+
+    // Check for errors array
+    if (Array.isArray(data.errors) && data.errors.length > 0) {
+      return data.errors.map((e: any) => e.message || e).join(', ');
+    }
+  }
+
+  // Handle direct message property
+  if (typeof error?.message === 'string') {
+    return error.message;
+  }
+
+  // Handle direct error property
+  if (typeof error?.error === 'string') {
+    return error.error;
+  }
+
+  // Fallback to generic message
+  return 'An unexpected error occurred. Please try again.';
+};
+
 // Available columns configuration
 const availableColumns = [
   { id: 'barcode', label: 'Barcode', default: true },
@@ -262,9 +361,10 @@ function AllProductsPage() {
       toast.success('Product created successfully');
       setFormDrawerOpen(false);
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
+      const errorMessage = getErrorMessage(error);
       toast.error('Failed to create product', {
-        description: error.message,
+        description: errorMessage,
       });
     },
   });
@@ -279,9 +379,10 @@ function AllProductsPage() {
       toast.success('Product updated successfully');
       setFormDrawerOpen(false);
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
+      const errorMessage = getErrorMessage(error);
       toast.error('Failed to update product', {
-        description: error.message,
+        description: errorMessage,
       });
     },
   });
@@ -295,9 +396,10 @@ function AllProductsPage() {
       setDeleteDialogOpen(false);
       setProductToDelete(null);
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
+      const errorMessage = getErrorMessage(error);
       toast.error('Failed to delete product', {
-        description: error.message,
+        description: errorMessage,
       });
     },
   });
@@ -864,7 +966,7 @@ function AllProductsPage() {
             }
           } catch (uomError: any) {
             console.error('Failed to create product UOMs:', uomError);
-            const errorMessage = uomError?.message || 'Unknown error occurred';
+            const errorMessage = getErrorMessage(uomError);
             toast.error('Failed to add UOMs', {
               description: errorMessage
             });
@@ -897,8 +999,9 @@ function AllProductsPage() {
         toast.success('Product created successfully');
         setFormDrawerOpen(false);
       } catch (error: any) {
+        const errorMessage = getErrorMessage(error);
         toast.error('Failed to create product', {
-          description: error.message,
+          description: errorMessage,
         });
       }
     } else if (formMode === 'edit' && selectedProduct) {
@@ -995,7 +1098,7 @@ function AllProductsPage() {
             }
           } catch (uomError: any) {
             console.error('Failed to sync product UOMs:', uomError);
-            const errorMessage = uomError?.message || 'Unknown error occurred';
+            const errorMessage = getErrorMessage(uomError);
             toast.error('Failed to sync UOMs', {
               description: errorMessage
             });
@@ -1056,8 +1159,9 @@ function AllProductsPage() {
         toast.success('Product updated successfully');
         setFormDrawerOpen(false);
       } catch (error: any) {
+        const errorMessage = getErrorMessage(error);
         toast.error('Failed to update product', {
-          description: error.message,
+          description: errorMessage,
         });
       }
     }
@@ -1242,7 +1346,12 @@ function AllProductsPage() {
                           )}
                           {visibleColumns.includes('category') && (
                             <TableCell>
-                              <Badge variant="secondary">{category?.name || 'Uncategorized'}</Badge>
+                              <Badge
+                                variant="outline"
+                                className={getCategoryBadgeColor(category?.color)}
+                              >
+                                {category?.name || 'Uncategorized'}
+                              </Badge>
                             </TableCell>
                           )}
                           {visibleColumns.includes('price') && (
@@ -1277,14 +1386,10 @@ function AllProductsPage() {
                           {visibleColumns.includes('status') && (
                             <TableCell>
                               <Badge
-                                variant={product.status === 'active' ? 'default' : 'secondary'}
-                                className={
-                                  product.status === 'active'
-                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-500'
-                                    : ''
-                                }
+                                variant="outline"
+                                className={getStatusBadgeColor(product.status)}
                               >
-                                {product.status}
+                                {formatStatusText(product.status)}
                               </Badge>
                             </TableCell>
                           )}
