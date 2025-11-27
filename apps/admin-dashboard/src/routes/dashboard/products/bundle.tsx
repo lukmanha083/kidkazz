@@ -618,6 +618,14 @@ function ProductBundlePage() {
                   </div>
                 </div>
                 <div>
+                  <p className="text-sm text-muted-foreground">Assembly Warehouse</p>
+                  <p className="font-medium">
+                    {(selectedBundle as any).warehouseId
+                      ? warehouses.find(w => w.id === (selectedBundle as any).warehouseId)?.name || 'Unknown Warehouse'
+                      : 'Not assigned'}
+                  </p>
+                </div>
+                <div>
                   <p className="text-sm text-muted-foreground">Description</p>
                   <p className="font-medium">{selectedBundle.bundleDescription || '-'}</p>
                 </div>
