@@ -19,6 +19,7 @@ const createCategorySchema = z.object({
   icon: z.string().optional(),
   color: z.string().optional(),
   status: z.enum(['active', 'inactive']).default('active'),
+  parentId: z.string().optional().nullable(),
 });
 
 const updateCategorySchema = createCategorySchema.partial();
