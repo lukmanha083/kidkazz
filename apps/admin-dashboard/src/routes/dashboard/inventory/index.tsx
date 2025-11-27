@@ -1,16 +1,32 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Warehouse, Package, AlertCircle, TrendingDown, Loader2, Calendar } from 'lucide-react';
+import { Warehouse, Package, AlertCircle, TrendingDown, Loader2, Calendar, FileText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { inventoryApi, warehouseApi, productApi } from '@/lib/api';
+import { inventoryApi, warehouseApi, productApi, productLocationApi } from '@/lib/api';
+import { WarehouseDetailModal, type WarehouseStockDetail } from '@/components/products/WarehouseDetailModal';
 
 export const Route = createFileRoute('/dashboard/inventory/')({
   component: InventoryPage,
 });
 
 function InventoryPage() {
+  // Modal state for detailed warehouse reports
+  const [warehouseModalOpen, setWarehouseModalOpen] = useState(false);
+  const [warehouseModalData, setWarehouseModalData] = useState<{
+    title: string;
+    subtitle?: string;
+    warehouseStocks: WarehouseStockDetail[];
+    reportType: 'variant' | 'uom' | 'product';
+    itemName: string;
+    itemSKU?: string;
+    productBarcode?: string;
+    productSKU?: string;
+    productName?: string;
+  } | null>(null);
+
   // Rupiah currency formatter
   const formatRupiah = (amount: number): string => {
     return new Intl.NumberFormat('id-ID', {
@@ -248,7 +264,53 @@ function InventoryPage() {
 
       {/* Warehouse-Specific Inventory */}
       <div>
-        <h2 className="text-xl font-semibold mb-4">Inventory by Warehouse</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Inventory by Warehouse</h2>
+          {warehouses.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                // Fetch detailed location data for all warehouses
+                const locationPromises = inventory.map(async (inv) => {
+                  try {
+                    const locations = await productLocationApi.getByProduct(inv.productId);
+                    return locations.locations.filter(loc => loc.quantity > 0);
+                  } catch {
+                    return [];
+                  }
+                });
+                const allLocations = (await Promise.all(locationPromises)).flat();
+
+                const warehouseStocks: WarehouseStockDetail[] = warehouses.map(wh => {
+                  const whLocations = allLocations.filter(loc => loc.warehouseId === wh.id);
+                  const totalQty = whLocations.reduce((sum, loc) => sum + loc.quantity, 0);
+                  return {
+                    warehouseId: wh.id,
+                    warehouseName: wh.name,
+                    quantity: totalQty,
+                    rack: whLocations[0]?.rack,
+                    bin: whLocations[0]?.bin,
+                    zone: whLocations[0]?.zone,
+                    aisle: whLocations[0]?.aisle,
+                  };
+                }).filter(ws => ws.quantity > 0);
+
+                setWarehouseModalData({
+                  title: 'All Warehouses Stock Breakdown',
+                  subtitle: `Total: ${warehouseStocks.reduce((sum, ws) => sum + ws.quantity, 0)} units across ${warehouseStocks.length} warehouses`,
+                  warehouseStocks,
+                  reportType: 'product',
+                  itemName: 'All Products',
+                });
+                setWarehouseModalOpen(true);
+              }}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              View Full Report
+            </Button>
+          )}
+        </div>
         {warehouses.length === 0 ? (
           <Card>
             <CardContent className="pt-6">
@@ -299,11 +361,43 @@ function InventoryPage() {
       {expiringProductsByWarehouse.length > 0 && (
         <Card className="border-orange-200 dark:border-orange-900">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-orange-600" />
-              Products Expiring Soon (By Warehouse)
-            </CardTitle>
-            <CardDescription>Products expiring within the next 30 days, broken down by warehouse location</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-orange-600" />
+                  Products Expiring Soon (By Warehouse)
+                </CardTitle>
+                <CardDescription>Products expiring within the next 30 days, broken down by warehouse location</CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const warehouseStocks: WarehouseStockDetail[] = expiringProductsByWarehouse
+                    .map(item => ({
+                      warehouseId: item!.warehouseId,
+                      warehouseName: item!.warehouse,
+                      quantity: item!.stock,
+                      rack: null,
+                      bin: null,
+                      zone: null,
+                      aisle: null,
+                    }));
+
+                  setWarehouseModalData({
+                    title: 'Expiring Products by Warehouse',
+                    subtitle: `${expiringProductsByWarehouse.length} products expiring soon`,
+                    warehouseStocks,
+                    reportType: 'product',
+                    itemName: 'Expiring Products',
+                  });
+                  setWarehouseModalOpen(true);
+                }}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                View Full Report
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -358,8 +452,50 @@ function InventoryPage() {
       {/* Low Stock Items Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Low Stock Items by Warehouse</CardTitle>
-          <CardDescription>Items that need restocking, organized by warehouse location</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Low Stock Items by Warehouse</CardTitle>
+              <CardDescription>Items that need restocking, organized by warehouse location</CardDescription>
+            </div>
+            {lowStockItems.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const warehouseGroups = lowStockItems.reduce((acc, item) => {
+                    if (!acc[item.warehouse]) {
+                      acc[item.warehouse] = { count: 0, stock: 0, warehouseId: '' };
+                    }
+                    acc[item.warehouse].count += 1;
+                    acc[item.warehouse].stock += item.currentStock;
+                    return acc;
+                  }, {} as Record<string, { count: number; stock: number; warehouseId: string }>);
+
+                  const warehouseStocks: WarehouseStockDetail[] = Object.entries(warehouseGroups).map(([whName, data]) => ({
+                    warehouseId: warehouses.find(w => w.name === whName)?.id || '',
+                    warehouseName: whName,
+                    quantity: data.stock,
+                    rack: null,
+                    bin: null,
+                    zone: null,
+                    aisle: null,
+                  }));
+
+                  setWarehouseModalData({
+                    title: 'Low Stock Items by Warehouse',
+                    subtitle: `${lowStockItems.length} items need restocking`,
+                    warehouseStocks,
+                    reportType: 'product',
+                    itemName: 'Low Stock Items',
+                  });
+                  setWarehouseModalOpen(true);
+                }}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                View Full Report
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {lowStockItems.length === 0 ? (
@@ -432,6 +568,23 @@ function InventoryPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Warehouse Detail Modal */}
+      {warehouseModalData && (
+        <WarehouseDetailModal
+          open={warehouseModalOpen}
+          onOpenChange={setWarehouseModalOpen}
+          title={warehouseModalData.title}
+          subtitle={warehouseModalData.subtitle}
+          warehouseStocks={warehouseModalData.warehouseStocks}
+          reportType={warehouseModalData.reportType}
+          itemName={warehouseModalData.itemName}
+          itemSKU={warehouseModalData.itemSKU}
+          productBarcode={warehouseModalData.productBarcode}
+          productSKU={warehouseModalData.productSKU}
+          productName={warehouseModalData.productName}
+        />
+      )}
     </div>
   );
 }
