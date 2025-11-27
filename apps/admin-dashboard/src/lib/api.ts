@@ -531,6 +531,7 @@ export interface ProductBundle {
   id: string;
   bundleName: string;
   bundleSKU: string;
+  barcode?: string | null;
   bundleDescription?: string | null;
   bundleImage?: string | null;
   warehouseId?: string | null; // Warehouse where bundle is assembled
@@ -545,6 +546,7 @@ export interface ProductBundle {
 export interface CreateBundleInput {
   bundleName: string;
   bundleSKU: string;
+  barcode?: string | null;
   bundleDescription?: string | null;
   bundleImage?: string | null;
   warehouseId?: string | null; // Warehouse where bundle is assembled

@@ -322,6 +322,7 @@ function ProductBundlePage() {
     const bundleData: CreateBundleInput = {
       bundleName: formData.bundleName,
       bundleSKU: formData.bundleSKU,
+      barcode: formData.barcode || null,
       bundleDescription: formData.bundleDescription || null,
       bundlePrice: calculatedBundlePrice,
       discountPercentage: parseFloat(formData.discountPercentage) || 0,
@@ -617,13 +618,19 @@ function ProductBundlePage() {
                     </Badge>
                   </div>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Assembly Warehouse</p>
-                  <p className="font-medium">
-                    {(selectedBundle as any).warehouseId
-                      ? warehouses.find(w => w.id === (selectedBundle as any).warehouseId)?.name || 'Unknown Warehouse'
-                      : 'Not assigned'}
-                  </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Barcode</p>
+                    <p className="font-mono font-medium">{(selectedBundle as any).barcode || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Assembly Warehouse</p>
+                    <p className="font-medium">
+                      {(selectedBundle as any).warehouseId
+                        ? warehouses.find(w => w.id === (selectedBundle as any).warehouseId)?.name || 'Unknown Warehouse'
+                        : 'Not assigned'}
+                    </p>
+                  </div>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Description</p>
