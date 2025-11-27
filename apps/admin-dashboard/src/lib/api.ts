@@ -324,7 +324,7 @@ export interface Product {
   reviews: number;
   availableForRetail: boolean;
   availableForWholesale: boolean;
-  status: 'active' | 'inactive' | 'discontinued';
+  status: 'online sales' | 'offline sales' | 'omnichannel sales' | 'inactive' | 'discontinued';
   isBundle: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -361,7 +361,7 @@ export interface CreateProductInput {
   reviews?: number;
   availableForRetail?: boolean;
   availableForWholesale?: boolean;
-  status?: 'active' | 'inactive' | 'discontinued';
+  status?: 'online sales' | 'offline sales' | 'omnichannel sales' | 'inactive' | 'discontinued';
   isBundle?: boolean;
 }
 

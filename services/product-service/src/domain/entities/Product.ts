@@ -8,7 +8,12 @@ import { StockAdjusted } from '../events/StockAdjusted';
 import { PriceChanged } from '../events/PriceChanged';
 import { ProductDiscontinued } from '../events/ProductDiscontinued';
 
-export type ProductStatus = 'active' | 'inactive' | 'discontinued';
+export type ProductStatus =
+  | 'online sales'
+  | 'offline sales'
+  | 'omnichannel sales'
+  | 'inactive'
+  | 'discontinued';
 
 interface ProductProps {
   id: string;
@@ -108,7 +113,7 @@ export class Product extends AggregateRoot {
       reviews: 0,
       availableForRetail: input.availableForRetail !== false,
       availableForWholesale: input.availableForWholesale || false,
-      status: 'active',
+      status: 'omnichannel sales', // Default to omnichannel sales (both online and offline)
       isBundle: false,
       createdAt: now,
       updatedAt: now,
@@ -286,25 +291,56 @@ export class Product extends AggregateRoot {
   }
 
   /**
-   * Business Logic: Activate product
+   * Business Logic: Change product status
+   */
+  public changeStatus(newStatus: ProductStatus, performedBy?: string): void {
+    // Business rule: Cannot change status from discontinued to any other status
+    if (this.props.status === 'discontinued' && newStatus !== 'discontinued') {
+      throw new Error('Cannot change status of discontinued product. Product is permanently discontinued.');
+    }
+
+    this.props.status = newStatus;
+    this.props.updatedAt = new Date();
+    if (performedBy) {
+      this.props.updatedBy = performedBy;
+    }
+
+    // Update availability flags based on status
+    switch (newStatus) {
+      case 'online sales':
+        this.props.availableForRetail = true;
+        this.props.availableForWholesale = false; // Will be shown on wholesale if above threshold
+        break;
+      case 'offline sales':
+        this.props.availableForRetail = false;
+        this.props.availableForWholesale = true;
+        break;
+      case 'omnichannel sales':
+        this.props.availableForRetail = true;
+        this.props.availableForWholesale = true;
+        break;
+      case 'inactive':
+      case 'discontinued':
+        this.props.availableForRetail = false;
+        this.props.availableForWholesale = false;
+        break;
+    }
+  }
+
+  /**
+   * Business Logic: Activate product (set to omnichannel sales)
+   * @deprecated Use changeStatus() instead
    */
   public activate(): void {
-    if (this.props.status === 'discontinued') {
-      throw new Error('Cannot activate discontinued product');
-    }
-    this.props.status = 'active';
-    this.props.updatedAt = new Date();
+    this.changeStatus('omnichannel sales');
   }
 
   /**
    * Business Logic: Deactivate product
+   * @deprecated Use changeStatus() instead
    */
   public deactivate(): void {
-    if (this.props.status === 'discontinued') {
-      throw new Error('Cannot deactivate discontinued product');
-    }
-    this.props.status = 'inactive';
-    this.props.updatedAt = new Date();
+    this.changeStatus('inactive');
   }
 
   /**
@@ -318,12 +354,32 @@ export class Product extends AggregateRoot {
    * Business Query: Check if product is available for sale
    */
   public isAvailableForSale(type: 'retail' | 'wholesale'): boolean {
-    if (this.props.status !== 'active') {
+    // Discontinued and inactive products are never available
+    if (this.props.status === 'discontinued' || this.props.status === 'inactive') {
       return false;
     }
-    return type === 'retail'
-      ? this.props.availableForRetail
-      : this.props.availableForWholesale;
+
+    // Check availability based on sales channel
+    if (type === 'retail') {
+      return this.props.status === 'online sales' || this.props.status === 'omnichannel sales';
+    } else {
+      // Wholesale
+      return this.props.status === 'offline sales' || this.props.status === 'omnichannel sales';
+    }
+  }
+
+  /**
+   * Business Query: Check if product is available online
+   */
+  public isAvailableOnline(): boolean {
+    return this.props.status === 'online sales' || this.props.status === 'omnichannel sales';
+  }
+
+  /**
+   * Business Query: Check if product is available offline
+   */
+  public isAvailableOffline(): boolean {
+    return this.props.status === 'offline sales' || this.props.status === 'omnichannel sales';
   }
 
   // Getters

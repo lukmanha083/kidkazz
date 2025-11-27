@@ -32,7 +32,7 @@ const createProductSchema = z.object({
   reviews: z.number().default(0),
   availableForRetail: z.boolean().default(true),
   availableForWholesale: z.boolean().default(true),
-  status: z.enum(['active', 'inactive', 'discontinued']).default('active'),
+  status: z.enum(['online sales', 'offline sales', 'omnichannel sales', 'inactive', 'discontinued']).default('omnichannel sales'),
   isBundle: z.boolean().default(false),
   // Physical attributes for shipping calculations
   weight: z.number().optional().nullable(),
@@ -599,6 +599,78 @@ app.get('/:id/uom-warehouse-stock', async (c) => {
       zone: loc.zone,
       aisle: loc.aisle,
     })),
+  });
+});
+
+// POST /api/products/:id/validate-stock-consistency - Validate stock consistency across warehouses
+// Validates that total stock matches between product_locations and product_uom_locations (in base units)
+app.post('/:id/validate-stock-consistency', async (c) => {
+  const productId = c.req.param('id');
+  const db = drizzle(c.env.DB);
+
+  // Get product
+  const product = await db.select().from(products).where(eq(products.id, productId)).get();
+  if (!product) {
+    return c.json({ error: 'Product not found' }, 404);
+  }
+
+  // Calculate total from product_locations (base units)
+  const baseLocations = await db
+    .select()
+    .from(productLocations)
+    .where(eq(productLocations.productId, productId))
+    .all();
+
+  const totalBaseUnitsFromLocations = baseLocations.reduce((sum, loc) => sum + (loc.quantity || 0), 0);
+
+  // Calculate total from product_uom_locations (converted to base units)
+  const uoms = await db
+    .select()
+    .from(productUOMs)
+    .where(eq(productUOMs.productId, productId))
+    .all();
+
+  let totalBaseUnitsFromUOMs = 0;
+  for (const uom of uoms) {
+    const uomLocs = await db
+      .select()
+      .from(productUOMLocations)
+      .where(eq(productUOMLocations.productUOMId, uom.id))
+      .all();
+
+    const uomTotalInBaseUnits = uomLocs.reduce((locSum, loc) => {
+      return locSum + ((loc.quantity || 0) * (uom.conversionFactor || 1));
+    }, 0);
+
+    totalBaseUnitsFromUOMs += uomTotalInBaseUnits;
+  }
+
+  const difference = totalBaseUnitsFromLocations - totalBaseUnitsFromUOMs;
+  const isValid = difference === 0;
+
+  let message = '';
+  if (isValid) {
+    message = 'Stock totals match across all warehouses';
+  } else if (difference > 0) {
+    message = `Stock mismatch: Product locations show ${Math.abs(difference)} ${product.baseUnit} more than UOM locations`;
+  } else {
+    message = `Stock mismatch: UOM locations show ${Math.abs(difference)} ${product.baseUnit} more than product locations`;
+  }
+
+  return c.json({
+    isValid,
+    locationTotal: totalBaseUnitsFromLocations,
+    uomTotal: totalBaseUnitsFromUOMs,
+    difference,
+    baseUnit: product.baseUnit,
+    message,
+    details: {
+      productId,
+      productName: product.name,
+      productSKU: product.sku,
+      baseLocationsCount: baseLocations.length,
+      uomsCount: uoms.length,
+    }
   });
 });
 
