@@ -28,6 +28,8 @@ import { Route as DashboardInventoryWarehouseRouteImport } from './routes/dashbo
 import { Route as DashboardInventoryUomConversionRouteImport } from './routes/dashboard/inventory/uom-conversion'
 import { Route as DashboardInventoryTransferStockRouteImport } from './routes/dashboard/inventory/transfer-stock'
 import { Route as DashboardInventoryProductLocationsRouteImport } from './routes/dashboard/inventory/product-locations'
+import { Route as DashboardInventoryLowStockRouteImport } from './routes/dashboard/inventory/low-stock'
+import { Route as DashboardInventoryExpiredStockRouteImport } from './routes/dashboard/inventory/expired-stock'
 import { Route as DashboardAccountingJournalEntryRouteImport } from './routes/dashboard/accounting/journal-entry'
 import { Route as DashboardAccountingIncomeStatementRouteImport } from './routes/dashboard/accounting/income-statement'
 import { Route as DashboardAccountingGeneralLedgerRouteImport } from './routes/dashboard/accounting/general-ledger'
@@ -138,6 +140,18 @@ const DashboardInventoryProductLocationsRoute =
     path: '/inventory/product-locations',
     getParentRoute: () => DashboardRoute,
   } as any)
+const DashboardInventoryLowStockRoute =
+  DashboardInventoryLowStockRouteImport.update({
+    id: '/inventory/low-stock',
+    path: '/inventory/low-stock',
+    getParentRoute: () => DashboardRoute,
+  } as any)
+const DashboardInventoryExpiredStockRoute =
+  DashboardInventoryExpiredStockRouteImport.update({
+    id: '/inventory/expired-stock',
+    path: '/inventory/expired-stock',
+    getParentRoute: () => DashboardRoute,
+  } as any)
 const DashboardAccountingJournalEntryRoute =
   DashboardAccountingJournalEntryRouteImport.update({
     id: '/accounting/journal-entry',
@@ -193,6 +207,8 @@ export interface FileRoutesByFullPath {
   '/dashboard/accounting/general-ledger': typeof DashboardAccountingGeneralLedgerRoute
   '/dashboard/accounting/income-statement': typeof DashboardAccountingIncomeStatementRoute
   '/dashboard/accounting/journal-entry': typeof DashboardAccountingJournalEntryRoute
+  '/dashboard/inventory/expired-stock': typeof DashboardInventoryExpiredStockRoute
+  '/dashboard/inventory/low-stock': typeof DashboardInventoryLowStockRoute
   '/dashboard/inventory/product-locations': typeof DashboardInventoryProductLocationsRoute
   '/dashboard/inventory/transfer-stock': typeof DashboardInventoryTransferStockRoute
   '/dashboard/inventory/uom-conversion': typeof DashboardInventoryUomConversionRoute
@@ -220,6 +236,8 @@ export interface FileRoutesByTo {
   '/dashboard/accounting/general-ledger': typeof DashboardAccountingGeneralLedgerRoute
   '/dashboard/accounting/income-statement': typeof DashboardAccountingIncomeStatementRoute
   '/dashboard/accounting/journal-entry': typeof DashboardAccountingJournalEntryRoute
+  '/dashboard/inventory/expired-stock': typeof DashboardInventoryExpiredStockRoute
+  '/dashboard/inventory/low-stock': typeof DashboardInventoryLowStockRoute
   '/dashboard/inventory/product-locations': typeof DashboardInventoryProductLocationsRoute
   '/dashboard/inventory/transfer-stock': typeof DashboardInventoryTransferStockRoute
   '/dashboard/inventory/uom-conversion': typeof DashboardInventoryUomConversionRoute
@@ -249,6 +267,8 @@ export interface FileRoutesById {
   '/dashboard/accounting/general-ledger': typeof DashboardAccountingGeneralLedgerRoute
   '/dashboard/accounting/income-statement': typeof DashboardAccountingIncomeStatementRoute
   '/dashboard/accounting/journal-entry': typeof DashboardAccountingJournalEntryRoute
+  '/dashboard/inventory/expired-stock': typeof DashboardInventoryExpiredStockRoute
+  '/dashboard/inventory/low-stock': typeof DashboardInventoryLowStockRoute
   '/dashboard/inventory/product-locations': typeof DashboardInventoryProductLocationsRoute
   '/dashboard/inventory/transfer-stock': typeof DashboardInventoryTransferStockRoute
   '/dashboard/inventory/uom-conversion': typeof DashboardInventoryUomConversionRoute
@@ -279,6 +299,8 @@ export interface FileRouteTypes {
     | '/dashboard/accounting/general-ledger'
     | '/dashboard/accounting/income-statement'
     | '/dashboard/accounting/journal-entry'
+    | '/dashboard/inventory/expired-stock'
+    | '/dashboard/inventory/low-stock'
     | '/dashboard/inventory/product-locations'
     | '/dashboard/inventory/transfer-stock'
     | '/dashboard/inventory/uom-conversion'
@@ -306,6 +328,8 @@ export interface FileRouteTypes {
     | '/dashboard/accounting/general-ledger'
     | '/dashboard/accounting/income-statement'
     | '/dashboard/accounting/journal-entry'
+    | '/dashboard/inventory/expired-stock'
+    | '/dashboard/inventory/low-stock'
     | '/dashboard/inventory/product-locations'
     | '/dashboard/inventory/transfer-stock'
     | '/dashboard/inventory/uom-conversion'
@@ -334,6 +358,8 @@ export interface FileRouteTypes {
     | '/dashboard/accounting/general-ledger'
     | '/dashboard/accounting/income-statement'
     | '/dashboard/accounting/journal-entry'
+    | '/dashboard/inventory/expired-stock'
+    | '/dashboard/inventory/low-stock'
     | '/dashboard/inventory/product-locations'
     | '/dashboard/inventory/transfer-stock'
     | '/dashboard/inventory/uom-conversion'
@@ -491,6 +517,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardInventoryProductLocationsRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/inventory/low-stock': {
+      id: '/dashboard/inventory/low-stock'
+      path: '/inventory/low-stock'
+      fullPath: '/dashboard/inventory/low-stock'
+      preLoaderRoute: typeof DashboardInventoryLowStockRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/inventory/expired-stock': {
+      id: '/dashboard/inventory/expired-stock'
+      path: '/inventory/expired-stock'
+      fullPath: '/dashboard/inventory/expired-stock'
+      preLoaderRoute: typeof DashboardInventoryExpiredStockRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/accounting/journal-entry': {
       id: '/dashboard/accounting/journal-entry'
       path: '/accounting/journal-entry'
@@ -553,6 +593,8 @@ interface DashboardRouteChildren {
   DashboardAccountingGeneralLedgerRoute: typeof DashboardAccountingGeneralLedgerRoute
   DashboardAccountingIncomeStatementRoute: typeof DashboardAccountingIncomeStatementRoute
   DashboardAccountingJournalEntryRoute: typeof DashboardAccountingJournalEntryRoute
+  DashboardInventoryExpiredStockRoute: typeof DashboardInventoryExpiredStockRoute
+  DashboardInventoryLowStockRoute: typeof DashboardInventoryLowStockRoute
   DashboardInventoryProductLocationsRoute: typeof DashboardInventoryProductLocationsRoute
   DashboardInventoryTransferStockRoute: typeof DashboardInventoryTransferStockRoute
   DashboardInventoryUomConversionRoute: typeof DashboardInventoryUomConversionRoute
@@ -582,6 +624,8 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardAccountingIncomeStatementRoute:
     DashboardAccountingIncomeStatementRoute,
   DashboardAccountingJournalEntryRoute: DashboardAccountingJournalEntryRoute,
+  DashboardInventoryExpiredStockRoute: DashboardInventoryExpiredStockRoute,
+  DashboardInventoryLowStockRoute: DashboardInventoryLowStockRoute,
   DashboardInventoryProductLocationsRoute:
     DashboardInventoryProductLocationsRoute,
   DashboardInventoryTransferStockRoute: DashboardInventoryTransferStockRoute,
