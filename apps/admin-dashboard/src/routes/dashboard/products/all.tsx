@@ -1187,6 +1187,37 @@ function AllProductsPage() {
           });
         }
 
+        // VALIDATE STOCK CONSISTENCY AFTER ALL UPDATES
+        // This ensures product locations and UOM locations have matching totals in base units
+        try {
+          const validationResult = await productApi.validateStockConsistency(selectedProduct.id);
+
+          if (!validationResult.isValid) {
+            toast.error('Stock Validation Failed', {
+              description: `${validationResult.message}\n\n` +
+                `Product Locations Total: ${validationResult.locationTotal} ${validationResult.baseUnit}\n` +
+                `UOM Locations Total: ${validationResult.uomTotal} ${validationResult.baseUnit}\n` +
+                `Difference: ${Math.abs(validationResult.difference)} ${validationResult.baseUnit}\n\n` +
+                'Product was updated, but stock totals are inconsistent. Please fix the warehouse allocations.',
+              duration: 10000,
+            });
+
+            // Refresh the product data to show current state
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['product', selectedProduct.id] });
+
+            // Keep drawer open so user can fix the issue
+            return;
+          }
+        } catch (validationError) {
+          console.error('Stock validation check failed:', validationError);
+          const errorMessage = getErrorMessage(validationError);
+          toast.warning('Validation Warning', {
+            description: `Product updated successfully, but could not validate stock consistency: ${errorMessage}`,
+            duration: 6000,
+          });
+        }
+
         queryClient.invalidateQueries({ queryKey: ['products'] });
         queryClient.invalidateQueries({ queryKey: ['product', selectedProduct.id] });
         toast.success('Product updated successfully');
