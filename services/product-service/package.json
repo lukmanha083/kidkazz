@@ -1,6 +1,7 @@
 {
   "name": "product-service",
   "version": "1.0.0",
+  "type": "module",
   "description": "Product Service - Product catalog, pricing, and availability",
   "main": "src/index.ts",
   "scripts": {
