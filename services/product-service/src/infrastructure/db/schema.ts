@@ -163,7 +163,7 @@ export const productVariants = sqliteTable('product_variants', {
   image: text('image'), // Optional variant image
 
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-  updatedAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
 });
 
 /**

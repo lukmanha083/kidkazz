@@ -44,6 +44,14 @@ export class Stock extends ValueObject<number> {
     return this._value < minimum;
   }
 
+  /**
+   * Get the stock quantity
+   * Alias for getValue() to match common usage patterns
+   */
+  get quantity(): number {
+    return this._value;
+  }
+
   public static create(value: number): Stock {
     return new Stock(value);
   }

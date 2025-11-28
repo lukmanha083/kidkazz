@@ -22,6 +22,14 @@ export class Money extends ValueObject<number> {
     return this.currency;
   }
 
+  /**
+   * Get the monetary amount
+   * Alias for getValue() to match common usage patterns
+   */
+  get amount(): number {
+    return this._value;
+  }
+
   public add(other: Money): Money {
     if (this.currency !== other.currency) {
       throw new Error('Cannot add different currencies');
