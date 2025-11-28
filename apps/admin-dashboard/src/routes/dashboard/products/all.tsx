@@ -1187,19 +1187,40 @@ function AllProductsPage() {
           });
         }
 
-        // VALIDATE STOCK CONSISTENCY AFTER ALL UPDATES
-        // This ensures product locations and UOM locations have matching totals in base units
+        // VALIDATE STOCK CONSISTENCY AFTER ALL UPDATES (PER WAREHOUSE)
+        // This ensures that for EACH warehouse, product locations and UOM locations have matching totals
         try {
           const validationResult = await productApi.validateStockConsistency(selectedProduct.id);
 
           if (!validationResult.isValid) {
+            // Build detailed error message with per-warehouse breakdown
+            const invalidWarehouses = validationResult.warehouseValidation.filter(w => !w.isValid);
+
+            let warehouseDetails = '';
+            invalidWarehouses.forEach(warehouse => {
+              warehouseDetails += `\n\n📦 Warehouse: ${warehouse.warehouseId}\n`;
+              warehouseDetails += `  Product Location: ${warehouse.locationStock} ${validationResult.globalSummary.baseUnit}\n`;
+              warehouseDetails += `  UOM Locations: ${warehouse.uomStock} ${validationResult.globalSummary.baseUnit}\n`;
+              warehouseDetails += `  Difference: ${Math.abs(warehouse.difference)} ${validationResult.globalSummary.baseUnit} (${warehouse.status})\n`;
+
+              // Show UOM breakdown for this warehouse
+              if (warehouse.uomBreakdown.length > 0) {
+                warehouseDetails += `  UOMs:\n`;
+                warehouse.uomBreakdown.forEach(uom => {
+                  warehouseDetails += `    - ${uom.quantity} × ${uom.uomCode} (${uom.conversionFactor}×) = ${uom.baseUnits} ${validationResult.globalSummary.baseUnit}\n`;
+                });
+              }
+            });
+
             toast.error('Stock Validation Failed', {
-              description: `${validationResult.message}\n\n` +
-                `Product Locations Total: ${validationResult.locationTotal} ${validationResult.baseUnit}\n` +
-                `UOM Locations Total: ${validationResult.uomTotal} ${validationResult.baseUnit}\n` +
-                `Difference: ${Math.abs(validationResult.difference)} ${validationResult.baseUnit}\n\n` +
-                'Product was updated, but stock totals are inconsistent. Please fix the warehouse allocations.',
-              duration: 10000,
+              description: `${validationResult.message}\n` +
+                `\n📊 Global Summary:\n` +
+                `  Total Product Locations: ${validationResult.globalSummary.totalLocationStock} ${validationResult.globalSummary.baseUnit}\n` +
+                `  Total UOM Locations: ${validationResult.globalSummary.totalUOMStock} ${validationResult.globalSummary.baseUnit}\n` +
+                `  Global Difference: ${Math.abs(validationResult.globalSummary.globalDifference)} ${validationResult.globalSummary.baseUnit}\n` +
+                warehouseDetails +
+                `\n⚠️ Product was updated, but ${invalidWarehouses.length} warehouse(s) have inconsistent stock. Please fix the warehouse allocations.`,
+              duration: 15000,
             });
 
             // Refresh the product data to show current state
@@ -1208,6 +1229,9 @@ function AllProductsPage() {
 
             // Keep drawer open so user can fix the issue
             return;
+          } else {
+            // Validation passed - show brief success message
+            console.log('✅ Stock validation passed for all warehouses');
           }
         } catch (validationError) {
           console.error('Stock validation check failed:', validationError);
