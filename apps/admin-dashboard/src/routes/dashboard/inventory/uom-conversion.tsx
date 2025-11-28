@@ -60,6 +60,7 @@ interface ProductInventory {
   barcode: string;
   category: string;
   totalStock: number;
+  baseUnit: string;
   productUOMs: ProductUOM[];
 }
 
@@ -116,6 +117,7 @@ function UOMConversionPage() {
                 barcode: fullProduct.barcode,
                 category: 'General', // You could fetch category name if needed
                 totalStock: fullProduct.stock,
+                baseUnit: fullProduct.baseUnit || 'PCS',
                 productUOMs: fullProduct.productUOMs || [],
               };
             } catch (error) {
@@ -199,16 +201,16 @@ function UOMConversionPage() {
     }, 0);
   };
 
-  // Get PCS UOM
-  const getPCSUOM = (product: ProductInventory): ProductUOM | undefined => {
-    return product.productUOMs.find(uom => uom.uomCode === 'PCS');
+  // Get base unit UOM (could be PCS, KG, L, etc.)
+  const getBaseUOM = (product: ProductInventory): ProductUOM | undefined => {
+    return product.productUOMs.find(uom => uom.uomCode === product.baseUnit);
   };
 
   // Handle open conversion drawer
   const handleOpenConversion = (product: ProductInventory, uom: ProductUOM) => {
-    if (uom.uomCode === 'PCS') {
-      toast.error('Cannot convert PCS', {
-        description: 'PCS is the base unit and cannot be converted'
+    if (uom.uomCode === product.baseUnit) {
+      toast.error(`Cannot convert ${product.baseUnit}`, {
+        description: `${product.baseUnit} is the base unit and cannot be converted`
       });
       return;
     }
@@ -223,7 +225,7 @@ function UOMConversionPage() {
     setSelectedProduct(product);
     setSelectedFromUOM(uom);
     setConversionQuantity('');
-    setConversionReason('PCS sold out');
+    setConversionReason(`${product.baseUnit} sold out`);
     setConversionNotes('');
     setConversionDrawerOpen(true);
   };
@@ -249,15 +251,15 @@ function UOMConversionPage() {
   const conversionMutation = useMutation({
     mutationFn: async (data: {
       fromUOMId: string;
-      toPCSUOMId: string;
+      toBaseUOMId: string;
       fromQty: number;
       toQty: number;
     }) => {
       // Update source UOM stock (decrease)
       await uomApi.updateProductUOMStock(data.fromUOMId, -data.fromQty);
 
-      // Update PCS UOM stock (increase)
-      await uomApi.updateProductUOMStock(data.toPCSUOMId, data.toQty);
+      // Update base UOM stock (increase)
+      await uomApi.updateProductUOMStock(data.toBaseUOMId, data.toQty);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -275,13 +277,13 @@ function UOMConversionPage() {
     if (!selectedProduct || !selectedFromUOM) return;
 
     const qty = parseInt(conversionQuantity);
-    const pcsToAdd = qty * selectedFromUOM.conversionFactor;
+    const baseUnitsToAdd = qty * selectedFromUOM.conversionFactor;
 
-    // Find the PCS UOM
-    const pcsUOM = selectedProduct.productUOMs.find(u => u.uomCode === 'PCS');
-    if (!pcsUOM) {
+    // Find the base UOM (could be PCS, KG, L, etc.)
+    const baseUOM = getBaseUOM(selectedProduct);
+    if (!baseUOM) {
       toast.error('Error', {
-        description: 'PCS UOM not found for this product'
+        description: `${selectedProduct.baseUnit} UOM not found for this product`
       });
       return;
     }
@@ -290,9 +292,9 @@ function UOMConversionPage() {
       // Execute conversion via API
       await conversionMutation.mutateAsync({
         fromUOMId: selectedFromUOM.id,
-        toPCSUOMId: pcsUOM.id,
+        toBaseUOMId: baseUOM.id,
         fromQty: qty,
-        toQty: pcsToAdd,
+        toQty: baseUnitsToAdd,
       });
 
       // Update local state
@@ -303,8 +305,8 @@ function UOMConversionPage() {
             productUOMs: product.productUOMs.map(uom => {
               if (uom.id === selectedFromUOM.id) {
                 return { ...uom, stock: uom.stock - qty };
-              } else if (uom.uomCode === 'PCS') {
-                return { ...uom, stock: uom.stock + pcsToAdd };
+              } else if (uom.uomCode === product.baseUnit) {
+                return { ...uom, stock: uom.stock + baseUnitsToAdd };
               }
               return uom;
             }),
@@ -320,7 +322,7 @@ function UOMConversionPage() {
         productSKU: selectedProduct.sku,
         fromUOM: `${qty} ${selectedFromUOM.uomName}`,
         fromQuantity: qty,
-        toQuantity: pcsToAdd,
+        toQuantity: baseUnitsToAdd,
         reason: conversionReason,
         notes: conversionNotes,
         performedBy: 'Current User',
@@ -328,7 +330,7 @@ function UOMConversionPage() {
       };
       setConversions([newConversion, ...conversions]);
 
-      toast.success(`Converted ${qty} ${selectedFromUOM.uomName} → ${pcsToAdd} PCS`);
+      toast.success(`Converted ${qty} ${selectedFromUOM.uomName} → ${baseUnitsToAdd} ${selectedProduct.baseUnit}`);
 
       setConfirmDialogOpen(false);
       setConversionDrawerOpen(false);
@@ -339,10 +341,10 @@ function UOMConversionPage() {
     }
   };
 
-  // Get low stock products (PCS stock < 10)
+  // Get low stock products (base unit stock < 10)
   const lowStockProducts = inventory.filter(product => {
-    const pcsUOM = getPCSUOM(product);
-    return pcsUOM && pcsUOM.stock < 10;
+    const baseUOM = getBaseUOM(product);
+    return baseUOM && baseUOM.stock < 10;
   });
 
   // Show loading state while data is being fetched
@@ -654,13 +656,13 @@ function UOMConversionPage() {
                   </div>
 
                   {/* Conversion Preview */}
-                  {conversionQuantity && parseInt(conversionQuantity) > 0 && (
+                  {conversionQuantity && parseInt(conversionQuantity) > 0 && selectedProduct && (
                     <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm text-muted-foreground">Will produce</p>
                           <p className="text-2xl font-bold text-green-600">
-                            {parseInt(conversionQuantity) * selectedFromUOM.conversionFactor} PCS
+                            {parseInt(conversionQuantity) * selectedFromUOM.conversionFactor} {selectedProduct.baseUnit}
                           </p>
                         </div>
                         <ArrowRightLeft className="h-6 w-6 text-green-600" />
@@ -683,7 +685,7 @@ function UOMConversionPage() {
                       className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
                       required
                     >
-                      <option value="PCS sold out">PCS sold out</option>
+                      <option value={`${selectedProduct?.baseUnit || 'Base unit'} sold out`}>{selectedProduct?.baseUnit || 'Base unit'} sold out</option>
                       <option value="Damaged packaging">Damaged packaging</option>
                       <option value="Bulk order breakdown">Bulk order breakdown</option>
                       <option value="Customer request">Customer request</option>
@@ -805,13 +807,13 @@ function UOMConversionPage() {
                       </Badge>
                       <ArrowRightLeft className="h-4 w-4" />
                       <Badge variant="outline">
-                        {parseInt(conversionQuantity) * selectedFromUOM.conversionFactor} PCS
+                        {parseInt(conversionQuantity) * selectedFromUOM.conversionFactor} {selectedProduct.baseUnit}
                       </Badge>
                     </div>
                   </div>
                   <p className="mt-3 text-sm">
                     This will decrease <strong>{selectedFromUOM.uomName}</strong> stock and increase
-                    <strong> PCS</strong> stock. This action cannot be undone.
+                    <strong> {selectedProduct.baseUnit}</strong> stock. This action cannot be undone.
                   </p>
                 </>
               )}

@@ -480,10 +480,13 @@ function UOMPage() {
                   <div className="rounded-md bg-muted p-3">
                     <p className="text-sm font-medium mb-2">Conversion Formula</p>
                     <p className="text-sm">
-                      1 {selectedUOM.code} = {selectedUOM.conversionFactor} PCS
+                      1 {selectedUOM.code} = {selectedUOM.conversionFactor} base units
                     </p>
                     <p className="text-xs text-muted-foreground mt-2">
-                      Example: 5 {selectedUOM.code} = {5 * selectedUOM.conversionFactor} PCS
+                      Example: 5 {selectedUOM.code} = {5 * selectedUOM.conversionFactor} base units
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-2 italic">
+                      Note: Base unit (PCS, KG, L, etc.) depends on the product
                     </p>
                   </div>
                 )}
@@ -550,7 +553,7 @@ function UOMPage() {
               <Label htmlFor="name">Unit Name *</Label>
               <Input
                 id="name"
-                placeholder="Carton (18 PCS)"
+                placeholder="Carton (18 units)"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
@@ -576,7 +579,7 @@ function UOMPage() {
                 disabled={formData.isBaseUnit}
               />
               <p className="text-xs text-muted-foreground">
-                How many base units (PCS) equals 1 of this unit
+                How many base units equals 1 of this unit (base unit depends on product: PCS, KG, L, etc.)
               </p>
             </div>
 
@@ -607,10 +610,13 @@ function UOMPage() {
               <div className="rounded-md bg-muted p-3">
                 <p className="text-sm font-medium mb-2">Conversion Preview</p>
                 <p className="text-sm">
-                  1 {formData.code || 'UNIT'} = {formData.conversionFactor} PCS
+                  1 {formData.code || 'UNIT'} = {formData.conversionFactor} base units
                 </p>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Example: 5 {formData.code || 'UNIT'} = {parseFloat(formData.conversionFactor) * 5} PCS
+                  Example: 5 {formData.code || 'UNIT'} = {parseFloat(formData.conversionFactor) * 5} base units
+                </p>
+                <p className="text-xs text-muted-foreground mt-1 italic">
+                  Base unit (PCS, KG, L, etc.) is determined by the product
                 </p>
               </div>
             )}
