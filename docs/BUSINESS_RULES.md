@@ -425,74 +425,126 @@ POST /api/inventory/transfer
 
 ---
 
-### Rule 11: Product Stock Consistency Across Warehouses
+### Rule 11: Product Stock Consistency Per Warehouse (UPDATED)
 
-**Rule**: Total stock of a product across all warehouses must match between Product UOMs and Product Locations. All calculations use base units for comparison.
+**Rule**: For EACH warehouse, the stock of a product in product_locations must match the total stock from product_uom_locations (converted to base units). Validation is done PER WAREHOUSE, not globally.
 
-**Business Rationale**: Ensures data integrity and consistency between different stock tracking tables (product_uoms and product_locations) across multiple warehouses.
+**Business Rationale**: Ensures data integrity and consistency between different stock tracking tables (product_locations and product_uom_locations) at each individual warehouse. The product location is the source of truth for warehouse-specific stock.
+
+**Key Change**: Previous implementation validated global totals. New implementation validates stock consistency per warehouse, ensuring that each warehouse's product location stock equals the sum of its UOM location stocks (in base units).
 
 **Implementation**:
 
-**Validation Logic**:
+**Validation Logic (Per Warehouse)**:
 ```typescript
-// Calculate total stock from product_locations (base units)
-const totalBaseUnitsFromLocations = productLocations.reduce((sum, loc) => sum + loc.quantity, 0);
+// For each warehouse:
+for (const warehouse of warehouses) {
+  // Get product location stock at this warehouse (base units)
+  const warehouseBaseStock = productLocation[warehouse].quantity;
 
-// Calculate total stock from product_uoms converted to base units
-const totalBaseUnitsFromUOMs = productUOMs.reduce((sum, uom) => {
-  const uomLocations = getUOMLocations(uom.id);
-  const uomTotalInBaseUnits = uomLocations.reduce((locSum, loc) => {
-    return locSum + (loc.quantity * uom.conversionFactor);
-  }, 0);
-  return sum + uomTotalInBaseUnits;
-}, 0);
+  // Calculate total UOM stock at this warehouse (in base units)
+  let totalUOMStockAtWarehouse = 0;
+  for (const uom of productUOMs) {
+    const uomLocation = getUOMLocation(uom.id, warehouse.id);
+    if (uomLocation) {
+      totalUOMStockAtWarehouse += uomLocation.quantity * uom.conversionFactor;
+    }
+  }
 
-// Validation: Both totals must match
-if (totalBaseUnitsFromLocations !== totalBaseUnitsFromUOMs) {
-  throw new Error(
-    `Stock mismatch: Product locations total is ${totalBaseUnitsFromLocations} PCS, ` +
-    `but UOM locations total is ${totalBaseUnitsFromUOMs} PCS. ` +
-    `They must be equal.`
-  );
+  // Validation: Warehouse stock must match
+  if (warehouseBaseStock !== totalUOMStockAtWarehouse) {
+    throw new Error(
+      `Stock mismatch in ${warehouse.name}: ` +
+      `Product location: ${warehouseBaseStock} ${baseUnit}, ` +
+      `UOM locations: ${totalUOMStockAtWarehouse} ${baseUnit}`
+    );
+  }
 }
 ```
 
 **API Validation**:
 ```typescript
-// When creating/updating product allocations
-POST /api/products/:id/validate-stock-consistency
+// When creating/updating product UOM locations
+POST /api/uoms/locations
 {
-  "productId": "product-123"
+  "productUOMId": "uom-123",
+  "warehouseId": "wh-jakarta",
+  "quantity": 10
 }
 
-// Response:
+// Validation: Checks that total UOM stock at Jakarta warehouse doesn't exceed
+// the product location stock at Jakarta warehouse
+
+// When validating overall consistency
+POST /api/products/:id/validate-stock-consistency
+
+// Response (Per Warehouse):
 {
   "isValid": true|false,
-  "locationTotal": 500,    // Total from product_locations in base units
-  "uomTotal": 500,         // Total from product_uom_locations in base units
-  "difference": 0,
-  "message": "Stock totals match" | "Stock mismatch detected"
+  "globalSummary": {
+    "totalLocationStock": 500,
+    "totalUOMStock": 500,
+    "globalDifference": 0,
+    "baseUnit": "PCS"
+  },
+  "warehouseValidation": [
+    {
+      "warehouseId": "wh-jakarta",
+      "locationStock": 200,
+      "uomStock": 200,
+      "difference": 0,
+      "isValid": true,
+      "status": "valid",
+      "statusMessage": "Stock totals match",
+      "uomBreakdown": [
+        {
+          "uomCode": "BOX6",
+          "quantity": 30,
+          "conversionFactor": 6,
+          "baseUnits": 180
+        },
+        {
+          "uomCode": "PCS",
+          "quantity": 20,
+          "conversionFactor": 1,
+          "baseUnits": 20
+        }
+      ]
+    },
+    {
+      "warehouseId": "wh-cilangkap",
+      "locationStock": 300,
+      "uomStock": 305,
+      "difference": -5,
+      "isValid": false,
+      "status": "uom_exceeds_location",
+      "statusMessage": "UOM locations have 5 PCS more than product location"
+    }
+  ],
+  "message": "Stock mismatch detected in 1 warehouse(s)"
 }
 ```
 
 **Frontend Validation**:
 - Show real-time validation when editing warehouse allocations
-- Display warning badge if totals don't match
-- Block form submission if validation fails
-- Show detailed breakdown of stock per warehouse and UOM
+- Display warning badge if any warehouse has mismatched totals
+- Block form submission if validation fails for any warehouse
+- Show detailed per-warehouse breakdown of stock and UOM allocations
 
-**Error Messages**:
-- ❌ "Stock validation failed: Product locations show 500 PCS total, but UOM locations show 520 PCS total. Please adjust allocations."
-- ⚠️ "Warning: Stock totals will be inconsistent after this change. Location total: 500 PCS, UOM total: 480 PCS."
+**Error Messages (Using Dynamic Base Unit)**:
+- ❌ "Stock validation failed for warehouse: Total UOM stock at this warehouse would be 205 KG, but product location stock is only 200 KG. Please adjust product location stock first or reduce UOM quantities."
+- ⚠️ "Stock mismatch in Cilangkap warehouse. Product locations: 200 PCS, UOM locations: 205 PCS"
+- ✅ "All warehouses have consistent stock totals"
 
 **Business Rules**:
-1. When adding stock via UOM (e.g., adding 10 BOX6), both product_uom_locations and product_locations must be updated
-2. When transferring stock between warehouses, both tables must be updated atomically
-3. When removing UOM from a warehouse, corresponding base units must be removed from product_locations
-4. Validation runs automatically before any stock operation completes
-5. Reports must use base units (PCS) as the single source of truth
+1. When adding UOM stock via product_uom_locations, it must not exceed the warehouse's product_locations stock (in base units)
+2. When transferring stock between warehouses, both product_locations and product_uom_locations must be updated atomically
+3. When removing UOM from a warehouse, corresponding base units should be removed from product_uom_locations
+4. Validation runs automatically before any warehouse-specific stock operation completes
+5. Product location is the source of truth for each warehouse's stock
+6. Base units are dynamic (not always PCS) - can be KG, L, M, etc.
 
-**Example Scenario**:
+**Example Scenario (Using Dynamic Base Unit)**:
 ```typescript
 Product: "Baby Bottle"
 Base Unit: PCS
@@ -500,15 +552,31 @@ Base Unit: PCS
 Warehouse Jakarta:
 - product_locations: 100 PCS
 - product_uom_locations: 16 BOX6 (16 × 6 = 96 PCS) + 4 PCS (4 × 1 = 4 PCS)
-- Validation: 100 PCS (locations) === 96 + 4 = 100 PCS (UOMs) ✅
+- Validation: 100 PCS (location) === 96 + 4 = 100 PCS (UOMs) ✅
 
 Warehouse Cilangkap:
 - product_locations: 200 PCS
 - product_uom_locations: 30 BOX6 (30 × 6 = 180 PCS) + 25 PCS (25 × 1 = 25 PCS)
-- Validation: 200 PCS (locations) !== 180 + 25 = 205 PCS (UOMs) ❌ FAIL
+- Validation: 200 PCS (location) !== 180 + 25 = 205 PCS (UOMs) ❌ FAIL
 
 Error: "Stock mismatch in Cilangkap warehouse. Product locations: 200 PCS, UOM locations: 205 PCS"
+
+Product: "Baby Formula Powder"
+Base Unit: KG (not PCS!)
+
+Warehouse Jakarta:
+- product_locations: 50 KG
+- product_uom_locations: 100 BOX500G (100 × 0.5 = 50 KG)
+- Validation: 50 KG (location) === 50 KG (UOMs) ✅
+
+Warehouse Cilangkap:
+- product_locations: 30 KG
+- product_uom_locations: 15 CARTON2KG (15 × 2 = 30 KG)
+- Validation: 30 KG (location) === 30 KG (UOMs) ✅
 ```
+
+**Migration Note**:
+The system now supports products with different base units (e.g., KG for weight-based products, L for liquids). All validation logic uses the product's `baseUnit` field, not hardcoded 'PCS'. Error messages dynamically display the correct base unit.
 
 ---
 

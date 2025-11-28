@@ -453,19 +453,38 @@ export const productApi = {
     return apiRequest(`/api/products/${id}/uom-warehouse-stock`);
   },
 
-  // Validate stock consistency across product locations and UOM locations
+  // Validate stock consistency per warehouse (product locations vs UOM locations)
+  // Updated to use new per-warehouse validation approach
   validateStockConsistency: async (id: string): Promise<{
     isValid: boolean;
-    locationTotal: number;
-    uomTotal: number;
-    difference: number;
-    baseUnit: string;
+    globalSummary: {
+      totalLocationStock: number;
+      totalUOMStock: number;
+      globalDifference: number;
+      baseUnit: string;
+    };
     message: string;
+    warehouseValidation: Array<{
+      warehouseId: string;
+      locationStock: number;
+      uomStock: number;
+      difference: number;
+      isValid: boolean;
+      status: 'valid' | 'location_exceeds_uom' | 'uom_exceeds_location';
+      statusMessage: string;
+      uomBreakdown: Array<{
+        uomCode: string;
+        uomName: string;
+        quantity: number;
+        conversionFactor: number;
+        baseUnits: number;
+      }>;
+    }>;
     details: {
       productId: string;
       productName: string;
       productSKU: string;
-      baseLocationsCount: number;
+      warehouseCount: number;
       uomsCount: number;
     };
   }> => {
@@ -706,7 +725,79 @@ export const uomApi = {
       method: 'DELETE',
     });
   },
+
+  // Product UOM Locations (Warehouse-specific UOM stock management)
+  getAllProductUOMLocations: async (filters?: {
+    productUOMId?: string;
+    warehouseId?: string;
+  }): Promise<{ locations: ProductUOMLocation[]; total: number }> => {
+    const params = new URLSearchParams();
+    if (filters?.productUOMId) params.append('productUOMId', filters.productUOMId);
+    if (filters?.warehouseId) params.append('warehouseId', filters.warehouseId);
+    const queryString = params.toString();
+    return apiRequest(`/api/uoms/locations${queryString ? `?${queryString}` : ''}`);
+  },
+
+  getProductUOMLocation: async (id: string): Promise<ProductUOMLocation> => {
+    return apiRequest(`/api/uoms/locations/${id}`);
+  },
+
+  createProductUOMLocation: async (data: CreateProductUOMLocationInput): Promise<ProductUOMLocation> => {
+    return apiRequest('/api/uoms/locations', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateProductUOMLocation: async (
+    id: string,
+    data: Partial<Omit<CreateProductUOMLocationInput, 'productUOMId'>>
+  ): Promise<ProductUOMLocation> => {
+    return apiRequest(`/api/uoms/locations/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateProductUOMLocationQuantity: async (id: string, quantity: number): Promise<{ message: string }> => {
+    return apiRequest(`/api/uoms/locations/${id}/quantity`, {
+      method: 'PATCH',
+      body: JSON.stringify({ quantity }),
+    });
+  },
+
+  deleteProductUOMLocation: async (id: string): Promise<{ message: string }> => {
+    return apiRequest(`/api/uoms/locations/${id}`, {
+      method: 'DELETE',
+    });
+  },
 };
+
+// Product UOM Location interface and input types
+export interface ProductUOMLocation {
+  id: string;
+  productUOMId: string;
+  warehouseId: string;
+  rack?: string | null;
+  bin?: string | null;
+  zone?: string | null;
+  aisle?: string | null;
+  quantity: number;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: string | null;
+  updatedBy?: string | null;
+}
+
+export interface CreateProductUOMLocationInput {
+  productUOMId: string;
+  warehouseId: string;
+  rack?: string | null;
+  bin?: string | null;
+  zone?: string | null;
+  aisle?: string | null;
+  quantity?: number;
+}
 
 // ============================================
 // ACCOUNTING API
