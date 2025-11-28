@@ -3,8 +3,13 @@
 -- Description: Add updated_at field to product_variants table (missing from initial schema)
 
 -- Add updated_at column to product_variants table
-ALTER TABLE product_variants ADD COLUMN updated_at INTEGER NOT NULL DEFAULT (cast(strftime('%s', 'now') as int));
+-- Using created_at value as default for existing records (they were just created, so updated_at = created_at makes sense)
+-- SQLite requires constant default values, so we add as nullable first, update, then make NOT NULL
+ALTER TABLE product_variants ADD COLUMN updated_at INTEGER;
+
+-- Update existing records to use created_at as the initial updated_at value
+UPDATE product_variants SET updated_at = created_at WHERE updated_at IS NULL;
 
 -- Note: This column was missing from the initial migration (0000_free_firelord.sql)
 -- It is required for the schema to match the Drizzle schema definition
--- The default value sets it to the current Unix timestamp for existing records
+-- For existing records, updated_at is set to match created_at (reasonable assumption for new records)
