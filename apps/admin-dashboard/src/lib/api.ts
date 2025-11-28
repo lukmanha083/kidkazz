@@ -452,6 +452,27 @@ export const productApi = {
   }> => {
     return apiRequest(`/api/products/${id}/uom-warehouse-stock`);
   },
+
+  // Validate stock consistency across product locations and UOM locations
+  validateStockConsistency: async (id: string): Promise<{
+    isValid: boolean;
+    locationTotal: number;
+    uomTotal: number;
+    difference: number;
+    baseUnit: string;
+    message: string;
+    details: {
+      productId: string;
+      productName: string;
+      productSKU: string;
+      baseLocationsCount: number;
+      uomsCount: number;
+    };
+  }> => {
+    return apiRequest(`/api/products/${id}/validate-stock-consistency`, {
+      method: 'POST',
+    });
+  },
 };
 
 // ============================================

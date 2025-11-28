@@ -116,24 +116,24 @@ const formatStatusText = (status: string) => {
 // Helper function to get category badge color (based on category color from database)
 const getCategoryBadgeColor = (color?: string | null) => {
   if (!color) {
-    return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
+    return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200';
   }
 
   // Map color names to Tailwind classes
   const colorMap: Record<string, string> = {
-    'blue': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-    'green': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
-    'red': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
-    'yellow': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
-    'purple': 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
-    'pink': 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300',
-    'indigo': 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300',
-    'orange': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
-    'teal': 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300',
-    'cyan': 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300',
+    'blue': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200',
+    'green': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-green-200',
+    'red': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 border-red-200',
+    'yellow': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-200',
+    'purple': 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border-purple-200',
+    'pink': 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300 border-pink-200',
+    'indigo': 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 border-indigo-200',
+    'orange': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border-orange-200',
+    'teal': 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300 border-teal-200',
+    'cyan': 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300 border-cyan-200',
   };
 
-  return colorMap[color.toLowerCase()] || 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
+  return colorMap[color.toLowerCase()] || 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200';
 };
 
 // Helper function to extract error message from various error types
@@ -166,6 +166,16 @@ const getErrorMessage = (error: any): string => {
     if (Array.isArray(data.errors) && data.errors.length > 0) {
       return data.errors.map((e: any) => e.message || e).join(', ');
     }
+
+    // If data is a plain object with no specific error field, try to stringify it nicely
+    try {
+      const keys = Object.keys(data);
+      if (keys.length > 0) {
+        return `Validation error: ${JSON.stringify(data, null, 2)}`;
+      }
+    } catch (e) {
+      // Ignore stringify errors
+    }
   }
 
   // Handle direct message property
@@ -176,6 +186,26 @@ const getErrorMessage = (error: any): string => {
   // Handle direct error property
   if (typeof error?.error === 'string') {
     return error.error;
+  }
+
+  // Try to extract any useful information from the error object
+  if (error && typeof error === 'object') {
+    try {
+      // Check common error properties
+      const errorStr = error.toString();
+      if (errorStr && errorStr !== '[object Object]') {
+        return errorStr;
+      }
+
+      // Try to find any string property that might contain an error message
+      for (const key of ['msg', 'detail', 'reason', 'statusText']) {
+        if (error[key] && typeof error[key] === 'string') {
+          return error[key];
+        }
+      }
+    } catch (e) {
+      // Ignore
+    }
   }
 
   // Fallback to generic message
@@ -599,7 +629,7 @@ function AllProductsPage() {
       baseUnit: 'PCS',
       wholesaleThreshold: '12',
       minimumStock: '',
-      status: 'active',
+      status: 'omnichannel sales' as 'online sales' | 'offline sales' | 'omnichannel sales' | 'inactive' | 'discontinued',
       // Physical dimensions for shipping cost calculation
       weight: '',
       length: '',
@@ -611,6 +641,9 @@ function AllProductsPage() {
       bin: '',
       zone: '',
       aisle: '',
+      // Product expiration and alert dates
+      expirationDate: '',
+      alertDate: '',
     });
     setProductUOMs([]);
     setSelectedUOM('');
@@ -1151,6 +1184,37 @@ function AllProductsPage() {
           console.error('Failed to sync product locations:', locationError);
           toast.info('Product updated, but some locations could not be synced', {
             description: 'You can update the locations later'
+          });
+        }
+
+        // VALIDATE STOCK CONSISTENCY AFTER ALL UPDATES
+        // This ensures product locations and UOM locations have matching totals in base units
+        try {
+          const validationResult = await productApi.validateStockConsistency(selectedProduct.id);
+
+          if (!validationResult.isValid) {
+            toast.error('Stock Validation Failed', {
+              description: `${validationResult.message}\n\n` +
+                `Product Locations Total: ${validationResult.locationTotal} ${validationResult.baseUnit}\n` +
+                `UOM Locations Total: ${validationResult.uomTotal} ${validationResult.baseUnit}\n` +
+                `Difference: ${Math.abs(validationResult.difference)} ${validationResult.baseUnit}\n\n` +
+                'Product was updated, but stock totals are inconsistent. Please fix the warehouse allocations.',
+              duration: 10000,
+            });
+
+            // Refresh the product data to show current state
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: ['product', selectedProduct.id] });
+
+            // Keep drawer open so user can fix the issue
+            return;
+          }
+        } catch (validationError) {
+          console.error('Stock validation check failed:', validationError);
+          const errorMessage = getErrorMessage(validationError);
+          toast.warning('Validation Warning', {
+            description: `Product updated successfully, but could not validate stock consistency: ${errorMessage}`,
+            duration: 6000,
           });
         }
 
