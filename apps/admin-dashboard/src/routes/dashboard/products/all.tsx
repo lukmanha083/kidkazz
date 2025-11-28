@@ -2447,15 +2447,15 @@ function AllProductsPage() {
               <div className="flex items-center justify-between p-3 bg-muted/50 border border-border rounded">
                 <div className="text-sm">
                   <span className="font-medium text-foreground">Total Stock: </span>
-                  <span className="text-muted-foreground">{formData.stock || 0} PCS</span>
+                  <span className="text-muted-foreground">{formData.stock || 0} {formData.baseUnit || 'PCS'}</span>
                 </div>
                 <div className="text-sm">
                   <span className="font-medium text-foreground">Allocated: </span>
-                  <span className="text-muted-foreground">{calculateAllocatedPCS(productUOMs)} PCS</span>
+                  <span className="text-muted-foreground">{calculateAllocatedPCS(productUOMs)} {formData.baseUnit || 'PCS'}</span>
                 </div>
                 <div className="text-sm">
                   <span className="font-medium text-foreground">Available: </span>
-                  <span className="text-primary font-bold">{getRemainingPCS()} PCS</span>
+                  <span className="text-primary font-bold">{getRemainingPCS()} {formData.baseUnit || 'PCS'}</span>
                 </div>
               </div>
 
@@ -2479,7 +2479,7 @@ function AllProductsPage() {
                             <div className="text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
                               <span className="break-all">Barcode: {uom.barcode}</span>
                               <span className="whitespace-nowrap">Stock: {uom.stock} {uom.uomCode}</span>
-                              <span className="whitespace-nowrap">({uom.stock * uom.conversionFactor} PCS)</span>
+                              <span className="whitespace-nowrap">({uom.stock * uom.conversionFactor} {formData.baseUnit || 'PCS'})</span>
                             </div>
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0">
@@ -2537,7 +2537,7 @@ function AllProductsPage() {
                       <option value="">Select UOM...</option>
                       {availableUOMs.filter(u => u.code !== 'PCS' && !u.isBaseUnit).map(uom => (
                         <option key={uom.id} value={uom.code}>
-                          {uom.name} (1 = {uom.conversionFactor} PCS)
+                          {uom.name} (1 = {uom.conversionFactor} {formData.baseUnit || 'PCS'})
                         </option>
                       ))}
                     </select>
