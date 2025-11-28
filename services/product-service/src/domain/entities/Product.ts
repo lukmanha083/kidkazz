@@ -9,7 +9,6 @@ import { PriceChanged } from '../events/PriceChanged';
 import { ProductDiscontinued } from '../events/ProductDiscontinued';
 
 export type ProductStatus =
-  | 'active'
   | 'online sales'
   | 'offline sales'
   | 'omnichannel sales'
@@ -119,7 +118,7 @@ export class Product extends AggregateRoot {
       reviews: 0,
       availableForRetail: input.availableForRetail !== false,
       availableForWholesale: input.availableForWholesale || false,
-      status: 'active', // Default to active status
+      status: 'omnichannel sales', // Default to omnichannel sales (both online and offline)
       isBundle: false,
       createdAt: now,
       updatedAt: now,
@@ -342,11 +341,6 @@ export class Product extends AggregateRoot {
 
     // Update availability flags based on status
     switch (newStatus) {
-      case 'active':
-        // Active products are available for both retail and wholesale
-        this.props.availableForRetail = true;
-        this.props.availableForWholesale = true;
-        break;
       case 'online sales':
         this.props.availableForRetail = true;
         this.props.availableForWholesale = false; // Will be shown on wholesale if above threshold
@@ -401,10 +395,10 @@ export class Product extends AggregateRoot {
 
     // Check availability based on sales channel
     if (type === 'retail') {
-      return this.props.status === 'active' || this.props.status === 'online sales' || this.props.status === 'omnichannel sales';
+      return this.props.status === 'online sales' || this.props.status === 'omnichannel sales';
     } else {
       // Wholesale
-      return this.props.status === 'active' || this.props.status === 'offline sales' || this.props.status === 'omnichannel sales';
+      return this.props.status === 'offline sales' || this.props.status === 'omnichannel sales';
     }
   }
 
@@ -412,14 +406,14 @@ export class Product extends AggregateRoot {
    * Business Query: Check if product is available online
    */
   public isAvailableOnline(): boolean {
-    return this.props.status === 'active' || this.props.status === 'online sales' || this.props.status === 'omnichannel sales';
+    return this.props.status === 'online sales' || this.props.status === 'omnichannel sales';
   }
 
   /**
    * Business Query: Check if product is available offline
    */
   public isAvailableOffline(): boolean {
-    return this.props.status === 'active' || this.props.status === 'offline sales' || this.props.status === 'omnichannel sales';
+    return this.props.status === 'offline sales' || this.props.status === 'omnichannel sales';
   }
 
   // Getters

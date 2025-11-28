@@ -34,7 +34,7 @@ describe('Product Entity', () => {
       expect(product.wholesalePrice.amount).toBe(45000);
       expect(product.availableForRetail).toBe(true);
       expect(product.availableForWholesale).toBe(true);
-      expect(product.status).toBe('active');
+      expect(product.status).toBe('omnichannel sales');
     });
 
     it('should create product with default retail and wholesale prices', () => {
