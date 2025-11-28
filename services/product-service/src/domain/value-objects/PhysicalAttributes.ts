@@ -68,6 +68,25 @@ export class PhysicalAttributes extends ValueObject<PhysicalAttributesProps> {
   }
 
   /**
+   * Property getters for direct access
+   */
+  get weight(): number {
+    return this._value.weight;
+  }
+
+  get length(): number {
+    return this._value.length;
+  }
+
+  get width(): number {
+    return this._value.width;
+  }
+
+  get height(): number {
+    return this._value.height;
+  }
+
+  /**
    * Calculate volume weight (dimensional weight)
    * Standard formula: (L × W × H) / 5000 for cm to kg conversion
    * Used by shipping carriers to determine chargeable weight

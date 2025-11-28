@@ -24,6 +24,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@kidkazz/ddd-core': path.resolve(__dirname, '../../packages/ddd-core/src'),
     },
   },
 });

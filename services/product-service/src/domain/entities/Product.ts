@@ -9,6 +9,7 @@ import { PriceChanged } from '../events/PriceChanged';
 import { ProductDiscontinued } from '../events/ProductDiscontinued';
 
 export type ProductStatus =
+  | 'active'
   | 'online sales'
   | 'offline sales'
   | 'omnichannel sales'
@@ -78,6 +79,11 @@ export class Product extends AggregateRoot {
     availableForWholesale?: boolean;
     createdBy?: string;
   }): Product {
+    // Validate name
+    if (!input.name || input.name.trim() === '') {
+      throw new Error('Product name cannot be empty');
+    }
+
     const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const now = new Date();
 
@@ -113,7 +119,7 @@ export class Product extends AggregateRoot {
       reviews: 0,
       availableForRetail: input.availableForRetail !== false,
       availableForWholesale: input.availableForWholesale || false,
-      status: 'omnichannel sales', // Default to omnichannel sales (both online and offline)
+      status: 'active', // Default to active status
       isBundle: false,
       createdAt: now,
       updatedAt: now,
@@ -207,8 +213,13 @@ export class Product extends AggregateRoot {
   /**
    * Business Logic: Adjust stock
    */
-  public adjustStock(adjustment: number, reason: string, performedBy: string): void {
+  public adjustStock(adjustment: number, performedBy: string, reason?: string): void {
     const previousStock = this.props.stock.getValue();
+
+    // Business rule: Cannot adjust stock to negative value
+    if (previousStock + adjustment < 0) {
+      throw new Error('Cannot adjust stock to negative value');
+    }
 
     if (adjustment > 0) {
       this.props.stock = this.props.stock.increase(Math.abs(adjustment));
@@ -226,23 +237,46 @@ export class Product extends AggregateRoot {
         previousStock,
         this.props.stock.getValue(),
         adjustment,
-        reason,
+        reason || 'Stock adjustment',
         performedBy
       )
     );
   }
 
   /**
-   * Business Logic: Change price
+   * Business Logic: Change price (base price by default)
    */
+  public changePrice(newPrice: number, performedBy: string): void;
   public changePrice(
     priceType: 'retail' | 'wholesale' | 'base',
     newPrice: number,
     performedBy: string
+  ): void;
+  public changePrice(
+    newPriceOrType: number | 'retail' | 'wholesale' | 'base',
+    performedByOrPrice: string | number,
+    performedBy?: string
   ): void {
     // Business rule: Cannot change price of discontinued product
     if (this.props.status === 'discontinued') {
       throw new Error('Cannot change price of discontinued product');
+    }
+
+    let priceType: 'retail' | 'wholesale' | 'base';
+    let newPrice: number;
+    let performedByUser: string;
+
+    // Handle overloaded signatures
+    if (typeof newPriceOrType === 'number') {
+      // Simple signature: changePrice(newPrice, performedBy)
+      priceType = 'base';
+      newPrice = newPriceOrType;
+      performedByUser = performedByOrPrice as string;
+    } else {
+      // Full signature: changePrice(priceType, newPrice, performedBy)
+      priceType = newPriceOrType;
+      newPrice = performedByOrPrice as number;
+      performedByUser = performedBy!;
     }
 
     let oldPrice: number;
@@ -264,7 +298,7 @@ export class Product extends AggregateRoot {
     }
 
     this.props.updatedAt = new Date();
-    this.props.updatedBy = performedBy;
+    this.props.updatedBy = performedByUser;
 
     // Raise domain event
     this.addDomainEvent(
@@ -275,7 +309,7 @@ export class Product extends AggregateRoot {
   /**
    * Business Logic: Discontinue product
    */
-  public discontinue(reason?: string): void {
+  public discontinue(performedBy: string, reason?: string): void {
     // Business rule: Cannot discontinue if already discontinued
     if (this.props.status === 'discontinued') {
       throw new Error('Product is already discontinued');
@@ -285,6 +319,7 @@ export class Product extends AggregateRoot {
     this.props.availableForRetail = false;
     this.props.availableForWholesale = false;
     this.props.updatedAt = new Date();
+    this.props.updatedBy = performedBy;
 
     // Raise domain event
     this.addDomainEvent(new ProductDiscontinued(this.props.id, reason));
@@ -307,6 +342,11 @@ export class Product extends AggregateRoot {
 
     // Update availability flags based on status
     switch (newStatus) {
+      case 'active':
+        // Active products are available for both retail and wholesale
+        this.props.availableForRetail = true;
+        this.props.availableForWholesale = true;
+        break;
       case 'online sales':
         this.props.availableForRetail = true;
         this.props.availableForWholesale = false; // Will be shown on wholesale if above threshold
@@ -361,10 +401,10 @@ export class Product extends AggregateRoot {
 
     // Check availability based on sales channel
     if (type === 'retail') {
-      return this.props.status === 'online sales' || this.props.status === 'omnichannel sales';
+      return this.props.status === 'active' || this.props.status === 'online sales' || this.props.status === 'omnichannel sales';
     } else {
       // Wholesale
-      return this.props.status === 'offline sales' || this.props.status === 'omnichannel sales';
+      return this.props.status === 'active' || this.props.status === 'offline sales' || this.props.status === 'omnichannel sales';
     }
   }
 
@@ -372,14 +412,14 @@ export class Product extends AggregateRoot {
    * Business Query: Check if product is available online
    */
   public isAvailableOnline(): boolean {
-    return this.props.status === 'online sales' || this.props.status === 'omnichannel sales';
+    return this.props.status === 'active' || this.props.status === 'online sales' || this.props.status === 'omnichannel sales';
   }
 
   /**
    * Business Query: Check if product is available offline
    */
   public isAvailableOffline(): boolean {
-    return this.props.status === 'offline sales' || this.props.status === 'omnichannel sales';
+    return this.props.status === 'active' || this.props.status === 'offline sales' || this.props.status === 'omnichannel sales';
   }
 
   // Getters
@@ -393,6 +433,20 @@ export class Product extends AggregateRoot {
   public getBarcode(): string { return this.props.barcode; }
   public getCategoryId(): string | undefined { return this.props.categoryId; }
   public getMinimumStock(): number | undefined { return this.props.minimumStock; }
+
+  // Property getters for direct access (used by tests and external code)
+  get name(): string { return this.props.name; }
+  get barcode(): string { return this.props.barcode; }
+  get baseUnit(): string { return this.props.baseUnit; }
+  get price(): Money { return this.props.price; }
+  get retailPrice(): Money { return this.props.retailPrice; }
+  get wholesalePrice(): Money { return this.props.wholesalePrice; }
+  get stock(): Stock { return this.props.stock; }
+  get physicalAttributes(): PhysicalAttributes | undefined { return this.props.physicalAttributes; }
+  get status(): ProductStatus { return this.props.status; }
+  get availableForRetail(): boolean { return this.props.availableForRetail; }
+  get availableForWholesale(): boolean { return this.props.availableForWholesale; }
+  get updatedBy(): string | undefined { return this.props.updatedBy; }
 
   /**
    * Get physical attributes (weight and dimensions)
