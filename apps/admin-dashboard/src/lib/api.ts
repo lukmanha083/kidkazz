@@ -651,6 +651,7 @@ export interface UOM {
   name: string;
   conversionFactor: number;
   isBaseUnit: boolean;
+  baseUnitCode?: string; // For custom UOMs, references the base unit they're bound to
   createdAt: Date;
 }
 
@@ -659,6 +660,7 @@ export interface CreateUOMInput {
   name: string;
   conversionFactor: number;
   isBaseUnit?: boolean;
+  baseUnitCode?: string; // Required when isBaseUnit is false
 }
 
 export interface CreateProductUOMInput {

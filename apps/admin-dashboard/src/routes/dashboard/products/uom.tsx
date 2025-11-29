@@ -70,6 +70,7 @@ function UOMPage() {
     name: '',
     conversionFactor: '',
     isBaseUnit: false,
+    baseUnitCode: '',
   });
 
   // Delete confirmation states
@@ -168,6 +169,7 @@ function UOMPage() {
       name: '',
       conversionFactor: '',
       isBaseUnit: false,
+      baseUnitCode: '',
     });
     setFormDrawerOpen(true);
   };
@@ -183,12 +185,21 @@ function UOMPage() {
       return;
     }
 
+    // Validate base unit selection for custom UOMs
+    if (!formData.isBaseUnit && !formData.baseUnitCode) {
+      toast.error('Base unit required', {
+        description: 'Please select which base unit this custom UOM is bound to'
+      });
+      return;
+    }
+
     if (formMode === 'add') {
       const uomData: CreateUOMInput = {
         code: formData.code.toUpperCase(),
         name: formData.name,
         conversionFactor: conversionFactor,
         isBaseUnit: formData.isBaseUnit,
+        baseUnitCode: formData.isBaseUnit ? undefined : formData.baseUnitCode,
       };
       createUOMMutation.mutate(uomData);
     }
@@ -477,18 +488,29 @@ function UOMPage() {
                 </div>
 
                 {!selectedUOM.isBaseUnit && (
-                  <div className="rounded-md bg-muted p-3">
-                    <p className="text-sm font-medium mb-2">Conversion Formula</p>
-                    <p className="text-sm">
-                      1 {selectedUOM.code} = {selectedUOM.conversionFactor} base units
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Example: 5 {selectedUOM.code} = {5 * selectedUOM.conversionFactor} base units
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-2 italic">
-                      Note: Base unit (PCS, KG, L, etc.) depends on the product
-                    </p>
-                  </div>
+                  <>
+                    {selectedUOM.baseUnitCode && (
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Bound to Base Unit</Label>
+                        <p className="text-sm font-medium mt-1">{selectedUOM.baseUnitCode}</p>
+                      </div>
+                    )}
+
+                    <div className="rounded-md bg-muted p-3">
+                      <p className="text-sm font-medium mb-2">Conversion Formula</p>
+                      <p className="text-sm">
+                        1 {selectedUOM.code} = {selectedUOM.conversionFactor} {selectedUOM.baseUnitCode || 'base units'}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Example: 5 {selectedUOM.code} = {5 * selectedUOM.conversionFactor} {selectedUOM.baseUnitCode || 'base units'}
+                      </p>
+                      {selectedUOM.baseUnitCode && (
+                        <p className="text-xs text-muted-foreground mt-2 italic">
+                          This custom UOM is bound to {selectedUOM.baseUnitCode} base unit
+                        </p>
+                      )}
+                    </div>
+                  </>
                 )}
 
                 <Separator />
@@ -593,7 +615,8 @@ function UOMPage() {
                   setFormData({
                     ...formData,
                     isBaseUnit: isBase,
-                    conversionFactor: isBase ? '1' : formData.conversionFactor
+                    conversionFactor: isBase ? '1' : formData.conversionFactor,
+                    baseUnitCode: isBase ? '' : formData.baseUnitCode
                   });
                 }}
                 className="h-4 w-4 rounded border-gray-300"
@@ -606,17 +629,43 @@ function UOMPage() {
               Check this if creating a new base unit (conversion factor will be set to 1)
             </p>
 
-            {formData.conversionFactor && parseFloat(formData.conversionFactor) > 0 && !formData.isBaseUnit && (
+            {!formData.isBaseUnit && (
+              <>
+                <Separator />
+                <div className="space-y-2">
+                  <Label htmlFor="baseUnitCode">Bound to Base Unit *</Label>
+                  <select
+                    id="baseUnitCode"
+                    value={formData.baseUnitCode}
+                    onChange={(e) => setFormData({ ...formData, baseUnitCode: e.target.value })}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                    required
+                  >
+                    <option value="">Select base unit...</option>
+                    {uoms.filter(uom => uom.isBaseUnit).map(baseUom => (
+                      <option key={baseUom.id} value={baseUom.code}>
+                        {baseUom.code} - {baseUom.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-muted-foreground">
+                    Select which base unit this custom UOM is bound to (e.g., PCS, KG, L, etc.)
+                  </p>
+                </div>
+              </>
+            )}
+
+            {formData.conversionFactor && parseFloat(formData.conversionFactor) > 0 && !formData.isBaseUnit && formData.baseUnitCode && (
               <div className="rounded-md bg-muted p-3">
                 <p className="text-sm font-medium mb-2">Conversion Preview</p>
                 <p className="text-sm">
-                  1 {formData.code || 'UNIT'} = {formData.conversionFactor} base units
+                  1 {formData.code || 'UNIT'} = {formData.conversionFactor} {formData.baseUnitCode}
                 </p>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Example: 5 {formData.code || 'UNIT'} = {parseFloat(formData.conversionFactor) * 5} base units
+                  Example: 5 {formData.code || 'UNIT'} = {parseFloat(formData.conversionFactor) * 5} {formData.baseUnitCode}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1 italic">
-                  Base unit (PCS, KG, L, etc.) is determined by the product
+                  This custom UOM is bound to {formData.baseUnitCode} base unit
                 </p>
               </div>
             )}

@@ -101,6 +101,7 @@ function UOMConversionPage() {
   const [inventory, setInventory] = useState<ProductInventory[]>([]);
   const [conversions, setConversions] = useState<ConversionHistory[]>([]);
   const [uomLocationsByWarehouse, setUomLocationsByWarehouse] = useState<Record<string, any>>({});
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Load product details with UOMs
   useEffect(() => {
@@ -432,17 +433,17 @@ function UOMConversionPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Stock (PCS)</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Stock (Base Units)</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {inventory.reduce((sum, p) => {
-                const warehousePCS = p.productUOMs.reduce((total, uom) => {
+                const warehouseBaseUnits = p.productUOMs.reduce((total, uom) => {
                   const warehouseStock = uomLocationsByWarehouse[uom.id] || 0;
                   return total + (warehouseStock * uom.conversionFactor);
                 }, 0);
-                return sum + warehousePCS;
+                return sum + warehouseBaseUnits;
               }, 0)}
             </div>
             <p className="text-xs text-muted-foreground">At this warehouse</p>
@@ -457,13 +458,13 @@ function UOMConversionPage() {
           <CardContent>
             <div className="text-2xl font-bold">
               {inventory.filter(p => {
-                const pcsUOM = p.productUOMs.find(u => u.uomCode === 'PCS');
-                if (!pcsUOM) return false;
-                const pcsWarehouseStock = uomLocationsByWarehouse[pcsUOM.id] || 0;
-                return pcsWarehouseStock < 10;
+                const baseUOM = p.productUOMs.find(u => u.uomCode === p.baseUnit);
+                if (!baseUOM) return false;
+                const baseWarehouseStock = uomLocationsByWarehouse[baseUOM.id] || 0;
+                return baseWarehouseStock < 10;
               }).length}
             </div>
-            <p className="text-xs text-muted-foreground">PCS below 10 units</p>
+            <p className="text-xs text-muted-foreground">Base unit below 10</p>
           </CardContent>
         </Card>
 
@@ -482,10 +483,23 @@ function UOMConversionPage() {
       {/* Product Inventory Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Product Inventory</CardTitle>
-          <CardDescription>
-            View stock by UOM and convert larger units to PCS when needed
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Product Inventory</CardTitle>
+              <CardDescription>
+                View stock by UOM and convert larger units to base unit when needed
+              </CardDescription>
+            </div>
+            <div className="relative w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by product name or barcode..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 h-9"
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">
@@ -495,27 +509,46 @@ function UOMConversionPage() {
                   <TableHead>Product</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>UOM Breakdown</TableHead>
-                  <TableHead className="text-right">Total (PCS)</TableHead>
+                  <TableHead className="text-right">Total (Base Unit)</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {inventory.map(product => {
+                {inventory
+                  .filter(product => {
+                    // Filter by search term (name or barcode)
+                    const matchesSearch = searchTerm === '' ||
+                      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      product.barcode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      product.sku.toLowerCase().includes(searchTerm.toLowerCase());
+
+                    if (!matchesSearch) return false;
+
+                    // Calculate total stock for this product at the warehouse
+                    const warehouseTotalStock = product.productUOMs.reduce((total, uom) => {
+                      const warehouseStock = uomLocationsByWarehouse[uom.id] || 0;
+                      return total + (warehouseStock * uom.conversionFactor);
+                    }, 0);
+
+                    // Only show products with stock > 0
+                    return warehouseTotalStock > 0;
+                  })
+                  .map(product => {
                   // Calculate warehouse-specific stock for each UOM
                   const warehouseUOMs = product.productUOMs.map(uom => ({
                     ...uom,
                     warehouseStock: uomLocationsByWarehouse[uom.id] || 0,
                   }));
 
-                  const pcsUOM = warehouseUOMs.find(u => u.uomCode === 'PCS');
-                  const pcsWarehouseStock = pcsUOM?.warehouseStock || 0;
+                  const baseUOM = warehouseUOMs.find(u => u.uomCode === product.baseUnit);
+                  const baseWarehouseStock = baseUOM?.warehouseStock || 0;
 
-                  // Calculate total PCS from warehouse-specific stock
-                  const warehouseTotalPCS = warehouseUOMs.reduce((total, uom) => {
+                  // Calculate total base units from warehouse-specific stock
+                  const warehouseTotalBaseUnits = warehouseUOMs.reduce((total, uom) => {
                     return total + (uom.warehouseStock * uom.conversionFactor);
                   }, 0);
 
-                  const isLowStock = pcsWarehouseStock < 10;
+                  const isLowStock = baseWarehouseStock < 10;
 
                   return (
                     <TableRow key={product.id}>
@@ -548,7 +581,7 @@ function UOMConversionPage() {
                                   <div className="text-right">
                                     <span
                                       className={`font-semibold ${
-                                        uom.uomCode === 'PCS' && warehouseStock < 10
+                                        uom.uomCode === product.baseUnit && warehouseStock < 10
                                           ? 'text-destructive'
                                           : ''
                                       }`}
@@ -557,7 +590,7 @@ function UOMConversionPage() {
                                     </span>
                                     <p className="text-xs text-muted-foreground">at warehouse</p>
                                   </div>
-                                  {uom.uomCode !== 'PCS' && warehouseStock > 0 && (
+                                  {uom.uomCode !== product.baseUnit && warehouseStock > 0 && (
                                     <Button
                                       size="sm"
                                       variant="outline"
@@ -575,7 +608,7 @@ function UOMConversionPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className={`text-lg font-bold ${isLowStock ? 'text-destructive' : ''}`}>
-                          {warehouseTotalPCS} PCS
+                          {warehouseTotalBaseUnits} {product.baseUnit}
                         </div>
                         <p className="text-xs text-muted-foreground">at this warehouse</p>
                         {isLowStock && (
@@ -583,7 +616,7 @@ function UOMConversionPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        {isLowStock && warehouseUOMs.some(u => u.uomCode !== 'PCS' && u.warehouseStock > 0) && (
+                        {isLowStock && warehouseUOMs.some(u => u.uomCode !== product.baseUnit && u.warehouseStock > 0) && (
                           <Badge variant="destructive" className="animate-pulse">
                             Convert Available
                           </Badge>
@@ -603,9 +636,9 @@ function UOMConversionPage() {
         <DrawerContent>
           <form onSubmit={handleConversionSubmit}>
             <DrawerHeader>
-              <DrawerTitle>Convert UOM to PCS</DrawerTitle>
+              <DrawerTitle>Convert UOM to {selectedProduct?.baseUnit || 'Base Unit'}</DrawerTitle>
               <DrawerDescription>
-                Break down larger units into pieces for retail sale
+                Break down larger units into base units for retail sale
               </DrawerDescription>
             </DrawerHeader>
 
@@ -710,7 +743,7 @@ function UOMConversionPage() {
             <DrawerFooter>
               <Button type="submit" className="w-full">
                 <ArrowRightLeft className="h-4 w-4 mr-2" />
-                Convert to PCS
+                Convert to {selectedProduct?.baseUnit || 'Base Unit'}
               </Button>
               <DrawerClose asChild>
                 <Button type="button" variant="outline" className="w-full">
@@ -751,7 +784,7 @@ function UOMConversionPage() {
                         <p className="text-sm text-muted-foreground">SKU: {conversion.productSKU}</p>
                       </div>
                       <Badge variant="outline">
-                        {conversion.fromUOM} → {conversion.toQuantity} PCS
+                        {conversion.fromUOM} → {conversion.toQuantity} Base Units
                       </Badge>
                     </div>
                     <Separator className="my-2" />
