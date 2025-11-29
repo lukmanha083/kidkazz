@@ -35,7 +35,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Warehouse, MapPin, Package, ArrowRightLeft, History, AlertTriangle, Loader2 } from 'lucide-react';
+import { Warehouse, MapPin, Package, ArrowRightLeft, History, AlertTriangle, Loader2, Search } from 'lucide-react';
 import { warehouseApi, productApi, uomApi, productUOMLocationApi } from '@/lib/api';
 
 export const Route = createFileRoute('/dashboard/inventory/uom-conversion')({
