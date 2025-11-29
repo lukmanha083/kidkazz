@@ -18,6 +18,7 @@ const createUOMSchema = z.object({
   name: z.string(),
   conversionFactor: z.number(),
   isBaseUnit: z.boolean().default(false),
+  baseUnitCode: z.string().optional(), // For custom UOMs, references the base unit
 });
 
 const createProductUOMSchema = z.object({

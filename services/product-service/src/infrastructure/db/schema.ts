@@ -30,6 +30,7 @@ export const uoms = sqliteTable('uoms', {
   name: text('name').notNull(), // e.g., 'Pieces', 'Box of 6', 'Carton (18 PCS)'
   conversionFactor: integer('conversion_factor').notNull(), // How many base units this contains
   isBaseUnit: integer('is_base_unit', { mode: 'boolean' }).default(false),
+  baseUnitCode: text('base_unit_code'), // For custom UOMs, references the base unit code (e.g., 'PCS', 'KG', 'L')
 
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });
