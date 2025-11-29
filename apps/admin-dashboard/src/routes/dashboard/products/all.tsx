@@ -885,9 +885,10 @@ function AllProductsPage() {
       return;
     }
 
-    // Auto-create PCS UOM if not added manually
+    // Auto-create base unit UOM if not added manually
     let finalProductUOMs = [...productUOMs];
-    if (!finalProductUOMs.some(u => u.uomCode === 'PCS')) {
+    const selectedBaseUnitCode = formData.baseUnit || 'PCS';
+    if (!finalProductUOMs.some(u => u.uomCode === selectedBaseUnitCode)) {
       const hasDefault = finalProductUOMs.some(u => u.isDefault);
 
       // Calculate allocated stock from other UOMs
@@ -895,15 +896,19 @@ function AllProductsPage() {
         return total + (uom.stock * uom.conversionFactor);
       }, 0);
 
-      // Calculate remaining stock for PCS UOM
+      // Calculate remaining stock for base unit UOM
       const totalStock = parseInt(formData.stock) || 0;
       const remainingStock = totalStock - allocatedStock;
 
-      const pcsUOM: ProductUOM = {
-        id: `uom-pcs-${Date.now()}`,
+      // Find the base unit details from available UOMs
+      const baseUnitInfo = availableUOMs.find(u => u.code === selectedBaseUnitCode);
+      const baseUnitName = baseUnitInfo?.name || 'Pieces';
+
+      const baseUOM: ProductUOM = {
+        id: `uom-${selectedBaseUnitCode.toLowerCase()}-${Date.now()}`,
         productId: selectedProduct?.id || '',
-        uomCode: 'PCS',
-        uomName: 'Pieces',
+        uomCode: selectedBaseUnitCode,
+        uomName: baseUnitName,
         barcode: formData.barcode,
         conversionFactor: 1,
         stock: remainingStock, // Use remaining stock, not total stock
@@ -912,11 +917,11 @@ function AllProductsPage() {
         updatedAt: new Date(),
       };
 
-      if (pcsUOM.isDefault) {
+      if (baseUOM.isDefault) {
         finalProductUOMs = finalProductUOMs.map(u => ({ ...u, isDefault: false }));
       }
 
-      finalProductUOMs = [pcsUOM, ...finalProductUOMs];
+      finalProductUOMs = [baseUOM, ...finalProductUOMs];
     }
 
     if (!finalProductUOMs.some(u => u.isDefault) && finalProductUOMs.length > 0) {
@@ -2535,7 +2540,7 @@ function AllProductsPage() {
                       className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
                     >
                       <option value="">Select UOM...</option>
-                      {availableUOMs.filter(u => u.code !== 'PCS' && !u.isBaseUnit).map(uom => (
+                      {availableUOMs.filter(u => !u.isBaseUnit && u.baseUnitCode === (formData.baseUnit || 'PCS')).map(uom => (
                         <option key={uom.id} value={uom.code}>
                           {uom.name} (1 = {uom.conversionFactor} {formData.baseUnit || 'PCS'})
                         </option>
