@@ -3,11 +3,12 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { drizzle } from 'drizzle-orm/d1';
 import { eq, and } from 'drizzle-orm';
-import { productLocations } from '../../db/schema';
+import { productLocations, products } from '../../db/schema';
 import { generateId } from '../../../shared/utils/helpers';
 
 type Bindings = {
   DB: D1Database;
+  INVENTORY_SERVICE: Fetcher;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -154,6 +155,78 @@ app.post('/', zValidator('json', createLocationSchema), async (c) => {
     .where(eq(productLocations.id, newLocation.id))
     .get();
 
+  // DDD FIX: Create/update inventory record in Inventory Service
+  // This ensures inventory tracking is synchronized with product locations
+  try {
+    // Get product details for minimumStock
+    const product = await db
+      .select()
+      .from(products)
+      .where(eq(products.id, data.productId))
+      .get();
+
+    // Check if inventory record already exists
+    const inventoryCheckResponse = await c.env.INVENTORY_SERVICE.fetch(
+      new Request(`http://inventory-service/api/inventory/${data.productId}/${data.warehouseId}`)
+    );
+
+    if (inventoryCheckResponse.status === 404) {
+      // Inventory record doesn't exist, create it via adjust endpoint
+      const adjustResponse = await c.env.INVENTORY_SERVICE.fetch(
+        new Request('http://inventory-service/api/inventory/adjust', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            productId: data.productId,
+            warehouseId: data.warehouseId,
+            quantity: data.quantity,
+            movementType: 'adjustment',
+            reason: 'Product location created',
+            notes: `Initial stock from product location creation`,
+          }),
+        })
+      );
+
+      if (adjustResponse.ok) {
+        const invData = await adjustResponse.json();
+        const inventoryId = invData.inventory?.id;
+
+        // Set minimumStock if product has it defined
+        if (inventoryId && product?.minimumStock) {
+          await c.env.INVENTORY_SERVICE.fetch(
+            new Request(`http://inventory-service/api/inventory/${inventoryId}/minimum-stock`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ minimumStock: product.minimumStock }),
+            })
+          );
+        }
+        console.log(`✅ Created inventory record for product ${data.productId} at warehouse ${data.warehouseId}`);
+      }
+    } else if (inventoryCheckResponse.ok) {
+      // Inventory exists, update the quantity
+      await c.env.INVENTORY_SERVICE.fetch(
+        new Request('http://inventory-service/api/inventory/adjust', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            productId: data.productId,
+            warehouseId: data.warehouseId,
+            quantity: data.quantity,
+            movementType: 'adjustment',
+            reason: 'Product location updated',
+            notes: `Stock adjusted from product location update`,
+          }),
+        })
+      );
+      console.log(`✅ Updated inventory record for product ${data.productId} at warehouse ${data.warehouseId}`);
+    }
+  } catch (invError) {
+    console.error('❌ Failed to create/update inventory record:', invError);
+    // Don't fail the entire request if inventory sync fails
+    // The product location was still created successfully
+  }
+
   return c.json(created, 201);
 });
 
@@ -189,6 +262,29 @@ app.put('/:id', zValidator('json', updateLocationSchema), async (c) => {
     .from(productLocations)
     .where(eq(productLocations.id, id))
     .get();
+
+  // DDD FIX: Sync inventory if quantity changed
+  if (data.quantity !== undefined && updated) {
+    try {
+      await c.env.INVENTORY_SERVICE.fetch(
+        new Request('http://inventory-service/api/inventory/adjust', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            productId: updated.productId,
+            warehouseId: updated.warehouseId,
+            quantity: data.quantity,
+            movementType: 'adjustment',
+            reason: 'Product location quantity updated',
+            notes: `Quantity adjusted from product location update`,
+          }),
+        })
+      );
+      console.log(`✅ Synced inventory for product ${updated.productId} at warehouse ${updated.warehouseId}`);
+    } catch (invError) {
+      console.error('❌ Failed to sync inventory on location update:', invError);
+    }
+  }
 
   return c.json(updated);
 });

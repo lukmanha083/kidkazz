@@ -49,6 +49,13 @@
 			"id": "dcafd474ff6a40c0a5f53e865b08a22c"
 		}
 	],
+	// Service binding to Inventory Service
+	"services": [
+		{
+			"binding": "INVENTORY_SERVICE",
+			"service": "inventory-service"
+		}
+	],
 	// Environment variables (optional)
 	// Uncomment and set to enable Cloudflare Stream for optimized video delivery
 	// "vars": {
