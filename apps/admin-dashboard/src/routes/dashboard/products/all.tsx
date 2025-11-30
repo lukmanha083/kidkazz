@@ -953,6 +953,15 @@ function AllProductsPage() {
       alertDate: formData.alertDate || undefined,
     };
 
+    // DDD VALIDATION: Products with expiration dates require warehouse allocation
+    // This ensures expiration tracking works correctly in Inventory Service
+    if (formData.expirationDate && warehouseAllocations.length === 0) {
+      toast.error('Expiration date requires warehouse allocation', {
+        description: 'Products with expiration dates must be allocated to at least one warehouse for inventory tracking'
+      });
+      return;
+    }
+
     if (formMode === 'add') {
       try {
         // Create product first
