@@ -10,6 +10,7 @@ type Bindings = {
   DB: D1Database;
   INVENTORY_EVENTS_QUEUE: Queue;
   INVENTORY_UPDATES: DurableObjectNamespace;
+  PRODUCT_SERVICE: Fetcher;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -260,6 +261,177 @@ app.get('/:productId/:warehouseId', async (c) => {
   }
 
   return c.json(inventoryRecord);
+});
+
+// POST /api/inventory/admin/sync-minimum-stock - Admin endpoint to sync minimumStock from Product Service
+app.post('/admin/sync-minimum-stock', async (c) => {
+  const db = drizzle(c.env.DB);
+
+  interface ProductResponse {
+    id: string;
+    name: string;
+    sku: string;
+    minimumStock: number | null;
+  }
+
+  interface MigrationResult {
+    success: boolean;
+    totalInventoryRecords: number;
+    updatedRecords: number;
+    skippedRecords: number;
+    errorRecords: number;
+    errors: Array<{ inventoryId: string; error: string }>;
+    details: Array<{
+      inventoryId: string;
+      productId: string;
+      warehouseId: string;
+      oldMinimumStock: number | null;
+      newMinimumStock: number | null;
+      status: 'updated' | 'skipped' | 'error';
+    }>;
+  }
+
+  const result: MigrationResult = {
+    success: false,
+    totalInventoryRecords: 0,
+    updatedRecords: 0,
+    skippedRecords: 0,
+    errorRecords: 0,
+    errors: [],
+    details: [],
+  };
+
+  try {
+    console.log('Starting minimumStock migration...');
+
+    // Get all inventory records
+    const inventoryRecords = await db.select().from(inventory).all();
+    result.totalInventoryRecords = inventoryRecords.length;
+    console.log(`Found ${result.totalInventoryRecords} inventory records`);
+
+    if (inventoryRecords.length === 0) {
+      console.log('No inventory records to migrate');
+      result.success = true;
+      return c.json(result);
+    }
+
+    // Process each inventory record
+    for (const inv of inventoryRecords) {
+      try {
+        // Fetch product details from Product Service
+        const productResponse = await c.env.PRODUCT_SERVICE.fetch(
+          new Request(`http://product-service/api/products/${inv.productId}`)
+        );
+
+        if (!productResponse.ok) {
+          console.error(`Failed to fetch product ${inv.productId}: ${productResponse.status}`);
+          result.errorRecords++;
+          result.errors.push({
+            inventoryId: inv.id,
+            error: `Product not found or service error: ${productResponse.status}`,
+          });
+          result.details.push({
+            inventoryId: inv.id,
+            productId: inv.productId,
+            warehouseId: inv.warehouseId,
+            oldMinimumStock: inv.minimumStock,
+            newMinimumStock: null,
+            status: 'error',
+          });
+          continue;
+        }
+
+        const product = (await productResponse.json()) as ProductResponse;
+
+        // Check if minimumStock needs updating
+        if (product.minimumStock === null || product.minimumStock === undefined) {
+          console.log(
+            `Skipping inventory ${inv.id}: Product ${product.sku} has no minimumStock set`
+          );
+          result.skippedRecords++;
+          result.details.push({
+            inventoryId: inv.id,
+            productId: inv.productId,
+            warehouseId: inv.warehouseId,
+            oldMinimumStock: inv.minimumStock,
+            newMinimumStock: null,
+            status: 'skipped',
+          });
+          continue;
+        }
+
+        // Only update if different
+        if (inv.minimumStock === product.minimumStock) {
+          console.log(
+            `Skipping inventory ${inv.id}: Already has correct minimumStock (${product.minimumStock})`
+          );
+          result.skippedRecords++;
+          result.details.push({
+            inventoryId: inv.id,
+            productId: inv.productId,
+            warehouseId: inv.warehouseId,
+            oldMinimumStock: inv.minimumStock,
+            newMinimumStock: product.minimumStock,
+            status: 'skipped',
+          });
+          continue;
+        }
+
+        // Update inventory record
+        await db
+          .update(inventory)
+          .set({ minimumStock: product.minimumStock, updatedAt: new Date() })
+          .where(eq(inventory.id, inv.id))
+          .run();
+
+        console.log(
+          `✅ Updated inventory ${inv.id} (Product: ${product.sku}): minimumStock ${inv.minimumStock} → ${product.minimumStock}`
+        );
+
+        result.updatedRecords++;
+        result.details.push({
+          inventoryId: inv.id,
+          productId: inv.productId,
+          warehouseId: inv.warehouseId,
+          oldMinimumStock: inv.minimumStock,
+          newMinimumStock: product.minimumStock,
+          status: 'updated',
+        });
+      } catch (error) {
+        console.error(`Error processing inventory ${inv.id}:`, error);
+        result.errorRecords++;
+        result.errors.push({
+          inventoryId: inv.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        result.details.push({
+          inventoryId: inv.id,
+          productId: inv.productId,
+          warehouseId: inv.warehouseId,
+          oldMinimumStock: inv.minimumStock,
+          newMinimumStock: null,
+          status: 'error',
+        });
+      }
+    }
+
+    result.success = result.errorRecords === 0;
+    console.log('\n=== Migration Complete ===');
+    console.log(`Total records: ${result.totalInventoryRecords}`);
+    console.log(`✅ Updated: ${result.updatedRecords}`);
+    console.log(`⏭️  Skipped: ${result.skippedRecords}`);
+    console.log(`❌ Errors: ${result.errorRecords}`);
+
+    return c.json(result);
+  } catch (error) {
+    console.error('Migration failed:', error);
+    result.success = false;
+    result.errors.push({
+      inventoryId: 'GLOBAL',
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return c.json(result, 500);
+  }
 });
 
 export default app;
