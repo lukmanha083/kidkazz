@@ -1024,6 +1024,26 @@ function AllProductsPage() {
                 aisle: allocation.aisle || null,
                 quantity: allocation.quantity,
               });
+
+              // Set minimum stock for the inventory record
+              // This ensures Low Stock Report works correctly
+              if (formData.minimumStock) {
+                try {
+                  const inventoryRecord = await inventoryApi.getByProductAndWarehouse(
+                    createdProduct.id,
+                    allocation.warehouseId
+                  );
+                  if (inventoryRecord && inventoryRecord.id) {
+                    await inventoryApi.setMinimumStock(
+                      inventoryRecord.id,
+                      parseInt(formData.minimumStock)
+                    );
+                  }
+                } catch (invError) {
+                  console.error('Failed to set inventory minimum stock:', invError);
+                  // Don't fail the whole operation, just log it
+                }
+              }
             }
           } catch (locationError) {
             console.error('Failed to create product locations:', locationError);
@@ -1173,6 +1193,26 @@ function AllProductsPage() {
                 aisle: allocation.aisle || null,
                 quantity: allocation.quantity,
               });
+            }
+
+            // Update minimum stock for the inventory record (both new and existing allocations)
+            // This ensures Low Stock Report works correctly
+            if (formData.minimumStock) {
+              try {
+                const inventoryRecord = await inventoryApi.getByProductAndWarehouse(
+                  selectedProduct.id,
+                  allocation.warehouseId
+                );
+                if (inventoryRecord && inventoryRecord.id) {
+                  await inventoryApi.setMinimumStock(
+                    inventoryRecord.id,
+                    parseInt(formData.minimumStock)
+                  );
+                }
+              } catch (invError) {
+                console.error('Failed to set inventory minimum stock:', invError);
+                // Don't fail the whole operation, just log it
+              }
             }
           }
 
