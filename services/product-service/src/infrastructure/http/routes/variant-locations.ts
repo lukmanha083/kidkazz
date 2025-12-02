@@ -3,11 +3,12 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { drizzle } from 'drizzle-orm/d1';
 import { eq, and } from 'drizzle-orm';
-import { variantLocations } from '../../db/schema';
+import { variantLocations, productVariants, products } from '../../db/schema';
 import { generateId } from '../../../shared/utils/helpers';
 
 type Bindings = {
   DB: D1Database;
+  INVENTORY_SERVICE: Fetcher;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -154,6 +155,87 @@ app.post('/', zValidator('json', createLocationSchema), async (c) => {
     .where(eq(variantLocations.id, newLocation.id))
     .get();
 
+  // DDD FIX: Create/update inventory record for variant
+  // Variants track their own inventory separate from base product
+  try {
+    // Get variant details for productId and minimumStock
+    const variant = await db
+      .select()
+      .from(productVariants)
+      .where(eq(productVariants.id, data.variantId))
+      .get();
+
+    if (variant) {
+      // Get base product for minimumStock (variants inherit from base product)
+      const product = await db
+        .select()
+        .from(products)
+        .where(eq(products.id, variant.productId))
+        .get();
+
+      // Check if inventory record already exists for this variant
+      // Variants use productId as key, but we track them separately
+      const inventoryCheckResponse = await c.env.INVENTORY_SERVICE.fetch(
+        new Request(`http://inventory-service/api/inventory/${variant.productId}/${data.warehouseId}`)
+      );
+
+      if (inventoryCheckResponse.status === 404) {
+        // Inventory record doesn't exist, create it
+        const adjustResponse = await c.env.INVENTORY_SERVICE.fetch(
+          new Request('http://inventory-service/api/inventory/adjust', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              productId: variant.productId,
+              warehouseId: data.warehouseId,
+              quantity: data.quantity,
+              movementType: 'adjustment',
+              reason: 'Product variant location created',
+              notes: `Initial stock for variant ${variant.variantName} (${variant.variantType})`,
+            }),
+          })
+        );
+
+        if (adjustResponse.ok) {
+          const invData = await adjustResponse.json();
+          const inventoryId = invData.inventory?.id;
+
+          // Set minimumStock if base product has it defined
+          if (inventoryId && product?.minimumStock) {
+            await c.env.INVENTORY_SERVICE.fetch(
+              new Request(`http://inventory-service/api/inventory/${inventoryId}/minimum-stock`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ minimumStock: product.minimumStock }),
+              })
+            );
+          }
+          console.log(`✅ Created inventory record for variant ${variant.variantName} at warehouse ${data.warehouseId}`);
+        }
+      } else if (inventoryCheckResponse.ok) {
+        // Inventory exists, add to the existing quantity
+        await c.env.INVENTORY_SERVICE.fetch(
+          new Request('http://inventory-service/api/inventory/adjust', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              productId: variant.productId,
+              warehouseId: data.warehouseId,
+              quantity: data.quantity,
+              movementType: 'in',
+              reason: 'Product variant location added',
+              notes: `Stock added for variant ${variant.variantName} (${variant.variantType})`,
+            }),
+          })
+        );
+        console.log(`✅ Added ${data.quantity} units to inventory for variant ${variant.variantName} at warehouse ${data.warehouseId}`);
+      }
+    }
+  } catch (invError) {
+    console.error('❌ Failed to create/update inventory record from variant location:', invError);
+    // Don't fail the entire request if inventory sync fails
+  }
+
   return c.json(created, 201);
 });
 
@@ -190,6 +272,38 @@ app.put('/:id', zValidator('json', updateLocationSchema), async (c) => {
     .where(eq(variantLocations.id, id))
     .get();
 
+  // DDD FIX: Sync inventory if quantity changed
+  if (data.quantity !== undefined && updated) {
+    try {
+      // Get variant details
+      const variant = await db
+        .select()
+        .from(productVariants)
+        .where(eq(productVariants.id, updated.variantId))
+        .get();
+
+      if (variant) {
+        await c.env.INVENTORY_SERVICE.fetch(
+          new Request('http://inventory-service/api/inventory/adjust', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              productId: variant.productId,
+              warehouseId: updated.warehouseId,
+              quantity: data.quantity,
+              movementType: 'adjustment',
+              reason: 'Variant location quantity updated',
+              notes: `Quantity adjusted for variant ${variant.variantName}`,
+            }),
+          })
+        );
+        console.log(`✅ Synced inventory for variant ${variant.variantName} at warehouse ${updated.warehouseId}`);
+      }
+    } catch (invError) {
+      console.error('❌ Failed to sync inventory on variant location update:', invError);
+    }
+  }
+
   return c.json(updated);
 });
 
@@ -217,6 +331,36 @@ app.patch('/:id/quantity', zValidator('json', z.object({ quantity: z.number().in
     })
     .where(eq(variantLocations.id, id))
     .run();
+
+  // DDD FIX: Sync inventory when quantity changes
+  try {
+    // Get variant details
+    const variant = await db
+      .select()
+      .from(productVariants)
+      .where(eq(productVariants.id, existingLocation.variantId))
+      .get();
+
+    if (variant) {
+      await c.env.INVENTORY_SERVICE.fetch(
+        new Request('http://inventory-service/api/inventory/adjust', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            productId: variant.productId,
+            warehouseId: existingLocation.warehouseId,
+            quantity: quantity,
+            movementType: 'adjustment',
+            reason: 'Variant location quantity patched',
+            notes: `Quantity patched for variant ${variant.variantName} (${variant.variantType})`,
+          }),
+        })
+      );
+      console.log(`✅ Synced inventory for variant ${variant.variantName} via PATCH`);
+    }
+  } catch (invError) {
+    console.error('❌ Failed to sync inventory on variant quantity patch:', invError);
+  }
 
   return c.json({ message: 'Quantity updated successfully' });
 });

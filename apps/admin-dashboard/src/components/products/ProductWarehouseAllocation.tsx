@@ -27,6 +27,8 @@ export interface WarehouseAllocation {
   warehouseId: string;
   warehouseName?: string;
   quantity: number;
+  // DEPRECATED: Use productUOMLocations for detailed rack/bin/zone/aisle tracking
+  // These fields are kept for backward compatibility but hidden in UI
   rack?: string;
   bin?: string;
   zone?: string;
@@ -53,10 +55,7 @@ export function ProductWarehouseAllocation({
   const [formData, setFormData] = useState<WarehouseAllocation>({
     warehouseId: '',
     quantity: 0,
-    rack: '',
-    bin: '',
-    zone: '',
-    aisle: '',
+    // Location fields removed - use UOM locations for detailed tracking
   });
 
   const warehouseOptions = warehouses.map(w => ({
@@ -72,10 +71,6 @@ export function ProductWarehouseAllocation({
     setFormData({
       warehouseId: '',
       quantity: 0,
-      rack: '',
-      bin: '',
-      zone: '',
-      aisle: '',
     });
     setDialogOpen(true);
   };
@@ -207,10 +202,6 @@ export function ProductWarehouseAllocation({
               <TableRow>
                 <TableHead>Warehouse</TableHead>
                 <TableHead className="text-right">Quantity</TableHead>
-                <TableHead>Rack</TableHead>
-                <TableHead>Bin</TableHead>
-                <TableHead>Zone</TableHead>
-                <TableHead>Aisle</TableHead>
                 {!readOnly && <TableHead className="text-right">Actions</TableHead>}
               </TableRow>
             </TableHeader>
@@ -222,18 +213,6 @@ export function ProductWarehouseAllocation({
                   </TableCell>
                   <TableCell className="text-right font-semibold">
                     {allocation.quantity.toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {allocation.rack || '-'}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {allocation.bin || '-'}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {allocation.zone || '-'}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {allocation.aisle || '-'}
                   </TableCell>
                   {!readOnly && (
                     <TableCell className="text-right">
@@ -307,48 +286,9 @@ export function ProductWarehouseAllocation({
                 value={formData.quantity || ''}
                 onChange={(e) => setFormData({ ...formData, quantity: Number(e.target.value) })}
               />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="rack">Rack</Label>
-                <Input
-                  id="rack"
-                  placeholder="A1"
-                  value={formData.rack || ''}
-                  onChange={(e) => setFormData({ ...formData, rack: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="bin">Bin</Label>
-                <Input
-                  id="bin"
-                  placeholder="TOP"
-                  value={formData.bin || ''}
-                  onChange={(e) => setFormData({ ...formData, bin: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="zone">Zone</Label>
-                <Input
-                  id="zone"
-                  placeholder="Zone A"
-                  value={formData.zone || ''}
-                  onChange={(e) => setFormData({ ...formData, zone: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="aisle">Aisle</Label>
-                <Input
-                  id="aisle"
-                  placeholder="1"
-                  value={formData.aisle || ''}
-                  onChange={(e) => setFormData({ ...formData, aisle: e.target.value })}
-                />
-              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                💡 Use UOM Locations to assign detailed rack/bin/zone/aisle positions
+              </p>
             </div>
           </div>
 

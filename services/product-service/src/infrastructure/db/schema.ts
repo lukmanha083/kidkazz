@@ -55,8 +55,8 @@ export const products = sqliteTable('products', {
   retailPrice: real('retail_price'), // Retail price (nullable for wholesale-only)
   wholesalePrice: real('wholesale_price'), // Wholesale price
 
-  // Stock
-  stock: integer('stock').default(0).notNull(),
+  // Stock - REMOVED: Stock is now managed by Inventory Service (DDD Phase 2C)
+  // Deprecated: stock field removed - use Inventory Service API for stock data
   minimumStock: integer('minimum_stock'), // Minimum stock threshold for alert reports
 
   // Base unit
@@ -189,7 +189,8 @@ export const productBundles = sqliteTable('product_bundles', {
 
   // Availability
   status: text('status').default('active').notNull(), // 'active' | 'inactive'
-  availableStock: integer('available_stock').default(0).notNull(),
+  // REMOVED: availableStock field - bundles now use virtual stock calculation (DDD Phase 2C)
+  // Deprecated: Use GET /api/bundles/:id/available-stock API for virtual stock calculation
 
   // Audit fields
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),

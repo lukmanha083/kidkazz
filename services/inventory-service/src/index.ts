@@ -5,6 +5,7 @@ import { createTRPCHandler, createContextFactory } from '@kidkazz/trpc';
 import { appRouter } from './infrastructure/trpc';
 import warehousesRoutes from './routes/warehouses';
 import inventoryRoutes from './routes/inventory';
+import inventoryBatchesRoutes from './routes/inventory-batches';
 
 // Export Durable Objects
 export { InventoryUpdatesBroadcaster } from './durable-objects/InventoryUpdatesBroadcaster';
@@ -49,6 +50,7 @@ app.all('/trpc/*', async (c) => {
 // REST API routes (for backward compatibility with frontend)
 app.route('/api/warehouses', warehousesRoutes);
 app.route('/api/inventory', inventoryRoutes);
+app.route('/api/batches', inventoryBatchesRoutes); // Phase 3: Batch tracking
 
 // WebSocket endpoints for real-time updates
 app.get('/ws/inventory', async (c) => {

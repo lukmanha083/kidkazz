@@ -8,6 +8,7 @@ import { generateId } from '../../../shared/utils/helpers';
 
 type Bindings = {
   DB: D1Database;
+  INVENTORY_SERVICE: Fetcher;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -75,6 +76,139 @@ app.get('/:id', async (c) => {
   return c.json({
     bundle,
     items,
+  });
+});
+
+// GET /api/bundles/:id/available-stock - Calculate virtual bundle stock based on component availability
+app.get('/:id/available-stock', async (c) => {
+  const bundleId = c.req.param('id');
+  const warehouseId = c.req.query('warehouseId'); // Optional: calculate for specific warehouse
+  const db = drizzle(c.env.DB);
+
+  // Get bundle details
+  const bundle = await db
+    .select()
+    .from(productBundles)
+    .where(eq(productBundles.id, bundleId))
+    .get();
+
+  if (!bundle) {
+    return c.json({ error: 'Bundle not found' }, 404);
+  }
+
+  // Get bundle items (components)
+  const items = await db
+    .select()
+    .from(bundleItems)
+    .where(eq(bundleItems.bundleId, bundleId))
+    .all();
+
+  if (items.length === 0) {
+    return c.json({
+      bundleId,
+      bundleName: bundle.bundleName,
+      availableStock: 0,
+      limitingComponent: null,
+      componentAvailability: [],
+      message: 'Bundle has no components',
+    });
+  }
+
+  let minAvailableBundles = Infinity;
+  let limitingComponent: { productId: string; productName: string; available: number; required: number } | null = null;
+  const componentAvailability = [];
+
+  // Check availability of each component
+  for (const item of items) {
+    try {
+      // Query Inventory Service for component stock
+      const stockUrl = warehouseId
+        ? `http://inventory-service/api/inventory/${item.productId}/${warehouseId}`
+        : `http://inventory-service/api/inventory/product/${item.productId}/total-stock`;
+
+      const invResponse = await c.env.INVENTORY_SERVICE.fetch(new Request(stockUrl));
+
+      if (invResponse.ok) {
+        const invData = await invResponse.json();
+
+        // Extract available quantity based on response type
+        const availableQty = warehouseId
+          ? (invData.quantityAvailable || 0)
+          : (invData.totalAvailable || invData.totalStock || 0);
+
+        // Calculate how many bundles can be made from this component
+        const maxBundlesFromComponent = Math.floor(availableQty / item.quantity);
+
+        componentAvailability.push({
+          productId: item.productId,
+          productName: item.productName,
+          productSKU: item.productSKU,
+          requiredPerBundle: item.quantity,
+          availableStock: availableQty,
+          maxBundles: maxBundlesFromComponent,
+        });
+
+        // Track the limiting component (bottleneck)
+        if (maxBundlesFromComponent < minAvailableBundles) {
+          minAvailableBundles = maxBundlesFromComponent;
+          limitingComponent = {
+            productId: item.productId,
+            productName: item.productName,
+            available: availableQty,
+            required: item.quantity,
+          };
+        }
+      } else {
+        // Component not found in inventory
+        componentAvailability.push({
+          productId: item.productId,
+          productName: item.productName,
+          productSKU: item.productSKU,
+          requiredPerBundle: item.quantity,
+          availableStock: 0,
+          maxBundles: 0,
+        });
+
+        minAvailableBundles = 0;
+        if (!limitingComponent) {
+          limitingComponent = {
+            productId: item.productId,
+            productName: item.productName,
+            available: 0,
+            required: item.quantity,
+          };
+        }
+      }
+    } catch (error) {
+      console.error(`Failed to check inventory for component ${item.productId}:`, error);
+      componentAvailability.push({
+        productId: item.productId,
+        productName: item.productName,
+        productSKU: item.productSKU,
+        requiredPerBundle: item.quantity,
+        availableStock: 0,
+        maxBundles: 0,
+        error: 'Failed to fetch inventory',
+      });
+      minAvailableBundles = 0;
+    }
+  }
+
+  const availableStock = minAvailableBundles === Infinity ? 0 : minAvailableBundles;
+
+  return c.json({
+    bundleId,
+    bundleName: bundle.bundleName,
+    bundleSKU: bundle.bundleSKU,
+    warehouseId: warehouseId || 'all',
+    availableStock,
+    limitingComponent,
+    componentAvailability,
+    message: availableStock > 0
+      ? `${availableStock} bundles can be assembled`
+      : limitingComponent
+      ? `Limited by ${limitingComponent.productName} (need ${limitingComponent.required}, have ${limitingComponent.available})`
+      : 'Insufficient components',
   });
 });
 
