@@ -336,6 +336,34 @@ export interface Product {
   productLocations?: ProductLocation[];
 }
 
+// Phase 2 - DDD Compliant Stock Types
+export interface ProductStockResponse {
+  productId: string;
+  totalStock: number;
+  totalReserved: number;
+  totalAvailable: number;
+  warehouses: Array<{
+    warehouseId: string;
+    quantityAvailable: number;
+    quantityReserved: number;
+    minimumStock: number | null;
+    isLowStock: boolean;
+  }>;
+}
+
+export interface LowStockStatusResponse {
+  productId: string;
+  isLowStock: boolean;
+  totalStock: number;
+  lowStockWarehouses: Array<{
+    warehouseId: string;
+    currentStock: number;
+    minimumStock: number;
+    deficit: number;
+  }>;
+  message: string;
+}
+
 export interface CreateProductInput {
   barcode: string;
   name: string;
@@ -492,6 +520,29 @@ export const productApi = {
       method: 'POST',
     });
   },
+
+  // ============================================
+  // Phase 2: DDD-Compliant Stock Endpoints
+  // ============================================
+
+  /**
+   * Get product stock from Inventory Service (single source of truth)
+   * Aggregates stock across all warehouses
+   * @param id - Product ID
+   * @returns Total stock, reserved, available, and warehouse breakdown
+   */
+  getStock: async (id: string): Promise<ProductStockResponse> => {
+    return apiRequest(`/api/products/${id}/stock`);
+  },
+
+  /**
+   * Check if product is low stock in any warehouse
+   * @param id - Product ID
+   * @returns Low stock status with affected warehouses
+   */
+  getLowStockStatus: async (id: string): Promise<LowStockStatusResponse> => {
+    return apiRequest(`/api/products/${id}/low-stock`);
+  },
 };
 
 // ============================================
@@ -583,6 +634,31 @@ export interface ProductBundle {
   updatedAt: Date;
 }
 
+// Phase 2 - DDD Compliant Bundle Stock Type
+export interface BundleStockResponse {
+  bundleId: string;
+  bundleName: string;
+  bundleSKU: string;
+  warehouseId: string; // 'all' or specific warehouse ID
+  availableStock: number;
+  limitingComponent: {
+    productId: string;
+    productName: string;
+    available: number;
+    required: number;
+  } | null;
+  componentAvailability: Array<{
+    productId: string;
+    productName: string;
+    productSKU: string;
+    requiredPerBundle: number;
+    availableStock: number;
+    maxBundles: number;
+    error?: string;
+  }>;
+  message: string;
+}
+
 export interface CreateBundleInput {
   bundleName: string;
   bundleSKU: string;
@@ -638,6 +714,22 @@ export const bundleApi = {
     return apiRequest(`/api/bundles/${id}`, {
       method: 'DELETE',
     });
+  },
+
+  // ============================================
+  // Phase 2: DDD-Compliant Virtual Stock Endpoint
+  // ============================================
+
+  /**
+   * Calculate virtual bundle stock based on component availability
+   * Returns real-time bundle availability calculated from components
+   * @param id - Bundle ID
+   * @param warehouseId - Optional warehouse ID for warehouse-specific calculation
+   * @returns Available bundle stock, limiting component, and component breakdown
+   */
+  getAvailableStock: async (id: string, warehouseId?: string): Promise<BundleStockResponse> => {
+    const queryParams = warehouseId ? `?warehouseId=${warehouseId}` : '';
+    return apiRequest(`/api/bundles/${id}/available-stock${queryParams}`);
   },
 };
 
