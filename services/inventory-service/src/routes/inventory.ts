@@ -263,6 +263,96 @@ app.get('/:productId/:warehouseId', async (c) => {
   return c.json(inventoryRecord);
 });
 
+// GET /api/inventory/product/:id/total-stock - Get total stock across all warehouses for a product
+app.get('/product/:id/total-stock', async (c) => {
+  const productId = c.req.param('id');
+  const db = drizzle(c.env.DB);
+
+  // Get all inventory records for this product across all warehouses
+  const inventoryRecords = await db
+    .select()
+    .from(inventory)
+    .where(eq(inventory.productId, productId))
+    .all();
+
+  if (inventoryRecords.length === 0) {
+    return c.json({
+      productId,
+      totalStock: 0,
+      totalReserved: 0,
+      totalAvailable: 0,
+      warehouses: [],
+    });
+  }
+
+  // Calculate totals
+  const totalStock = inventoryRecords.reduce((sum, inv) => sum + (inv.quantityAvailable || 0), 0);
+  const totalReserved = inventoryRecords.reduce((sum, inv) => sum + (inv.quantityReserved || 0), 0);
+
+  // Warehouse breakdown
+  const warehouses = inventoryRecords.map(inv => ({
+    warehouseId: inv.warehouseId,
+    quantityAvailable: inv.quantityAvailable,
+    quantityReserved: inv.quantityReserved,
+    minimumStock: inv.minimumStock,
+    isLowStock: inv.minimumStock ? inv.quantityAvailable < inv.minimumStock : false,
+  }));
+
+  return c.json({
+    productId,
+    totalStock,
+    totalReserved,
+    totalAvailable: totalStock - totalReserved,
+    warehouses,
+  });
+});
+
+// GET /api/inventory/product/:id/low-stock-status - Check if product is low stock in any warehouse
+app.get('/product/:id/low-stock-status', async (c) => {
+  const productId = c.req.param('id');
+  const db = drizzle(c.env.DB);
+
+  // Get all inventory records for this product
+  const inventoryRecords = await db
+    .select()
+    .from(inventory)
+    .where(eq(inventory.productId, productId))
+    .all();
+
+  if (inventoryRecords.length === 0) {
+    return c.json({
+      productId,
+      isLowStock: false,
+      totalStock: 0,
+      lowStockWarehouses: [],
+      message: 'No inventory records found',
+    });
+  }
+
+  // Check which warehouses are low stock
+  const lowStockWarehouses = inventoryRecords
+    .filter(inv => inv.minimumStock && inv.quantityAvailable < inv.minimumStock)
+    .map(inv => ({
+      warehouseId: inv.warehouseId,
+      currentStock: inv.quantityAvailable,
+      minimumStock: inv.minimumStock,
+      deficit: inv.minimumStock! - inv.quantityAvailable,
+    }));
+
+  const totalStock = inventoryRecords.reduce((sum, inv) => sum + (inv.quantityAvailable || 0), 0);
+  const isLowStock = lowStockWarehouses.length > 0;
+
+  return c.json({
+    productId,
+    isLowStock,
+    totalStock,
+    lowStockWarehouses,
+    message: isLowStock
+      ? `Low stock in ${lowStockWarehouses.length} warehouse(s)`
+      : 'Stock levels are adequate',
+  });
+});
+
 // POST /api/inventory/admin/sync-minimum-stock - Admin endpoint to sync minimumStock from Product Service
 app.post('/admin/sync-minimum-stock', async (c) => {
   const db = drizzle(c.env.DB);
