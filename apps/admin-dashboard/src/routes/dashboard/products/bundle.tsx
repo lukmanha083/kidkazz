@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { bundleApi, productApi, warehouseApi, productLocationApi, type ProductBundle, type BundleItem, type CreateBundleInput, type Product } from '@/lib/api';
+import { bundleApi, productApi, warehouseApi, productLocationApi, inventoryApi, type ProductBundle, type BundleItem, type CreateBundleInput, type Product } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -88,6 +88,28 @@ function ProductBundlePage() {
 
   const productLocations = productLocationsData?.locations || [];
 
+  // Fetch inventory data (Phase 2B: Using Inventory Service as single source of truth)
+  const { data: inventoryData } = useQuery({
+    queryKey: ['inventory'],
+    queryFn: () => inventoryApi.getAll(),
+  });
+
+  const inventory = inventoryData?.inventory || [];
+
+  // Aggregate stock by product ID from Inventory Service (DDD: Single Source of Truth)
+  const productStockMap = inventory.reduce((acc, inv) => {
+    if (!acc[inv.productId]) {
+      acc[inv.productId] = 0;
+    }
+    acc[inv.productId] += inv.quantityAvailable || 0;
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Helper function to get stock for a product
+  const getProductStock = (productId: string): number => {
+    return productStockMap[productId] || 0;
+  };
+
   const [searchTerm, setSearchTerm] = useState('');
   const [viewDrawerOpen, setViewDrawerOpen] = useState(false);
   const [formDrawerOpen, setFormDrawerOpen] = useState(false);
@@ -95,7 +117,7 @@ function ProductBundlePage() {
   const [selectedBundleItems, setSelectedBundleItems] = useState<BundleItem[]>([]);
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
 
-  // Form data
+  // Form data (Phase 2B: Removed availableStock - bundles now use virtual stock)
   const [formData, setFormData] = useState({
     bundleName: '',
     bundleSKU: '',
@@ -103,7 +125,6 @@ function ProductBundlePage() {
     bundleDescription: '',
     bundlePrice: '',
     discountPercentage: '',
-    availableStock: '',
     status: 'active' as 'active' | 'inactive',
     warehouseId: '', // Warehouse where bundle is assembled
   });
@@ -199,12 +220,12 @@ function ProductBundlePage() {
 
         return {
           value: p.id,
-          label: `${p.name} (${p.sku}) - Stock: ${stockToShow} PCS`,
+          label: `${p.name} (${p.sku}) - Stock: ${getProductStock(p.id)} PCS`,
           barcode: p.barcode,
           name: p.name,
           sku: p.sku,
           price: p.price,
-          stock: stockToShow,
+          stock: getProductStock(p.id),
           baseUnit: p.baseUnit,
         };
       });
@@ -228,7 +249,6 @@ function ProductBundlePage() {
       bundleDescription: '',
       bundlePrice: '',
       discountPercentage: '0',
-      availableStock: '',
       status: 'active',
       warehouseId: '',
     });
@@ -246,7 +266,6 @@ function ProductBundlePage() {
       bundleDescription: bundle.bundleDescription || '',
       bundlePrice: bundle.bundlePrice.toString(),
       discountPercentage: bundle.discountPercentage.toString(),
-      availableStock: bundle.availableStock.toString(),
       status: bundle.status,
       warehouseId: (bundle as any).warehouseId || '',
     });
@@ -307,16 +326,8 @@ function ProductBundlePage() {
       return;
     }
 
-    // Validate bundle stock against component stock
-    const maxPossibleBundles = calculateMaxBundles(selectedProducts);
-    const requestedBundleStock = parseInt(formData.availableStock) || 0;
-
-    if (requestedBundleStock > maxPossibleBundles) {
-      toast.error('Insufficient component stock', {
-        description: `Cannot create ${requestedBundleStock} bundles. Maximum possible: ${maxPossibleBundles} bundles based on component stock.`
-      });
-      return;
-    }
+    // Phase 2B: No stock validation - bundles use virtual stock calculation
+    // Virtual stock is calculated real-time from component availability
 
     // Use the calculated bundle price
     const bundleData: CreateBundleInput = {
@@ -327,7 +338,6 @@ function ProductBundlePage() {
       bundlePrice: calculatedBundlePrice,
       discountPercentage: parseFloat(formData.discountPercentage) || 0,
       status: formData.status,
-      availableStock: requestedBundleStock,
       items: selectedProducts,
       warehouseId: formData.warehouseId, // Warehouse where bundle is assembled
     } as any;
@@ -393,17 +403,17 @@ function ProductBundlePage() {
     return items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   };
 
-  // Calculate maximum possible bundles based on component stock
+  // Calculate maximum possible bundles based on component stock (Phase 2B: Using Inventory data)
   const calculateMaxBundles = (items: BundleItem[]) => {
     if (items.length === 0) return 0;
 
     // For each product, calculate how many complete bundles can be formed
     const possibleBundles = items.map(item => {
-      const product = products.find(p => p.id === item.productId);
-      if (!product || !product.stock) return 0;
+      const stock = getProductStock(item.productId);
+      if (!stock) return 0;
 
       // Calculate how many bundles we can make from this product's stock
-      return Math.floor(product.stock / item.quantity);
+      return Math.floor(stock / item.quantity);
     });
 
     // Return the minimum (bottleneck)
@@ -513,7 +523,6 @@ function ProductBundlePage() {
                     <TableHead>Products</TableHead>
                     <TableHead>Price</TableHead>
                     <TableHead>Discount</TableHead>
-                    <TableHead>Stock</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -551,7 +560,6 @@ function ProductBundlePage() {
                         <TableCell>
                           <Badge variant="secondary">{bundle.discountPercentage}%</Badge>
                         </TableCell>
-                        <TableCell>{bundle.availableStock}</TableCell>
                         <TableCell>
                           <Badge variant={bundle.status === 'active' ? 'default' : 'secondary'}>
                             {bundle.status}
@@ -656,8 +664,13 @@ function ProductBundlePage() {
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Available Stock</p>
-                  <p className="font-medium">{selectedBundle.availableStock}</p>
+                  <p className="text-sm text-muted-foreground">Stock Type</p>
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                    Virtual (Calculated)
+                  </Badge>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Stock is calculated from component availability
+                  </p>
                 </div>
               </div>
 
@@ -923,20 +936,11 @@ function ProductBundlePage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="availableStock">Available Bundle Stock</Label>
-              <Input
-                id="availableStock"
-                type="number"
-                min="0"
-                placeholder="0"
-                value={formData.availableStock}
-                onChange={(e) => setFormData({ ...formData, availableStock: e.target.value })}
-              />
-
-              {/* Stock Breakdown Info */}
-              {selectedProducts.length > 0 && (
-                <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg space-y-3">
+            {/* Phase 2B: Virtual Stock Info - No stored stock for bundles */}
+            {selectedProducts.length > 0 && (
+              <div className="space-y-2">
+                <Label>Virtual Stock Calculation</Label>
+                <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
                       Maximum Possible Bundles:
@@ -950,34 +954,28 @@ function ProductBundlePage() {
 
                   <div className="space-y-2">
                     <p className="text-xs font-semibold text-blue-900 dark:text-blue-100">
-                      Component Stock Breakdown:
+                      Component Availability:
                     </p>
                     {selectedProducts.map((item, index) => {
-                      const product = products.find(p => p.id === item.productId);
-                      const bundleStock = parseInt(formData.availableStock) || 0;
-                      const allocatedStock = item.quantity * bundleStock;
-                      const remainingStock = (product?.stock || 0) - allocatedStock;
+                      const availableStock = getProductStock(item.productId);
+                      const maxBundles = Math.floor(availableStock / item.quantity);
 
                       return (
                         <div key={index} className="text-xs space-y-1 p-2 bg-white/50 dark:bg-black/20 rounded">
                           <p className="font-medium text-blue-900 dark:text-blue-100">{item.productName}</p>
                           <div className="grid grid-cols-2 gap-2 text-muted-foreground">
                             <div>
-                              <span>Total Stock:</span>
-                              <span className="ml-1 font-semibold">{product?.stock || 0} PCS</span>
+                              <span>Available Stock:</span>
+                              <span className="ml-1 font-semibold">{availableStock} PCS</span>
                             </div>
                             <div>
                               <span>Per Bundle:</span>
                               <span className="ml-1 font-semibold">×{item.quantity}</span>
                             </div>
-                            <div>
-                              <span>Allocated to Bundles:</span>
-                              <span className="ml-1 font-semibold text-orange-600">{allocatedStock} PCS</span>
-                            </div>
-                            <div>
-                              <span>Remaining Base Stock:</span>
-                              <span className={`ml-1 font-semibold ${remainingStock < 0 ? 'text-destructive' : 'text-green-600'}`}>
-                                {remainingStock} PCS
+                            <div className="col-span-2">
+                              <span>Max Bundles from this:</span>
+                              <span className={`ml-1 font-semibold ${maxBundles === 0 ? 'text-destructive' : 'text-green-600'}`}>
+                                {maxBundles} bundles
                               </span>
                             </div>
                           </div>
@@ -987,11 +985,11 @@ function ProductBundlePage() {
                   </div>
 
                   <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
-                    💡 Bundle stock is split from component base stock, similar to custom UOM allocations.
+                    💡 Bundle stock is calculated in real-time from component availability. No stock is pre-allocated.
                   </p>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             <DrawerFooter className="px-0">
               <Button

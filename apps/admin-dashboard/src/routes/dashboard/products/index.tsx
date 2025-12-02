@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Package, TrendingUp, TrendingDown, Wallet, Boxes, AlertCircle, ShoppingCart, Loader2, Calendar, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { productApi, categoryApi } from '@/lib/api';
+import { productApi, categoryApi, inventoryApi } from '@/lib/api';
 
 export const Route = createFileRoute('/dashboard/products/')({
   component: ProductsReportPage,
@@ -37,24 +37,60 @@ function ProductsReportPage() {
 
   const categories = categoriesData?.categories || [];
 
-  const isLoading = productsLoading || categoriesLoading;
+  // Fetch inventory data (Phase 2B: Using Inventory Service as single source of truth)
+  const { data: inventoryData, isLoading: inventoryLoading } = useQuery({
+    queryKey: ['inventory'],
+    queryFn: () => inventoryApi.getAll(),
+  });
 
-  // Calculate statistics from real data
+  const inventory = inventoryData?.inventory || [];
+
+  const isLoading = productsLoading || categoriesLoading || inventoryLoading;
+
+  // Aggregate stock by product ID from Inventory Service (DDD: Single Source of Truth)
+  const productStockMap = inventory.reduce((acc, inv) => {
+    if (!acc[inv.productId]) {
+      acc[inv.productId] = {
+        totalStock: 0,
+        minimumStock: inv.minimumStock || 0,
+      };
+    }
+    acc[inv.productId].totalStock += inv.quantityAvailable || 0;
+    // Use the highest minimumStock across all warehouses
+    if (inv.minimumStock && inv.minimumStock > acc[inv.productId].minimumStock) {
+      acc[inv.productId].minimumStock = inv.minimumStock;
+    }
+    return acc;
+  }, {} as Record<string, { totalStock: number; minimumStock: number }>);
+
+  // Helper function to get stock for a product
+  const getProductStock = (productId: string): number => {
+    return productStockMap[productId]?.totalStock || 0;
+  };
+
+  // Helper function to get minimum stock for a product
+  const getMinimumStock = (productId: string, fallback: number = 50): number => {
+    return productStockMap[productId]?.minimumStock || fallback;
+  };
+
+  // Calculate statistics from real data (Phase 2B: Using Inventory Service data)
   const productStats = {
     totalProducts: products.length,
     activeProducts: products.filter(p => p.status === 'active').length,
     inactiveProducts: products.filter(p => p.status === 'inactive').length + products.filter(p => p.status === 'discontinued').length,
-    totalValue: products.reduce((sum, p) => sum + (p.price * p.stock), 0),
+    totalValue: products.reduce((sum, p) => sum + (p.price * getProductStock(p.id)), 0),
     // Use custom minimumStock if set, otherwise default to 50 for low stock and 20 for out of stock
     lowStockProducts: products.filter(p => {
-      const minStock = p.minimumStock || 50;
+      const stock = getProductStock(p.id);
+      const minStock = getMinimumStock(p.id, p.minimumStock || 50);
       const criticalStock = Math.floor(minStock * 0.4); // Critical is 40% of minimum
-      return p.stock < minStock && p.stock >= criticalStock;
+      return stock < minStock && stock >= criticalStock;
     }).length,
     outOfStock: products.filter(p => {
-      const minStock = p.minimumStock || 50;
+      const stock = getProductStock(p.id);
+      const minStock = getMinimumStock(p.id, p.minimumStock || 50);
       const criticalStock = Math.floor(minStock * 0.4);
-      return p.stock < criticalStock;
+      return stock < criticalStock;
     }).length,
   };
 
@@ -73,31 +109,33 @@ function ProductsReportPage() {
       trend: p.rating >= 4.5 ? 'up' : 'down',
     }));
 
-  // Low stock products
+  // Low stock products (Phase 2B: Using Inventory Service data)
   const lowStockProducts = products
     .filter(p => {
-      const minStock = p.minimumStock || 50;
-      return p.stock < minStock;
+      const stock = getProductStock(p.id);
+      const minStock = getMinimumStock(p.id, p.minimumStock || 50);
+      return stock < minStock;
     })
-    .sort((a, b) => a.stock - b.stock)
+    .sort((a, b) => getProductStock(a.id) - getProductStock(b.id))
     .slice(0, 4)
     .map(p => {
-      const minStock = p.minimumStock || 50;
+      const stock = getProductStock(p.id);
+      const minStock = getMinimumStock(p.id, p.minimumStock || 50);
       const criticalStock = Math.floor(minStock * 0.4);
       return {
         id: p.id,
         name: p.name,
         sku: p.sku,
-        stock: p.stock,
+        stock: stock,
         minStock: minStock,
-        status: p.stock < criticalStock ? 'Critical' : 'Low',
+        status: stock < criticalStock ? 'Critical' : 'Low',
       };
     });
 
-  // Category breakdown
+  // Category breakdown (Phase 2B: Using Inventory Service data)
   const categoryBreakdown = categories.map(cat => {
     const categoryProducts = products.filter(p => p.categoryId === cat.id);
-    const categoryValue = categoryProducts.reduce((sum, p) => sum + (p.price * p.stock), 0);
+    const categoryValue = categoryProducts.reduce((sum, p) => sum + (p.price * getProductStock(p.id)), 0);
     const percentage = products.length > 0 ? Math.round((categoryProducts.length / products.length) * 100) : 0;
 
     return {
