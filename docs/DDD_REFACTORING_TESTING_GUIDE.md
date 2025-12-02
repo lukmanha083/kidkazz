@@ -45,6 +45,87 @@ curl http://localhost:8792/health
 
 ---
 
+## Database Migrations (Phase 2C & Phase 3)
+
+**⚠️ IMPORTANT**: Before testing, you must run database migrations to update the schema for Phase 2C (cleanup) and Phase 3 (batch tracking).
+
+### Migration 1: Add Inventory Batches Table (Phase 3)
+
+This migration adds the `inventory_batches` table for batch/lot tracking with FEFO support.
+
+```bash
+# Navigate to Inventory Service
+cd services/inventory-service
+
+# Apply migration using Drizzle Kit
+npx drizzle-kit push:sqlite --config=drizzle.config.ts
+
+# Or manually apply the migration SQL
+sqlite3 .wrangler/state/v3/d1/miniflare-D1DatabaseObject/xxxx.sqlite < migrations/0003_add_inventory_batches_table.sql
+```
+
+**Migration File**: `services/inventory-service/migrations/0003_add_inventory_batches_table.sql`
+
+**What it does**:
+- Creates `inventory_batches` table with batch identification, expiration tracking, and traceability fields
+- Adds indexes for efficient FEFO (First Expired, First Out) queries
+- Enables batch-level expiration tracking (DDD fix: expiration is a batch characteristic, not product characteristic)
+
+### Migration 2: Remove Deprecated Stock Fields (Phase 2C)
+
+This migration removes the deprecated `stock` and `availableStock` fields from Product Service.
+
+```bash
+# Navigate to Product Service
+cd services/product-service
+
+# Apply migration using Drizzle Kit
+npx drizzle-kit push:sqlite --config=drizzle.config.ts
+
+# Or manually apply the migration SQL
+sqlite3 .wrangler/state/v3/d1/miniflare-D1DatabaseObject/xxxx.sqlite < migrations/0017_remove_deprecated_stock_fields.sql
+```
+
+**Migration File**: `services/product-service/migrations/0017_remove_deprecated_stock_fields.sql`
+
+**What it does**:
+- Removes `products.stock` column (stock is now managed by Inventory Service only)
+- Removes `productBundles.availableStock` column (bundles now use virtual stock calculation)
+- Enforces single source of truth for stock data
+
+### Verification
+
+After running migrations, verify the schema changes:
+
+```bash
+# Verify inventory_batches table exists
+curl http://localhost:8792/api/batches
+# Expected: {"batches": [], "total": 0}
+
+# Verify product endpoints still work (without stock field)
+curl http://localhost:8791/api/products
+# Expected: Products array without stock field
+
+# Verify bundle endpoints work (without availableStock field)
+curl http://localhost:8791/api/bundles
+# Expected: Bundles array without availableStock field
+```
+
+### Migration Rollback (If Needed)
+
+If you need to rollback migrations:
+
+```bash
+# Product Service: Add stock fields back
+ALTER TABLE products ADD COLUMN stock INTEGER DEFAULT 0 NOT NULL;
+ALTER TABLE productBundles ADD COLUMN availableStock INTEGER DEFAULT 0 NOT NULL;
+
+# Inventory Service: Drop inventory_batches table
+DROP TABLE IF EXISTS inventory_batches;
+```
+
+---
+
 ## Phase 1 Testing - Inventory Integration
 
 **Goal**: Verify that productLocations, productUOMLocations, and variantLocations automatically create inventory records.
