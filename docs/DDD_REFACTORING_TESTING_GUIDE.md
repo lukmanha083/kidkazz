@@ -57,11 +57,10 @@ This migration adds the `inventory_batches` table for batch/lot tracking with FE
 # Navigate to Inventory Service
 cd services/inventory-service
 
-# Apply migration using Drizzle Kit
-npx drizzle-kit push:sqlite --config=drizzle.config.ts
+# Apply migration using Wrangler D1 (recommended for development)
+npx wrangler d1 migrations apply inventory-db --local
 
-# Or manually apply the migration SQL
-sqlite3 .wrangler/state/v3/d1/miniflare-D1DatabaseObject/xxxx.sqlite < migrations/0003_add_inventory_batches_table.sql
+# This will apply migration: 0003_add_inventory_batches_table.sql
 ```
 
 **Migration File**: `services/inventory-service/migrations/0003_add_inventory_batches_table.sql`
@@ -79,11 +78,10 @@ This migration removes the deprecated `stock` and `availableStock` fields from P
 # Navigate to Product Service
 cd services/product-service
 
-# Apply migration using Drizzle Kit
-npx drizzle-kit push:sqlite --config=drizzle.config.ts
+# Apply migration using Wrangler D1 (recommended for development)
+npx wrangler d1 migrations apply product-db --local
 
-# Or manually apply the migration SQL
-sqlite3 .wrangler/state/v3/d1/miniflare-D1DatabaseObject/xxxx.sqlite < migrations/0017_remove_deprecated_stock_fields.sql
+# This will apply migration: 0017_remove_deprecated_stock_fields.sql
 ```
 
 **Migration File**: `services/product-service/migrations/0017_remove_deprecated_stock_fields.sql`
@@ -92,6 +90,16 @@ sqlite3 .wrangler/state/v3/d1/miniflare-D1DatabaseObject/xxxx.sqlite < migration
 - Removes `products.stock` column (stock is now managed by Inventory Service only)
 - Removes `productBundles.availableStock` column (bundles now use virtual stock calculation)
 - Enforces single source of truth for stock data
+
+**Note**: For production deployment, remove the `--local` flag:
+```bash
+# Production migrations
+cd services/product-service
+npx wrangler d1 migrations apply product-db
+
+cd services/inventory-service
+npx wrangler d1 migrations apply inventory-db
+```
 
 ### Verification
 
