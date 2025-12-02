@@ -123,6 +123,53 @@ export const inventoryMovements = sqliteTable('inventory_movements', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });
 
+/**
+ * Inventory Batches table (Phase 3 - DDD Compliance)
+ * Tracks batch/lot-level inventory with expiration dates
+ * Enables FEFO (First Expired, First Out) picking strategy
+ */
+export const inventoryBatches = sqliteTable('inventory_batches', {
+  id: text('id').primaryKey(),
+
+  // Links to parent inventory record
+  inventoryId: text('inventory_id')
+    .notNull()
+    .references(() => inventory.id, { onDelete: 'cascade' }),
+
+  productId: text('product_id').notNull(),
+  warehouseId: text('warehouse_id').notNull(),
+
+  // Batch identification
+  batchNumber: text('batch_number').notNull(), // e.g., "A001", "B002", "LOT-2025-001"
+  lotNumber: text('lot_number'), // Optional lot number (supplier-provided)
+
+  // Batch-specific expiration (DDD: expiration is a batch characteristic, not product!)
+  expirationDate: text('expiration_date'), // ISO date string
+  alertDate: text('alert_date'), // Alert before expiration (e.g., 7 days before)
+  manufactureDate: text('manufacture_date'), // ISO date string
+
+  // Stock for this specific batch
+  quantityAvailable: integer('quantity_available').default(0).notNull(),
+  quantityReserved: integer('quantity_reserved').default(0).notNull(),
+
+  // Traceability information
+  receivedDate: text('received_date'), // When this batch was received
+  supplier: text('supplier'), // Supplier name or ID
+  purchaseOrderId: text('purchase_order_id'), // Reference to PO (if applicable)
+  cost: integer('cost'), // Unit cost for this batch (in cents/smallest currency unit)
+
+  // Batch status
+  status: text('status').default('active').notNull(), // 'active' | 'expired' | 'quarantined' | 'recalled'
+  quarantineReason: text('quarantine_reason'), // If status = 'quarantined'
+  recallReason: text('recall_reason'), // If status = 'recalled'
+
+  // Audit fields
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+  createdBy: text('created_by'),
+  updatedBy: text('updated_by'),
+});
+
 // Types inferred from the schema
 export type Warehouse = typeof warehouses.$inferSelect;
 export type InsertWarehouse = typeof warehouses.$inferInsert;
@@ -135,3 +182,6 @@ export type InsertInventoryReservation = typeof inventoryReservations.$inferInse
 
 export type InventoryMovement = typeof inventoryMovements.$inferSelect;
 export type InsertInventoryMovement = typeof inventoryMovements.$inferInsert;
+
+export type InventoryBatch = typeof inventoryBatches.$inferSelect;
+export type InsertInventoryBatch = typeof inventoryBatches.$inferInsert;
