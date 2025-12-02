@@ -8,6 +8,7 @@ import { generateId } from '../../../shared/utils/helpers';
 
 type Bindings = {
   DB: D1Database;
+  INVENTORY_SERVICE: Fetcher;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -23,7 +24,7 @@ const createProductSchema = z.object({
   price: z.number(),
   retailPrice: z.number().optional().nullable(),
   wholesalePrice: z.number().optional().nullable(),
-  stock: z.number().default(0),
+  stock: z.number().optional().default(0), // DEPRECATED: Use Inventory Service for stock data (GET /api/products/:id/stock)
   baseUnit: z.string().default('PCS'),
   wholesaleThreshold: z.number().default(100),
   minimumOrderQuantity: z.number().default(1),
@@ -119,6 +120,57 @@ app.get('/:id', async (c) => {
     productUOMs: uoms,
     productLocations: locations,
   });
+});
+
+// GET /api/products/:id/stock - Get product stock from Inventory Service (DDD compliant)
+app.get('/:id/stock', async (c) => {
+  const productId = c.req.param('id');
+
+  try {
+    // Delegate to Inventory Service for stock data (single source of truth)
+    const response = await c.env.INVENTORY_SERVICE.fetch(
+      new Request(`http://inventory-service/api/inventory/product/${productId}/total-stock`)
+    );
+
+    if (response.ok) {
+      return c.json(await response.json());
+    } else if (response.status === 404) {
+      // Product exists in Product Service but no inventory records yet
+      return c.json({
+        productId,
+        totalStock: 0,
+        totalReserved: 0,
+        totalAvailable: 0,
+        warehouses: [],
+      });
+    } else {
+      return c.json({ error: 'Failed to fetch stock from Inventory Service' }, 500);
+    }
+  } catch (error) {
+    console.error('Error fetching stock from Inventory Service:', error);
+    return c.json({ error: 'Failed to fetch stock data' }, 500);
+  }
+});
+
+// GET /api/products/:id/low-stock - Get product low stock status from Inventory Service (DDD compliant)
+app.get('/:id/low-stock', async (c) => {
+  const productId = c.req.param('id');
+
+  try {
+    // Delegate to Inventory Service for low stock status (single source of truth)
+    const response = await c.env.INVENTORY_SERVICE.fetch(
+      new Request(`http://inventory-service/api/inventory/product/${productId}/low-stock-status`)
+    );
+
+    if (response.ok) {
+      return c.json(await response.json());
+    } else {
+      return c.json({ error: 'Failed to fetch low stock status from Inventory Service' }, 500);
+    }
+  } catch (error) {
+    console.error('Error fetching low stock status from Inventory Service:', error);
+    return c.json({ error: 'Failed to fetch low stock status' }, 500);
+  }
 });
 
 // GET /api/products/sku/:sku - Get product by SKU
