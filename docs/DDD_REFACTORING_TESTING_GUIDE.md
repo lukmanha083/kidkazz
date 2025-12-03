@@ -18,7 +18,7 @@ Complete testing guide for all three phases of DDD refactoring implementation. T
 # Terminal 1 - Product Service
 cd services/product-service
 npm run dev
-# Should start on http://localhost:8791
+# Should start on http://localhost:8788
 
 # Terminal 2 - Inventory Service
 cd services/inventory-service
@@ -35,7 +35,7 @@ npm run dev
 
 ```bash
 # Test Product Service health
-curl http://localhost:8791/health
+curl http://localhost:8788/health
 # Expected: {"status":"healthy","service":"product-service"}
 
 # Test Inventory Service health
@@ -111,11 +111,11 @@ curl http://localhost:8792/api/batches
 # Expected: {"batches": [], "total": 0}
 
 # Verify product endpoints still work (without stock field)
-curl http://localhost:8791/api/products
+curl http://localhost:8788/api/products
 # Expected: Products array without stock field
 
 # Verify bundle endpoints work (without availableStock field)
-curl http://localhost:8791/api/bundles
+curl http://localhost:8788/api/bundles
 # Expected: Bundles array without availableStock field
 ```
 
@@ -161,7 +161,7 @@ curl -X POST http://localhost:8792/api/warehouses \
 
 ```bash
 # Step 2: Create a product
-curl -X POST http://localhost:8791/api/products \
+curl -X POST http://localhost:8788/api/products \
   -H "Content-Type: application/json" \
   -d '{
     "barcode": "TEST-PROD-001",
@@ -181,7 +181,7 @@ curl -X POST http://localhost:8791/api/products \
 
 ```bash
 # Step 3: Create product location (should auto-create inventory)
-curl -X POST http://localhost:8791/api/product-locations \
+curl -X POST http://localhost:8788/api/product-locations \
   -H "Content-Type: application/json" \
   -d '{
     "productId": "prod_12345...",
@@ -221,7 +221,7 @@ curl "http://localhost:8792/api/inventory?productId=prod_12345..."
 
 ```bash
 # Step 1: Create UOM
-curl -X POST http://localhost:8791/api/uoms \
+curl -X POST http://localhost:8788/api/uoms \
   -H "Content-Type: application/json" \
   -d '{
     "code": "BOX6",
@@ -236,22 +236,24 @@ curl -X POST http://localhost:8791/api/uoms \
 
 ```bash
 # Step 2: Add UOM to product
-curl -X POST http://localhost:8791/api/product-uoms \
+curl -X POST http://localhost:8788/api/uoms/products \
   -H "Content-Type: application/json" \
   -d '{
     "productId": "prod_12345...",
-    "uomId": "uom_...",
+    "uomCode": "BOX6",
+    "uomName": "Box of 6",
     "barcode": "TEST-BOX6-001",
-    "price": 280000,
-    "stock": 0
+    "conversionFactor": 6,
+    "stock": 0,
+    "isDefault": false
   }'
 
-# Save productUOM ID
+# Save productUOM ID from response
 ```
 
 ```bash
 # Step 3: Create UOM location (should convert 10 BOX6 → 60 PCS)
-curl -X POST http://localhost:8791/api/product-uom-locations \
+curl -X POST http://localhost:8788/api/product-uom-locations \
   -H "Content-Type: application/json" \
   -d '{
     "productUOMId": "puom_...",
@@ -279,10 +281,12 @@ curl "http://localhost:8792/api/inventory?productId=prod_12345..."
 
 ```bash
 # Step 1: Create product variant
-curl -X POST http://localhost:8791/api/product-variants \
+curl -X POST http://localhost:8788/api/variants \
   -H "Content-Type: application/json" \
   -d '{
     "productId": "prod_12345...",
+    "productName": "Test Product Phase 1",
+    "productSKU": "TEST-SKU-001",
     "variantName": "Red",
     "variantSKU": "TEST-SKU-001-RED",
     "variantType": "Color",
@@ -296,7 +300,7 @@ curl -X POST http://localhost:8791/api/product-variants \
 
 ```bash
 # Step 2: Create variant location (should create inventory)
-curl -X POST http://localhost:8791/api/variant-locations \
+curl -X POST http://localhost:8788/api/variant-locations \
   -H "Content-Type: application/json" \
   -d '{
     "variantId": "var_...",
@@ -327,7 +331,7 @@ curl "http://localhost:8792/api/inventory?productId=prod_12345..."
 
 ```bash
 # Test total stock aggregation across warehouses
-curl http://localhost:8791/api/products/prod_12345.../stock
+curl http://localhost:8788/api/products/prod_12345.../stock
 
 # Expected response:
 # {
@@ -371,7 +375,7 @@ curl -X POST http://localhost:8792/api/inventory/adjust \
 
 ```bash
 # Step 2: Test low stock status endpoint
-curl http://localhost:8791/api/products/prod_12345.../low-stock
+curl http://localhost:8788/api/products/prod_12345.../low-stock
 
 # Expected response:
 # {
@@ -400,7 +404,7 @@ curl http://localhost:8791/api/products/prod_12345.../low-stock
 ```bash
 # Step 1: Create component products for bundle
 # Component 1: Baby Bottle
-curl -X POST http://localhost:8791/api/products \
+curl -X POST http://localhost:8788/api/products \
   -H "Content-Type: application/json" \
   -d '{
     "barcode": "BOTTLE-001",
@@ -417,7 +421,7 @@ curl -X POST http://localhost:8791/api/products \
 
 ```bash
 # Component 2: Diaper Pack
-curl -X POST http://localhost:8791/api/products \
+curl -X POST http://localhost:8788/api/products \
   -H "Content-Type: application/json" \
   -d '{
     "barcode": "DIAPER-001",
@@ -434,7 +438,7 @@ curl -X POST http://localhost:8791/api/products \
 
 ```bash
 # Component 3: Baby Wipes
-curl -X POST http://localhost:8791/api/products \
+curl -X POST http://localhost:8788/api/products \
   -H "Content-Type: application/json" \
   -d '{
     "barcode": "WIPES-001",
@@ -487,7 +491,7 @@ curl -X POST http://localhost:8792/api/inventory/adjust \
 
 ```bash
 # Step 3: Create bundle
-curl -X POST http://localhost:8791/api/bundles \
+curl -X POST http://localhost:8788/api/bundles \
   -H "Content-Type: application/json" \
   -d '{
     "bundleName": "Baby Starter Kit",
@@ -529,7 +533,7 @@ curl -X POST http://localhost:8791/api/bundles \
 
 ```bash
 # Step 4: Test virtual bundle stock calculation
-curl http://localhost:8791/api/bundles/bundle_id/available-stock
+curl http://localhost:8788/api/bundles/bundle_id/available-stock
 
 # Expected response:
 # {
@@ -583,7 +587,7 @@ curl http://localhost:8791/api/bundles/bundle_id/available-stock
 
 ```bash
 # Test bundle stock for specific warehouse
-curl "http://localhost:8791/api/bundles/bundle_id/available-stock?warehouseId=wh_12345..."
+curl "http://localhost:8788/api/bundles/bundle_id/available-stock?warehouseId=wh_12345..."
 
 # Expected:
 # Same as Test 2.3 but with "warehouseId": "wh_12345..."
@@ -603,7 +607,7 @@ curl "http://localhost:8791/api/bundles/bundle_id/available-stock?warehouseId=wh
 
 ```bash
 # Create product with expiration tracking
-curl -X POST http://localhost:8791/api/products \
+curl -X POST http://localhost:8788/api/products \
   -H "Content-Type: application/json" \
   -d '{
     "barcode": "MILK-001",
@@ -906,10 +910,10 @@ curl http://localhost:8792/api/batches/expired
 # Ubuntu: sudo apt-get install apache2-utils
 
 # Test product stock endpoint (100 requests, 10 concurrent)
-ab -n 100 -c 10 http://localhost:8791/api/products/prod_id/stock
+ab -n 100 -c 10 http://localhost:8788/api/products/prod_id/stock
 
 # Test bundle stock endpoint
-ab -n 100 -c 10 http://localhost:8791/api/bundles/bundle_id/available-stock
+ab -n 100 -c 10 http://localhost:8788/api/bundles/bundle_id/available-stock
 
 # Test batch listing
 ab -n 100 -c 10 "http://localhost:8792/api/batches?status=active"
