@@ -236,17 +236,19 @@ curl -X POST http://localhost:8791/api/uoms \
 
 ```bash
 # Step 2: Add UOM to product
-curl -X POST http://localhost:8791/api/product-uoms \
+curl -X POST http://localhost:8791/api/uoms/products \
   -H "Content-Type: application/json" \
   -d '{
     "productId": "prod_12345...",
-    "uomId": "uom_...",
+    "uomCode": "BOX6",
+    "uomName": "Box of 6",
     "barcode": "TEST-BOX6-001",
-    "price": 280000,
-    "stock": 0
+    "conversionFactor": 6,
+    "stock": 0,
+    "isDefault": false
   }'
 
-# Save productUOM ID
+# Save productUOM ID from response
 ```
 
 ```bash
