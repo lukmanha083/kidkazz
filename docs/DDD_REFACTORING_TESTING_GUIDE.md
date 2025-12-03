@@ -219,6 +219,18 @@ curl "http://localhost:8792/api/inventory?productId=prod_12345..."
 
 ### Test 1.2: Test UOM Location with Conversion
 
+**⚠️ IMPORTANT**: UOM locations are **subdivisions** of product location stock, not additions!
+
+**Stock Consistency Rule**:
+```
+Product Location Quantity >= Sum of UOM Location Quantities (in base units)
+```
+
+For example:
+- Product location: 100 PCS
+- UOM location: 10 boxes × 6 = 60 PCS ✅ Valid (60 <= 100)
+- UOM location: 20 boxes × 6 = 120 PCS ❌ Invalid (120 > 100)
+
 ```bash
 # Step 1: Create UOM
 curl -X POST http://localhost:8788/api/uoms \
@@ -252,7 +264,7 @@ curl -X POST http://localhost:8788/api/uoms/products \
 ```
 
 ```bash
-# Step 3: Create UOM location (should convert 10 BOX6 → 60 PCS)
+# Step 3: Create UOM location (10 boxes = 60 PCS, which is valid since 60 <= 100)
 curl -X POST http://localhost:8788/api/product-uom-locations \
   -H "Content-Type: application/json" \
   -d '{
@@ -262,20 +274,48 @@ curl -X POST http://localhost:8788/api/product-uom-locations \
     "rack": "A1",
     "bin": "TOP"
   }'
+
+# Expected: Success - UOM location created
 ```
 
 ```bash
-# Step 4: Verify inventory updated with converted quantity
+# Step 4: Verify inventory reflects the breakdown (NOT addition)
 curl "http://localhost:8792/api/inventory?productId=prod_12345..."
 
 # Expected:
-# quantityAvailable should be 100 + 60 = 160
-# (100 from Test 1.1 + 60 from 10×BOX6)
+# quantityAvailable = 100 PCS (unchanged from Test 1.1)
+#
+# Stock breakdown:
+# - Total: 100 PCS at warehouse
+# - UOM breakdown: 10 boxes (60 PCS) + 40 PCS loose = 100 PCS total
+```
+
+```bash
+# Step 5: Test validation - try to exceed product location stock (should fail)
+curl -X POST http://localhost:8788/api/product-uom-locations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "productUOMId": "puom_...",
+    "warehouseId": "wh_12345...",
+    "quantity": 10,
+    "rack": "A2",
+    "bin": "BOTTOM"
+  }'
+
+# Expected: 400 Error
+# {
+#   "error": "Stock validation failed for warehouse: Total UOM stock at this
+#             warehouse would be 120 PCS, but product location stock is only
+#             100 PCS. Please adjust product location stock first or reduce
+#             UOM quantities."
+# }
 ```
 
 **✅ Pass Criteria**:
-- Inventory `quantityAvailable` = 160
-- UOM conversion worked (10 × 6 = 60)
+- Inventory `quantityAvailable` = 100 (NOT 160!)
+- UOM location stores quantity in UOM units (10 boxes)
+- System prevents exceeding product location stock
+- UOM locations are subdivisions, not additions
 
 ### Test 1.3: Test Variant Location
 
