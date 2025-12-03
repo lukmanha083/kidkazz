@@ -3,11 +3,15 @@
 -- Phase: 2C - Schema Cleanup
 -- DDD Fix: Stock is now the single responsibility of Inventory Service
 
--- Step 1: Remove stock field from products table
+-- Step 1: Drop the index that references the stock column
+-- This index must be dropped before dropping the column
+DROP INDEX IF EXISTS idx_products_stock_alert;
+
+-- Step 2: Remove stock field from products table
 -- This field is deprecated as stock is now managed by Inventory Service
 ALTER TABLE products DROP COLUMN stock;
 
--- Step 2: Remove availableStock field from productBundles table
+-- Step 3: Remove availableStock field from productBundles table
 -- Bundle stock is now calculated virtually from component availability
 ALTER TABLE productBundles DROP COLUMN availableStock;
 
