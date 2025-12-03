@@ -3,7 +3,7 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { drizzle } from 'drizzle-orm/d1';
 import { eq, and } from 'drizzle-orm';
-import { productUOMLocations, productUOMs, products } from '../../db/schema';
+import { productUOMLocations, productUOMs, products, productLocations } from '../../db/schema';
 import { generateId } from '../../../shared/utils/helpers';
 
 type Bindings = {
@@ -25,6 +25,99 @@ const createUOMLocationSchema = z.object({
 });
 
 const updateUOMLocationSchema = createUOMLocationSchema.partial().omit({ productUOMId: true });
+
+/**
+ * Helper function to validate UOM stock doesn't exceed product stock at a specific warehouse
+ * Returns error message if validation fails, null if valid
+ *
+ * This validates WAREHOUSE-SPECIFIC stock (not global stock), ensuring that for each warehouse,
+ * the total UOM stock (in base units) matches the product location stock (in base units).
+ */
+async function validateUOMStockPerWarehouse(
+  db: any,
+  productId: string,
+  warehouseId: string,
+  productUOMId: string,
+  conversionFactor: number,
+  newQuantity: number,
+  isUpdate: boolean = false
+): Promise<string | null> {
+  // Get product to access baseUnit
+  const product = await db
+    .select()
+    .from(products)
+    .where(eq(products.id, productId))
+    .get();
+
+  if (!product) {
+    return 'Product not found';
+  }
+
+  const baseUnit = product.baseUnit || 'PCS';
+
+  // Get product location stock at this warehouse (base units)
+  const productLocation = await db
+    .select()
+    .from(productLocations)
+    .where(
+      and(
+        eq(productLocations.productId, productId),
+        eq(productLocations.warehouseId, warehouseId)
+      )
+    )
+    .get();
+
+  if (!productLocation) {
+    return `Product location not found for warehouse. Please create product location first.`;
+  }
+
+  const warehouseBaseStock = productLocation.quantity || 0;
+
+  // Get all product UOMs for this product
+  const allProductUOMs = await db
+    .select()
+    .from(productUOMs)
+    .where(eq(productUOMs.productId, productId))
+    .all();
+
+  // Calculate total UOM stock at this warehouse (in base units)
+  let totalUOMStockAtWarehouse = 0;
+
+  for (const pUom of allProductUOMs) {
+    // Get UOM location at this warehouse
+    const uomLocation = await db
+      .select()
+      .from(productUOMLocations)
+      .where(
+        and(
+          eq(productUOMLocations.productUOMId, pUom.id),
+          eq(productUOMLocations.warehouseId, warehouseId)
+        )
+      )
+      .get();
+
+    if (uomLocation) {
+      // If this is the UOM being updated, use new quantity
+      if (pUom.id === productUOMId && isUpdate) {
+        totalUOMStockAtWarehouse += newQuantity * conversionFactor;
+      } else {
+        totalUOMStockAtWarehouse += (uomLocation.quantity || 0) * pUom.conversionFactor;
+      }
+    }
+  }
+
+  // If creating new UOM location (not updating), add the new quantity
+  if (!isUpdate) {
+    totalUOMStockAtWarehouse += newQuantity * conversionFactor;
+  }
+
+  // Validate: total UOM stock at warehouse should not exceed warehouse base stock
+  if (totalUOMStockAtWarehouse > warehouseBaseStock) {
+    return `Stock validation failed for warehouse: Total UOM stock at this warehouse would be ${totalUOMStockAtWarehouse} ${baseUnit}, but product location stock is only ${warehouseBaseStock} ${baseUnit}. Please adjust product location stock first or reduce UOM quantities.`;
+  }
+
+  return null; // Valid
+}
 
 // GET /api/product-uom-locations - List all product UOM locations with optional filters
 app.get('/', async (c) => {
@@ -172,6 +265,21 @@ app.post('/', zValidator('json', createUOMLocationSchema), async (c) => {
     );
   }
 
+  // Validate stock consistency per warehouse
+  const validationError = await validateUOMStockPerWarehouse(
+    db,
+    productUOM.productId,
+    data.warehouseId,
+    data.productUOMId,
+    productUOM.conversionFactor,
+    data.quantity,
+    false // isUpdate = false (creating new)
+  );
+
+  if (validationError) {
+    return c.json({ error: validationError }, 400);
+  }
+
   const now = new Date();
   const newLocation = {
     id: generateId(),
@@ -289,6 +397,34 @@ app.put('/:id', zValidator('json', updateUOMLocationSchema), async (c) => {
     return c.json({ error: 'UOM location not found' }, 404);
   }
 
+  // Get product UOM to access product ID and conversion factor
+  const productUOM = await db
+    .select()
+    .from(productUOMs)
+    .where(eq(productUOMs.id, existingLocation.productUOMId))
+    .get();
+
+  if (!productUOM) {
+    return c.json({ error: 'Product UOM not found' }, 404);
+  }
+
+  // Validate stock consistency per warehouse if quantity is being updated
+  if (data.quantity !== undefined) {
+    const validationError = await validateUOMStockPerWarehouse(
+      db,
+      productUOM.productId,
+      data.warehouseId || existingLocation.warehouseId,
+      existingLocation.productUOMId,
+      productUOM.conversionFactor,
+      data.quantity,
+      true // isUpdate = true
+    );
+
+    if (validationError) {
+      return c.json({ error: validationError }, 400);
+    }
+  }
+
   const updateData: any = {
     ...data,
     updatedAt: new Date(),
@@ -360,6 +496,32 @@ app.patch('/:id/quantity', zValidator('json', z.object({ quantity: z.number().in
     return c.json({ error: 'UOM location not found' }, 404);
   }
 
+  // Get productUOM for conversion factor and validation
+  const productUOM = await db
+    .select()
+    .from(productUOMs)
+    .where(eq(productUOMs.id, existingLocation.productUOMId))
+    .get();
+
+  if (!productUOM) {
+    return c.json({ error: 'Product UOM not found' }, 404);
+  }
+
+  // Validate stock consistency per warehouse
+  const validationError = await validateUOMStockPerWarehouse(
+    db,
+    productUOM.productId,
+    existingLocation.warehouseId,
+    existingLocation.productUOMId,
+    productUOM.conversionFactor,
+    quantity,
+    true // isUpdate = true
+  );
+
+  if (validationError) {
+    return c.json({ error: validationError }, 400);
+  }
+
   await db
     .update(productUOMLocations)
     .set({
@@ -371,12 +533,6 @@ app.patch('/:id/quantity', zValidator('json', z.object({ quantity: z.number().in
 
   // DDD FIX: Sync inventory when quantity changes
   try {
-    // Get productUOM for conversion factor
-    const productUOM = await db
-      .select()
-      .from(productUOMs)
-      .where(eq(productUOMs.id, existingLocation.productUOMId))
-      .get();
 
     if (productUOM) {
       // Calculate new quantity in base units
