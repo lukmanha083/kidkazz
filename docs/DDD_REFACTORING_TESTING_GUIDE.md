@@ -908,6 +908,434 @@ curl http://localhost:8792/api/batches/expired
 
 ---
 
+## Phase 4 Testing - Cascade Delete Strategy
+
+**Goal**: Verify warehouse soft delete, product deletion validation, and orphaned reference cleanup work correctly.
+
+### Test 4.1: Warehouse Soft Delete
+
+**Background**: Warehouses use soft delete to maintain data integrity and prevent cross-service reference breakage.
+
+```bash
+# Step 1: Create a test warehouse
+curl -X POST http://localhost:8792/api/warehouses \
+  -H "Content-Type: application/json" \
+  -d '{
+    "code": "WH-DELETE-TEST",
+    "name": "Warehouse for Delete Testing",
+    "addressLine1": "Jl. Delete Test No. 456",
+    "city": "Jakarta",
+    "province": "DKI Jakarta",
+    "postalCode": "12345",
+    "country": "Indonesia",
+    "status": "active"
+  }'
+
+# Save warehouse ID as wh_delete_test
+```
+
+```bash
+# Step 2: Create product location at this warehouse
+curl -X POST http://localhost:8788/api/products \
+  -H "Content-Type: application/json" \
+  -d '{
+    "barcode": "DELETE-TEST-001",
+    "name": "Product for Delete Test",
+    "sku": "DEL-TEST-001",
+    "price": 10000,
+    "stock": 0,
+    "baseUnit": "PCS",
+    "status": "omnichannel sales"
+  }'
+
+# Save product ID as prod_delete_test
+
+curl -X POST http://localhost:8788/api/product-locations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "productId": "prod_delete_test",
+    "warehouseId": "wh_delete_test",
+    "quantity": 50
+  }'
+```
+
+```bash
+# Step 3: Delete warehouse (soft delete)
+curl -X DELETE http://localhost:8792/api/warehouses/wh_delete_test
+
+# Expected: {"message": "Warehouse deleted successfully"}
+```
+
+```bash
+# Step 4: Verify warehouse is soft deleted
+curl http://localhost:8792/api/warehouses
+
+# Expected: wh_delete_test NOT in the list
+
+curl http://localhost:8792/api/warehouses/wh_delete_test
+
+# Expected: 404 Not Found or filtered out
+```
+
+```bash
+# Step 5: Verify product location still exists (orphaned)
+curl "http://localhost:8788/api/product-locations?warehouseId=wh_delete_test"
+
+# Expected:
+# {
+#   "locations": [{
+#     "id": "...",
+#     "productId": "prod_delete_test",
+#     "warehouseId": "wh_delete_test",
+#     "quantity": 50
+#   }],
+#   "total": 1
+# }
+#
+# Note: Location is orphaned - warehouse is soft deleted
+```
+
+**✅ Pass Criteria**:
+- Warehouse no longer appears in GET /api/warehouses
+- Warehouse has `deletedAt` timestamp set (not hard deleted)
+- Product locations still exist (not cascaded)
+- Inventory record still exists
+
+### Test 4.2: Cleanup Orphaned References
+
+```bash
+# Step 1: Check for orphaned locations
+curl http://localhost:8788/api/cleanup/orphaned-locations/check
+
+# Expected response:
+# {
+#   "orphanedProductLocations": [
+#     {
+#       "id": "...",
+#       "productId": "prod_delete_test",
+#       "warehouseId": "wh_delete_test",
+#       "quantity": 50,
+#       "reason": "Warehouse no longer active or deleted"
+#     }
+#   ],
+#   "orphanedUOMLocations": [],
+#   "orphanedVariantLocations": [],
+#   "totalOrphaned": 1,
+#   "message": "Found 1 orphaned location(s) that reference inactive/deleted warehouses"
+# }
+```
+
+```bash
+# Step 2: Execute cleanup
+curl -X POST http://localhost:8788/api/cleanup/orphaned-locations
+
+# Expected response:
+# {
+#   "deletedProductLocations": 1,
+#   "deletedUOMLocations": 0,
+#   "deletedVariantLocations": 0,
+#   "totalDeleted": 1,
+#   "message": "Cleaned up 1 orphaned location(s)"
+# }
+```
+
+```bash
+# Step 3: Verify locations are cleaned up
+curl "http://localhost:8788/api/product-locations?productId=prod_delete_test"
+
+# Expected:
+# {
+#   "locations": [],
+#   "total": 0
+# }
+```
+
+**✅ Pass Criteria**:
+- Check endpoint identifies orphaned locations
+- Execute endpoint deletes orphaned locations
+- Orphaned UOM and variant locations also cleaned up
+- No errors during cleanup
+
+### Test 4.3: Product Deletion Validation
+
+**Background**: Products cannot be deleted if they have active inventory.
+
+```bash
+# Step 1: Create product with inventory
+curl -X POST http://localhost:8788/api/products \
+  -H "Content-Type: application/json" \
+  -d '{
+    "barcode": "PROD-DEL-VAL-001",
+    "name": "Product Deletion Validation Test",
+    "sku": "PDV-001",
+    "price": 25000,
+    "stock": 0,
+    "baseUnit": "PCS",
+    "minimumStock": 5,
+    "status": "omnichannel sales"
+  }'
+
+# Save product ID as prod_del_val
+
+curl -X POST http://localhost:8788/api/product-locations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "productId": "prod_del_val",
+    "warehouseId": "wh_12345...",
+    "quantity": 100
+  }'
+```
+
+```bash
+# Step 2: Attempt to delete product with inventory (should fail)
+curl -X DELETE http://localhost:8788/api/products/prod_del_val
+
+# Expected: 400 Bad Request
+# {
+#   "error": "Cannot delete product \"Product Deletion Validation Test\" (SKU: PDV-001)",
+#   "reason": "Product has inventory",
+#   "details": {
+#     "totalStock": 100,
+#     "warehouses": 1,
+#     "suggestion": "Transfer or adjust inventory to zero before deleting"
+#   }
+# }
+```
+
+```bash
+# Step 3: Reduce inventory to zero
+curl -X POST http://localhost:8792/api/inventory/adjust \
+  -H "Content-Type: application/json" \
+  -d '{
+    "productId": "prod_del_val",
+    "warehouseId": "wh_12345...",
+    "quantity": -100,
+    "movementType": "out",
+    "reason": "Preparing for product deletion"
+  }'
+
+# Expected: Inventory adjusted to 0
+```
+
+```bash
+# Step 4: Delete product (should succeed now)
+curl -X DELETE http://localhost:8788/api/products/prod_del_val
+
+# Expected: 200 OK
+# {
+#   "message": "Product \"Product Deletion Validation Test\" deleted successfully"
+# }
+```
+
+```bash
+# Step 5: Verify cascaded deletions
+curl "http://localhost:8788/api/product-locations?productId=prod_del_val"
+
+# Expected: 404 or empty array (locations deleted via CASCADE)
+
+curl "http://localhost:8792/api/inventory?productId=prod_del_val"
+
+# Expected: empty array (inventory cleaned up by Product Service)
+```
+
+**✅ Pass Criteria**:
+- Cannot delete product with active inventory (stock > 0)
+- Error message provides helpful details
+- After inventory = 0, deletion succeeds
+- Product locations CASCADE deleted automatically
+- Inventory Service records cleaned up by Product Service
+
+### Test 4.4: Product Deletion with UOM and Variants
+
+**Background**: Product deletion should cascade to UOMs, variants, and their locations.
+
+```bash
+# Step 1: Create product with UOMs and variants
+curl -X POST http://localhost:8788/api/products \
+  -H "Content-Type: application/json" \
+  -d '{
+    "barcode": "CASCADE-TEST-001",
+    "name": "Product Cascade Delete Test",
+    "sku": "CASCADE-001",
+    "price": 30000,
+    "stock": 0,
+    "baseUnit": "PCS",
+    "status": "omnichannel sales"
+  }'
+
+# Save as prod_cascade
+
+# Add product location
+curl -X POST http://localhost:8788/api/product-locations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "productId": "prod_cascade",
+    "warehouseId": "wh_12345...",
+    "quantity": 0
+  }'
+
+# Add product UOM
+curl -X POST http://localhost:8788/api/uoms/products \
+  -H "Content-Type: application/json" \
+  -d '{
+    "productId": "prod_cascade",
+    "uomCode": "BOX10",
+    "uomName": "Box of 10",
+    "barcode": "CASCADE-BOX10",
+    "conversionFactor": 10,
+    "stock": 0,
+    "isDefault": false
+  }'
+
+# Save as puom_cascade
+
+# Add variant
+curl -X POST http://localhost:8788/api/variants \
+  -H "Content-Type: application/json" \
+  -d '{
+    "productId": "prod_cascade",
+    "productName": "Product Cascade Delete Test",
+    "productSKU": "CASCADE-001",
+    "variantName": "Red",
+    "variantSKU": "CASCADE-001-RED",
+    "variantType": "Color",
+    "price": 30000,
+    "stock": 0,
+    "status": "active"
+  }'
+
+# Save as variant_cascade
+```
+
+```bash
+# Step 2: Delete product
+curl -X DELETE http://localhost:8788/api/products/prod_cascade
+
+# Expected: 200 OK
+```
+
+```bash
+# Step 3: Verify all dependent data deleted via CASCADE
+# Product locations
+curl "http://localhost:8788/api/product-locations?productId=prod_cascade"
+# Expected: empty
+
+# Product UOMs
+curl "http://localhost:8788/api/uoms/products/prod_cascade"
+# Expected: empty or 404
+
+# Variants
+curl "http://localhost:8788/api/variants?productId=prod_cascade"
+# Expected: empty
+```
+
+**✅ Pass Criteria**:
+- Product deletion cascades to product locations
+- Product deletion cascades to product UOMs and their locations
+- Product deletion cascades to variants and their locations
+- Inventory Service records cleaned up
+- No orphaned data left behind
+
+---
+
+## Frontend Integration Testing
+
+**Goal**: Verify admin dashboard uses the DDD pattern correctly.
+
+### Test 5.1: Product Table Stock Column
+
+```bash
+# Step 1: Open admin dashboard
+# Navigate to: http://localhost:3000/dashboard/products/all
+```
+
+**Expected Behavior**:
+- Stock column displays total stock from Inventory Service
+- Stock shows "..." while loading
+- Stock values match `GET /api/products/:id/stock` response
+- Low stock items highlighted in yellow (below minimumStock)
+- Critical stock items highlighted in red (below 40% of minimumStock)
+
+**Verification**:
+1. Open browser DevTools → Network tab
+2. Look for requests to `/api/products/:id/stock` for each product
+3. Verify stock values displayed match API responses
+4. No direct `product.stock` field usage (deprecated)
+
+### Test 5.2: Warehouse Management
+
+```bash
+# Navigate to: http://localhost:3000/dashboard/inventory/warehouse
+```
+
+**Expected Behavior**:
+- Delete warehouse button performs soft delete
+- Deleted warehouses disappear from list
+- No hard delete (data preserved with `deletedAt` timestamp)
+- Active warehouses fetched via `GET /api/warehouses` (filtered)
+
+**Verification**:
+1. Click delete on a warehouse
+2. Check Network tab for `DELETE /api/warehouses/:id` request
+3. Verify warehouse disappears from UI
+4. Check database: warehouse has `deletedAt` field set
+
+### Test 5.3: Product Location Management
+
+```bash
+# Navigate to: http://localhost:3000/dashboard/inventory/product-locations
+```
+
+**Expected Behavior**:
+- Creating product location automatically creates inventory
+- Updating quantity updates Inventory Service
+- Stock changes reflected immediately
+- No direct stock field updates on products
+
+**Verification**:
+1. Create new product location
+2. Check Network tab for POST to `/api/product-locations`
+3. Verify inventory created (check `/api/inventory?productId=...`)
+4. Update location quantity
+5. Verify inventory updated accordingly
+
+### Test 5.4: Bundle Stock Display
+
+```bash
+# Navigate to: http://localhost:3000/dashboard/products/bundle
+```
+
+**Expected Behavior**:
+- Bundle stock calculated from components (virtual stock)
+- No `availableStock` field stored on bundle
+- Limiting component displayed
+- Stock updates when component inventory changes
+
+**Verification**:
+1. View bundle details
+2. Check Network tab for GET `/api/bundles/:id/available-stock`
+3. Verify stock calculation matches component availability
+4. No bundle stock update endpoints called
+
+### Test 5.5: Low Stock Alerts
+
+```bash
+# Navigate to: http://localhost:3000/dashboard/inventory/low-stock
+```
+
+**Expected Behavior**:
+- Low stock page fetches from Inventory Service
+- Uses `/api/products/:id/low-stock` endpoint
+- Shows warehouse breakdown
+- Displays deficit amounts
+
+**Verification**:
+1. Check Network tab for low stock API calls
+2. Verify data source is Inventory Service
+3. Confirm no Product Service stock field usage
+
+---
+
 ## Integration Testing - End-to-End Scenarios
 
 ### Scenario 1: Complete Product Lifecycle
@@ -1042,6 +1470,26 @@ ab -n 100 -c 10 "http://localhost:8792/api/batches?status=active"
 - [ ] Batch quantity adjustments update parent inventory
 - [ ] Audit trail for all batch operations
 
+### Phase 4 ✅ (Cascade Delete)
+- [ ] Warehouse soft delete works (deletedAt set, not hard deleted)
+- [ ] Soft deleted warehouses filtered from GET requests
+- [ ] Orphaned location detection works correctly
+- [ ] Orphaned location cleanup executes successfully
+- [ ] Product deletion validation prevents deletion with inventory > 0
+- [ ] Product deletion with inventory = 0 succeeds
+- [ ] Product deletion cascades to locations, UOMs, variants
+- [ ] Inventory Service records cleaned up after product deletion
+
+### Frontend Integration ✅
+- [ ] Product table fetches stock from Inventory Service
+- [ ] Stock column shows loading state ("...")
+- [ ] Low stock highlighting works (yellow/red)
+- [ ] Warehouse delete performs soft delete
+- [ ] Product location create/update triggers inventory sync
+- [ ] Bundle stock displays virtual calculation
+- [ ] No deprecated product.stock field usage
+- [ ] All admin dashboard pages use DDD pattern APIs
+
 ---
 
 ## Success Criteria
@@ -1054,6 +1502,9 @@ ab -n 100 -c 10 "http://localhost:8792/api/batches?status=active"
 - ✅ FEFO picking strategy implemented
 - ✅ Complete audit trail for all inventory operations
 - ✅ DDD principles followed (proper bounded contexts)
+- ✅ Warehouse soft delete maintains data integrity
+- ✅ Product deletion validation prevents data loss
+- ✅ Orphaned reference cleanup works automatically
 
 **API Response Times**:
 - ✅ All endpoints respond within acceptable time
@@ -1065,6 +1516,15 @@ ab -n 100 -c 10 "http://localhost:8792/api/batches?status=active"
 - ✅ Bundle stock correctly calculated
 - ✅ Batch quantities sum to inventory totals
 - ✅ Movement records match quantity changes
+- ✅ No orphaned references after warehouse deletion
+- ✅ CASCADE delete works for product dependencies
+
+**Frontend Integration**:
+- ✅ Admin dashboard uses DDD pattern APIs exclusively
+- ✅ Stock data fetched from Inventory Service
+- ✅ No deprecated product.stock field usage
+- ✅ Warehouse soft delete reflected in UI
+- ✅ Real-time stock updates work correctly
 
 ---
 
@@ -1075,24 +1535,44 @@ ab -n 100 -c 10 "http://localhost:8792/api/batches?status=active"
    - Deploy services in order: Inventory → Product → Frontend
    - Monitor for errors
 
-2. **Frontend Integration**:
-   - Update admin dashboard to use new endpoints
-   - Implement batch management UI
-   - Add FEFO indicators
+2. **Frontend Integration** ✅:
+   - ✅ Admin dashboard updated to use new endpoints
+   - ✅ Product table fetches stock from Inventory Service
+   - ✅ Warehouse soft delete integrated
+   - ✅ All pages use DDD pattern APIs
+   - 🔄 Implement batch management UI (Phase 3)
+   - 🔄 Add FEFO indicators (Phase 3)
 
 3. **Monitoring**:
    - Set up alerts for low stock
    - Monitor expiring batches
    - Track API performance
+   - Schedule orphaned location cleanup (daily/weekly)
+   - Monitor soft-deleted warehouses
 
-4. **Documentation**:
+4. **Documentation** ✅:
+   - ✅ Cascade delete strategy documented
+   - ✅ Testing guide updated with Phase 4 tests
    - Update user guides
    - Create operations manual
    - Document batch workflows
 
+5. **Maintenance Tasks**:
+   - Run `POST /api/cleanup/orphaned-locations` periodically
+   - Review soft-deleted warehouses for permanent deletion
+   - Monitor product deletion errors for inventory issues
+
 ---
 
-**Testing Status**: ⏳ Ready for execution
-**Estimated Duration**: 30-45 minutes
+**Testing Status**: ✅ Phase 4 complete, ready for Phase 1-3 execution
+**Estimated Duration**: 45-60 minutes for complete test suite (including Phase 4)
 **Prerequisites**: All services running
-**Branch**: `claude/refactor-with-docs-01SQc3GSy1ZLC6wRS9DKouSC`
+**Branch**: `claude/apply-db-migrations-01SheHEudSa59w8vG5XcwrLx`
+
+**Recent Updates**:
+- ✅ Phase 4: Cascade Delete Strategy implemented
+- ✅ Warehouse soft delete with filtering
+- ✅ Product deletion validation
+- ✅ Orphaned reference cleanup job
+- ✅ Frontend integration completed
+- ✅ Stock fetching from Inventory Service

@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -346,6 +346,9 @@ function AllProductsPage() {
     productName?: string;
   } | null>(null);
 
+  // Product stocks from Inventory Service (DDD pattern)
+  const [productStocks, setProductStocks] = useState<Record<string, { totalStock: number; isLoading: boolean }>>({});
+
   // Fetch products - removed searchTerm from queryKey to fix invalidation issue
   const { data: productsData, isLoading, error } = useQuery({
     queryKey: ['products'],
@@ -380,6 +383,35 @@ function AllProductsPage() {
 
   // Filter base units for Base Unit dropdown
   const baseUnits = availableUOMs.filter(uom => uom.isBaseUnit);
+
+  // Fetch stock data from Inventory Service for all products (DDD pattern)
+  useEffect(() => {
+    if (!products || products.length === 0) return;
+
+    // Initialize loading state for all products
+    const loadingStocks: Record<string, { totalStock: number; isLoading: boolean }> = {};
+    products.forEach(product => {
+      loadingStocks[product.id] = { totalStock: 0, isLoading: true };
+    });
+    setProductStocks(loadingStocks);
+
+    // Fetch stock for each product from Inventory Service
+    products.forEach(async (product) => {
+      try {
+        const stockData = await productApi.getStock(product.id);
+        setProductStocks(prev => ({
+          ...prev,
+          [product.id]: { totalStock: stockData.totalStock, isLoading: false }
+        }));
+      } catch (error) {
+        // If no stock data (404), set to 0
+        setProductStocks(prev => ({
+          ...prev,
+          [product.id]: { totalStock: 0, isLoading: false }
+        }));
+      }
+    });
+  }, [products]);
 
   // Create product mutation
   const createProductMutation = useMutation({
@@ -1503,17 +1535,23 @@ function AllProductsPage() {
                               <span
                                 className={
                                   (() => {
+                                    const stockInfo = productStocks[product.id];
+                                    const currentStock = stockInfo?.totalStock ?? 0;
                                     const minStock = product.minimumStock || 50;
                                     const criticalStock = Math.floor(minStock * 0.4);
-                                    return product.stock < criticalStock
+                                    return currentStock < criticalStock
                                       ? 'text-destructive font-medium'
-                                      : product.stock < minStock
+                                      : currentStock < minStock
                                       ? 'text-yellow-600 font-medium'
                                       : '';
                                   })()
                                 }
                               >
-                                {product.stock}
+                                {(() => {
+                                  const stockInfo = productStocks[product.id];
+                                  if (stockInfo?.isLoading) return '...';
+                                  return stockInfo?.totalStock ?? 0;
+                                })()}
                               </span>
                             </TableCell>
                           )}
