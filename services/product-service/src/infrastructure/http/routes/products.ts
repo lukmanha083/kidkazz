@@ -784,14 +784,100 @@ app.post('/:id/validate-stock-consistency', async (c) => {
   });
 });
 
-// DELETE /api/products/:id - Delete product
+// DELETE /api/products/:id - Delete product with validation
 app.delete('/:id', async (c) => {
   const id = c.req.param('id');
   const db = drizzle(c.env.DB);
 
+  // Get product info for error messages
+  const product = await db
+    .select()
+    .from(products)
+    .where(eq(products.id, id))
+    .get();
+
+  if (!product) {
+    return c.json({ error: 'Product not found' }, 404);
+  }
+
+  // 1. Check product locations
+  const locations = await db
+    .select()
+    .from(productLocations)
+    .where(eq(productLocations.productId, id))
+    .all();
+
+  if (locations.length > 0) {
+    // 2. Check inventory for each location
+    try {
+      const inventoryResponse = await c.env.INVENTORY_SERVICE.fetch(
+        new Request(`http://inventory-service/api/inventory?productId=${id}`)
+      );
+
+      if (inventoryResponse.ok) {
+        const inventoryData = await inventoryResponse.json();
+        const totalStock = inventoryData.inventory?.reduce(
+          (sum: number, inv: any) => sum + (inv.quantityAvailable || 0),
+          0
+        ) || 0;
+
+        if (totalStock > 0) {
+          return c.json(
+            {
+              error: `Cannot delete product "${product.name}" (SKU: ${product.sku})`,
+              reason: 'Product has inventory',
+              details: {
+                totalStock,
+                warehouses: locations.length,
+                suggestion: 'Transfer or adjust inventory to zero before deleting the product',
+              },
+            },
+            400
+          );
+        }
+      }
+    } catch (invError) {
+      console.error('Error checking inventory:', invError);
+      return c.json(
+        {
+          error: 'Cannot verify product inventory status',
+          reason: 'Inventory service unavailable',
+          suggestion: 'Please ensure inventory is zero before deleting the product',
+        },
+        503
+      );
+    }
+  }
+
+  // 3. Delete product (CASCADE will handle dependent data)
+  // This will cascade to:
+  // - productUOMs (and their productUOMLocations)
+  // - productVariants (and their variantLocations)
+  // - productLocations
+  // - productBundles/bundleItems
+  // - productImages, productVideos
+  // - pricingTiers, customPricing
   await db.delete(products).where(eq(products.id, id)).run();
 
-  return c.json({ message: 'Product deleted successfully' });
+  // 4. Clean up inventory records in Inventory Service
+  for (const location of locations) {
+    try {
+      await c.env.INVENTORY_SERVICE.fetch(
+        new Request(
+          `http://inventory-service/api/inventory/${id}/${location.warehouseId}`,
+          { method: 'DELETE' }
+        )
+      );
+    } catch (err) {
+      console.error(`Failed to delete inventory for warehouse ${location.warehouseId}:`, err);
+      // Don't fail the entire operation - inventory cleanup can be done later
+    }
+  }
+
+  return c.json({
+    message: 'Product deleted successfully',
+    deletedLocations: locations.length
+  });
 });
 
 export default app;

@@ -7,6 +7,7 @@ import uomsRoutes from './routes/uoms';
 import productLocationsRoutes from './routes/product-locations';
 import variantLocationsRoutes from './routes/variant-locations';
 import productUOMLocationsRoutes from './routes/product-uom-locations';
+import cleanupRoutes from './routes/cleanup';
 
 type Bindings = {
   DB: D1Database;
@@ -33,5 +34,6 @@ app.route('/uoms', uomsRoutes);
 app.route('/product-locations', productLocationsRoutes);
 app.route('/variant-locations', variantLocationsRoutes);
 app.route('/product-uom-locations', productUOMLocationsRoutes);
+app.route('/cleanup', cleanupRoutes);
 
 export default app;
