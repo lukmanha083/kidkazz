@@ -261,7 +261,6 @@ function AllProductsPage() {
     sku: '',
     categoryId: '',
     price: '',
-    stock: '',
     baseUnit: 'PCS',
     wholesaleThreshold: '12',
     minimumStock: '',
@@ -625,7 +624,6 @@ function AllProductsPage() {
       sku: '',
       categoryId: '',
       price: '',
-      stock: '',
       baseUnit: 'PCS',
       wholesaleThreshold: '12',
       minimumStock: '',
@@ -670,7 +668,6 @@ function AllProductsPage() {
       sku: fullProduct.sku,
       categoryId: fullProduct.categoryId || '',
       price: fullProduct.price.toString(),
-      stock: fullProduct.stock.toString(),
       baseUnit: fullProduct.baseUnit,
       wholesaleThreshold: fullProduct.wholesaleThreshold.toString(),
       minimumStock: fullProduct.minimumStock?.toString() || '',
@@ -935,7 +932,7 @@ function AllProductsPage() {
       description: formData.description,
       categoryId: formData.categoryId || undefined,
       price: parseFloat(formData.price),
-      stock: parseInt(formData.stock),
+      stock: 0, // Deprecated: Stock is now managed via Product Locations (Inventory Service)
       baseUnit: formData.baseUnit,
       wholesaleThreshold: parseInt(formData.wholesaleThreshold),
       minimumStock: formData.minimumStock ? parseInt(formData.minimumStock) : undefined,
@@ -2279,17 +2276,7 @@ function AllProductsPage() {
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="stock">Stock</Label>
-                <Input
-                  id="stock"
-                  type="number"
-                  placeholder="100"
-                  value={formData.stock}
-                  onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                  required
-                />
-              </div>
+              {/* Stock field removed - stock is now managed via Product Locations (Inventory Service) */}
             </div>
 
             <div className="grid grid-cols-2 gap-3">

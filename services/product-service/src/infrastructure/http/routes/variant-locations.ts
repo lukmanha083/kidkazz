@@ -3,7 +3,7 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { drizzle } from 'drizzle-orm/d1';
 import { eq, and } from 'drizzle-orm';
-import { variantLocations, productVariants, products } from '../../db/schema';
+import { variantLocations, productVariants, products, productLocations } from '../../db/schema';
 import { generateId } from '../../../shared/utils/helpers';
 
 type Bindings = {
@@ -25,6 +25,98 @@ const createLocationSchema = z.object({
 });
 
 const updateLocationSchema = createLocationSchema.partial().omit({ variantId: true });
+
+/**
+ * Helper function to validate variant stock doesn't exceed product stock at a specific warehouse
+ * Returns error message if validation fails, null if valid
+ *
+ * This validates WAREHOUSE-SPECIFIC stock (not global stock), ensuring that for each warehouse,
+ * the total variant stock matches the product location stock.
+ */
+async function validateVariantStockPerWarehouse(
+  db: any,
+  productId: string,
+  warehouseId: string,
+  variantIdToUpdate: string,
+  newQuantity: number,
+  isUpdate: boolean = false
+): Promise<string | null> {
+  // Get product to access baseUnit
+  const product = await db
+    .select()
+    .from(products)
+    .where(eq(products.id, productId))
+    .get();
+
+  if (!product) {
+    return 'Product not found';
+  }
+
+  const baseUnit = product.baseUnit || 'PCS';
+
+  // Get product location stock at this warehouse (base units)
+  const productLocation = await db
+    .select()
+    .from(productLocations)
+    .where(
+      and(
+        eq(productLocations.productId, productId),
+        eq(productLocations.warehouseId, warehouseId)
+      )
+    )
+    .get();
+
+  if (!productLocation) {
+    return `Product location not found for warehouse. Please create product location first.`;
+  }
+
+  const warehouseBaseStock = productLocation.quantity || 0;
+
+  // Get all variants for this product
+  const allVariants = await db
+    .select()
+    .from(productVariants)
+    .where(eq(productVariants.productId, productId))
+    .all();
+
+  // Calculate total variant stock at this warehouse
+  let totalVariantStockAtWarehouse = 0;
+
+  for (const variant of allVariants) {
+    // Get variant location at this warehouse
+    const variantLocation = await db
+      .select()
+      .from(variantLocations)
+      .where(
+        and(
+          eq(variantLocations.variantId, variant.id),
+          eq(variantLocations.warehouseId, warehouseId)
+        )
+      )
+      .get();
+
+    if (variantLocation) {
+      // If this is the variant being updated, use new quantity
+      if (variant.id === variantIdToUpdate && isUpdate) {
+        totalVariantStockAtWarehouse += newQuantity;
+      } else {
+        totalVariantStockAtWarehouse += variantLocation.quantity || 0;
+      }
+    }
+  }
+
+  // If creating new variant location (not updating), add the new quantity
+  if (!isUpdate) {
+    totalVariantStockAtWarehouse += newQuantity;
+  }
+
+  // Validate: total variant stock at warehouse should not exceed warehouse base stock
+  if (totalVariantStockAtWarehouse > warehouseBaseStock) {
+    return `Stock validation failed for warehouse: Total variant stock at this warehouse would be ${totalVariantStockAtWarehouse} ${baseUnit}, but product location stock is only ${warehouseBaseStock} ${baseUnit}. Please adjust product location stock first or reduce variant quantities.`;
+  }
+
+  return null; // Valid
+}
 
 // GET /api/variant-locations - List all variant locations
 app.get('/', async (c) => {
@@ -131,6 +223,31 @@ app.post('/', zValidator('json', createLocationSchema), async (c) => {
     );
   }
 
+  // Get variant to access productId for validation
+  const variant = await db
+    .select()
+    .from(productVariants)
+    .where(eq(productVariants.id, data.variantId))
+    .get();
+
+  if (!variant) {
+    return c.json({ error: 'Variant not found' }, 404);
+  }
+
+  // Validate stock consistency per warehouse
+  const validationError = await validateVariantStockPerWarehouse(
+    db,
+    variant.productId,
+    data.warehouseId,
+    data.variantId,
+    data.quantity,
+    false // isUpdate = false (creating new)
+  );
+
+  if (validationError) {
+    return c.json({ error: validationError }, 400);
+  }
+
   const now = new Date();
   const newLocation = {
     id: generateId(),
@@ -155,86 +272,9 @@ app.post('/', zValidator('json', createLocationSchema), async (c) => {
     .where(eq(variantLocations.id, newLocation.id))
     .get();
 
-  // DDD FIX: Create/update inventory record for variant
-  // Variants track their own inventory separate from base product
-  try {
-    // Get variant details for productId and minimumStock
-    const variant = await db
-      .select()
-      .from(productVariants)
-      .where(eq(productVariants.id, data.variantId))
-      .get();
-
-    if (variant) {
-      // Get base product for minimumStock (variants inherit from base product)
-      const product = await db
-        .select()
-        .from(products)
-        .where(eq(products.id, variant.productId))
-        .get();
-
-      // Check if inventory record already exists for this variant
-      // Variants use productId as key, but we track them separately
-      const inventoryCheckResponse = await c.env.INVENTORY_SERVICE.fetch(
-        new Request(`http://inventory-service/api/inventory/${variant.productId}/${data.warehouseId}`)
-      );
-
-      if (inventoryCheckResponse.status === 404) {
-        // Inventory record doesn't exist, create it
-        const adjustResponse = await c.env.INVENTORY_SERVICE.fetch(
-          new Request('http://inventory-service/api/inventory/adjust', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              productId: variant.productId,
-              warehouseId: data.warehouseId,
-              quantity: data.quantity,
-              movementType: 'adjustment',
-              reason: 'Product variant location created',
-              notes: `Initial stock for variant ${variant.variantName} (${variant.variantType})`,
-            }),
-          })
-        );
-
-        if (adjustResponse.ok) {
-          const invData = await adjustResponse.json();
-          const inventoryId = invData.inventory?.id;
-
-          // Set minimumStock if base product has it defined
-          if (inventoryId && product?.minimumStock) {
-            await c.env.INVENTORY_SERVICE.fetch(
-              new Request(`http://inventory-service/api/inventory/${inventoryId}/minimum-stock`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ minimumStock: product.minimumStock }),
-              })
-            );
-          }
-          console.log(`✅ Created inventory record for variant ${variant.variantName} at warehouse ${data.warehouseId}`);
-        }
-      } else if (inventoryCheckResponse.ok) {
-        // Inventory exists, add to the existing quantity
-        await c.env.INVENTORY_SERVICE.fetch(
-          new Request('http://inventory-service/api/inventory/adjust', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              productId: variant.productId,
-              warehouseId: data.warehouseId,
-              quantity: data.quantity,
-              movementType: 'in',
-              reason: 'Product variant location added',
-              notes: `Stock added for variant ${variant.variantName} (${variant.variantType})`,
-            }),
-          })
-        );
-        console.log(`✅ Added ${data.quantity} units to inventory for variant ${variant.variantName} at warehouse ${data.warehouseId}`);
-      }
-    }
-  } catch (invError) {
-    console.error('❌ Failed to create/update inventory record from variant location:', invError);
-    // Don't fail the entire request if inventory sync fails
-  }
+  // Note: Variant locations are SUBDIVISIONS of product location stock, not additions.
+  // They do NOT update inventory - only product locations update inventory.
+  // The validation above ensures variant total doesn't exceed product location stock.
 
   return c.json(created, 201);
 });
@@ -255,6 +295,33 @@ app.put('/:id', zValidator('json', updateLocationSchema), async (c) => {
     return c.json({ error: 'Variant location not found' }, 404);
   }
 
+  // Get variant to access productId for validation
+  const variant = await db
+    .select()
+    .from(productVariants)
+    .where(eq(productVariants.id, existingLocation.variantId))
+    .get();
+
+  if (!variant) {
+    return c.json({ error: 'Variant not found' }, 404);
+  }
+
+  // Validate stock consistency per warehouse if quantity is being updated
+  if (data.quantity !== undefined) {
+    const validationError = await validateVariantStockPerWarehouse(
+      db,
+      variant.productId,
+      data.warehouseId || existingLocation.warehouseId,
+      existingLocation.variantId,
+      data.quantity,
+      true // isUpdate = true
+    );
+
+    if (validationError) {
+      return c.json({ error: validationError }, 400);
+    }
+  }
+
   const updateData: any = {
     ...data,
     updatedAt: new Date(),
@@ -272,37 +339,9 @@ app.put('/:id', zValidator('json', updateLocationSchema), async (c) => {
     .where(eq(variantLocations.id, id))
     .get();
 
-  // DDD FIX: Sync inventory if quantity changed
-  if (data.quantity !== undefined && updated) {
-    try {
-      // Get variant details
-      const variant = await db
-        .select()
-        .from(productVariants)
-        .where(eq(productVariants.id, updated.variantId))
-        .get();
-
-      if (variant) {
-        await c.env.INVENTORY_SERVICE.fetch(
-          new Request('http://inventory-service/api/inventory/adjust', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              productId: variant.productId,
-              warehouseId: updated.warehouseId,
-              quantity: data.quantity,
-              movementType: 'adjustment',
-              reason: 'Variant location quantity updated',
-              notes: `Quantity adjusted for variant ${variant.variantName}`,
-            }),
-          })
-        );
-        console.log(`✅ Synced inventory for variant ${variant.variantName} at warehouse ${updated.warehouseId}`);
-      }
-    } catch (invError) {
-      console.error('❌ Failed to sync inventory on variant location update:', invError);
-    }
-  }
+  // Note: Variant locations are SUBDIVISIONS of product location stock, not additions.
+  // They do NOT update inventory - only product locations update inventory.
+  // The validation above ensures variant total doesn't exceed product location stock.
 
   return c.json(updated);
 });
@@ -323,6 +362,31 @@ app.patch('/:id/quantity', zValidator('json', z.object({ quantity: z.number().in
     return c.json({ error: 'Variant location not found' }, 404);
   }
 
+  // Get variant to access productId for validation
+  const variant = await db
+    .select()
+    .from(productVariants)
+    .where(eq(productVariants.id, existingLocation.variantId))
+    .get();
+
+  if (!variant) {
+    return c.json({ error: 'Variant not found' }, 404);
+  }
+
+  // Validate stock consistency per warehouse
+  const validationError = await validateVariantStockPerWarehouse(
+    db,
+    variant.productId,
+    existingLocation.warehouseId,
+    existingLocation.variantId,
+    quantity,
+    true // isUpdate = true
+  );
+
+  if (validationError) {
+    return c.json({ error: validationError }, 400);
+  }
+
   await db
     .update(variantLocations)
     .set({
@@ -332,35 +396,9 @@ app.patch('/:id/quantity', zValidator('json', z.object({ quantity: z.number().in
     .where(eq(variantLocations.id, id))
     .run();
 
-  // DDD FIX: Sync inventory when quantity changes
-  try {
-    // Get variant details
-    const variant = await db
-      .select()
-      .from(productVariants)
-      .where(eq(productVariants.id, existingLocation.variantId))
-      .get();
-
-    if (variant) {
-      await c.env.INVENTORY_SERVICE.fetch(
-        new Request('http://inventory-service/api/inventory/adjust', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            productId: variant.productId,
-            warehouseId: existingLocation.warehouseId,
-            quantity: quantity,
-            movementType: 'adjustment',
-            reason: 'Variant location quantity patched',
-            notes: `Quantity patched for variant ${variant.variantName} (${variant.variantType})`,
-          }),
-        })
-      );
-      console.log(`✅ Synced inventory for variant ${variant.variantName} via PATCH`);
-    }
-  } catch (invError) {
-    console.error('❌ Failed to sync inventory on variant quantity patch:', invError);
-  }
+  // Note: Variant locations are SUBDIVISIONS of product location stock, not additions.
+  // They do NOT update inventory - only product locations update inventory.
+  // The validation above ensures variant total doesn't exceed product location stock.
 
   return c.json({ message: 'Quantity updated successfully' });
 });

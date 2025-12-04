@@ -85,35 +85,65 @@ def delete_doc(doctype, name):
 
 ## 2. Current Database Schema Analysis
 
-### 2.1 Product Service Relationships
+### 2.1 Product Service Relationships (DDD Refactored)
 
 ```
 products (Master Data)
-├── productUOMs ───────────────── CASCADE ✓ (Already implemented)
-├── productVariants ───────────── CASCADE ✓ (Already implemented)
+├── productUOMs ───────────────── CASCADE ✓ (Product-specific UOM definitions)
+│   └── productUOMLocations ──── CASCADE ✓ (UOM subdivisions at warehouses)
+├── productVariants ───────────── CASCADE ✓ (Product variations)
+│   └── variantLocations ──────── CASCADE ✓ (Variant subdivisions at warehouses)
 ├── productBundles
-│   └── bundleItems ──────────── CASCADE ✓ (Already implemented)
-├── pricingTiers ──────────────── CASCADE ✓ (Already implemented)
-├── customPricing ─────────────── CASCADE ✓ (Already implemented)
-├── productImages ─────────────── CASCADE ✓ (Already implemented)
-├── productVideos ─────────────── CASCADE ✓ (Already implemented)
-└── productLocations ──────────── CASCADE ✓ (Already implemented)
+│   └── bundleItems ──────────── CASCADE ✓ (Bundle components)
+├── pricingTiers ──────────────── CASCADE ✓ (Product pricing)
+├── customPricing ─────────────── CASCADE ✓ (Customer-specific pricing)
+├── productImages ─────────────── CASCADE ✓ (Product media)
+├── productVideos ─────────────── CASCADE ✓ (Product media)
+└── productLocations ──────────── ⚠️ COMPLEX - See Section 2.6
 
 categories (Master Data)
-└── products.categoryId ────────── SET NULL ✓ (Already implemented)
+└── products.categoryId ────────── SET NULL ✓ (Products can exist without category)
 ```
 
-**Current Status**: ✅ **WELL DESIGNED**
-- All dependent data uses `onDelete: 'cascade'`
-- Category uses `onDelete: 'set null'` (appropriate since products can exist without category)
+**Current Status**: ⚠️ **NEEDS ATTENTION**
 
-### 2.2 Inventory Service Relationships
+**Critical Changes from DDD Refactoring**:
+1. **Product Locations** now serve as the **Single Source of Truth** for inventory
+2. **UOM/Variant Locations** are **subdivisions**, not additions to inventory
+3. Deleting a product with locations requires inventory cleanup in Inventory Service
+
+### 2.2 Subdivision Model (DDD Pattern)
+
+**⚠️ CRITICAL UNDERSTANDING**: UOM and Variant locations are **subdivisions**, not separate inventory!
+
+```
+Product Location (100 PCS at Warehouse A)
+├── UOM Subdivisions (how it's packaged):
+│   ├── 10 boxes × 6 = 60 PCS
+│   └── Remaining: 40 PCS loose
+│
+└── Variant Subdivisions (how it's distributed):
+    ├── Red variant: 30 PCS
+    ├── Blue variant: 50 PCS
+    └── Other: 20 PCS
+    ─────────────────────────────
+    Total: ALWAYS = 100 PCS (product location quantity)
+```
+
+**Delete Behavior**:
+- ✅ Delete Product → CASCADE to all locations (product, UOM, variant)
+- ✅ Delete UOM Location → No inventory change (just subdivision removed)
+- ✅ Delete Variant Location → No inventory change (just subdivision removed)
+- ❌ Delete Product Location → Must update Inventory Service!
+
+### 2.3 Inventory Service Relationships
 
 ```
 warehouses (Master Data)
-├── inventory ──────────────────── CASCADE ✓ (Already implemented)
-│   ├── inventoryReservations ─── CASCADE ✓ (via inventory)
-│   └── inventoryMovements ────── CASCADE ✓ (via inventory)
+├── inventory ──────────────────── CASCADE ✓ (Warehouse-specific inventory)
+│   ├── inventoryReservations ─── CASCADE ✓ (Reservation records)
+│   ├── inventoryMovements ────── SOFT DELETE ⚠️ (Audit trail)
+│   └── inventoryBatches ──────── CASCADE ✓ (Batch tracking)
 └── productLocations ──────────── ⚠️ CROSS-SERVICE (Product Service)
 ```
 
@@ -125,7 +155,9 @@ warehouses (Master Data)
 
 **Risk**: When warehouse is deleted, orphaned `productLocations` records remain
 
-### 2.3 Accounting Service Relationships
+**DDD Impact**: Product locations create/update inventory, so warehouse deletion requires coordination
+
+### 2.4 Accounting Service Relationships
 
 ```
 chartOfAccounts
@@ -143,7 +175,7 @@ journalEntries (Transactional Data)
 - Prevents deletion of accounts with posted transactions
 - Protects financial data integrity
 
-### 2.4 Cross-Service References (No Foreign Keys)
+### 2.5 Cross-Service References (No Foreign Keys)
 
 These relationships exist logically but have NO database constraints:
 
@@ -153,21 +185,87 @@ Product Service ──→ Accounting Service
 ├── cogsAccountId
 └── inventoryAccountId
 
+Product Service ──→ Inventory Service (DDD Critical!)
+├── productLocations.warehouseId ──→ warehouses.id
+├── productUOMLocations.warehouseId ──→ warehouses.id
+└── variantLocations.warehouseId ──→ warehouses.id
+
+Inventory Service ──→ Product Service (DDD Critical!)
+└── inventory.productId ──→ products.id
+
 Journal Lines ──→ External Services
 ├── customerId
 ├── vendorId
 ├── productId
 ├── warehouseId
 └── salesPersonId
-
-Inventory ──→ Product Service
-└── productId
-
-Product Locations ──→ Inventory Service
-└── warehouseId
 ```
 
 **Risk**: These are cross-service references without referential integrity enforcement.
+
+**DDD-Specific Risks**:
+1. **Product deletion** leaves orphaned inventory records in Inventory Service
+2. **Warehouse deletion** leaves orphaned location records in Product Service
+3. **Product Location deletion** must synchronize with Inventory Service
+
+### 2.6 Product Location Deletion Complexity (DDD Pattern)
+
+**Problem**: Product locations are the **Single Source of Truth** for inventory.
+
+**Deletion Scenarios**:
+
+```typescript
+// Scenario 1: Delete Product (parent)
+DELETE FROM products WHERE id = 'prod-123';
+// ✅ CASCADE to productLocations (Product Service)
+// ⚠️ Orphans inventory records (Inventory Service) - NEEDS HANDLING
+
+// Scenario 2: Delete Product Location (child)
+DELETE FROM productLocations WHERE id = 'loc-456';
+// ⚠️ Must update/delete inventory record (Inventory Service) - NEEDS HANDLING
+
+// Scenario 3: Delete UOM/Variant Location (subdivision)
+DELETE FROM productUOMLocations WHERE id = 'uomloc-789';
+// ✅ No inventory impact (just subdivision removed)
+
+// Scenario 4: Delete Warehouse (external service)
+DELETE FROM warehouses WHERE id = 'wh-123'; // In Inventory Service
+// ⚠️ Orphans productLocations in Product Service - NEEDS HANDLING
+```
+
+**Required Delete Logic**:
+
+```typescript
+// Product Service: Before deleting product
+async deleteProduct(productId: string) {
+  // 1. Get all product locations
+  const locations = await db.select()
+    .from(productLocations)
+    .where(eq(productLocations.productId, productId));
+
+  // 2. For each location, delete inventory in Inventory Service
+  for (const location of locations) {
+    await inventoryService.deleteInventory(productId, location.warehouseId);
+  }
+
+  // 3. Delete product (CASCADE handles productLocations, UOMs, variants, etc.)
+  await db.delete(products).where(eq(products.id, productId));
+}
+
+// Product Service: Before deleting product location
+async deleteProductLocation(locationId: string) {
+  const location = await db.select()
+    .from(productLocations)
+    .where(eq(productLocations.id, locationId))
+    .get();
+
+  // 1. Delete inventory record in Inventory Service
+  await inventoryService.deleteInventory(location.productId, location.warehouseId);
+
+  // 2. Delete product location (CASCADE handles UOM/variant subdivisions)
+  await db.delete(productLocations).where(eq(productLocations.id, locationId));
+}
+```
 
 ---
 
@@ -520,29 +618,33 @@ export const archivedRecords = sqliteTable('archived_records', {
 
 ---
 
-## 6. Delete Strategy Decision Matrix
+## 6. Delete Strategy Decision Matrix (DDD Updated)
 
 | Entity Type | Delete Strategy | Rationale |
 |-------------|----------------|-----------|
 | **Master Data** |||
-| Products | **RESTRICT + Validation** | Check inventory, orders, journal entries before delete |
+| Products | **RESTRICT + Validation** | Check inventory, orders, journal entries. Also sync Inventory Service |
 | Categories | **SET NULL on children** | Products can exist without category |
 | Warehouses | **SOFT DELETE** | Referenced across services (productLocations) |
 | Chart of Accounts | **RESTRICT** | Cannot delete accounts with posted transactions |
 | UOMs | **RESTRICT** | Prevent deletion if used by products |
 | **Dependent Data** |||
-| ProductUOMs | **CASCADE** ✓ | No independent meaning |
-| ProductVariants | **CASCADE** ✓ | Belongs to product |
+| ProductUOMs | **CASCADE** ✓ | No independent meaning, has subdivisions (locations) |
+| ProductVariants | **CASCADE** ✓ | Belongs to product, has subdivisions (locations) |
 | ProductImages | **CASCADE** ✓ | Belongs to product |
 | ProductVideos | **CASCADE** ✓ | Belongs to product |
-| ProductLocations | **CASCADE** ✓ | Belongs to product |
+| ProductLocations | **CASCADE + SYNC** ⚠️ | CASCADE from product, but must sync with Inventory Service |
 | BundleItems | **CASCADE** ✓ | Belongs to bundle |
 | PricingTiers | **CASCADE** ✓ | Belongs to product |
 | CustomPricing | **CASCADE** ✓ | Belongs to product |
+| **Subdivision Data (DDD)** |||
+| ProductUOMLocations | **CASCADE** ✓ | Subdivision of product location (NOT separate inventory) |
+| VariantLocations | **CASCADE** ✓ | Subdivision of product location (NOT separate inventory) |
 | **Inventory Data** |||
-| Inventory | **CASCADE** (via warehouse) | Warehouse-specific |
+| Inventory | **CASCADE** (via warehouse) | Warehouse-specific, source is productLocation |
 | InventoryReservations | **CASCADE** (via inventory) | Belongs to inventory record |
 | InventoryMovements | **SOFT DELETE** | Audit trail - never hard delete |
+| InventoryBatches | **CASCADE** (via inventory) | Batch tracking for inventory |
 | **Transactional/Financial** |||
 | JournalEntries | **SOFT DELETE** | Financial records - audit trail required |
 | JournalLines | **CASCADE** (via entry) | Belongs to journal entry |

@@ -319,6 +319,19 @@ curl -X POST http://localhost:8788/api/product-uom-locations \
 
 ### Test 1.3: Test Variant Location
 
+**⚠️ IMPORTANT**: Like UOM locations, variant locations are also **subdivisions** of product location stock!
+
+**Stock Consistency Rule**:
+```
+Product Location Quantity >= Sum of Variant Location Quantities
+```
+
+For example:
+- Product location: 100 PCS
+- Variant Red: 30 PCS ✅ Valid (30 <= 100)
+- Variant Blue: 70 PCS ✅ Valid (30 + 70 = 100)
+- Variant Green: 20 PCS ❌ Invalid (30 + 70 + 20 = 120 > 100)
+
 ```bash
 # Step 1: Create product variant
 curl -X POST http://localhost:8788/api/variants \
@@ -339,27 +352,70 @@ curl -X POST http://localhost:8788/api/variants \
 ```
 
 ```bash
-# Step 2: Create variant location (should create inventory)
+# Step 2: Create variant location (30 PCS, which is valid since 30 <= 100)
 curl -X POST http://localhost:8788/api/variant-locations \
   -H "Content-Type: application/json" \
   -d '{
     "variantId": "var_...",
     "warehouseId": "wh_12345...",
-    "quantity": 50
+    "quantity": 30
   }'
+
+# Expected: Success - Variant location created
 ```
 
 ```bash
-# Step 3: Verify inventory updated
+# Step 3: Verify inventory reflects the breakdown (NOT addition)
 curl "http://localhost:8792/api/inventory?productId=prod_12345..."
 
 # Expected:
-# quantityAvailable should be 160 + 50 = 210
+# quantityAvailable = 100 PCS (unchanged from Test 1.1)
+#
+# Stock breakdown:
+# - Total: 100 PCS at warehouse
+# - Variant breakdown: 30 PCS Red + 70 PCS other variants/loose = 100 PCS total
+```
+
+```bash
+# Step 4: Test validation - try to exceed product location stock (should fail)
+curl -X POST http://localhost:8788/api/variants \
+  -H "Content-Type: application/json" \
+  -d '{
+    "productId": "prod_12345...",
+    "productName": "Test Product Phase 1",
+    "productSKU": "TEST-SKU-001",
+    "variantName": "Blue",
+    "variantSKU": "TEST-SKU-001-BLUE",
+    "variantType": "Color",
+    "price": 55000,
+    "stock": 0,
+    "status": "active"
+  }'
+
+# Save variant ID as var_blue_...
+
+curl -X POST http://localhost:8788/api/variant-locations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "variantId": "var_blue_...",
+    "warehouseId": "wh_12345...",
+    "quantity": 80
+  }'
+
+# Expected: 400 Error
+# {
+#   "error": "Stock validation failed for warehouse: Total variant stock at this
+#             warehouse would be 110 PCS, but product location stock is only
+#             100 PCS. Please adjust product location stock first or reduce
+#             variant quantities."
+# }
 ```
 
 **✅ Pass Criteria**:
-- Inventory `quantityAvailable` = 210
-- Variant inventory integration works
+- Inventory `quantityAvailable` = 100 (NOT 130!)
+- Variant location stores quantity normally
+- System prevents exceeding product location stock
+- Variant locations are subdivisions, not additions
 
 ---
 
