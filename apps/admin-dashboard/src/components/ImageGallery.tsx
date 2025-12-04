@@ -71,9 +71,10 @@ export interface ProductImage {
 interface ImageGalleryProps {
   productId: string;
   maxImages?: number;
+  readOnly?: boolean; // New: Read-only mode disables upload/delete actions
 }
 
-export function ImageGallery({ productId, maxImages = 10 }: ImageGalleryProps) {
+export function ImageGallery({ productId, maxImages = 10, readOnly = false }: ImageGalleryProps) {
   const queryClient = useQueryClient();
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -321,60 +322,62 @@ export function ImageGallery({ productId, maxImages = 10 }: ImageGalleryProps) {
 
   return (
     <div className="space-y-4">
-      {/* Upload Area */}
-      <Card>
-        <CardContent className="p-0">
-          <div
-            className={`
-              relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
-              transition-all duration-200
-              ${
-                isDragging
-                  ? 'border-primary bg-primary/5 dark:bg-primary/10'
-                  : 'border-border hover:border-primary/50 dark:border-border dark:hover:border-primary/50'
-              }
-              ${isUploading || images.length >= maxImages ? 'pointer-events-none opacity-50' : ''}
-            `}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={!isUploading && images.length < maxImages ? handleClick : undefined}
-          >
-            {isUploading ? (
-              <div className="flex flex-col items-center gap-3">
-                <Loader2 className="w-12 h-12 text-primary animate-spin" />
-                <p className="text-sm text-muted-foreground">Uploading to R2 and saving to database...</p>
-              </div>
-            ) : images.length >= maxImages ? (
-              <div className="flex flex-col items-center gap-3">
-                <ImageIcon className="w-12 h-12 text-muted-foreground" />
-                <p className="text-lg font-medium text-foreground">
-                  Maximum images reached ({maxImages})
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Delete an image to upload a new one
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-3">
-                {isDragging ? (
-                  <Upload className="w-12 h-12 text-primary" />
-                ) : (
+      {/* Upload Area - Hidden in read-only mode */}
+      {!readOnly && (
+        <Card>
+          <CardContent className="p-0">
+            <div
+              className={`
+                relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
+                transition-all duration-200
+                ${
+                  isDragging
+                    ? 'border-primary bg-primary/5 dark:bg-primary/10'
+                    : 'border-border hover:border-primary/50 dark:border-border dark:hover:border-primary/50'
+                }
+                ${isUploading || images.length >= maxImages ? 'pointer-events-none opacity-50' : ''}
+              `}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={!isUploading && images.length < maxImages ? handleClick : undefined}
+            >
+              {isUploading ? (
+                <div className="flex flex-col items-center gap-3">
+                  <Loader2 className="w-12 h-12 text-primary animate-spin" />
+                  <p className="text-sm text-muted-foreground">Uploading to R2 and saving to database...</p>
+                </div>
+              ) : images.length >= maxImages ? (
+                <div className="flex flex-col items-center gap-3">
                   <ImageIcon className="w-12 h-12 text-muted-foreground" />
-                )}
-                <div>
                   <p className="text-lg font-medium text-foreground">
-                    {isDragging ? 'Drop image here' : 'Click to upload or drag & drop'}
+                    Maximum images reached ({maxImages})
                   </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    JPEG, PNG, WebP, or GIF (max {MAX_FILE_SIZE / (1024 * 1024)}MB) • {images.length}/{maxImages} images
+                  <p className="text-sm text-muted-foreground">
+                    Delete an image to upload a new one
                   </p>
                 </div>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              ) : (
+                <div className="flex flex-col items-center gap-3">
+                  {isDragging ? (
+                    <Upload className="w-12 h-12 text-primary" />
+                  ) : (
+                    <ImageIcon className="w-12 h-12 text-muted-foreground" />
+                  )}
+                  <div>
+                    <p className="text-lg font-medium text-foreground">
+                      {isDragging ? 'Drop image here' : 'Click to upload or drag & drop'}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      JPEG, PNG, WebP, or GIF (max {MAX_FILE_SIZE / (1024 * 1024)}MB) • {images.length}/{maxImages} images
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Images Grid */}
       {images.length > 0 && (
@@ -420,23 +423,26 @@ export function ImageGallery({ productId, maxImages = 10 }: ImageGalleryProps) {
                     >
                       <Eye className="w-4 h-4" />
                     </Button>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="icon"
-                      className="rounded-full"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteImage(image.id);
-                      }}
-                      disabled={deleteImageMutation.isPending}
-                    >
-                      {deleteImageMutation.isPending ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-4 h-4" />
-                      )}
-                    </Button>
+                    {/* Delete button - Hidden in read-only mode */}
+                    {!readOnly && (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="rounded-full"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteImage(image.id);
+                        }}
+                        disabled={deleteImageMutation.isPending}
+                      >
+                        {deleteImageMutation.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </Button>
+                    )}
                   </div>
                 </div>
 

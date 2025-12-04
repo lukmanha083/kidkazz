@@ -36,8 +36,11 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Search, Edit, Trash2, Eye, X, Gift, Minus, Loader2 } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Eye, X, Gift, Minus, Loader2, Film, ImageIcon } from 'lucide-react';
 import { Combobox } from '@/components/ui/combobox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ImageGallery } from '@/components/ImageGallery';
+import { VideoGallery } from '@/components/VideoGallery';
 
 export const Route = createFileRoute('/dashboard/products/bundle')({
   component: ProductBundlePage,
@@ -692,6 +695,35 @@ function ProductBundlePage() {
                   ))}
                 </div>
               </div>
+
+              {/* Bundle Media (Images & Videos) */}
+              <div className="space-y-4 border-t pt-4">
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase">Bundle Media</h3>
+                <Tabs defaultValue="images" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="images" className="gap-2">
+                      <ImageIcon className="h-4 w-4" />
+                      Images
+                    </TabsTrigger>
+                    <TabsTrigger value="videos" className="gap-2">
+                      <Film className="h-4 w-4" />
+                      Videos
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="images" className="mt-4">
+                    <ImageGallery
+                      productId={selectedBundle.id}
+                      readOnly={true}
+                    />
+                  </TabsContent>
+                  <TabsContent value="videos" className="mt-4">
+                    <VideoGallery
+                      productId={selectedBundle.id}
+                      readOnly={true}
+                    />
+                  </TabsContent>
+                </Tabs>
+              </div>
             </div>
           )}
 
@@ -990,6 +1022,45 @@ function ProductBundlePage() {
                 </div>
               </div>
             )}
+
+            {/* Bundle Media (Images & Videos) - Available in both add and edit mode */}
+            <div className="space-y-4 border-t pt-4">
+              <Label className="text-base font-semibold">Bundle Media</Label>
+              <Tabs defaultValue="images" className="w-full mt-3">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="images" className="gap-2">
+                    <ImageIcon className="h-4 w-4" />
+                    Images
+                  </TabsTrigger>
+                  <TabsTrigger value="videos" className="gap-2">
+                    <Film className="h-4 w-4" />
+                    Videos
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="images" className="mt-4">
+                  <div className="space-y-3">
+                    <p className="text-xs text-muted-foreground">
+                      Upload and manage bundle images. Supports multiple images with automatic optimization.
+                    </p>
+                    <ImageGallery
+                      productId={selectedBundle?.id || ''}
+                      readOnly={false}
+                    />
+                  </div>
+                </TabsContent>
+                <TabsContent value="videos" className="mt-4">
+                  <div className="space-y-3">
+                    <p className="text-xs text-muted-foreground">
+                      Upload and manage bundle videos. Choose between R2 storage or Cloudflare Stream.
+                    </p>
+                    <VideoGallery
+                      productId={selectedBundle?.id || ''}
+                      readOnly={false}
+                    />
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
 
             <DrawerFooter className="px-0">
               <Button

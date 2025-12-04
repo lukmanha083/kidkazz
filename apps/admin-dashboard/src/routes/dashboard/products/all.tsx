@@ -2105,6 +2105,7 @@ function AllProductsPage() {
                     <ImageGallery
                       productId={selectedProduct.id}
                       maxImages={10}
+                      readOnly={true}
                     />
                   </TabsContent>
                   <TabsContent value="videos" className="mt-4">
@@ -2112,6 +2113,7 @@ function AllProductsPage() {
                       productId={selectedProduct.id}
                       maxVideos={5}
                       defaultMode="r2"
+                      readOnly={true}
                     />
                   </TabsContent>
                 </Tabs>
@@ -2232,6 +2234,7 @@ function AllProductsPage() {
                         <ImageGallery
                           productId={selectedProduct.id}
                           maxImages={10}
+                          readOnly={false}
                         />
                       </div>
                     </TabsContent>
@@ -2244,6 +2247,7 @@ function AllProductsPage() {
                           productId={selectedProduct.id}
                           maxVideos={5}
                           defaultMode="r2"
+                          readOnly={false}
                         />
                       </div>
                     </TabsContent>
