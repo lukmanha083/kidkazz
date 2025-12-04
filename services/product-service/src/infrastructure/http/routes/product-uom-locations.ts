@@ -304,79 +304,9 @@ app.post('/', zValidator('json', createUOMLocationSchema), async (c) => {
     .where(eq(productUOMLocations.id, newLocation.id))
     .get();
 
-  // DDD FIX: Create/update inventory record with UOM conversion
-  // Convert UOM quantity to base units (e.g., 10 BOX6 = 60 PCS)
-  try {
-    // Get product details for minimumStock
-    const product = await db
-      .select()
-      .from(products)
-      .where(eq(products.id, productUOM.productId))
-      .get();
-
-    // Calculate quantity in base units
-    const quantityInBaseUnits = data.quantity * productUOM.conversionFactor;
-
-    // Check if inventory record already exists
-    const inventoryCheckResponse = await c.env.INVENTORY_SERVICE.fetch(
-      new Request(`http://inventory-service/api/inventory/${productUOM.productId}/${data.warehouseId}`)
-    );
-
-    if (inventoryCheckResponse.status === 404) {
-      // Inventory record doesn't exist, create it
-      const adjustResponse = await c.env.INVENTORY_SERVICE.fetch(
-        new Request('http://inventory-service/api/inventory/adjust', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            productId: productUOM.productId,
-            warehouseId: data.warehouseId,
-            quantity: quantityInBaseUnits,
-            movementType: 'adjustment',
-            reason: 'Product UOM location created',
-            notes: `Initial stock from ${productUOM.uomName} location (${data.quantity} × ${productUOM.conversionFactor} = ${quantityInBaseUnits} base units)`,
-          }),
-        })
-      );
-
-      if (adjustResponse.ok) {
-        const invData = await adjustResponse.json();
-        const inventoryId = invData.inventory?.id;
-
-        // Set minimumStock if product has it defined
-        if (inventoryId && product?.minimumStock) {
-          await c.env.INVENTORY_SERVICE.fetch(
-            new Request(`http://inventory-service/api/inventory/${inventoryId}/minimum-stock`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ minimumStock: product.minimumStock }),
-            })
-          );
-        }
-        console.log(`✅ Created inventory record for product ${productUOM.productId} at warehouse ${data.warehouseId} (${quantityInBaseUnits} base units from ${data.quantity} ${productUOM.uomName})`);
-      }
-    } else if (inventoryCheckResponse.ok) {
-      // Inventory exists, add to the existing quantity
-      await c.env.INVENTORY_SERVICE.fetch(
-        new Request('http://inventory-service/api/inventory/adjust', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            productId: productUOM.productId,
-            warehouseId: data.warehouseId,
-            quantity: quantityInBaseUnits,
-            movementType: 'in',
-            reason: 'Product UOM location added',
-            notes: `Stock added from ${productUOM.uomName} location (${data.quantity} × ${productUOM.conversionFactor} = ${quantityInBaseUnits} base units)`,
-          }),
-        })
-      );
-      console.log(`✅ Added ${quantityInBaseUnits} base units to inventory for product ${productUOM.productId} at warehouse ${data.warehouseId}`);
-    }
-  } catch (invError) {
-    console.error('❌ Failed to create/update inventory record from UOM location:', invError);
-    // Don't fail the entire request if inventory sync fails
-  }
+  // Note: UOM locations are SUBDIVISIONS of product location stock, not additions.
+  // They do NOT update inventory - only product locations update inventory.
+  // The validation above ensures UOM total doesn't exceed product location stock.
 
   return c.json(created, 201);
 });
@@ -442,40 +372,9 @@ app.put('/:id', zValidator('json', updateUOMLocationSchema), async (c) => {
     .where(eq(productUOMLocations.id, id))
     .get();
 
-  // DDD FIX: Sync inventory if quantity changed
-  if (data.quantity !== undefined && updated) {
-    try {
-      // Get productUOM for conversion factor
-      const productUOM = await db
-        .select()
-        .from(productUOMs)
-        .where(eq(productUOMs.id, updated.productUOMId))
-        .get();
-
-      if (productUOM) {
-        // Calculate new quantity in base units
-        const quantityInBaseUnits = data.quantity * productUOM.conversionFactor;
-
-        await c.env.INVENTORY_SERVICE.fetch(
-          new Request('http://inventory-service/api/inventory/adjust', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              productId: productUOM.productId,
-              warehouseId: updated.warehouseId,
-              quantity: quantityInBaseUnits,
-              movementType: 'adjustment',
-              reason: 'Product UOM location quantity updated',
-              notes: `Quantity adjusted from ${productUOM.uomName} location (${data.quantity} × ${productUOM.conversionFactor} = ${quantityInBaseUnits} base units)`,
-            }),
-          })
-        );
-        console.log(`✅ Synced inventory for product ${productUOM.productId} at warehouse ${updated.warehouseId} (${quantityInBaseUnits} base units)`);
-      }
-    } catch (invError) {
-      console.error('❌ Failed to sync inventory on UOM location update:', invError);
-    }
-  }
+  // Note: UOM locations are SUBDIVISIONS of product location stock, not additions.
+  // They do NOT update inventory - only product locations update inventory.
+  // The validation above ensures UOM total doesn't exceed product location stock.
 
   return c.json(updated);
 });
@@ -531,32 +430,9 @@ app.patch('/:id/quantity', zValidator('json', z.object({ quantity: z.number().in
     .where(eq(productUOMLocations.id, id))
     .run();
 
-  // DDD FIX: Sync inventory when quantity changes
-  try {
-
-    if (productUOM) {
-      // Calculate new quantity in base units
-      const quantityInBaseUnits = quantity * productUOM.conversionFactor;
-
-      await c.env.INVENTORY_SERVICE.fetch(
-        new Request('http://inventory-service/api/inventory/adjust', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            productId: productUOM.productId,
-            warehouseId: existingLocation.warehouseId,
-            quantity: quantityInBaseUnits,
-            movementType: 'adjustment',
-            reason: 'Product UOM location quantity patched',
-            notes: `Quantity patched from ${productUOM.uomName} location (${quantity} × ${productUOM.conversionFactor} = ${quantityInBaseUnits} base units)`,
-          }),
-        })
-      );
-      console.log(`✅ Synced inventory for product ${productUOM.productId} via PATCH (${quantityInBaseUnits} base units)`);
-    }
-  } catch (invError) {
-    console.error('❌ Failed to sync inventory on UOM quantity patch:', invError);
-  }
+  // Note: UOM locations are SUBDIVISIONS of product location stock, not additions.
+  // They do NOT update inventory - only product locations update inventory.
+  // The validation above ensures UOM total doesn't exceed product location stock.
 
   return c.json({ message: 'Quantity updated successfully' });
 });
