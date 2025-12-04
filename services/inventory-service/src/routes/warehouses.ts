@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { drizzle } from 'drizzle-orm/d1';
-import { eq } from 'drizzle-orm';
+import { eq, isNull, and } from 'drizzle-orm';
 import { warehouses } from '../infrastructure/db/schema';
 import { broadcastWarehouseUpdate } from '../infrastructure/broadcast';
 
@@ -34,7 +34,7 @@ const createWarehouseSchema = z.object({
 
 const updateWarehouseSchema = createWarehouseSchema.partial();
 
-// GET /api/warehouses - List all warehouses
+// GET /api/warehouses - List all warehouses (excluding soft-deleted)
 app.get('/', async (c) => {
   const db = drizzle(c.env.DB);
   const status = c.req.query('status');
@@ -42,8 +42,11 @@ app.get('/', async (c) => {
   let query = db.select().from(warehouses);
 
   const allWarehouses = status
-    ? await query.where(eq(warehouses.status, status)).all()
-    : await query.all();
+    ? await query.where(and(
+        eq(warehouses.status, status),
+        isNull(warehouses.deletedAt)
+      )).all()
+    : await query.where(isNull(warehouses.deletedAt)).all();
 
   return c.json({
     warehouses: allWarehouses,
@@ -51,14 +54,17 @@ app.get('/', async (c) => {
   });
 });
 
-// GET /api/warehouses/active - List active warehouses
+// GET /api/warehouses/active - List active warehouses (excluding soft-deleted)
 app.get('/active', async (c) => {
   const db = drizzle(c.env.DB);
 
   const activeWarehouses = await db
     .select()
     .from(warehouses)
-    .where(eq(warehouses.status, 'active'))
+    .where(and(
+      eq(warehouses.status, 'active'),
+      isNull(warehouses.deletedAt)
+    ))
     .all();
 
   return c.json({
@@ -67,7 +73,7 @@ app.get('/active', async (c) => {
   });
 });
 
-// GET /api/warehouses/:id - Get warehouse by ID
+// GET /api/warehouses/:id - Get warehouse by ID (excluding soft-deleted)
 app.get('/:id', async (c) => {
   const id = c.req.param('id');
   const db = drizzle(c.env.DB);
@@ -75,7 +81,10 @@ app.get('/:id', async (c) => {
   const warehouse = await db
     .select()
     .from(warehouses)
-    .where(eq(warehouses.id, id))
+    .where(and(
+      eq(warehouses.id, id),
+      isNull(warehouses.deletedAt)
+    ))
     .get();
 
   if (!warehouse) {
@@ -131,7 +140,10 @@ app.put('/:id', zValidator('json', updateWarehouseSchema), async (c) => {
   const existing = await db
     .select()
     .from(warehouses)
-    .where(eq(warehouses.id, id))
+    .where(and(
+      eq(warehouses.id, id),
+      isNull(warehouses.deletedAt)
+    ))
     .get();
 
   if (!existing) {
@@ -174,7 +186,7 @@ app.put('/:id', zValidator('json', updateWarehouseSchema), async (c) => {
   return c.json(updated);
 });
 
-// DELETE /api/warehouses/:id - Delete warehouse
+// DELETE /api/warehouses/:id - Soft delete warehouse
 app.delete('/:id', async (c) => {
   const id = c.req.param('id');
   const db = drizzle(c.env.DB);
@@ -183,10 +195,26 @@ app.delete('/:id', async (c) => {
   const warehouse = await db
     .select()
     .from(warehouses)
-    .where(eq(warehouses.id, id))
+    .where(and(
+      eq(warehouses.id, id),
+      isNull(warehouses.deletedAt)
+    ))
     .get();
 
-  await db.delete(warehouses).where(eq(warehouses.id, id)).run();
+  if (!warehouse) {
+    return c.json({ error: 'Warehouse not found or already deleted' }, 404);
+  }
+
+  // Soft delete: set deletedAt and deletedBy
+  await db
+    .update(warehouses)
+    .set({
+      deletedAt: new Date(),
+      deletedBy: null, // TODO: Get from auth context when implemented
+      status: 'inactive',
+    })
+    .where(eq(warehouses.id, id))
+    .run();
 
   // Broadcast real-time update via WebSocket
   if (warehouse) {
