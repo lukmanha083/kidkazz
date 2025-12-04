@@ -120,18 +120,19 @@ app.post('/adjust', zValidator('json', adjustStockSchema), async (c) => {
   // Calculate new quantity
   let newQuantity = inventoryRecord.quantityAvailable;
   if (data.movementType === 'in') {
-    newQuantity += data.quantity;
+    newQuantity += Math.abs(data.quantity); // Use absolute value to ensure addition
   } else if (data.movementType === 'out') {
+    const quantityToRemove = Math.abs(data.quantity); // Always use absolute value for removal
     // BUSINESS RULE: Warehouse operations cannot create negative stock
-    if (source === 'warehouse' && inventoryRecord.quantityAvailable < data.quantity) {
+    if (source === 'warehouse' && inventoryRecord.quantityAvailable < quantityToRemove) {
       return c.json({
         error: 'Insufficient stock for warehouse adjustment',
         available: inventoryRecord.quantityAvailable,
-        requested: data.quantity,
+        requested: quantityToRemove,
       }, 400);
     }
     // POS operations can create negative stock (first-pay-first-served)
-    newQuantity -= data.quantity;
+    newQuantity -= quantityToRemove;
   } else {
     // adjustment - set to exact quantity
     newQuantity = data.quantity;

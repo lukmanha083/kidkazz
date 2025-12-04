@@ -246,7 +246,10 @@ app.post('/', zValidator('json', createProductSchema), async (c) => {
 
   try {
     await db.insert(products).values(newProduct).run();
-    return c.json(newProduct, 201);
+
+    // Remove deprecated stock field from response (Phase 2C: Stock managed by Inventory Service)
+    const { stock, ...productResponse } = newProduct;
+    return c.json(productResponse, 201);
   } catch (error) {
     console.error('Product Service Error:', error);
     return c.json({

@@ -82,7 +82,7 @@ app.get('/:id', async (c) => {
 // GET /api/bundles/:id/available-stock - Calculate virtual bundle stock based on component availability
 app.get('/:id/available-stock', async (c) => {
   const bundleId = c.req.param('id');
-  const warehouseId = c.req.query('warehouseId'); // Optional: calculate for specific warehouse
+  const queryWarehouseId = c.req.query('warehouseId'); // Optional: calculate for specific warehouse
   const db = drizzle(c.env.DB);
 
   // Get bundle details
@@ -96,6 +96,10 @@ app.get('/:id/available-stock', async (c) => {
     return c.json({ error: 'Bundle not found' }, 404);
   }
 
+  // DDD: Bundles are assembled in specific warehouses
+  // Use query param if provided, otherwise use bundle's assembly warehouse
+  const warehouseId = queryWarehouseId || bundle.warehouseId;
+
   // Get bundle items (components)
   const items = await db
     .select()
@@ -107,6 +111,8 @@ app.get('/:id/available-stock', async (c) => {
     return c.json({
       bundleId,
       bundleName: bundle.bundleName,
+      bundleSKU: bundle.bundleSKU,
+      warehouseId: warehouseId || 'all',
       availableStock: 0,
       limitingComponent: null,
       componentAvailability: [],

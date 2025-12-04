@@ -88,12 +88,14 @@ interface VideoGalleryProps {
   productId: string;
   maxVideos?: number;
   defaultMode?: 'r2' | 'stream';
+  readOnly?: boolean; // New: Read-only mode disables upload/delete actions
 }
 
 export function VideoGallery({
   productId,
   maxVideos = 5,
-  defaultMode = 'r2' // Default to R2 mode since Stream requires API token
+  defaultMode = 'r2', // Default to R2 mode since Stream requires API token
+  readOnly = false
 }: VideoGalleryProps) {
   const queryClient = useQueryClient();
   const [isUploading, setIsUploading] = useState(false);
@@ -292,99 +294,103 @@ export function VideoGallery({
 
   return (
     <div className="space-y-4">
-      {/* Mode Selection */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <label className="text-sm font-medium mb-2 block">Upload Mode</label>
-              <Select value={uploadMode} onValueChange={(value: 'r2' | 'stream') => setUploadMode(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="r2">
-                    <div className="flex items-center gap-2">
-                      <HardDrive className="w-4 h-4" />
-                      <span>R2</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="stream">
-                    <div className="flex items-center gap-2">
-                      <Cloud className="w-4 h-4" />
-                      <span>Stream</span>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {uploadMode === 'r2' ? (
-                <>Basic storage without transcoding. Direct playback only.</>
-              ) : (
-                <>Adaptive streaming with automatic transcoding to multiple qualities.</>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Upload Area */}
-      <Card>
-        <CardContent className="p-4">
-          <div
-            className={`
-              relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
-              transition-all duration-200
-              ${
-                isDragging
-                  ? 'border-primary bg-primary/5 dark:bg-primary/10'
-                  : 'border-border hover:border-primary/50 dark:border-border dark:hover:border-primary/50'
-              }
-              ${isUploading || videos.length >= maxVideos ? 'pointer-events-none opacity-50' : ''}
-            `}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={!isUploading && videos.length < maxVideos ? handleClick : undefined}
-          >
-            {isUploading ? (
-              <div className="flex flex-col items-center gap-3">
-                <Loader2 className="w-12 h-12 text-primary animate-spin" />
-                <p className="text-sm text-muted-foreground">
-                  Uploading to {uploadMode === 'stream' ? 'Cloudflare Stream' : 'R2'} and saving to database...
-                </p>
+      {/* Mode Selection - Hidden in read-only mode */}
+      {!readOnly && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <label className="text-sm font-medium mb-2 block">Upload Mode</label>
+                <Select value={uploadMode} onValueChange={(value: 'r2' | 'stream') => setUploadMode(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="r2">
+                      <div className="flex items-center gap-2">
+                        <HardDrive className="w-4 h-4" />
+                        <span>R2</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="stream">
+                      <div className="flex items-center gap-2">
+                        <Cloud className="w-4 h-4" />
+                        <span>Stream</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            ) : videos.length >= maxVideos ? (
-              <div className="flex flex-col items-center gap-3">
-                <Film className="w-12 h-12 text-muted-foreground" />
-                <p className="text-lg font-medium text-foreground">
-                  Maximum videos reached ({maxVideos})
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Delete a video to upload a new one
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-3">
-                {isDragging ? (
-                  <Upload className="w-12 h-12 text-primary" />
+              <div className="text-xs text-muted-foreground">
+                {uploadMode === 'r2' ? (
+                  <>Basic storage without transcoding. Direct playback only.</>
                 ) : (
-                  <Film className="w-12 h-12 text-muted-foreground" />
+                  <>Adaptive streaming with automatic transcoding to multiple qualities.</>
                 )}
-                <div>
-                  <p className="text-lg font-medium text-foreground">
-                    {isDragging ? 'Drop video here' : 'Click to upload or drag & drop'}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    MP4, WebM, MOV, AVI, or MKV (max {MAX_FILE_SIZE / (1024 * 1024)}MB) • {videos.length}/{maxVideos} videos
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Upload Area - Hidden in read-only mode */}
+      {!readOnly && (
+        <Card>
+          <CardContent className="p-4">
+            <div
+              className={`
+                relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
+                transition-all duration-200
+                ${
+                  isDragging
+                    ? 'border-primary bg-primary/5 dark:bg-primary/10'
+                    : 'border-border hover:border-primary/50 dark:border-border dark:hover:border-primary/50'
+                }
+                ${isUploading || videos.length >= maxVideos ? 'pointer-events-none opacity-50' : ''}
+              `}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={!isUploading && videos.length < maxVideos ? handleClick : undefined}
+            >
+              {isUploading ? (
+                <div className="flex flex-col items-center gap-3">
+                  <Loader2 className="w-12 h-12 text-primary animate-spin" />
+                  <p className="text-sm text-muted-foreground">
+                    Uploading to {uploadMode === 'stream' ? 'Cloudflare Stream' : 'R2'} and saving to database...
                   </p>
                 </div>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              ) : videos.length >= maxVideos ? (
+                <div className="flex flex-col items-center gap-3">
+                  <Film className="w-12 h-12 text-muted-foreground" />
+                  <p className="text-lg font-medium text-foreground">
+                    Maximum videos reached ({maxVideos})
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Delete a video to upload a new one
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-3">
+                  {isDragging ? (
+                    <Upload className="w-12 h-12 text-primary" />
+                  ) : (
+                    <Film className="w-12 h-12 text-muted-foreground" />
+                  )}
+                  <div>
+                    <p className="text-lg font-medium text-foreground">
+                      {isDragging ? 'Drop video here' : 'Click to upload or drag & drop'}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      MP4, WebM, MOV, AVI, or MKV (max {MAX_FILE_SIZE / (1024 * 1024)}MB) • {videos.length}/{maxVideos} videos
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Videos Grid */}
       {videos.length > 0 && (
@@ -452,23 +458,26 @@ export function VideoGallery({
                     >
                       <Play className="w-4 h-4" />
                     </Button>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="icon"
-                      className="rounded-full"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteVideo(video.id);
-                      }}
-                      disabled={deleteVideoMutation.isPending}
-                    >
-                      {deleteVideoMutation.isPending ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-4 h-4" />
-                      )}
-                    </Button>
+                    {/* Delete button - Hidden in read-only mode */}
+                    {!readOnly && (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="rounded-full"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteVideo(video.id);
+                        }}
+                        disabled={deleteVideoMutation.isPending}
+                      >
+                        {deleteVideoMutation.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </Button>
+                    )}
                   </div>
                 </div>
 
