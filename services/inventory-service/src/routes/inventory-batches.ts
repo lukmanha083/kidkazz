@@ -81,56 +81,8 @@ app.get('/', async (c) => {
   });
 });
 
-// GET /api/batches/:id - Get batch by ID
-app.get('/:id', async (c) => {
-  const id = c.req.param('id');
-  const db = drizzle(c.env.DB);
-
-  const batch = await db
-    .select()
-    .from(inventoryBatches)
-    .where(eq(inventoryBatches.id, id))
-    .get();
-
-  if (!batch) {
-    return c.json({ error: 'Batch not found' }, 404);
-  }
-
-  return c.json(batch);
-});
-
-// GET /api/batches/product/:productId/warehouse/:warehouseId - Get batches for product at warehouse (FEFO order)
-app.get('/product/:productId/warehouse/:warehouseId', async (c) => {
-  const productId = c.req.param('productId');
-  const warehouseId = c.req.param('warehouseId');
-  const db = drizzle(c.env.DB);
-
-  // FEFO: Order by expiration date (earliest first), nulls last
-  const batches = await db
-    .select()
-    .from(inventoryBatches)
-    .where(and(
-      eq(inventoryBatches.productId, productId),
-      eq(inventoryBatches.warehouseId, warehouseId),
-      eq(inventoryBatches.status, 'active')
-    ))
-    .orderBy(asc(inventoryBatches.expirationDate))
-    .all();
-
-  // Separate batches with and without expiration dates
-  const batchesWithExpiration = batches.filter(b => b.expirationDate);
-  const batchesWithoutExpiration = batches.filter(b => !b.expirationDate);
-
-  // FEFO: Expired first, then by expiration date, then non-expiring
-  const orderedBatches = [...batchesWithExpiration, ...batchesWithoutExpiration];
-
-  return c.json({
-    batches: orderedBatches,
-    total: orderedBatches.length,
-  });
-});
-
 // GET /api/batches/expiring - Get batches expiring within X days
+// NOTE: This must come BEFORE /:id route to avoid "expiring" being treated as an ID
 app.get('/expiring', async (c) => {
   const days = parseInt(c.req.query('days') || '30');
   const db = drizzle(c.env.DB);
@@ -178,6 +130,56 @@ app.get('/expired', async (c) => {
     batches: expiredBatches,
     total: expiredBatches.length,
   });
+});
+
+// GET /api/batches/product/:productId/warehouse/:warehouseId - Get batches for product at warehouse (FEFO order)
+app.get('/product/:productId/warehouse/:warehouseId', async (c) => {
+  const productId = c.req.param('productId');
+  const warehouseId = c.req.param('warehouseId');
+  const db = drizzle(c.env.DB);
+
+  // FEFO: Order by expiration date (earliest first), nulls last
+  const batches = await db
+    .select()
+    .from(inventoryBatches)
+    .where(and(
+      eq(inventoryBatches.productId, productId),
+      eq(inventoryBatches.warehouseId, warehouseId),
+      eq(inventoryBatches.status, 'active')
+    ))
+    .orderBy(asc(inventoryBatches.expirationDate))
+    .all();
+
+  // Separate batches with and without expiration dates
+  const batchesWithExpiration = batches.filter(b => b.expirationDate);
+  const batchesWithoutExpiration = batches.filter(b => !b.expirationDate);
+
+  // FEFO: Expired first, then by expiration date, then non-expiring
+  const orderedBatches = [...batchesWithExpiration, ...batchesWithoutExpiration];
+
+  return c.json({
+    batches: orderedBatches,
+    total: orderedBatches.length,
+  });
+});
+
+// GET /api/batches/:id - Get batch by ID
+// NOTE: This must come AFTER all specific routes to avoid matching them as IDs
+app.get('/:id', async (c) => {
+  const id = c.req.param('id');
+  const db = drizzle(c.env.DB);
+
+  const batch = await db
+    .select()
+    .from(inventoryBatches)
+    .where(eq(inventoryBatches.id, id))
+    .get();
+
+  if (!batch) {
+    return c.json({ error: 'Batch not found' }, 404);
+  }
+
+  return c.json(batch);
 });
 
 // POST /api/batches - Create new batch
