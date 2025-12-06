@@ -803,54 +803,53 @@ app.delete('/:id', async (c) => {
     return c.json({ error: 'Product not found' }, 404);
   }
 
-  // 1. Check product locations
+  // 1. ALWAYS check inventory first (regardless of locations)
+  // DDD: Inventory is the source of truth for stock levels
+  try {
+    const inventoryResponse = await c.env.INVENTORY_SERVICE.fetch(
+      new Request(`http://inventory-service/api/inventory?productId=${id}`)
+    );
+
+    if (inventoryResponse.ok) {
+      const inventoryData = await inventoryResponse.json();
+      const totalStock = inventoryData.inventory?.reduce(
+        (sum: number, inv: any) => sum + (inv.quantityAvailable || 0),
+        0
+      ) || 0;
+
+      if (totalStock > 0) {
+        return c.json(
+          {
+            error: `Cannot delete product "${product.name}" (SKU: ${product.sku})`,
+            reason: 'Product has inventory',
+            details: {
+              totalStock,
+              warehouses: inventoryData.inventory?.length || 0,
+              suggestion: 'Transfer or adjust inventory to zero before deleting the product',
+            },
+          },
+          400
+        );
+      }
+    }
+  } catch (invError) {
+    console.error('Error checking inventory:', invError);
+    return c.json(
+      {
+        error: 'Cannot verify product inventory status',
+        reason: 'Inventory service unavailable',
+        suggestion: 'Please ensure inventory is zero before deleting the product',
+      },
+      503
+    );
+  }
+
+  // 2. Get product locations for cleanup
   const locations = await db
     .select()
     .from(productLocations)
     .where(eq(productLocations.productId, id))
     .all();
-
-  if (locations.length > 0) {
-    // 2. Check inventory for each location
-    try {
-      const inventoryResponse = await c.env.INVENTORY_SERVICE.fetch(
-        new Request(`http://inventory-service/api/inventory?productId=${id}`)
-      );
-
-      if (inventoryResponse.ok) {
-        const inventoryData = await inventoryResponse.json();
-        const totalStock = inventoryData.inventory?.reduce(
-          (sum: number, inv: any) => sum + (inv.quantityAvailable || 0),
-          0
-        ) || 0;
-
-        if (totalStock > 0) {
-          return c.json(
-            {
-              error: `Cannot delete product "${product.name}" (SKU: ${product.sku})`,
-              reason: 'Product has inventory',
-              details: {
-                totalStock,
-                warehouses: locations.length,
-                suggestion: 'Transfer or adjust inventory to zero before deleting the product',
-              },
-            },
-            400
-          );
-        }
-      }
-    } catch (invError) {
-      console.error('Error checking inventory:', invError);
-      return c.json(
-        {
-          error: 'Cannot verify product inventory status',
-          reason: 'Inventory service unavailable',
-          suggestion: 'Please ensure inventory is zero before deleting the product',
-        },
-        503
-      );
-    }
-  }
 
   // 3. Delete product (CASCADE will handle dependent data)
   // This will cascade to:
