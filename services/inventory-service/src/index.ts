@@ -6,10 +6,15 @@ import { appRouter } from './infrastructure/trpc';
 import warehousesRoutes from './routes/warehouses';
 import inventoryRoutes from './routes/inventory';
 import inventoryBatchesRoutes from './routes/inventory-batches';
+import cleanupRoutes from './routes/cleanup';
+import { handleScheduled } from './scheduled';
 
 // Export Durable Objects
 export { InventoryUpdatesBroadcaster } from './durable-objects/InventoryUpdatesBroadcaster';
 export { WarehouseUpdatesBroadcaster } from './durable-objects/WarehouseUpdatesBroadcaster';
+
+// Export scheduled event handler for Cloudflare Workers Cron Triggers
+export { handleScheduled as scheduled };
 
 type Bindings = {
   DB: D1Database;
@@ -51,6 +56,7 @@ app.all('/trpc/*', async (c) => {
 app.route('/api/warehouses', warehousesRoutes);
 app.route('/api/inventory', inventoryRoutes);
 app.route('/api/batches', inventoryBatchesRoutes); // Phase 3: Batch tracking
+app.route('/api/cleanup', cleanupRoutes); // Admin: Orphaned data cleanup
 
 // WebSocket endpoints for real-time updates
 app.get('/ws/inventory', async (c) => {

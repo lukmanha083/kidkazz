@@ -9,6 +9,7 @@ import { broadcastWarehouseUpdate } from '../infrastructure/broadcast';
 type Bindings = {
   DB: D1Database;
   WAREHOUSE_UPDATES: DurableObjectNamespace;
+  PRODUCT_SERVICE: Fetcher;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -186,12 +187,12 @@ app.put('/:id', zValidator('json', updateWarehouseSchema), async (c) => {
   return c.json(updated);
 });
 
-// DELETE /api/warehouses/:id - Soft delete warehouse
+// DELETE /api/warehouses/:id - Delete warehouse with cascade cleanup
 app.delete('/:id', async (c) => {
   const id = c.req.param('id');
   const db = drizzle(c.env.DB);
 
-  // Get warehouse before deletion for broadcast
+  // 1. Get warehouse before deletion
   const warehouse = await db
     .select()
     .from(warehouses)
@@ -205,39 +206,104 @@ app.delete('/:id', async (c) => {
     return c.json({ error: 'Warehouse not found or already deleted' }, 404);
   }
 
-  // Soft delete: set deletedAt and deletedBy
-  await db
-    .update(warehouses)
-    .set({
-      deletedAt: new Date(),
-      deletedBy: null, // TODO: Get from auth context when implemented
-      status: 'inactive',
-    })
-    .where(eq(warehouses.id, id))
-    .run();
+  // 2. Get inventory report to check if warehouse can be deleted
+  try {
+    const reportResponse = await fetch(`http://localhost:${c.env.PORT || 8792}/api/inventory/warehouse/${id}/report`);
 
-  // Broadcast real-time update via WebSocket
-  if (warehouse) {
-    await broadcastWarehouseUpdate(c.env, {
-      type: 'warehouse_deleted',
-      data: {
-        warehouseId: warehouse.id,
-        code: warehouse.code,
-        name: warehouse.name,
-        address: {
-          street: warehouse.addressLine1,
-          city: warehouse.city,
-          state: warehouse.province,
-          country: warehouse.country,
-          postalCode: warehouse.postalCode,
+    if (reportResponse.ok) {
+      const report = await reportResponse.json();
+
+      // Validate that all stock is zero
+      if (!report.canDelete || report.totalStock > 0) {
+        return c.json({
+          error: `Cannot delete warehouse "${warehouse.name}" (${warehouse.code})`,
+          reason: 'Warehouse contains inventory',
+          details: {
+            totalStock: report.totalStock,
+            productCount: report.productCount,
+            suggestion: 'Transfer all inventory to another warehouse before deletion',
+          },
+          products: report.products,
+        }, 400);
+      }
+
+      // 3. Cascade delete: Clean up inventory records (all at zero)
+      const inventoryDeleteResponse = await fetch(`http://localhost:${c.env.PORT || 8792}/api/inventory/warehouse/${id}`, {
+        method: 'DELETE',
+      });
+
+      let deletedInventoryRecords = 0;
+      if (inventoryDeleteResponse.ok) {
+        const inventoryResult = await inventoryDeleteResponse.json();
+        deletedInventoryRecords = inventoryResult.deletedInventoryRecords || 0;
+        console.log(`✅ Deleted ${deletedInventoryRecords} inventory records for warehouse ${id}`);
+      }
+
+      // 4. Cascade delete: Clean up product locations in Product Service
+      let deletedProductLocations = 0;
+      try {
+        const productLocationsResponse = await c.env.PRODUCT_SERVICE.fetch(
+          new Request(`http://product-service/api/product-locations/warehouse/${id}`, {
+            method: 'DELETE',
+          })
+        );
+
+        if (productLocationsResponse.ok) {
+          const locationResult = await productLocationsResponse.json();
+          deletedProductLocations = locationResult.deletedLocations || 0;
+          console.log(`✅ Deleted ${deletedProductLocations} product locations for warehouse ${id}`);
+        }
+      } catch (err) {
+        console.error(`Failed to delete product locations for warehouse ${id}:`, err);
+        // Continue - we can manually clean up later if needed
+      }
+
+      // 5. Soft delete warehouse
+      await db
+        .update(warehouses)
+        .set({
+          deletedAt: new Date(),
+          deletedBy: null, // TODO: Get from auth context when implemented
+          status: 'inactive',
+        })
+        .where(eq(warehouses.id, id))
+        .run();
+
+      // Broadcast real-time update via WebSocket
+      await broadcastWarehouseUpdate(c.env, {
+        type: 'warehouse_deleted',
+        data: {
+          warehouseId: warehouse.id,
+          code: warehouse.code,
+          name: warehouse.name,
+          address: {
+            street: warehouse.addressLine1,
+            city: warehouse.city,
+            state: warehouse.province,
+            country: warehouse.country,
+            postalCode: warehouse.postalCode,
+          },
+          isActive: false,
+          timestamp: new Date().toISOString(),
         },
-        isActive: false,
-        timestamp: new Date().toISOString(),
-      },
-    });
-  }
+      });
 
-  return c.json({ message: 'Warehouse deleted successfully' });
+      return c.json({
+        message: `Warehouse "${warehouse.name}" deleted successfully`,
+        deletedInventoryRecords,
+        deletedProductLocations,
+        cascadeCleanup: true,
+      });
+    } else {
+      throw new Error('Failed to get warehouse inventory report');
+    }
+  } catch (error) {
+    console.error('Error during warehouse deletion:', error);
+    return c.json({
+      error: 'Failed to delete warehouse',
+      message: error instanceof Error ? error.message : 'Unknown error occurred',
+    }, 500);
+  }
 });
 
 export default app;
