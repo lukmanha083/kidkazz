@@ -440,6 +440,72 @@ app.get('/warehouse/:warehouseId/report', async (c) => {
   });
 });
 
+// DELETE /api/inventory/warehouse/:warehouseId - Delete all inventory for a warehouse (cascade delete support)
+app.delete('/warehouse/:warehouseId', async (c) => {
+  const warehouseId = c.req.param('warehouseId');
+  const db = drizzle(c.env.DB);
+
+  // 1. Get all inventory records for this warehouse before deletion
+  const inventoryRecords = await db
+    .select()
+    .from(inventory)
+    .where(eq(inventory.warehouseId, warehouseId))
+    .all();
+
+  if (inventoryRecords.length === 0) {
+    return c.json({
+      message: 'No inventory records found for this warehouse',
+      deletedInventoryRecords: 0,
+      deletedMovements: 0,
+    });
+  }
+
+  const totalStock = inventoryRecords.reduce((sum, inv) => sum + inv.quantityAvailable, 0);
+  const productIds = [...new Set(inventoryRecords.map(inv => inv.productId))];
+
+  // 2. VALIDATION: Ensure all stock is zero (prevent data loss)
+  if (totalStock > 0) {
+    return c.json(
+      {
+        error: 'Cannot delete inventory with non-zero stock',
+        totalStock,
+        productCount: productIds.length,
+        message: 'Transfer all inventory to another warehouse before deletion',
+        products: inventoryRecords
+          .filter(inv => inv.quantityAvailable > 0)
+          .map(inv => ({
+            productId: inv.productId,
+            quantityAvailable: inv.quantityAvailable,
+          })),
+      },
+      400
+    );
+  }
+
+  // 3. Delete all inventory movements for this warehouse
+  const deleteMovementsResult = await db
+    .delete(inventoryMovements)
+    .where(eq(inventoryMovements.warehouseId, warehouseId))
+    .run();
+
+  // 4. Delete all inventory records for this warehouse
+  const deleteInventoryResult = await db
+    .delete(inventory)
+    .where(eq(inventory.warehouseId, warehouseId))
+    .run();
+
+  console.log(`Cascade delete - Warehouse ${warehouseId}: Deleted ${inventoryRecords.length} inventory records (${productIds.length} products) and movements`);
+
+  return c.json({
+    message: 'Warehouse inventory deleted successfully',
+    warehouseId,
+    deletedInventoryRecords: inventoryRecords.length,
+    deletedMovements: deleteMovementsResult.meta?.changes || 0,
+    affectedProducts: productIds.length,
+    products: productIds,
+  });
+});
+
 // DELETE /api/inventory/product/:productId - Delete all inventory for a product (cascade delete support)
 app.delete('/product/:productId', async (c) => {
   const productId = c.req.param('productId');

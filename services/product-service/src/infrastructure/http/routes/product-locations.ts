@@ -317,6 +317,44 @@ app.patch('/:id/quantity', zValidator('json', z.object({ quantity: z.number().in
   return c.json({ message: 'Quantity updated successfully' });
 });
 
+// DELETE /api/product-locations/warehouse/:warehouseId - Delete all locations for a warehouse (cascade delete support)
+app.delete('/warehouse/:warehouseId', async (c) => {
+  const warehouseId = c.req.param('warehouseId');
+  const db = drizzle(c.env.DB);
+
+  // 1. Get all locations for this warehouse before deletion
+  const locations = await db
+    .select()
+    .from(productLocations)
+    .where(eq(productLocations.warehouseId, warehouseId))
+    .all();
+
+  if (locations.length === 0) {
+    return c.json({
+      message: 'No product locations found for this warehouse',
+      deletedLocations: 0,
+    });
+  }
+
+  const productIds = [...new Set(locations.map(loc => loc.productId))];
+
+  // 2. Delete all product locations for this warehouse
+  const deleteResult = await db
+    .delete(productLocations)
+    .where(eq(productLocations.warehouseId, warehouseId))
+    .run();
+
+  console.log(`Cascade delete - Warehouse ${warehouseId}: Deleted ${locations.length} product locations (${productIds.length} unique products)`);
+
+  return c.json({
+    message: 'Warehouse product locations deleted successfully',
+    warehouseId,
+    deletedLocations: locations.length,
+    affectedProducts: productIds.length,
+    products: productIds,
+  });
+});
+
 // DELETE /api/product-locations/:id - Delete location
 app.delete('/:id', async (c) => {
   const id = c.req.param('id');
