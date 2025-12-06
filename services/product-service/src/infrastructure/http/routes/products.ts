@@ -862,24 +862,35 @@ app.delete('/:id', async (c) => {
   // - pricingTiers, customPricing
   await db.delete(products).where(eq(products.id, id)).run();
 
-  // 4. Clean up inventory records in Inventory Service
-  for (const location of locations) {
-    try {
-      await c.env.INVENTORY_SERVICE.fetch(
-        new Request(
-          `http://inventory-service/api/inventory/${id}/${location.warehouseId}`,
-          { method: 'DELETE' }
-        )
-      );
-    } catch (err) {
-      console.error(`Failed to delete inventory for warehouse ${location.warehouseId}:`, err);
-      // Don't fail the entire operation - inventory cleanup can be done later
+  // 4. Clean up ALL inventory records in Inventory Service (cross-service cascade delete)
+  let inventoryDeleted = false;
+  let inventoryDeletedCount = 0;
+  try {
+    const deleteResponse = await c.env.INVENTORY_SERVICE.fetch(
+      new Request(
+        `http://inventory-service/api/inventory/product/${id}`,
+        { method: 'DELETE' }
+      )
+    );
+
+    if (deleteResponse.ok) {
+      const deleteResult = await deleteResponse.json();
+      inventoryDeleted = true;
+      inventoryDeletedCount = deleteResult.deletedInventoryRecords || 0;
+      console.log(`Deleted ${inventoryDeletedCount} inventory records for product ${id}`);
+    } else {
+      console.error(`Failed to delete inventory: ${deleteResponse.status}`);
     }
+  } catch (err) {
+    console.error(`Failed to delete inventory for product ${id}:`, err);
+    // Continue - product is already deleted, inventory cleanup can be done manually if needed
   }
 
   return c.json({
     message: 'Product deleted successfully',
-    deletedLocations: locations.length
+    deletedLocations: locations.length,
+    deletedInventoryRecords: inventoryDeletedCount,
+    inventoryCleaned: inventoryDeleted,
   });
 });
 

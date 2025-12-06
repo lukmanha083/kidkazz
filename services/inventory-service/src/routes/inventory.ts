@@ -354,6 +354,142 @@ app.get('/product/:id/low-stock-status', async (c) => {
   });
 });
 
+// GET /api/inventory/warehouse/:warehouseId/report - Get detailed inventory report for warehouse deletion validation
+app.get('/warehouse/:warehouseId/report', async (c) => {
+  const warehouseId = c.req.param('warehouseId');
+  const db = drizzle(c.env.DB);
+
+  // Get all inventory in this warehouse
+  const inventoryRecords = await db
+    .select()
+    .from(inventory)
+    .where(eq(inventory.warehouseId, warehouseId))
+    .all();
+
+  if (inventoryRecords.length === 0) {
+    return c.json({
+      warehouseId,
+      canDelete: true,
+      totalStock: 0,
+      productCount: 0,
+      products: [],
+      message: 'Warehouse has no inventory - safe to delete',
+    });
+  }
+
+  // Fetch product details from Product Service for each inventory record
+  const productsWithStock = await Promise.all(
+    inventoryRecords.map(async (inv) => {
+      try {
+        const productResponse = await c.env.PRODUCT_SERVICE.fetch(
+          new Request(`http://product-service/api/products/${inv.productId}`)
+        );
+
+        if (productResponse.ok) {
+          const product = await productResponse.json();
+          return {
+            productId: inv.productId,
+            productName: product.name || 'Unknown',
+            productSKU: product.sku || 'Unknown',
+            quantityAvailable: inv.quantityAvailable,
+            quantityReserved: inv.quantityReserved,
+            minimumStock: inv.minimumStock,
+            isLowStock: inv.minimumStock ? inv.quantityAvailable < inv.minimumStock : false,
+          };
+        } else {
+          // Product not found - might be deleted
+          return {
+            productId: inv.productId,
+            productName: '[Product Not Found]',
+            productSKU: 'N/A',
+            quantityAvailable: inv.quantityAvailable,
+            quantityReserved: inv.quantityReserved,
+            minimumStock: inv.minimumStock,
+            isLowStock: false,
+          };
+        }
+      } catch (error) {
+        console.error(`Failed to fetch product ${inv.productId}:`, error);
+        return {
+          productId: inv.productId,
+          productName: '[Error Fetching Product]',
+          productSKU: 'N/A',
+          quantityAvailable: inv.quantityAvailable,
+          quantityReserved: inv.quantityReserved,
+          minimumStock: inv.minimumStock,
+          isLowStock: false,
+        };
+      }
+    })
+  );
+
+  const totalStock = inventoryRecords.reduce((sum, inv) => sum + inv.quantityAvailable, 0);
+  const totalReserved = inventoryRecords.reduce((sum, inv) => sum + inv.quantityReserved, 0);
+  const canDelete = totalStock === 0;
+
+  return c.json({
+    warehouseId,
+    canDelete,
+    totalStock,
+    totalReserved,
+    productCount: inventoryRecords.length,
+    products: productsWithStock,
+    message: canDelete
+      ? 'All inventory is at zero - safe to delete warehouse'
+      : `⚠️ WARNING: Warehouse contains ${totalStock} units across ${inventoryRecords.length} product(s). Transfer inventory to another warehouse before deletion.`,
+  });
+});
+
+// DELETE /api/inventory/product/:productId - Delete all inventory for a product (cascade delete support)
+app.delete('/product/:productId', async (c) => {
+  const productId = c.req.param('productId');
+  const db = drizzle(c.env.DB);
+
+  // 1. Get all inventory records for this product before deletion
+  const inventoryRecords = await db
+    .select()
+    .from(inventory)
+    .where(eq(inventory.productId, productId))
+    .all();
+
+  if (inventoryRecords.length === 0) {
+    return c.json({
+      message: 'No inventory records found for this product',
+      deletedInventoryRecords: 0,
+      deletedMovements: 0,
+    });
+  }
+
+  const inventoryIds = inventoryRecords.map(inv => inv.id);
+  const totalStock = inventoryRecords.reduce((sum, inv) => sum + inv.quantityAvailable, 0);
+
+  // 2. Delete all inventory movements for this product
+  const deleteMovementsResult = await db
+    .delete(inventoryMovements)
+    .where(eq(inventoryMovements.productId, productId))
+    .run();
+
+  // 3. Delete all inventory records for this product
+  const deleteInventoryResult = await db
+    .delete(inventory)
+    .where(eq(inventory.productId, productId))
+    .run();
+
+  console.log(`Cascade delete - Product ${productId}: Deleted ${inventoryRecords.length} inventory records (${totalStock} total units) and movements`);
+
+  return c.json({
+    message: 'Inventory records deleted successfully',
+    productId,
+    deletedInventoryRecords: inventoryRecords.length,
+    deletedMovements: deleteMovementsResult.meta?.changes || 0,
+    totalStockDeleted: totalStock,
+    warehouses: inventoryRecords.map(inv => ({
+      warehouseId: inv.warehouseId,
+      quantity: inv.quantityAvailable,
+    })),
+  });
+});
+
 // POST /api/inventory/admin/sync-minimum-stock - Admin endpoint to sync minimumStock from Product Service
 app.post('/admin/sync-minimum-stock', async (c) => {
   const db = drizzle(c.env.DB);
