@@ -1001,60 +1001,80 @@ curl "http://localhost:8788/api/product-locations?warehouseId=wh_delete_test"
 - Product locations still exist (not cascaded)
 - Inventory record still exists
 
-### Test 4.2: Cleanup Orphaned References
+### Test 4.2: Cleanup Orphaned Inventory
+
+**IMPORTANT**: The cleanup endpoints are in the **Inventory Service**, not Product Service!
 
 ```bash
-# Step 1: Check for orphaned locations
-curl http://localhost:8788/api/cleanup/orphaned-locations/check
+# Step 1: Check for orphaned inventory records
+curl http://localhost:8792/api/cleanup/orphaned-inventory/check
 
 # Expected response:
 # {
-#   "orphanedProductLocations": [
-#     {
-#       "id": "...",
-#       "productId": "prod_delete_test",
-#       "warehouseId": "wh_delete_test",
-#       "quantity": 50,
-#       "reason": "Warehouse no longer active or deleted"
-#     }
-#   ],
-#   "orphanedUOMLocations": [],
-#   "orphanedVariantLocations": [],
 #   "totalOrphaned": 1,
-#   "message": "Found 1 orphaned location(s) that reference inactive/deleted warehouses"
+#   "summary": {
+#     "inventoryWithDeletedWarehouses": 1,
+#     "inventoryWithNonExistentProducts": 0,
+#     "totalInventoryRecords": 10,
+#     "activeWarehouses": 2
+#   },
+#   "orphanedData": {
+#     "inventoryWithDeletedWarehouses": [
+#       {
+#         "id": "inv_...",
+#         "productId": "prod_delete_test",
+#         "warehouseId": "wh_delete_test",
+#         "quantityAvailable": 0,
+#         "quantityReserved": 0
+#       }
+#     ],
+#     "inventoryWithNonExistentProducts": []
+#   },
+#   "warning": "1 orphaned inventory record(s) found! These should be investigated and cleaned up.",
+#   "message": "❌ Orphaned inventory detected - may indicate cascade delete failures"
 # }
 ```
 
 ```bash
-# Step 2: Execute cleanup
-curl -X POST http://localhost:8788/api/cleanup/orphaned-locations
+# Step 2: Execute cleanup (only deletes records with zero stock)
+curl -X POST http://localhost:8792/api/cleanup/orphaned-inventory
 
 # Expected response:
 # {
-#   "deletedProductLocations": 1,
-#   "deletedUOMLocations": 0,
-#   "deletedVariantLocations": 0,
-#   "totalDeleted": 1,
-#   "message": "Cleaned up 1 orphaned location(s)"
+#   "message": "Cleanup completed",
+#   "summary": {
+#     "totalChecked": 10,
+#     "totalDeleted": 1,
+#     "deletedWarehouseOrphans": 1,
+#     "deletedProductOrphans": 0,
+#     "skipped": 0,
+#     "errors": 0
+#   },
+#   "errors": null,
+#   "warning": null
 # }
 ```
 
 ```bash
-# Step 3: Verify locations are cleaned up
-curl "http://localhost:8788/api/product-locations?productId=prod_delete_test"
+# Step 3: Verify inventory is cleaned up
+curl "http://localhost:8792/api/inventory?productId=prod_delete_test"
 
 # Expected:
 # {
-#   "locations": [],
+#   "inventory": [],
 #   "total": 0
 # }
 ```
 
 **✅ Pass Criteria**:
-- Check endpoint identifies orphaned locations
-- Execute endpoint deletes orphaned locations
-- Orphaned UOM and variant locations also cleaned up
+- Check endpoint identifies orphaned inventory records
+- Execute endpoint deletes orphaned inventory (only with zero stock)
+- Records with non-zero stock are skipped for safety
+- Orphaned inventory for deleted warehouses cleaned up
+- Orphaned inventory for deleted products cleaned up
 - No errors during cleanup
+
+**Safety Note**: The cleanup only deletes inventory records with zero stock. Records with non-zero stock are skipped and require manual review to prevent data loss.
 
 ### Test 4.3: Product Deletion Validation
 
@@ -1235,6 +1255,175 @@ curl "http://localhost:8788/api/variants?productId=prod_cascade"
 - Product deletion cascades to variants and their locations
 - Inventory Service records cleaned up
 - No orphaned data left behind
+
+### Test 4.5: Cascade Delete Inventory by Product
+
+**Background**: When a product is deleted, all inventory records across all warehouses should be cleaned up automatically.
+
+```bash
+# Step 1: Create product with inventory in multiple warehouses
+curl -X POST http://localhost:8788/api/products \
+  -H "Content-Type: application/json" \
+  -d '{
+    "barcode": "CASCADE-INV-001",
+    "name": "Product for Inventory Cascade Test",
+    "sku": "CASCADE-INV-001",
+    "price": 15000,
+    "stock": 0,
+    "baseUnit": "PCS",
+    "status": "omnichannel sales"
+  }'
+
+# Save product ID as prod_cascade_inv
+
+# Add inventory at warehouse 1
+curl -X POST http://localhost:8792/api/inventory/adjust \
+  -H "Content-Type: application/json" \
+  -d '{
+    "productId": "prod_cascade_inv",
+    "warehouseId": "wh_12345...",
+    "quantity": 0,
+    "movementType": "adjustment",
+    "reason": "Initial stock for cascade test"
+  }'
+
+# Add inventory at warehouse 2
+curl -X POST http://localhost:8792/api/inventory/adjust \
+  -H "Content-Type: application/json" \
+  -d '{
+    "productId": "prod_cascade_inv",
+    "warehouseId": "wh_67890...",
+    "quantity": 0,
+    "movementType": "adjustment",
+    "reason": "Initial stock for cascade test"
+  }'
+```
+
+```bash
+# Step 2: Verify inventory exists in multiple warehouses
+curl "http://localhost:8792/api/inventory?productId=prod_cascade_inv"
+
+# Expected: 2 inventory records (one per warehouse)
+```
+
+```bash
+# Step 3: Delete product (should trigger cross-service cascade delete)
+curl -X DELETE http://localhost:8788/api/products/prod_cascade_inv
+
+# Expected:
+# {
+#   "message": "Product deleted successfully",
+#   "deletedLocations": 0,
+#   "deletedInventoryRecords": 2,
+#   "inventoryCleaned": true
+# }
+```
+
+```bash
+# Step 4: Verify all inventory records deleted
+curl "http://localhost:8792/api/inventory?productId=prod_cascade_inv"
+
+# Expected:
+# {
+#   "inventory": [],
+#   "total": 0
+# }
+```
+
+**✅ Pass Criteria**:
+- Product deletion triggers cross-service cascade delete
+- All inventory records deleted across all warehouses
+- Inventory movements also cleaned up
+- No orphaned inventory left behind
+
+### Test 4.6: Cascade Delete Inventory by Warehouse
+
+**Background**: When deleting inventory for a warehouse (e.g., warehouse closure), all inventory records and movements should be removed for that warehouse only.
+
+```bash
+# Step 1: Create warehouse and add inventory
+curl -X POST http://localhost:8792/api/warehouses \
+  -H "Content-Type: application/json" \
+  -d '{
+    "code": "WH-CASCADE-TEST",
+    "name": "Warehouse for Cascade Delete Test",
+    "addressLine1": "Jl. Test No. 999",
+    "city": "Jakarta",
+    "province": "DKI Jakarta",
+    "postalCode": "12345",
+    "country": "Indonesia",
+    "status": "active"
+  }'
+
+# Save warehouse ID as wh_cascade_test
+
+# Add inventory for product 1
+curl -X POST http://localhost:8792/api/inventory/adjust \
+  -H "Content-Type: application/json" \
+  -d '{
+    "productId": "prod_123",
+    "warehouseId": "wh_cascade_test",
+    "quantity": 0,
+    "movementType": "adjustment",
+    "reason": "Test stock"
+  }'
+
+# Add inventory for product 2
+curl -X POST http://localhost:8792/api/inventory/adjust \
+  -H "Content-Type: application/json" \
+  -d '{
+    "productId": "prod_456",
+    "warehouseId": "wh_cascade_test",
+    "quantity": 0,
+    "movementType": "adjustment",
+    "reason": "Test stock"
+  }'
+```
+
+```bash
+# Step 2: Verify inventory exists for this warehouse
+curl "http://localhost:8792/api/inventory?warehouseId=wh_cascade_test"
+
+# Expected: 2 inventory records
+```
+
+```bash
+# Step 3: Delete all inventory for this warehouse (stock must be zero)
+curl -X DELETE http://localhost:8792/api/inventory/warehouse/wh_cascade_test
+
+# Expected:
+# {
+#   "message": "Warehouse inventory deleted successfully",
+#   "warehouseId": "wh_cascade_test",
+#   "deletedInventoryRecords": 2,
+#   "deletedMovements": 0,
+#   "affectedProducts": 2,
+#   "products": ["prod_123", "prod_456"]
+# }
+```
+
+```bash
+# Step 4: Verify inventory deleted for this warehouse only
+curl "http://localhost:8792/api/inventory?warehouseId=wh_cascade_test"
+
+# Expected:
+# {
+#   "inventory": [],
+#   "total": 0
+# }
+
+# Verify other warehouses unaffected
+curl "http://localhost:8792/api/inventory?productId=prod_123"
+
+# Expected: Only inventory records for OTHER warehouses (multi-warehouse isolation)
+```
+
+**✅ Pass Criteria**:
+- Warehouse-specific inventory deletion works
+- Only affects specified warehouse
+- Other warehouses remain unaffected (multi-warehouse isolation)
+- All movements for this warehouse also deleted
+- Validation prevents deletion if stock > 0
 
 ---
 
@@ -1473,12 +1662,18 @@ ab -n 100 -c 10 "http://localhost:8792/api/batches?status=active"
 ### Phase 4 ✅ (Cascade Delete)
 - [ ] Warehouse soft delete works (deletedAt set, not hard deleted)
 - [ ] Soft deleted warehouses filtered from GET requests
-- [ ] Orphaned location detection works correctly
-- [ ] Orphaned location cleanup executes successfully
+- [ ] Orphaned inventory detection works correctly (deleted warehouses)
+- [ ] Orphaned inventory detection works correctly (non-existent products)
+- [ ] Orphaned inventory cleanup executes successfully (zero-stock only)
+- [ ] Non-zero stock orphaned records skipped for safety
+- [ ] Product deletion validation ALWAYS checks inventory first
 - [ ] Product deletion validation prevents deletion with inventory > 0
 - [ ] Product deletion with inventory = 0 succeeds
 - [ ] Product deletion cascades to locations, UOMs, variants
-- [ ] Inventory Service records cleaned up after product deletion
+- [ ] Inventory Service records cleaned up via cross-service call
+- [ ] Cascade delete by product works (DELETE /api/inventory/product/:id)
+- [ ] Cascade delete by warehouse works (DELETE /api/inventory/warehouse/:id)
+- [ ] Multi-warehouse isolation maintained during cascade deletes
 
 ### Frontend Integration ✅
 - [ ] Product table fetches stock from Inventory Service
@@ -1559,9 +1754,12 @@ ab -n 100 -c 10 "http://localhost:8792/api/batches?status=active"
    - Document batch workflows
 
 5. **Maintenance Tasks**:
-   - Run `POST /api/cleanup/orphaned-locations` periodically
+   - Run `GET /api/cleanup/orphaned-inventory/check` periodically to detect issues
+   - Run `POST /api/cleanup/orphaned-inventory` to clean up (only deletes zero-stock records)
    - Review soft-deleted warehouses for permanent deletion
    - Monitor product deletion errors for inventory issues
+   - Use `DELETE /api/inventory/warehouse/:id` for warehouse closure (stock must be zero)
+   - Verify multi-warehouse isolation after bulk operations
 
 6. **Future Enhancements** (Phase 5 - After Testing):
    - 🔄 Implement WebSocket real-time inventory updates

@@ -196,24 +196,35 @@ tests/e2e/
 **Test 4.1**: Warehouse Soft Delete
 - ✅ Warehouse soft deleted (deletedAt set)
 - ✅ Not in active warehouse list
-- ✅ Locations remain (orphaned)
+- ✅ Inventory remains (orphaned, not cascaded)
 
-**Test 4.2**: Cleanup Orphaned References
-- ✅ Orphaned locations detected
-- ✅ Cleanup executes successfully
+**Test 4.2**: Cleanup Orphaned Inventory
+- ✅ Orphaned inventory detected (deleted warehouses)
+- ✅ Orphaned inventory detected (non-existent products)
+- ✅ Cleanup executes successfully (only zero-stock records)
+- ✅ Non-zero stock records skipped for safety
 - ✅ Orphaned data removed
 
-**Test 4.3**: Product Deletion Validation
+**Test 4.3**: Product Deletion Validation (Critical Bug Fix)
+- ✅ ALWAYS checks inventory first before deletion
 - ✅ Cannot delete product with inventory > 0
-- ✅ Error message helpful
+- ✅ Error message helpful and actionable
 - ✅ Deletion succeeds when inventory = 0
 - ✅ Locations CASCADE deleted
-- ✅ Inventory cleaned up
+- ✅ Inventory cleaned up via cross-service call
 
 **Test 4.4**: Product Deletion with UOM and Variants
+- ✅ Product locations cascade deleted
 - ✅ UOMs cascade deleted
 - ✅ Variants cascade deleted
 - ✅ All dependent data removed
+- ✅ Inventory records cleaned up
+
+**Additional Endpoints Tested**:
+- `GET /api/cleanup/orphaned-inventory/check` - Detect orphaned inventory
+- `POST /api/cleanup/orphaned-inventory` - Clean up orphaned inventory
+- `DELETE /api/inventory/product/:productId` - Cascade delete inventory for product
+- `DELETE /api/inventory/warehouse/:warehouseId` - Cascade delete inventory for warehouse
 
 ## Command Line Options
 
