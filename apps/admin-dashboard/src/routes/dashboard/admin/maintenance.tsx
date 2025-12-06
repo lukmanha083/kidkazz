@@ -1,3 +1,4 @@
+import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,7 +34,7 @@ interface OrphanCheckResult {
   message?: string;
 }
 
-export function DatabaseMaintenancePage() {
+function DatabaseMaintenancePage() {
   const queryClient = useQueryClient();
   const [selectedCleanup, setSelectedCleanup] = useState<'locations' | 'inventory' | null>(null);
 
@@ -418,3 +419,8 @@ export function DatabaseMaintenancePage() {
     </div>
   );
 }
+
+// TanStack Router route export
+export const Route = createFileRoute('/dashboard/admin/maintenance')({
+  component: DatabaseMaintenancePage,
+});
