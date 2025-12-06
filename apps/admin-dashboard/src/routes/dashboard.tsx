@@ -17,6 +17,7 @@ import {
   DollarSign,
   Warehouse,
   Calculator,
+  Database,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -134,6 +135,15 @@ const navItems: NavItem[] = [
       { title: 'Sales by Person', href: '/dashboard/accounting/reports/sales-by-person' },
     ]
   },
+  {
+    id: 'admin',
+    title: 'Admin',
+    href: '/dashboard/admin',
+    icon: Database,
+    submenu: [
+      { title: 'Database Maintenance', href: '/dashboard/admin/maintenance' },
+    ]
+  },
 ];
 
 function DashboardLayout() {
@@ -161,6 +171,7 @@ function DashboardLayout() {
     if (path.includes('/promotions')) return 'Promotions';
     if (path.includes('/price-lists')) return 'Price Lists';
     if (path.includes('/accounting')) return 'Accounting';
+    if (path.includes('/admin')) return 'Admin';
     return 'Dashboard';
   };
 
