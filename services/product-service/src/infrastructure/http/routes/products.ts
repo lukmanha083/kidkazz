@@ -844,24 +844,52 @@ app.delete('/:id', async (c) => {
     );
   }
 
-  // 2. Get product locations for cleanup
+  // 2. Check product locations for non-zero quantities
+  // CRITICAL: Even if inventory records don't exist (due to sync failures),
+  // we must prevent deletion if product locations have stock allocated
   const locations = await db
     .select()
     .from(productLocations)
     .where(eq(productLocations.productId, id))
     .all();
 
+  const totalLocationStock = locations.reduce(
+    (sum, loc) => sum + (loc.quantity || 0),
+    0
+  );
+
+  if (totalLocationStock > 0) {
+    return c.json(
+      {
+        error: `Cannot delete product "${product.name}" (SKU: ${product.sku})`,
+        reason: 'Product has stock allocated in locations',
+        details: {
+          totalLocationStock,
+          locations: locations.length,
+          locationDetails: locations.map(loc => ({
+            warehouseId: loc.warehouseId,
+            quantity: loc.quantity,
+          })),
+          suggestion: 'Remove or transfer all stock from product locations before deleting the product',
+        },
+      },
+      400
+    );
+  }
+
   // 3. Delete product (CASCADE will handle dependent data)
   // This will cascade to:
   // - productUOMs (and their productUOMLocations)
   // - productVariants (and their variantLocations)
-  // - productLocations
+  // - productLocations (already validated as zero quantity above)
   // - productBundles/bundleItems
   // - productImages, productVideos
   // - pricingTiers, customPricing
   await db.delete(products).where(eq(products.id, id)).run();
 
   // 4. Clean up ALL inventory records in Inventory Service (cross-service cascade delete)
+  // NOTE: At this point inventory should be zero (validated above), but we still
+  // call the cascade delete to clean up any orphaned inventory records
   let inventoryDeleted = false;
   let inventoryDeletedCount = 0;
   try {
