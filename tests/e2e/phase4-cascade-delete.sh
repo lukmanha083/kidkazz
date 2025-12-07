@@ -133,48 +133,48 @@ test_4_1_warehouse_soft_delete() {
 }
 
 # ============================================================================
-# TEST 4.2: Cleanup Orphaned References
+# TEST 4.2: Cleanup Orphaned Inventory
 # ============================================================================
 
 test_4_2_cleanup_orphaned() {
-  log_test "Test 4.2: Cleanup Orphaned References"
+  log_test "Test 4.2: Cleanup Orphaned Inventory"
   echo "------------------------------------------------"
 
-  # Step 1: Check for orphaned locations
-  log_info "Step 1: Checking for orphaned locations..."
+  # Step 1: Check for orphaned inventory
+  log_info "Step 1: Checking for orphaned inventory..."
 
-  check_response=$(http_get "$PRODUCT_SERVICE_URL/api/cleanup/orphaned-locations/check")
+  check_response=$(http_get "$INVENTORY_SERVICE_URL/api/cleanup/orphaned-inventory/check")
 
   check_body=$(echo "$check_response" | head -n -1)
   check_status=$(echo "$check_response" | tail -n 1)
 
-  assert_http_status "200" "$check_status" "Orphaned locations check"
+  assert_http_status "200" "$check_status" "Orphaned inventory check"
 
   total_orphaned=$(extract_json_field "$check_body" '.totalOrphaned')
 
   if [ "$total_orphaned" -gt 0 ]; then
-    log_success "✅ Found $total_orphaned orphaned location(s)"
+    log_success "✅ Found $total_orphaned orphaned inventory record(s)"
     TESTS_PASSED=$((TESTS_PASSED + 1))
   else
-    log_warning "No orphaned locations found (may be expected)"
+    log_warning "No orphaned inventory found (may be expected)"
     TESTS_PASSED=$((TESTS_PASSED + 1))
   fi
   TESTS_RUN=$((TESTS_RUN + 1))
 
-  # Step 2: Execute cleanup
-  log_info "Step 2: Executing orphaned location cleanup..."
+  # Step 2: Execute cleanup (only if there are orphans with zero stock)
+  log_info "Step 2: Executing orphaned inventory cleanup..."
 
-  cleanup_response=$(http_post "$PRODUCT_SERVICE_URL/api/cleanup/orphaned-locations" "")
+  cleanup_response=$(http_post "$INVENTORY_SERVICE_URL/api/cleanup/orphaned-inventory" "")
 
   cleanup_body=$(echo "$cleanup_response" | head -n -1)
   cleanup_status=$(echo "$cleanup_response" | tail -n 1)
 
-  assert_http_status "200" "$cleanup_status" "Orphaned locations cleanup"
+  assert_http_status "200" "$cleanup_status" "Orphaned inventory cleanup"
 
-  total_deleted=$(extract_json_field "$cleanup_body" '.totalDeleted')
+  total_deleted=$(extract_json_field "$cleanup_body" '.summary.totalDeleted')
 
   if [ "$total_deleted" -ge 0 ]; then
-    log_success "✅ Cleaned up $total_deleted orphaned location(s)"
+    log_success "✅ Cleaned up $total_deleted orphaned inventory record(s)"
     TESTS_PASSED=$((TESTS_PASSED + 1))
   else
     log_error "❌ Cleanup failed"
@@ -182,16 +182,17 @@ test_4_2_cleanup_orphaned() {
   fi
   TESTS_RUN=$((TESTS_RUN + 1))
 
-  # Step 3: Verify locations are cleaned up
-  log_info "Step 3: Verifying orphaned locations are removed..."
+  # Step 3: Verify inventory is cleaned up
+  log_info "Step 3: Verifying orphaned inventory is removed..."
 
   local product_id=$(load_test_data "phase4_delete_product_id")
+  local warehouse_id=$(load_test_data "phase4_delete_warehouse_id")
 
-  verify_response=$(http_get "$PRODUCT_SERVICE_URL/api/product-locations?productId=$product_id")
+  verify_response=$(http_get "$INVENTORY_SERVICE_URL/api/inventory?productId=$product_id&warehouseId=$warehouse_id")
   verify_body=$(echo "$verify_response" | head -n -1)
 
-  remaining_locations=$(extract_json_field "$verify_body" '.total')
-  assert_equals "0" "$remaining_locations" "All orphaned locations cleaned up"
+  remaining_inventory=$(extract_json_field "$verify_body" '.total')
+  assert_equals "0" "$remaining_inventory" "All orphaned inventory cleaned up"
 
   log_success "Test 4.2 completed ✅"
   echo ""
