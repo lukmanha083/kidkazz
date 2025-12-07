@@ -50,7 +50,7 @@ test_4_1_warehouse_soft_delete() {
   warehouse_body=$(echo "$warehouse_response" | head -n -1)
   warehouse_status=$(echo "$warehouse_response" | tail -n 1)
 
-  assert_http_status "200" "$warehouse_status" "Warehouse creation"
+  assert_http_post_status "$warehouse_status" "Warehouse creation"
 
   warehouse_id=$(extract_json_field "$warehouse_body" '.warehouse.id')
   save_test_data "phase4_delete_warehouse_id" "$warehouse_id"
@@ -169,7 +169,7 @@ test_4_2_cleanup_orphaned() {
   cleanup_body=$(echo "$cleanup_response" | head -n -1)
   cleanup_status=$(echo "$cleanup_response" | tail -n 1)
 
-  assert_http_status "200" "$cleanup_status" "Orphaned inventory cleanup"
+  assert_http_post_status "$cleanup_status" "Orphaned inventory cleanup"
 
   total_deleted=$(extract_json_field "$cleanup_body" '.summary.totalDeleted')
 
@@ -265,7 +265,7 @@ test_4_3_product_deletion_validation() {
   }")
 
   adjust_status=$(echo "$adjust_response" | tail -n 1)
-  assert_http_status "200" "$adjust_status" "Inventory adjustment to zero"
+  assert_http_post_status "$adjust_status" "Inventory adjustment to zero"
 
   log_success "Inventory reduced to zero"
 

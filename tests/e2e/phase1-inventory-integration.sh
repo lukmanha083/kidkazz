@@ -40,7 +40,7 @@ setup_phase1() {
   warehouse_body=$(echo "$warehouse_response" | head -n -1)
   warehouse_status=$(echo "$warehouse_response" | tail -n 1)
 
-  assert_http_status "200" "$warehouse_status" "Warehouse creation"
+  assert_http_post_status "$warehouse_status" "Warehouse creation"
 
   warehouse_id=$(extract_json_field "$warehouse_body" '.warehouse.id')
   save_test_data "phase1_warehouse_id" "$warehouse_id"
@@ -77,7 +77,7 @@ test_1_1_product_with_location() {
   product_body=$(echo "$product_response" | head -n -1)
   product_status=$(echo "$product_response" | tail -n 1)
 
-  assert_http_status "200" "$product_status" "Product creation"
+  assert_http_post_status "$product_status" "Product creation"
 
   product_id=$(extract_id_from_response "$product_body")
   save_test_data "phase1_product_id" "$product_id"
@@ -96,7 +96,7 @@ test_1_1_product_with_location() {
   location_body=$(echo "$location_response" | head -n -1)
   location_status=$(echo "$location_response" | tail -n 1)
 
-  assert_http_status "200" "$location_status" "Product location creation"
+  assert_http_post_status "$location_status" "Product location creation"
 
   location_id=$(extract_id_from_response "$location_body")
   save_test_data "phase1_location_id" "$location_id"
@@ -160,7 +160,7 @@ test_1_2_uom_location() {
   uom_body=$(echo "$uom_response" | head -n -1)
   uom_status=$(echo "$uom_response" | tail -n 1)
 
-  assert_http_status "200" "$uom_status" "UOM creation"
+  assert_http_post_status "$uom_status" "UOM creation"
 
   log_success "UOM created"
 
@@ -180,7 +180,7 @@ test_1_2_uom_location() {
   product_uom_body=$(echo "$product_uom_response" | head -n -1)
   product_uom_status=$(echo "$product_uom_response" | tail -n 1)
 
-  assert_http_status "200" "$product_uom_status" "Product UOM creation"
+  assert_http_post_status "$product_uom_status" "Product UOM creation"
 
   product_uom_id=$(extract_id_from_response "$product_uom_body")
   save_test_data "phase1_product_uom_id" "$product_uom_id"
@@ -201,7 +201,7 @@ test_1_2_uom_location() {
   uom_location_body=$(echo "$uom_location_response" | head -n -1)
   uom_location_status=$(echo "$uom_location_response" | tail -n 1)
 
-  assert_http_status "200" "$uom_location_status" "UOM location creation"
+  assert_http_post_status "$uom_location_status" "UOM location creation"
 
   log_success "UOM location created"
 
@@ -272,7 +272,7 @@ test_1_3_variant_location() {
   variant_body=$(echo "$variant_response" | head -n -1)
   variant_status=$(echo "$variant_response" | tail -n 1)
 
-  assert_http_status "200" "$variant_status" "Variant creation"
+  assert_http_post_status "$variant_status" "Variant creation"
 
   variant_id=$(extract_id_from_response "$variant_body")
   save_test_data "phase1_variant_id" "$variant_id"
@@ -291,7 +291,7 @@ test_1_3_variant_location() {
   variant_location_body=$(echo "$variant_location_response" | head -n -1)
   variant_location_status=$(echo "$variant_location_response" | tail -n 1)
 
-  assert_http_status "200" "$variant_location_status" "Variant location creation"
+  assert_http_post_status "$variant_location_status" "Variant location creation"
 
   log_success "Variant location created"
 
