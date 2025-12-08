@@ -2343,6 +2343,8 @@ async function checkAndTriggerTransfer(
 ## Phase 8: Stock Opname & Physical Bundles
 
 > **DDD Pure Approach**: Stock Opname (Physical Inventory Count) reconciles system inventory with actual physical count. Physical Bundles allow pre-assembled inventory including nested bundles (bundle from bundle).
+>
+> **IMPORTANT RULE**: Nested bundles can ONLY be created from Physical Bundles (not Virtual Bundles). This simplifies stock opname - we only count physical inventory units without needing to track virtual bundle calculation layers.
 
 ### 8.1 Stock Opname Overview
 
@@ -3360,10 +3362,48 @@ app.post('/assemble', zValidator('json', z.object({
     // Check if component is a bundle (nested bundle)
     const isNestedBundle = item.bundleId != null;
 
+    // ============================================================
+    // RULE: Nested bundles can ONLY be physical bundles
+    // Virtual bundles cannot be nested - simplifies stock opname
+    // ============================================================
+    if (isNestedBundle) {
+      // Check if the nested bundle is a physical bundle
+      const nestedBundle = await db.select()
+        .from(productBundles)
+        .where(eq(productBundles.id, item.bundleId))
+        .get();
+
+      // Check if physical bundle inventory exists
+      const hasPhysicalInventory = await db.select()
+        .from(inventory)
+        .where(and(
+          eq(inventory.bundleId, item.bundleId),
+          eq(inventory.isPhysicalBundle, 1)
+        )).get();
+
+      if (!hasPhysicalInventory) {
+        // Reject nesting virtual bundles
+        await db.update(bundleAssemblySessions)
+          .set({
+            status: 'cancelled',
+            cancellationReason: `Cannot nest virtual bundle: ${nestedBundle?.bundleName || item.bundleId}. Only physical bundles can be nested.`,
+          })
+          .where(eq(bundleAssemblySessions.id, sessionId))
+          .run();
+
+        return c.json({
+          error: 'Cannot nest virtual bundles',
+          message: 'Nested bundles can ONLY be created from Physical Bundles. Virtual bundles cannot be nested to simplify stock opname.',
+          bundleId: item.bundleId,
+          bundleName: nestedBundle?.bundleName,
+        }, 400);
+      }
+    }
+
     // Get component inventory
     let componentInv;
     if (isNestedBundle) {
-      // Nested bundle - look for physical bundle inventory
+      // Nested bundle - look for physical bundle inventory (already validated above)
       componentInv = await db.select().from(inventory)
         .where(and(
           eq(inventory.bundleId, item.bundleId),
@@ -3810,9 +3850,11 @@ export default app;
  *    - Identified by bundleId field in inventory
  *
  * 3. Nested Bundles:
- *    - Physical bundles containing other bundles
+ *    - Physical bundles containing OTHER PHYSICAL BUNDLES only
+ *    - RULE: Cannot nest virtual bundles (only physical → physical)
  *    - Count the parent bundle as a unit
  *    - Internal bundles already consumed during assembly
+ *    - This simplifies stock opname (no virtual calculation layers)
  */
 
 // When initializing opname items, differentiate bundle types
@@ -3841,7 +3883,8 @@ async function initializeOpnameItems(session, inventoryItems) {
 - [ ] Inventory adjustments with audit trail
 - [ ] Physical Bundle support in inventory table (bundleId, isPhysicalBundle)
 - [ ] Bundle Assembly/Disassembly operations
-- [ ] Nested bundle support (bundle from bundle)
+- [ ] Nested bundle support (physical bundle from physical bundle ONLY)
+- [ ] Validation: reject nesting virtual bundles (simplifies stock opname)
 - [ ] Stock Opname correctly handles virtual vs physical bundles
 - [ ] WebSocket events for opname and assembly operations
 
@@ -3944,6 +3987,11 @@ DRAFT → IN_PROGRESS → PENDING_REVIEW → APPROVED → COMPLETED
 - Physical Bundles: INCLUDE (count as single unit, has inventory record)
 - Nested Bundles: Count parent only (internal bundles consumed during assembly)
 
+**Nested Bundle Rule:**
+- Nested bundles can ONLY be created from Physical Bundles
+- Virtual bundles CANNOT be nested (rejected at assembly time)
+- Rationale: Simplifies stock opname by avoiding virtual calculation layers
+
 ### What Gets KEPT in Product Service (Tables Not Deleted)
 
 - `productLocations` table - Physical location mapping (rack, bin, zone, aisle)
@@ -3965,7 +4013,7 @@ DRAFT → IN_PROGRESS → PENDING_REVIEW → APPROVED → COMPLETED
 ✅ **Discrepancy Handling** - Track damaged/missing items during transfer
 ✅ **Stock Opname** - Physical inventory count with variance detection
 ✅ **Physical Bundle Support** - Pre-assembled bundle inventory tracking
-✅ **Nested Bundles** - Create bundles from bundles (composite products)
+✅ **Nested Bundles** - Create bundles from physical bundles only (simplifies stock opname)
 ✅ **Bundle Type Awareness** - Correctly handles virtual vs physical bundles
 
 ---
