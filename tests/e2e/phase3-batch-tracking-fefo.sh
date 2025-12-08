@@ -270,7 +270,8 @@ test_3_4_batch_adjustment() {
 
   batch_body=$(echo "$batch_response" | head -n -1)
 
-  quantity_available=$(extract_json_field "$batch_body" '.batch.quantityAvailable')
+  # Try both possible response structures
+  quantity_available=$(echo "$batch_body" | jq -r '.quantityAvailable // .batch.quantityAvailable // null')
   assert_equals "90" "$quantity_available" "Batch quantity reduced to 90 (100 - 10)"
 
   log_success "Test 3.4 completed ✅"

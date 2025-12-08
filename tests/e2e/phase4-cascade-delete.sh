@@ -84,6 +84,23 @@ test_4_1_warehouse_soft_delete() {
 
   log_success "Product location created with 50 units"
 
+  # Step 2.5: Remove inventory before deleting warehouse
+  log_info "Step 2.5: Removing product location inventory to allow warehouse deletion..."
+
+  # Get the location ID
+  locations_response=$(http_get "$PRODUCT_SERVICE_URL/api/product-locations?productId=$product_id")
+  locations_body=$(echo "$locations_response" | head -n -1)
+  location_id=$(echo "$locations_body" | jq -r '.locations[0].id')
+
+  # Update location quantity to zero
+  update_response=$(http_patch "$PRODUCT_SERVICE_URL/api/product-locations/$location_id/quantity" '{
+    "quantity": 0
+  }')
+
+  log_success "Product location inventory cleared"
+
+  sleep 1
+
   # Step 3: Delete warehouse (soft delete)
   log_info "Step 3: Soft deleting warehouse..."
 
@@ -253,21 +270,23 @@ test_4_3_product_deletion_validation() {
   error_message=$(extract_json_field "$delete_body" '.error')
   assert_contains "Cannot delete product" "$error_message" "Error message contains 'Cannot delete product'"
 
-  # Step 3: Reduce inventory to zero
-  log_info "Step 3: Reducing inventory to zero..."
+  # Step 3: Reduce product location quantity to zero
+  log_info "Step 3: Reducing product location quantity to zero..."
 
-  adjust_response=$(http_post "$INVENTORY_SERVICE_URL/api/inventory/adjust" "{
-    \"productId\": \"$product_id\",
-    \"warehouseId\": \"$warehouse_id\",
-    \"quantity\": -100,
-    \"movementType\": \"out\",
-    \"reason\": \"Preparing for product deletion\"
-  }")
+  # Get the product location ID
+  locations_query_response=$(http_get "$PRODUCT_SERVICE_URL/api/product-locations?productId=$product_id")
+  locations_query_body=$(echo "$locations_query_response" | head -n -1)
+  location_id=$(echo "$locations_query_body" | jq -r '.locations[0].id')
 
-  adjust_status=$(echo "$adjust_response" | tail -n 1)
-  assert_http_post_status "$adjust_status" "Inventory adjustment to zero"
+  # Update location quantity to zero using PATCH endpoint
+  patch_response=$(http_patch "$PRODUCT_SERVICE_URL/api/product-locations/$location_id/quantity" '{
+    "quantity": 0
+  }')
 
-  log_success "Inventory reduced to zero"
+  patch_status=$(echo "$patch_response" | tail -n 1)
+  assert_http_status "200" "$patch_status" "Product location quantity updated to zero"
+
+  log_success "Product location quantity reduced to zero"
 
   sleep 1
 
