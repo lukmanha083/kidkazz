@@ -99,7 +99,7 @@ test_3_1_create_batches() {
   batch_a_body=$(echo "$batch_a_response" | head -n -1)
   batch_a_status=$(echo "$batch_a_response" | tail -n 1)
 
-  assert_http_status "200" "$batch_a_status" "Batch A001 creation"
+  assert_http_post_status "$batch_a_status" "Batch A001 creation"
 
   batch_a_id=$(extract_id_from_response "$batch_a_body")
   save_test_data "phase3_batch_a_id" "$batch_a_id"
@@ -124,7 +124,7 @@ test_3_1_create_batches() {
   batch_b_body=$(echo "$batch_b_response" | head -n -1)
   batch_b_status=$(echo "$batch_b_response" | tail -n 1)
 
-  assert_http_status "200" "$batch_b_status" "Batch A002 creation"
+  assert_http_post_status "$batch_b_status" "Batch A002 creation"
 
   batch_b_id=$(extract_id_from_response "$batch_b_body")
   save_test_data "phase3_batch_b_id" "$batch_b_id"
@@ -147,7 +147,7 @@ test_3_1_create_batches() {
   batch_c_body=$(echo "$batch_c_response" | head -n -1)
   batch_c_status=$(echo "$batch_c_response" | tail -n 1)
 
-  assert_http_status "200" "$batch_c_status" "Batch B001 creation"
+  assert_http_post_status "$batch_c_status" "Batch B001 creation"
 
   batch_c_id=$(extract_id_from_response "$batch_c_body")
   save_test_data "phase3_batch_c_id" "$batch_c_id"
@@ -261,7 +261,7 @@ test_3_4_batch_adjustment() {
   adjust_body=$(echo "$adjust_response" | head -n -1)
   adjust_status=$(echo "$adjust_response" | tail -n 1)
 
-  assert_http_status "200" "$adjust_status" "Batch adjustment"
+  assert_http_post_status "$adjust_status" "Batch adjustment"
 
   # Verify adjustment
   log_info "Verifying batch quantity updated..."

@@ -98,7 +98,7 @@ test_2_2_low_stock_detection() {
   }")
 
   adjust_status=$(echo "$adjust_response" | tail -n 1)
-  assert_http_status "200" "$adjust_status" "Inventory adjustment"
+  assert_http_post_status "$adjust_status" "Inventory adjustment"
 
   log_success "Inventory adjusted to 5 units"
 
@@ -263,7 +263,7 @@ test_2_3_virtual_bundle_stock() {
   bundle_body=$(echo "$bundle_response" | head -n -1)
   bundle_status=$(echo "$bundle_response" | tail -n 1)
 
-  assert_http_status "200" "$bundle_status" "Bundle creation"
+  assert_http_post_status "$bundle_status" "Bundle creation"
 
   bundle_id=$(extract_id_from_response "$bundle_body")
   save_test_data "phase2_bundle_id" "$bundle_id"

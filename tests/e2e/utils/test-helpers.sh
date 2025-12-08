@@ -120,6 +120,26 @@ assert_http_status() {
   assert_equals "$expected_status" "$actual_status" "$message"
 }
 
+assert_http_post_status() {
+  local actual_status="$1"
+  local message="${2:-HTTP POST status check}"
+
+  TESTS_RUN=$((TESTS_RUN + 1))
+
+  # Accept both 200 OK and 201 Created for POST/CREATE operations
+  if [ "$actual_status" = "200" ] || [ "$actual_status" = "201" ]; then
+    log_success "✅ $message (HTTP $actual_status)"
+    TESTS_PASSED=$((TESTS_PASSED + 1))
+    return 0
+  else
+    log_error "❌ $message"
+    log_error "   Expected: 200 or 201"
+    log_error "   Actual: $actual_status"
+    TESTS_FAILED=$((TESTS_FAILED + 1))
+    return 1
+  fi
+}
+
 assert_json_value() {
   local json="$1"
   local jq_path="$2"
