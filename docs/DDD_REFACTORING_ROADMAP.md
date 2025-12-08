@@ -49,6 +49,7 @@ This roadmap outlines the complete refactoring plan to achieve ideal DDD/Hexagon
 │  ├── uomId (nullable)                          ✅ UOM SUPPORT           │
 │  ├── quantityAvailable                         ✅ STOCK                 │
 │  ├── quantityReserved                          ✅ RESERVATIONS          │
+│  ├── quantityInTransit                         ✅ SHIPPING/UNPACK       │
 │  ├── minimumStock                              ✅ REORDER THRESHOLD     │
 │  ├── rack, bin, zone, aisle                    ✅ PHYSICAL LOCATION     │
 │  ├── version                                   ✅ OPTIMISTIC LOCK       │
@@ -94,6 +95,9 @@ This roadmap outlines the complete refactoring plan to achieve ideal DDD/Hexagon
 -- Add variant and UOM support
 ALTER TABLE inventory ADD COLUMN variant_id TEXT;
 ALTER TABLE inventory ADD COLUMN uom_id TEXT;
+
+-- Add stock in transit (shipping/waiting to unpack)
+ALTER TABLE inventory ADD COLUMN quantity_in_transit INTEGER DEFAULT 0;
 
 -- Add physical location fields (from Product Service)
 ALTER TABLE inventory ADD COLUMN rack TEXT;
@@ -780,52 +784,77 @@ app.get('/uom/:uomId', async (c) => {
 
 ## Phase 4: Product Service Schema Cleanup
 
-### 4.1 Remove Stock Fields
+> **IMPORTANT**: We are ONLY removing stock/quantity fields. All tables (productLocations, variantLocations, productUOMLocations, etc.) are KEPT for their catalog/location purposes.
+
+### 4.1 Remove Stock Fields Only (Keep Tables)
 
 **Migration file**: `services/product-service/migrations/0003_remove_stock_fields.sql`
 
 ```sql
 -- Remove stock-related columns from products
+-- NOTE: Table products is KEPT, only these columns removed
 ALTER TABLE products DROP COLUMN minimum_stock;
 ALTER TABLE products DROP COLUMN expiration_date;
 ALTER TABLE products DROP COLUMN alert_date;
 
 -- Remove stock from product_uoms
+-- NOTE: Table product_uoms is KEPT (for UOM definitions)
 ALTER TABLE product_uoms DROP COLUMN stock;
 
 -- Remove stock from product_variants
+-- NOTE: Table product_variants is KEPT (for variant definitions)
 ALTER TABLE product_variants DROP COLUMN stock;
 
 -- Remove quantity from location tables
+-- NOTE: Tables are KEPT for physical location mapping (rack, bin, zone, aisle)
 ALTER TABLE product_locations DROP COLUMN quantity;
 ALTER TABLE variant_locations DROP COLUMN quantity;
 ALTER TABLE product_uom_locations DROP COLUMN quantity;
 ```
 
-### 4.2 Update Product Service Schema
+### 4.2 What Gets KEPT in Product Service
+
+| Table | Purpose | Fields Removed | Fields Kept |
+|-------|---------|----------------|-------------|
+| `products` | Product catalog | minimumStock, expirationDate, alertDate | All other fields (name, sku, price, etc.) |
+| `productUOMs` | UOM definitions | stock | uomCode, uomName, barcode, conversionFactor |
+| `productVariants` | Variant definitions | stock | variantName, variantSKU, variantType, price |
+| `productLocations` | Physical location mapping | quantity | productId, warehouseId, rack, bin, zone, aisle |
+| `variantLocations` | Variant location mapping | quantity | variantId, warehouseId, rack, bin, zone, aisle |
+| `productUOMLocations` | UOM location mapping | quantity | productUOMId, warehouseId, rack, bin, zone, aisle |
+
+### 4.3 Update Product Service Schema
 
 **File**: `services/product-service/src/infrastructure/db/schema.ts`
 
 ```typescript
-// REMOVED from products:
-// - minimumStock
-// - expirationDate
-// - alertDate
+// ============================================
+// TABLES KEPT - Only stock fields removed
+// ============================================
 
-// REMOVED from productUOMs:
-// - stock
+// products table: KEPT
+// REMOVED: minimumStock, expirationDate, alertDate
+// KEPT: id, name, sku, barcode, description, price, minimumOrderQuantity, etc.
 
-// REMOVED from productVariants:
-// - stock
+// productUOMs table: KEPT
+// REMOVED: stock
+// KEPT: id, productId, uomCode, uomName, barcode, conversionFactor, etc.
 
-// REMOVED from productLocations:
-// - quantity
+// productVariants table: KEPT
+// REMOVED: stock
+// KEPT: id, productId, variantName, variantSKU, variantType, price, image, etc.
 
-// REMOVED from variantLocations:
-// - quantity
+// productLocations table: KEPT (for physical location only)
+// REMOVED: quantity
+// KEPT: id, productId, warehouseId, rack, bin, zone, aisle
 
-// REMOVED from productUOMLocations:
-// - quantity
+// variantLocations table: KEPT (for physical location only)
+// REMOVED: quantity
+// KEPT: id, variantId, warehouseId, rack, bin, zone, aisle
+
+// productUOMLocations table: KEPT (for physical location only)
+// REMOVED: quantity
+// KEPT: id, productUOMId, warehouseId, rack, bin, zone, aisle
 ```
 
 ### 4.3 Deliverables
@@ -1063,11 +1092,19 @@ wait
 
 - `inventory.variantId` - Variant support
 - `inventory.uomId` - UOM support
+- `inventory.quantityInTransit` - Stock in transit (shipping/waiting to unpack)
 - `inventory.rack/bin/zone/aisle` - Physical location
 - `inventory.version` - Optimistic locking
 - `inventory.lastModifiedAt` - Timestamp
 - WebSocket Durable Object - Real-time updates
 - `/ws` endpoint - WebSocket connection
+
+### What Gets KEPT in Product Service (Tables Not Deleted)
+
+- `productLocations` table - Physical location mapping (rack, bin, zone, aisle)
+- `variantLocations` table - Variant location mapping
+- `productUOMLocations` table - UOM location mapping
+- All catalog tables - products, productUOMs, productVariants, productBundles, etc.
 
 ### Benefits
 
