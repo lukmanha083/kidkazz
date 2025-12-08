@@ -1,61 +1,22 @@
-# DDD Refactoring Roadmap: Product Service → Inventory Service Migration
+# DDD Refactoring Roadmap: Ideal Architecture Implementation
 
 ## Executive Summary
 
-This roadmap outlines the complete migration plan to achieve ideal DDD/Hexagonal architecture by moving all stock-related data from Product Service to Inventory Service.
+This roadmap outlines the complete refactoring plan to achieve ideal DDD/Hexagonal architecture with real-time inventory via WebSocket.
 
-**Goal**: Single Source of Truth for all inventory data in Inventory Service
+**Goal**: Single Source of Truth for all inventory data with real-time updates
 
-**Estimated Duration**: 6-8 weeks
-**Risk Level**: Medium (requires careful data migration and API changes)
-**Dependencies**: Admin Dashboard frontend updates required
+**Approach**: Direct implementation (no backward compatibility - development phase)
+
+**Key Features**:
+- All stock data in Inventory Service
+- WebSocket real-time stock updates
+- Optimistic locking for race condition prevention
+- Clean separation of concerns
 
 ---
 
-## Current State vs Target State
-
-### Current State (With Violations)
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         PRODUCT SERVICE                                  │
-├─────────────────────────────────────────────────────────────────────────┤
-│  products                                                                │
-│  ├── minimumStock        ❌ DUPLICATE (also in Inventory)               │
-│  ├── expirationDate      ❌ WRONG LEVEL (should be batch-level)         │
-│  └── alertDate           ❌ WRONG LEVEL (should be batch-level)         │
-│                                                                          │
-│  productUOMs                                                             │
-│  └── stock               ❌ SHOULD BE IN INVENTORY                       │
-│                                                                          │
-│  productVariants                                                         │
-│  └── stock               ❌ SHOULD BE IN INVENTORY                       │
-│                                                                          │
-│  productLocations                                                        │
-│  └── quantity            ❌ SHOULD BE IN INVENTORY (with physical loc)  │
-│                                                                          │
-│  variantLocations                                                        │
-│  └── quantity            ❌ SHOULD BE IN INVENTORY                       │
-│                                                                          │
-│  productUOMLocations                                                     │
-│  └── quantity            ❌ SHOULD BE IN INVENTORY                       │
-└─────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────┐
-│                       INVENTORY SERVICE                                  │
-├─────────────────────────────────────────────────────────────────────────┤
-│  inventory                                                               │
-│  ├── quantityAvailable   ✅ CORRECT                                     │
-│  ├── quantityReserved    ✅ CORRECT                                     │
-│  └── minimumStock        ✅ CORRECT (but duplicated in products)        │
-│                                                                          │
-│  inventoryBatches                                                        │
-│  ├── expirationDate      ✅ CORRECT (batch-level)                       │
-│  └── quantityAvailable   ✅ CORRECT                                     │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-### Target State (DDD Compliant)
+## Architecture Target State
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -67,103 +28,112 @@ This roadmap outlines the complete migration plan to achieve ideal DDD/Hexagonal
 │  ├── minimumOrderQuantity, wholesaleThreshold  ✅ SALES RULES           │
 │  └── weight, length, width, height             ✅ PHYSICAL ATTRS        │
 │                                                                          │
-│  productUOMs                                                             │
+│  productUOMs (NO stock field)                                            │
 │  ├── uomCode, uomName, barcode                 ✅ UOM DEFINITION        │
 │  └── conversionFactor                          ✅ CONVERSION INFO       │
 │                                                                          │
-│  productVariants                                                         │
+│  productVariants (NO stock field)                                        │
 │  ├── variantName, variantSKU, variantType      ✅ VARIANT INFO          │
 │  └── price, image                              ✅ VARIANT DETAILS       │
 │                                                                          │
-│  productLocations (Physical Location Only - NO quantity)                 │
-│  ├── productId, warehouseId                    ✅ LOCATION REF          │
-│  └── rack, bin, zone, aisle                    ✅ PHYSICAL LOCATION     │
-│                                                                          │
-│  variantLocations (Physical Location Only - NO quantity)                 │
-│  └── rack, bin, zone, aisle                    ✅ PHYSICAL LOCATION     │
-│                                                                          │
-│  productUOMLocations (Physical Location Only - NO quantity)              │
+│  productLocations (NO quantity field)                                    │
 │  └── rack, bin, zone, aisle                    ✅ PHYSICAL LOCATION     │
 └─────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────┐
-│              INVENTORY SERVICE (Single Source of Truth)                  │
+│         INVENTORY SERVICE (Single Source + Real-Time WebSocket)          │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  inventory (Enhanced)                                                    │
 │  ├── productId, warehouseId                    ✅ CORE REFERENCE        │
-│  ├── variantId (NEW - nullable)                ✅ VARIANT SUPPORT       │
-│  ├── uomId (NEW - nullable)                    ✅ UOM SUPPORT           │
+│  ├── variantId (nullable)                      ✅ VARIANT SUPPORT       │
+│  ├── uomId (nullable)                          ✅ UOM SUPPORT           │
 │  ├── quantityAvailable                         ✅ STOCK                 │
 │  ├── quantityReserved                          ✅ RESERVATIONS          │
 │  ├── minimumStock                              ✅ REORDER THRESHOLD     │
-│  └── locationInfo (NEW - rack, bin, zone)      ✅ PHYSICAL LOCATION     │
+│  ├── rack, bin, zone, aisle                    ✅ PHYSICAL LOCATION     │
+│  ├── version                                   ✅ OPTIMISTIC LOCK       │
+│  └── lastModifiedAt                            ✅ TIMESTAMP             │
 │                                                                          │
-│  inventoryBatches                                                        │
+│  inventoryBatches (Batch-level expiration)                               │
 │  ├── expirationDate, alertDate                 ✅ BATCH EXPIRATION      │
 │  ├── batchNumber, lotNumber                    ✅ TRACEABILITY          │
-│  └── quantityAvailable                         ✅ BATCH STOCK           │
+│  ├── quantityAvailable                         ✅ BATCH STOCK           │
+│  └── version                                   ✅ OPTIMISTIC LOCK       │
 │                                                                          │
-│  inventoryMovements                                                      │
-│  └── Full audit trail                          ✅ AUDIT                 │
+│  WebSocket Durable Object                                                │
+│  ├── Real-time inventory broadcasts            ✅ LIVE UPDATES          │
+│  ├── Channel subscriptions                     ✅ TARGETED EVENTS       │
+│  └── Connection management                     ✅ RECONNECTION          │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Migration Phases
+## Phase Overview
 
-### Phase 1: Schema Preparation (Week 1)
-**Risk: Low | Dependencies: None**
+| Phase | Description | Duration |
+|-------|-------------|----------|
+| **1** | Inventory Service Schema Enhancement | 2-3 days |
+| **2** | Data Migration Scripts | 2-3 days |
+| **3** | WebSocket & Optimistic Locking | 3-4 days |
+| **4** | Product Service Schema Cleanup | 1-2 days |
+| **5** | API Refactoring | 2-3 days |
+| **6** | Testing & Validation | 2-3 days |
 
-#### 1.1 Inventory Service Schema Enhancement
+**Total Estimated Time**: 2-3 weeks
 
-**Add new columns to `inventory` table:**
+---
+
+## Phase 1: Inventory Service Schema Enhancement
+
+### 1.1 Add New Columns to Inventory Table
+
+**Migration file**: `services/inventory-service/migrations/0005_ddd_enhancement.sql`
 
 ```sql
--- Migration: inventory-service/migrations/0001_add_variant_uom_location.sql
-
--- Add variant support
+-- Add variant and UOM support
 ALTER TABLE inventory ADD COLUMN variant_id TEXT;
-
--- Add UOM support
 ALTER TABLE inventory ADD COLUMN uom_id TEXT;
 
--- Add physical location fields (moved from Product Service)
+-- Add physical location fields (from Product Service)
 ALTER TABLE inventory ADD COLUMN rack TEXT;
 ALTER TABLE inventory ADD COLUMN bin TEXT;
 ALTER TABLE inventory ADD COLUMN zone TEXT;
 ALTER TABLE inventory ADD COLUMN aisle TEXT;
 
--- Create index for variant queries
-CREATE INDEX idx_inventory_variant ON inventory(variant_id);
+-- Add optimistic locking fields
+ALTER TABLE inventory ADD COLUMN version INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE inventory ADD COLUMN last_modified_at TEXT DEFAULT CURRENT_TIMESTAMP;
 
--- Create index for UOM queries
+-- Indexes for performance
+CREATE INDEX idx_inventory_variant ON inventory(variant_id);
 CREATE INDEX idx_inventory_uom ON inventory(uom_id);
+CREATE INDEX idx_inventory_version ON inventory(product_id, warehouse_id, version);
+
+-- Add optimistic locking to batches
+ALTER TABLE inventory_batches ADD COLUMN version INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE inventory_batches ADD COLUMN last_modified_at TEXT DEFAULT CURRENT_TIMESTAMP;
 ```
 
-**Update Inventory Service schema.ts:**
+### 1.2 Update Inventory Service Schema
+
+**File**: `services/inventory-service/src/infrastructure/db/schema.ts`
 
 ```typescript
-// services/inventory-service/src/infrastructure/db/schema.ts
-
 export const inventory = sqliteTable('inventory', {
   id: text('id').primaryKey(),
   warehouseId: text('warehouse_id').notNull()
     .references(() => warehouses.id, { onDelete: 'cascade' }),
   productId: text('product_id').notNull(),
 
-  // NEW: Variant support (nullable - for base products this is null)
+  // NEW: Variant and UOM support
   variantId: text('variant_id'),
-
-  // NEW: UOM support (nullable - for base unit this is null)
   uomId: text('uom_id'),
 
   // Stock levels
   quantityAvailable: integer('quantity_available').default(0).notNull(),
   quantityReserved: integer('quantity_reserved').default(0).notNull(),
   quantityInTransit: integer('quantity_in_transit').default(0),
-
-  // Reorder threshold
   minimumStock: integer('minimum_stock').default(0),
 
   // NEW: Physical location (moved from Product Service)
@@ -172,178 +142,95 @@ export const inventory = sqliteTable('inventory', {
   zone: text('zone'),
   aisle: text('aisle'),
 
-  // Audit fields
+  // NEW: Optimistic locking
+  version: integer('version').default(1).notNull(),
+  lastModifiedAt: text('last_modified_at'),
+
+  // Audit
   lastRestockedAt: integer('last_restocked_at', { mode: 'timestamp' }),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
 });
 ```
 
-#### 1.2 New Inventory Service API Endpoints
-
-```typescript
-// services/inventory-service/src/routes/inventory.ts
-
-// GET /api/inventory/variant/:variantId - Get inventory for a specific variant
-app.get('/variant/:variantId', async (c) => {
-  const variantId = c.req.param('variantId');
-  const db = drizzle(c.env.DB);
-
-  const inventoryRecords = await db
-    .select()
-    .from(inventory)
-    .where(eq(inventory.variantId, variantId))
-    .all();
-
-  return c.json({
-    variantId,
-    warehouses: inventoryRecords,
-    totalAvailable: inventoryRecords.reduce((sum, inv) => sum + inv.quantityAvailable, 0),
-  });
-});
-
-// GET /api/inventory/variant/:variantId/:warehouseId
-app.get('/variant/:variantId/:warehouseId', async (c) => {
-  const { variantId, warehouseId } = c.req.param();
-  const db = drizzle(c.env.DB);
-
-  const record = await db
-    .select()
-    .from(inventory)
-    .where(and(
-      eq(inventory.variantId, variantId),
-      eq(inventory.warehouseId, warehouseId)
-    ))
-    .get();
-
-  if (!record) {
-    return c.json({ error: 'Inventory record not found' }, 404);
-  }
-
-  return c.json(record);
-});
-
-// GET /api/inventory/uom/:uomId - Get inventory for a specific UOM
-app.get('/uom/:uomId', async (c) => {
-  const uomId = c.req.param('uomId');
-  const db = drizzle(c.env.DB);
-
-  const inventoryRecords = await db
-    .select()
-    .from(inventory)
-    .where(eq(inventory.uomId, uomId))
-    .all();
-
-  return c.json({
-    uomId,
-    warehouses: inventoryRecords,
-    totalAvailable: inventoryRecords.reduce((sum, inv) => sum + inv.quantityAvailable, 0),
-  });
-});
-
-// POST /api/inventory/adjust - Enhanced to support variant/UOM
-const adjustStockSchema = z.object({
-  warehouseId: z.string(),
-  productId: z.string(),
-  variantId: z.string().optional(),  // NEW
-  uomId: z.string().optional(),       // NEW
-  quantity: z.number(),
-  movementType: z.enum(['in', 'out', 'adjustment']),
-  source: z.enum(['warehouse', 'pos']).optional(),
-  reason: z.string().optional(),
-  notes: z.string().optional(),
-  performedBy: z.string().optional(),
-  // NEW: Physical location
-  rack: z.string().optional(),
-  bin: z.string().optional(),
-  zone: z.string().optional(),
-  aisle: z.string().optional(),
-});
-```
-
-#### 1.3 Deliverables
-- [ ] Migration script for Inventory Service schema
-- [ ] Updated schema.ts with new columns
-- [ ] New API endpoints for variant/UOM inventory
-- [ ] Unit tests for new endpoints
-- [ ] API documentation updated
+### 1.3 Deliverables
+- [ ] Migration SQL file created
+- [ ] Schema.ts updated with new columns
+- [ ] TypeScript types updated
+- [ ] Run migration on local database
 
 ---
 
-### Phase 2: Data Migration (Week 2-3)
-**Risk: Medium | Dependencies: Phase 1 complete**
+## Phase 2: Data Migration
 
-#### 2.1 Migration Strategy
+### 2.1 Migration Script: Product Locations → Inventory
 
-We will migrate data in this order:
-1. **productLocations.quantity** → inventory (with rack, bin, zone, aisle)
-2. **variantLocations.quantity** → inventory (with variantId)
-3. **productUOMLocations.quantity** → inventory (with uomId)
-4. **productVariants.stock** → inventory (aggregate from variant locations)
-5. **productUOMs.stock** → inventory (aggregate from UOM locations)
-6. **products.minimumStock** → inventory (already done via sync)
-7. **products.expirationDate** → inventoryBatches (create batch records)
-
-#### 2.2 Migration Scripts
-
-**Script 1: Migrate productLocations to Inventory Service**
+**File**: `scripts/migrate-to-inventory-service.ts`
 
 ```typescript
-// scripts/migrations/migrate-product-locations.ts
-
 import { drizzle } from 'drizzle-orm/d1';
-import { productLocations } from '../../services/product-service/src/infrastructure/db/schema';
-import { inventory } from '../../services/inventory-service/src/infrastructure/db/schema';
+import { eq, and, isNull } from 'drizzle-orm';
 
-async function migrateProductLocations(productDB: D1Database, inventoryDB: D1Database) {
+interface MigrationResult {
+  productLocations: { migrated: number; errors: number };
+  variantLocations: { migrated: number; errors: number };
+  uomLocations: { migrated: number; errors: number };
+  expirationDates: { migrated: number; errors: number };
+}
+
+export async function runFullMigration(
+  productDB: D1Database,
+  inventoryDB: D1Database
+): Promise<MigrationResult> {
   const productDb = drizzle(productDB);
   const inventoryDb = drizzle(inventoryDB);
 
-  console.log('Starting productLocations migration...');
+  const result: MigrationResult = {
+    productLocations: { migrated: 0, errors: 0 },
+    variantLocations: { migrated: 0, errors: 0 },
+    uomLocations: { migrated: 0, errors: 0 },
+    expirationDates: { migrated: 0, errors: 0 },
+  };
 
-  // Get all product locations
-  const locations = await productDb.select().from(productLocations).all();
-  console.log(`Found ${locations.length} product locations to migrate`);
+  console.log('=== Starting Full DDD Migration ===\n');
 
-  let migrated = 0;
-  let skipped = 0;
-  let errors = 0;
+  // 1. Migrate productLocations
+  console.log('Step 1: Migrating product locations...');
+  const productLocations = await productDb.select().from(productLocationsTable).all();
 
-  for (const loc of locations) {
+  for (const loc of productLocations) {
     try {
       // Check if inventory record exists
       const existing = await inventoryDb
         .select()
-        .from(inventory)
+        .from(inventoryTable)
         .where(and(
-          eq(inventory.productId, loc.productId),
-          eq(inventory.warehouseId, loc.warehouseId),
-          isNull(inventory.variantId),
-          isNull(inventory.uomId)
+          eq(inventoryTable.productId, loc.productId),
+          eq(inventoryTable.warehouseId, loc.warehouseId),
+          isNull(inventoryTable.variantId),
+          isNull(inventoryTable.uomId)
         ))
         .get();
 
       if (existing) {
-        // Update existing record with location info
+        // Update with location info and quantity
         await inventoryDb
-          .update(inventory)
+          .update(inventoryTable)
           .set({
+            quantityAvailable: loc.quantity,
             rack: loc.rack,
             bin: loc.bin,
             zone: loc.zone,
             aisle: loc.aisle,
-            // Verify quantity matches
-            quantityAvailable: loc.quantity,
+            version: existing.version + 1,
+            lastModifiedAt: new Date().toISOString(),
             updatedAt: new Date(),
           })
-          .where(eq(inventory.id, existing.id))
+          .where(eq(inventoryTable.id, existing.id))
           .run();
-
-        console.log(`Updated inventory ${existing.id} with location info`);
-        migrated++;
       } else {
         // Create new inventory record
-        await inventoryDb.insert(inventory).values({
+        await inventoryDb.insert(inventoryTable).values({
           id: generateId(),
           productId: loc.productId,
           warehouseId: loc.warehouseId,
@@ -356,143 +243,73 @@ async function migrateProductLocations(productDB: D1Database, inventoryDB: D1Dat
           bin: loc.bin,
           zone: loc.zone,
           aisle: loc.aisle,
+          version: 1,
+          lastModifiedAt: new Date().toISOString(),
           createdAt: new Date(),
           updatedAt: new Date(),
         }).run();
-
-        console.log(`Created inventory for product ${loc.productId} at warehouse ${loc.warehouseId}`);
-        migrated++;
       }
+      result.productLocations.migrated++;
     } catch (error) {
-      console.error(`Error migrating location ${loc.id}:`, error);
-      errors++;
+      console.error(`Error migrating product location ${loc.id}:`, error);
+      result.productLocations.errors++;
     }
   }
+  console.log(`  ✅ Product locations: ${result.productLocations.migrated} migrated, ${result.productLocations.errors} errors`);
 
-  console.log(`\n=== Migration Complete ===`);
-  console.log(`Migrated: ${migrated}`);
-  console.log(`Skipped: ${skipped}`);
-  console.log(`Errors: ${errors}`);
-
-  return { migrated, skipped, errors };
-}
-```
-
-**Script 2: Migrate variantLocations to Inventory Service**
-
-```typescript
-// scripts/migrations/migrate-variant-locations.ts
-
-async function migrateVariantLocations(productDB: D1Database, inventoryDB: D1Database) {
-  const productDb = drizzle(productDB);
-  const inventoryDb = drizzle(inventoryDB);
-
-  console.log('Starting variantLocations migration...');
-
-  // Get all variant locations with variant info
-  const locations = await productDb
+  // 2. Migrate variantLocations
+  console.log('Step 2: Migrating variant locations...');
+  const variantLocations = await productDb
     .select({
-      location: variantLocations,
-      variant: productVariants,
+      location: variantLocationsTable,
+      variant: productVariantsTable,
     })
-    .from(variantLocations)
-    .innerJoin(productVariants, eq(variantLocations.variantId, productVariants.id))
+    .from(variantLocationsTable)
+    .innerJoin(productVariantsTable, eq(variantLocationsTable.variantId, productVariantsTable.id))
     .all();
 
-  console.log(`Found ${locations.length} variant locations to migrate`);
-
-  let migrated = 0;
-
-  for (const { location, variant } of locations) {
+  for (const { location, variant } of variantLocations) {
     try {
-      // Check if inventory record exists for this variant + warehouse
-      const existing = await inventoryDb
-        .select()
-        .from(inventory)
-        .where(and(
-          eq(inventory.productId, variant.productId),
-          eq(inventory.warehouseId, location.warehouseId),
-          eq(inventory.variantId, variant.id)
-        ))
-        .get();
-
-      if (existing) {
-        // Update with location info
-        await inventoryDb
-          .update(inventory)
-          .set({
-            rack: location.rack,
-            bin: location.bin,
-            zone: location.zone,
-            aisle: location.aisle,
-            quantityAvailable: location.quantity,
-            updatedAt: new Date(),
-          })
-          .where(eq(inventory.id, existing.id))
-          .run();
-
-        migrated++;
-      } else {
-        // Create new inventory record for variant
-        await inventoryDb.insert(inventory).values({
-          id: generateId(),
-          productId: variant.productId,
-          warehouseId: location.warehouseId,
-          variantId: variant.id,
-          uomId: null,
-          quantityAvailable: location.quantity,
-          quantityReserved: 0,
-          minimumStock: 0,
-          rack: location.rack,
-          bin: location.bin,
-          zone: location.zone,
-          aisle: location.aisle,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }).run();
-
-        migrated++;
-      }
+      await inventoryDb.insert(inventoryTable).values({
+        id: generateId(),
+        productId: variant.productId,
+        warehouseId: location.warehouseId,
+        variantId: variant.id,
+        uomId: null,
+        quantityAvailable: location.quantity,
+        quantityReserved: 0,
+        minimumStock: 0,
+        rack: location.rack,
+        bin: location.bin,
+        zone: location.zone,
+        aisle: location.aisle,
+        version: 1,
+        lastModifiedAt: new Date().toISOString(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }).run();
+      result.variantLocations.migrated++;
     } catch (error) {
       console.error(`Error migrating variant location ${location.id}:`, error);
+      result.variantLocations.errors++;
     }
   }
+  console.log(`  ✅ Variant locations: ${result.variantLocations.migrated} migrated, ${result.variantLocations.errors} errors`);
 
-  console.log(`Migrated ${migrated} variant locations`);
-  return { migrated };
-}
-```
-
-**Script 3: Migrate productUOMLocations to Inventory Service**
-
-```typescript
-// scripts/migrations/migrate-uom-locations.ts
-
-async function migrateUOMLocations(productDB: D1Database, inventoryDB: D1Database) {
-  const productDb = drizzle(productDB);
-  const inventoryDb = drizzle(inventoryDB);
-
-  console.log('Starting productUOMLocations migration...');
-
-  // Get all UOM locations with UOM info
-  const locations = await productDb
+  // 3. Migrate productUOMLocations
+  console.log('Step 3: Migrating UOM locations...');
+  const uomLocations = await productDb
     .select({
-      location: productUOMLocations,
-      uom: productUOMs,
+      location: productUOMLocationsTable,
+      uom: productUOMsTable,
     })
-    .from(productUOMLocations)
-    .innerJoin(productUOMs, eq(productUOMLocations.productUOMId, productUOMs.id))
+    .from(productUOMLocationsTable)
+    .innerJoin(productUOMsTable, eq(productUOMLocationsTable.productUOMId, productUOMsTable.id))
     .all();
 
-  console.log(`Found ${locations.length} UOM locations to migrate`);
-
-  let migrated = 0;
-
-  for (const { location, uom } of locations) {
+  for (const { location, uom } of uomLocations) {
     try {
-      // Create inventory record for this UOM at this warehouse
-      // Note: Quantity stored in UOM units, not base units
-      await inventoryDb.insert(inventory).values({
+      await inventoryDb.insert(inventoryTable).values({
         id: generateId(),
         productId: uom.productId,
         warehouseId: location.warehouseId,
@@ -505,59 +322,42 @@ async function migrateUOMLocations(productDB: D1Database, inventoryDB: D1Databas
         bin: location.bin,
         zone: location.zone,
         aisle: location.aisle,
+        version: 1,
+        lastModifiedAt: new Date().toISOString(),
         createdAt: new Date(),
         updatedAt: new Date(),
       }).run();
-
-      migrated++;
+      result.uomLocations.migrated++;
     } catch (error) {
       console.error(`Error migrating UOM location ${location.id}:`, error);
+      result.uomLocations.errors++;
     }
   }
+  console.log(`  ✅ UOM locations: ${result.uomLocations.migrated} migrated, ${result.uomLocations.errors} errors`);
 
-  console.log(`Migrated ${migrated} UOM locations`);
-  return { migrated };
-}
-```
-
-**Script 4: Migrate expirationDate to inventoryBatches**
-
-```typescript
-// scripts/migrations/migrate-expiration-dates.ts
-
-async function migrateExpirationDates(productDB: D1Database, inventoryDB: D1Database) {
-  const productDb = drizzle(productDB);
-  const inventoryDb = drizzle(inventoryDB);
-
-  console.log('Starting expirationDate migration...');
-
-  // Get products with expiration dates
+  // 4. Migrate expirationDate to batches
+  console.log('Step 4: Migrating expiration dates to batches...');
   const productsWithExpiration = await productDb
     .select()
-    .from(products)
-    .where(isNotNull(products.expirationDate))
+    .from(productsTable)
+    .where(isNotNull(productsTable.expirationDate))
     .all();
-
-  console.log(`Found ${productsWithExpiration.length} products with expiration dates`);
-
-  let migrated = 0;
 
   for (const product of productsWithExpiration) {
     try {
-      // Get all inventory records for this product
+      // Get inventory records for this product
       const inventoryRecords = await inventoryDb
         .select()
-        .from(inventory)
+        .from(inventoryTable)
         .where(and(
-          eq(inventory.productId, product.id),
-          isNull(inventory.variantId),
-          isNull(inventory.uomId)
+          eq(inventoryTable.productId, product.id),
+          isNull(inventoryTable.variantId),
+          isNull(inventoryTable.uomId)
         ))
         .all();
 
-      // Create batch record for each warehouse
       for (const inv of inventoryRecords) {
-        await inventoryDb.insert(inventoryBatches).values({
+        await inventoryDb.insert(inventoryBatchesTable).values({
           id: generateId(),
           inventoryId: inv.id,
           productId: product.id,
@@ -568,81 +368,497 @@ async function migrateExpirationDates(productDB: D1Database, inventoryDB: D1Data
           quantityAvailable: inv.quantityAvailable,
           quantityReserved: 0,
           status: 'active',
+          version: 1,
+          lastModifiedAt: new Date().toISOString(),
           createdAt: new Date(),
           updatedAt: new Date(),
         }).run();
-
-        migrated++;
-      }
-
-      // If no inventory records, create a "pending" batch
-      if (inventoryRecords.length === 0) {
-        console.log(`Product ${product.sku} has expiration but no inventory - skipping batch creation`);
+        result.expirationDates.migrated++;
       }
     } catch (error) {
       console.error(`Error migrating expiration for product ${product.id}:`, error);
+      result.expirationDates.errors++;
     }
   }
+  console.log(`  ✅ Expiration dates: ${result.expirationDates.migrated} batches created, ${result.expirationDates.errors} errors`);
 
-  console.log(`Created ${migrated} batch records`);
-  return { migrated };
+  console.log('\n=== Migration Complete ===');
+  console.log(JSON.stringify(result, null, 2));
+
+  return result;
+}
+
+function generateId(): string {
+  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 ```
 
-#### 2.3 Deliverables
-- [ ] Migration script: productLocations → inventory
-- [ ] Migration script: variantLocations → inventory
-- [ ] Migration script: productUOMLocations → inventory
-- [ ] Migration script: products.expirationDate → inventoryBatches
-- [ ] Validation queries to verify data integrity
-- [ ] Rollback scripts
+### 2.2 Deliverables
+- [ ] Migration script created
+- [ ] Script tested on local database
+- [ ] Data validation queries prepared
+- [ ] Backup procedures documented
 
 ---
 
-### Phase 3: API Updates (Week 3-4)
-**Risk: Medium | Dependencies: Phase 2 complete**
+## Phase 3: WebSocket & Optimistic Locking
 
-#### 3.1 Update Product Service APIs
+### 3.1 WebSocket Durable Object
 
-**Remove quantity from location creation/update:**
+**File**: `services/inventory-service/src/websocket/InventoryWebSocket.ts`
 
 ```typescript
-// services/product-service/src/infrastructure/http/routes/product-locations.ts
+import { DurableObject } from 'cloudflare:workers';
 
-// BEFORE (with quantity)
-const createLocationSchema = z.object({
-  productId: z.string(),
-  warehouseId: z.string(),
-  rack: z.string().optional().nullable(),
-  bin: z.string().optional().nullable(),
-  zone: z.string().optional().nullable(),
-  aisle: z.string().optional().nullable(),
-  quantity: z.number().int().min(0).default(0),  // REMOVE THIS
+export interface InventoryEvent {
+  type: 'inventory.updated' | 'inventory.low_stock' | 'inventory.out_of_stock' | 'batch.expiring_soon';
+  data: {
+    productId?: string;
+    warehouseId?: string;
+    variantId?: string;
+    uomId?: string;
+    quantityAvailable?: number;
+    quantityReserved?: number;
+    version?: number;
+    timestamp: string;
+    [key: string]: any;
+  };
+}
+
+export class InventoryWebSocket extends DurableObject {
+  private sessions: Map<WebSocket, Set<string>> = new Map();
+
+  async fetch(request: Request): Promise<Response> {
+    const url = new URL(request.url);
+
+    // Handle broadcast endpoint (internal)
+    if (url.pathname === '/broadcast' && request.method === 'POST') {
+      const event = await request.json() as InventoryEvent;
+      await this.broadcast(event);
+      return new Response('OK');
+    }
+
+    // Handle WebSocket upgrade
+    if (request.headers.get('Upgrade') !== 'websocket') {
+      return new Response('Expected WebSocket', { status: 426 });
+    }
+
+    const pair = new WebSocketPair();
+    const [client, server] = Object.values(pair);
+
+    this.ctx.acceptWebSocket(server);
+    this.sessions.set(server, new Set(['global']));
+
+    return new Response(null, { status: 101, webSocket: client });
+  }
+
+  async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
+    try {
+      const msg = JSON.parse(message.toString());
+      const subscriptions = this.sessions.get(ws);
+      if (!subscriptions) return;
+
+      switch (msg.type) {
+        case 'subscribe':
+          if (msg.channel) {
+            subscriptions.add(msg.channel);
+            ws.send(JSON.stringify({ type: 'subscribed', channel: msg.channel }));
+          }
+          break;
+        case 'unsubscribe':
+          if (msg.channel) {
+            subscriptions.delete(msg.channel);
+            ws.send(JSON.stringify({ type: 'unsubscribed', channel: msg.channel }));
+          }
+          break;
+        case 'ping':
+          ws.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
+          break;
+      }
+    } catch (error) {
+      console.error('WebSocket message error:', error);
+    }
+  }
+
+  async webSocketClose(ws: WebSocket): Promise<void> {
+    this.sessions.delete(ws);
+  }
+
+  async broadcast(event: InventoryEvent): Promise<void> {
+    const channel = this.getEventChannel(event);
+    const message = JSON.stringify(event);
+
+    for (const [ws, subscriptions] of this.sessions.entries()) {
+      if (subscriptions.has(channel) || subscriptions.has('global')) {
+        try {
+          ws.send(message);
+        } catch (error) {
+          this.sessions.delete(ws);
+        }
+      }
+    }
+  }
+
+  private getEventChannel(event: InventoryEvent): string {
+    const { productId, warehouseId, variantId } = event.data;
+    if (variantId) return `variant:${variantId}`;
+    if (productId && warehouseId) return `product:${productId}:warehouse:${warehouseId}`;
+    if (productId) return `product:${productId}`;
+    if (warehouseId) return `warehouse:${warehouseId}`;
+    return 'global';
+  }
+}
+```
+
+### 3.2 Update wrangler.jsonc
+
+**File**: `services/inventory-service/wrangler.jsonc`
+
+```jsonc
+{
+  "name": "inventory-service",
+  // ... existing config ...
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "INVENTORY_WS",
+        "class_name": "InventoryWebSocket"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_classes": ["InventoryWebSocket"]
+    }
+  ]
+}
+```
+
+### 3.3 Update Inventory Routes with Optimistic Locking & Broadcast
+
+**File**: `services/inventory-service/src/routes/inventory.ts`
+
+```typescript
+// Broadcast helper
+async function broadcastInventoryChange(env: Env, event: InventoryEvent) {
+  try {
+    const wsId = env.INVENTORY_WS.idFromName('inventory-updates');
+    const wsStub = env.INVENTORY_WS.get(wsId);
+    await wsStub.fetch('http://internal/broadcast', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(event),
+    });
+  } catch (error) {
+    console.error('Failed to broadcast:', error);
+  }
+}
+
+// POST /api/inventory/adjust - With optimistic locking
+app.post('/adjust', zValidator('json', adjustStockSchema), async (c) => {
+  const data = c.req.valid('json');
+  const db = drizzle(c.env.DB);
+  const MAX_RETRIES = 3;
+  let retries = 0;
+
+  while (retries < MAX_RETRIES) {
+    try {
+      // 1. Get current inventory with version
+      const inv = await db
+        .select()
+        .from(inventory)
+        .where(and(
+          eq(inventory.productId, data.productId),
+          eq(inventory.warehouseId, data.warehouseId),
+          data.variantId ? eq(inventory.variantId, data.variantId) : isNull(inventory.variantId),
+          data.uomId ? eq(inventory.uomId, data.uomId) : isNull(inventory.uomId)
+        ))
+        .get();
+
+      if (!inv) {
+        // Create new inventory record
+        const newInv = {
+          id: generateId(),
+          productId: data.productId,
+          warehouseId: data.warehouseId,
+          variantId: data.variantId || null,
+          uomId: data.uomId || null,
+          quantityAvailable: data.quantity,
+          quantityReserved: 0,
+          minimumStock: 0,
+          rack: data.rack || null,
+          bin: data.bin || null,
+          zone: data.zone || null,
+          aisle: data.aisle || null,
+          version: 1,
+          lastModifiedAt: new Date().toISOString(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        await db.insert(inventory).values(newInv).run();
+
+        // Broadcast new inventory
+        await broadcastInventoryChange(c.env, {
+          type: 'inventory.updated',
+          data: {
+            productId: data.productId,
+            warehouseId: data.warehouseId,
+            variantId: data.variantId,
+            quantityAvailable: data.quantity,
+            version: 1,
+            timestamp: new Date().toISOString(),
+          },
+        });
+
+        return c.json({ inventory: newInv, message: 'Inventory created' }, 201);
+      }
+
+      // 2. Calculate new quantity
+      const currentVersion = inv.version;
+      const previousQty = inv.quantityAvailable;
+      let newQty: number;
+
+      if (data.movementType === 'in') {
+        newQty = previousQty + Math.abs(data.quantity);
+      } else if (data.movementType === 'out') {
+        const qtyToRemove = Math.abs(data.quantity);
+        if (data.source === 'warehouse' && previousQty < qtyToRemove) {
+          return c.json({ error: 'Insufficient stock', available: previousQty }, 400);
+        }
+        newQty = previousQty - qtyToRemove;
+      } else {
+        newQty = data.quantity; // adjustment
+      }
+
+      // 3. Update with version check (optimistic lock)
+      const updateResult = await db
+        .update(inventory)
+        .set({
+          quantityAvailable: newQty,
+          version: currentVersion + 1,
+          lastModifiedAt: new Date().toISOString(),
+          updatedAt: new Date(),
+          ...(data.rack && { rack: data.rack }),
+          ...(data.bin && { bin: data.bin }),
+          ...(data.zone && { zone: data.zone }),
+          ...(data.aisle && { aisle: data.aisle }),
+        })
+        .where(and(
+          eq(inventory.id, inv.id),
+          eq(inventory.version, currentVersion) // Must match!
+        ))
+        .run();
+
+      // 4. Check if update succeeded
+      if (updateResult.meta?.changes === 0) {
+        retries++;
+        if (retries >= MAX_RETRIES) {
+          return c.json({ error: 'Concurrent update conflict. Try again.' }, 409);
+        }
+        await new Promise(r => setTimeout(r, 100 * Math.pow(2, retries)));
+        continue;
+      }
+
+      // 5. Record movement
+      await db.insert(inventoryMovements).values({
+        id: generateId(),
+        inventoryId: inv.id,
+        productId: data.productId,
+        warehouseId: data.warehouseId,
+        movementType: data.movementType,
+        quantity: data.quantity,
+        source: data.source || 'warehouse',
+        reason: data.reason,
+        notes: data.notes,
+        performedBy: data.performedBy,
+        createdAt: new Date(),
+      }).run();
+
+      // 6. Broadcast change via WebSocket
+      const eventType =
+        newQty === 0 ? 'inventory.out_of_stock' :
+        (inv.minimumStock && newQty < inv.minimumStock) ? 'inventory.low_stock' :
+        'inventory.updated';
+
+      await broadcastInventoryChange(c.env, {
+        type: eventType,
+        data: {
+          productId: data.productId,
+          warehouseId: data.warehouseId,
+          variantId: data.variantId,
+          uomId: data.uomId,
+          quantityAvailable: newQty,
+          quantityReserved: inv.quantityReserved,
+          minimumStock: inv.minimumStock,
+          version: currentVersion + 1,
+          previousQuantity: previousQty,
+          changeAmount: data.quantity,
+          movementType: data.movementType,
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+      return c.json({
+        inventory: { ...inv, quantityAvailable: newQty, version: currentVersion + 1 },
+        previousQuantity: previousQty,
+        newQuantity: newQty,
+        message: 'Inventory adjusted',
+      });
+
+    } catch (error) {
+      console.error('Inventory adjustment error:', error);
+      return c.json({ error: 'Failed to adjust inventory' }, 500);
+    }
+  }
+
+  return c.json({ error: 'Unexpected error' }, 500);
 });
 
-// AFTER (location only)
-const createLocationSchema = z.object({
-  productId: z.string(),
-  warehouseId: z.string(),
-  rack: z.string().optional().nullable(),
-  bin: z.string().optional().nullable(),
-  zone: z.string().optional().nullable(),
-  aisle: z.string().optional().nullable(),
-  // quantity: REMOVED - managed by Inventory Service
+// GET /ws - WebSocket endpoint
+app.get('/ws', async (c) => {
+  if (c.req.header('Upgrade') !== 'websocket') {
+    return c.json({ error: 'Expected WebSocket' }, 426);
+  }
+
+  const wsId = c.env.INVENTORY_WS.idFromName('inventory-updates');
+  const wsStub = c.env.INVENTORY_WS.get(wsId);
+  return wsStub.fetch(c.req.raw);
 });
 ```
 
-**Update POST handler to delegate quantity to Inventory Service:**
+### 3.4 New API Endpoints
 
 ```typescript
-// POST /api/product-locations - Create new location (no quantity)
+// GET /api/inventory/variant/:variantId - Get stock for variant
+app.get('/variant/:variantId', async (c) => {
+  const variantId = c.req.param('variantId');
+  const db = drizzle(c.env.DB);
+
+  const records = await db
+    .select()
+    .from(inventory)
+    .where(eq(inventory.variantId, variantId))
+    .all();
+
+  return c.json({
+    variantId,
+    warehouses: records,
+    totalAvailable: records.reduce((sum, inv) => sum + inv.quantityAvailable, 0),
+  });
+});
+
+// GET /api/inventory/uom/:uomId - Get stock for UOM
+app.get('/uom/:uomId', async (c) => {
+  const uomId = c.req.param('uomId');
+  const db = drizzle(c.env.DB);
+
+  const records = await db
+    .select()
+    .from(inventory)
+    .where(eq(inventory.uomId, uomId))
+    .all();
+
+  return c.json({
+    uomId,
+    warehouses: records,
+    totalAvailable: records.reduce((sum, inv) => sum + inv.quantityAvailable, 0),
+  });
+});
+```
+
+### 3.5 Deliverables
+- [ ] WebSocket Durable Object created
+- [ ] wrangler.jsonc updated
+- [ ] Inventory routes updated with optimistic locking
+- [ ] Broadcast on all stock changes
+- [ ] New variant/UOM endpoints added
+- [ ] WebSocket endpoint `/ws` added
+
+---
+
+## Phase 4: Product Service Schema Cleanup
+
+### 4.1 Remove Stock Fields
+
+**Migration file**: `services/product-service/migrations/0003_remove_stock_fields.sql`
+
+```sql
+-- Remove stock-related columns from products
+ALTER TABLE products DROP COLUMN minimum_stock;
+ALTER TABLE products DROP COLUMN expiration_date;
+ALTER TABLE products DROP COLUMN alert_date;
+
+-- Remove stock from product_uoms
+ALTER TABLE product_uoms DROP COLUMN stock;
+
+-- Remove stock from product_variants
+ALTER TABLE product_variants DROP COLUMN stock;
+
+-- Remove quantity from location tables
+ALTER TABLE product_locations DROP COLUMN quantity;
+ALTER TABLE variant_locations DROP COLUMN quantity;
+ALTER TABLE product_uom_locations DROP COLUMN quantity;
+```
+
+### 4.2 Update Product Service Schema
+
+**File**: `services/product-service/src/infrastructure/db/schema.ts`
+
+```typescript
+// REMOVED from products:
+// - minimumStock
+// - expirationDate
+// - alertDate
+
+// REMOVED from productUOMs:
+// - stock
+
+// REMOVED from productVariants:
+// - stock
+
+// REMOVED from productLocations:
+// - quantity
+
+// REMOVED from variantLocations:
+// - quantity
+
+// REMOVED from productUOMLocations:
+// - quantity
+```
+
+### 4.3 Deliverables
+- [ ] Migration SQL created
+- [ ] Schema.ts cleaned up
+- [ ] TypeScript types updated
+
+---
+
+## Phase 5: API Refactoring
+
+### 5.1 Simplify Product Location Routes
+
+**File**: `services/product-service/src/infrastructure/http/routes/product-locations.ts`
+
+```typescript
+// SIMPLIFIED: Location management only (no quantity)
+const createLocationSchema = z.object({
+  productId: z.string(),
+  warehouseId: z.string(),
+  rack: z.string().optional().nullable(),
+  bin: z.string().optional().nullable(),
+  zone: z.string().optional().nullable(),
+  aisle: z.string().optional().nullable(),
+  // NO quantity - use Inventory Service
+});
+
+// POST /api/product-locations
 app.post('/', zValidator('json', createLocationSchema), async (c) => {
   const data = c.req.valid('json');
   const db = drizzle(c.env.DB);
 
-  // ... existing validation ...
-
-  // Create location in Product Service (physical location only)
+  // Just create location record (no inventory sync)
   const newLocation = {
     id: generateId(),
     productId: data.productId,
@@ -651,21 +867,28 @@ app.post('/', zValidator('json', createLocationSchema), async (c) => {
     bin: data.bin || null,
     zone: data.zone || null,
     aisle: data.aisle || null,
-    // quantity: REMOVED
-    createdAt: now,
-    updatedAt: now,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   await db.insert(productLocations).values(newLocation).run();
 
-  // Note: Inventory record creation handled separately via:
-  // POST /api/inventory/adjust (Inventory Service)
-
-  return c.json(created, 201);
+  return c.json(newLocation, 201);
 });
+
+// REMOVED: PATCH /:id/quantity - Use Inventory Service instead
 ```
 
-**Add new endpoint to get location with stock from Inventory Service:**
+### 5.2 Remove Inventory Sync Code
+
+Remove all `INVENTORY_SERVICE.fetch()` calls from Product Service routes:
+- `product-locations.ts` - Remove inventory sync
+- `variant-locations.ts` - Remove validation against product stock
+- `product-uom-locations.ts` - Remove validation against product stock
+
+### 5.3 Add Helper Endpoint (Optional)
+
+**Get location with stock (delegates to Inventory Service):**
 
 ```typescript
 // GET /api/product-locations/product/:productId/with-stock
@@ -673,536 +896,191 @@ app.get('/product/:productId/with-stock', async (c) => {
   const productId = c.req.param('productId');
   const db = drizzle(c.env.DB);
 
-  // Get locations from Product Service
   const locations = await db
     .select()
     .from(productLocations)
     .where(eq(productLocations.productId, productId))
     .all();
 
-  // Fetch stock from Inventory Service for each location
-  const locationsWithStock = await Promise.all(
-    locations.map(async (loc) => {
-      try {
-        const invResponse = await c.env.INVENTORY_SERVICE.fetch(
-          new Request(`http://inventory-service/api/inventory/${productId}/${loc.warehouseId}`)
-        );
-
-        if (invResponse.ok) {
-          const inv = await invResponse.json();
-          return {
-            ...loc,
-            quantity: inv.quantityAvailable || 0,
-            quantityReserved: inv.quantityReserved || 0,
-            minimumStock: inv.minimumStock || 0,
-            isLowStock: inv.minimumStock ? inv.quantityAvailable < inv.minimumStock : false,
-          };
-        }
-      } catch (error) {
-        console.error(`Failed to fetch inventory for ${loc.warehouseId}:`, error);
-      }
-
-      return {
-        ...loc,
-        quantity: 0,
-        quantityReserved: 0,
-        minimumStock: 0,
-        isLowStock: false,
-      };
-    })
+  // Fetch stock from Inventory Service
+  const inventoryResponse = await c.env.INVENTORY_SERVICE.fetch(
+    new Request(`http://inventory-service/api/inventory/${productId}`)
   );
+  const inventoryData = await inventoryResponse.json();
 
-  return c.json({
-    locations: locationsWithStock,
-    total: locationsWithStock.length,
-  });
-});
-```
-
-#### 3.2 API Deprecation Strategy
-
-**Add deprecation headers to old endpoints:**
-
-```typescript
-// Middleware for deprecated endpoints
-const deprecationMiddleware = (newEndpoint: string) => {
-  return async (c: Context, next: Next) => {
-    c.header('Deprecation', 'true');
-    c.header('Sunset', '2025-03-31'); // 90 days from deployment
-    c.header('Link', `<${newEndpoint}>; rel="successor-version"`);
-    await next();
-  };
-};
-
-// Apply to old quantity endpoints
-app.patch('/:id/quantity',
-  deprecationMiddleware('/api/inventory/adjust'),
-  async (c) => {
-    // ... existing handler ...
-    // Add warning in response
-    return c.json({
-      ...response,
-      _deprecation: {
-        warning: 'This endpoint is deprecated. Use POST /api/inventory/adjust instead.',
-        sunset: '2025-03-31',
-        migration: 'See docs/DDD_REFACTORING_ROADMAP.md'
-      }
-    });
-  }
-);
-```
-
-#### 3.3 Deliverables
-- [ ] Updated product-locations.ts (remove quantity)
-- [ ] Updated variant-locations.ts (remove quantity)
-- [ ] Updated product-uom-locations.ts (remove quantity)
-- [ ] New endpoints for location + stock combined
-- [ ] Deprecation headers on old endpoints
-- [ ] API documentation with migration guide
-
----
-
-### Phase 4: Schema Cleanup (Week 4-5)
-**Risk: High | Dependencies: Phase 3 complete, Frontend updated**
-
-#### 4.1 Product Service Schema Changes
-
-**Remove stock columns from Product Service:**
-
-```sql
--- Migration: product-service/migrations/0002_remove_stock_fields.sql
-
--- Remove from products table
-ALTER TABLE products DROP COLUMN minimum_stock;
-ALTER TABLE products DROP COLUMN expiration_date;
-ALTER TABLE products DROP COLUMN alert_date;
-
--- Remove from product_uoms table
-ALTER TABLE product_uoms DROP COLUMN stock;
-
--- Remove from product_variants table
-ALTER TABLE product_variants DROP COLUMN stock;
-
--- Remove from product_locations table
-ALTER TABLE product_locations DROP COLUMN quantity;
-
--- Remove from variant_locations table
-ALTER TABLE variant_locations DROP COLUMN quantity;
-
--- Remove from product_uom_locations table
-ALTER TABLE product_uom_locations DROP COLUMN quantity;
-```
-
-#### 4.2 Update Schema Files
-
-**Updated product-service schema.ts:**
-
-```typescript
-// services/product-service/src/infrastructure/db/schema.ts
-
-export const products = sqliteTable('products', {
-  id: text('id').primaryKey(),
-  barcode: text('barcode').unique().notNull(),
-  name: text('name').notNull(),
-  sku: text('sku').unique().notNull(),
-  description: text('description'),
-  image: text('image'),
-  categoryId: text('category_id'),
-
-  // Pricing
-  price: real('price').notNull(),
-  retailPrice: real('retail_price'),
-  wholesalePrice: real('wholesale_price'),
-
-  // REMOVED: minimumStock - now in Inventory Service
-  // REMOVED: expirationDate - now in inventoryBatches
-  // REMOVED: alertDate - now in inventoryBatches
-
-  // Base unit
-  baseUnit: text('base_unit').default('PCS').notNull(),
-
-  // Sales rules (remain in Product Service)
-  wholesaleThreshold: integer('wholesale_threshold').default(100),
-  minimumOrderQuantity: integer('minimum_order_quantity').default(1),
-
-  // Physical attributes
-  weight: real('weight'),
-  length: real('length'),
-  width: real('width'),
-  height: real('height'),
-
-  // ... other fields unchanged ...
-});
-
-export const productUOMs = sqliteTable('product_uoms', {
-  id: text('id').primaryKey(),
-  productId: text('product_id').notNull(),
-  uomCode: text('uom_code').notNull(),
-  uomName: text('uom_name').notNull(),
-  barcode: text('barcode').unique().notNull(),
-  conversionFactor: integer('conversion_factor').notNull(),
-  // REMOVED: stock - now in Inventory Service
-  isDefault: integer('is_default', { mode: 'boolean' }).default(false),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
-});
-
-export const productVariants = sqliteTable('product_variants', {
-  id: text('id').primaryKey(),
-  productId: text('product_id').notNull(),
-  productName: text('product_name').notNull(),
-  productSKU: text('product_sku').notNull(),
-  variantName: text('variant_name').notNull(),
-  variantSKU: text('variant_sku').unique().notNull(),
-  variantType: text('variant_type').notNull(),
-  price: real('price').notNull(),
-  // REMOVED: stock - now in Inventory Service
-  status: text('status').default('active').notNull(),
-  image: text('image'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
-});
-
-export const productLocations = sqliteTable('product_locations', {
-  id: text('id').primaryKey(),
-  productId: text('product_id').notNull(),
-  warehouseId: text('warehouse_id').notNull(),
-  rack: text('rack'),
-  bin: text('bin'),
-  zone: text('zone'),
-  aisle: text('aisle'),
-  // REMOVED: quantity - now in Inventory Service
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
-});
-
-// Similar changes for variantLocations and productUOMLocations
-```
-
-#### 4.3 Deliverables
-- [ ] SQL migration to drop columns
-- [ ] Updated schema.ts files
-- [ ] Update all TypeScript types/interfaces
-- [ ] Remove obsolete validation logic
-
----
-
-### Phase 5: Frontend Updates (Week 5-6)
-**Risk: Medium | Dependencies: Phase 3 APIs available**
-
-#### 5.1 Admin Dashboard Changes
-
-**Update API client:**
-
-```typescript
-// apps/admin-dashboard/src/lib/api/index.ts
-
-// Product API - remove stock fields from requests
-export const productApi = {
-  // ... existing methods ...
-
-  // NEW: Get product with stock from Inventory Service
-  async getWithStock(id: string) {
-    const product = await this.get(id);
-    const stockResponse = await fetch(`/api/inventory/product/${id}/total-stock`);
-    const stock = await stockResponse.json();
-
+  // Merge location + stock
+  const locationsWithStock = locations.map(loc => {
+    const invRecord = inventoryData.warehouses?.find(
+      (w: any) => w.warehouseId === loc.warehouseId
+    );
     return {
-      ...product,
-      stock: stock.totalStock,
-      warehouses: stock.warehouses,
+      ...loc,
+      quantityAvailable: invRecord?.quantityAvailable || 0,
+      quantityReserved: invRecord?.quantityReserved || 0,
     };
-  },
+  });
 
-  // DEPRECATED: Don't use these - redirect to Inventory Service
-  // - updateStock()
-  // - setMinimumStock()
-};
-
-// Inventory API - new methods
-export const inventoryApi = {
-  // ... existing methods ...
-
-  // Stock management (Single Source of Truth)
-  async adjustStock(params: AdjustStockParams) {
-    return fetch('/api/inventory/adjust', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
-    });
-  },
-
-  async setMinimumStock(inventoryId: string, minimumStock: number) {
-    return fetch(`/api/inventory/${inventoryId}/minimum-stock`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ minimumStock }),
-    });
-  },
-
-  // Variant stock
-  async getVariantStock(variantId: string) {
-    return fetch(`/api/inventory/variant/${variantId}`);
-  },
-
-  // UOM stock
-  async getUOMStock(uomId: string) {
-    return fetch(`/api/inventory/uom/${uomId}`);
-  },
-};
+  return c.json({ locations: locationsWithStock });
+});
 ```
 
-**Update product forms:**
-
-```typescript
-// apps/admin-dashboard/src/routes/dashboard/products/all.tsx
-
-// BEFORE: Stock in product form
-const productForm = {
-  // ...
-  minimumStock: 50,  // REMOVE
-  expirationDate: '2025-12-31',  // REMOVE
-};
-
-// AFTER: Stock managed separately via Inventory Service
-const productForm = {
-  // Catalog info only
-  name: '',
-  sku: '',
-  price: 0,
-  // ...
-};
-
-// Stock form (separate component)
-const InventoryAllocationForm = ({ productId }) => {
-  const handleAllocate = async (warehouseId, quantity) => {
-    await inventoryApi.adjustStock({
-      productId,
-      warehouseId,
-      quantity,
-      movementType: 'adjustment',
-      reason: 'Initial allocation',
-    });
-  };
-
-  // ...
-};
-```
-
-#### 5.2 Component Updates Required
-
-| Component | Current | After |
-|-----------|---------|-------|
-| ProductForm | Has minimumStock, expirationDate | Remove stock fields |
-| ProductTable | Shows stock column | Fetch from Inventory API |
-| WarehouseAllocation | Updates productLocations.quantity | Calls Inventory Service |
-| VariantForm | Has stock field | Fetch from Inventory API |
-| UOMForm | Has stock field | Fetch from Inventory API |
-| LowStockReport | Queries products | Queries Inventory Service |
-| ExpiringStockReport | Queries products | Queries inventoryBatches |
-
-#### 5.3 Deliverables
-- [ ] Updated API client with Inventory Service methods
-- [ ] Updated product forms (remove stock fields)
-- [ ] Updated stock management UI (use Inventory Service)
-- [ ] Updated reports to use Inventory Service
-- [ ] E2E tests for new workflows
+### 5.4 Deliverables
+- [ ] Product location routes simplified
+- [ ] Variant location routes simplified
+- [ ] UOM location routes simplified
+- [ ] All inventory sync code removed
+- [ ] Helper endpoint added (optional)
 
 ---
 
-### Phase 6: Cleanup & Validation (Week 6-7)
-**Risk: Low | Dependencies: All previous phases**
+## Phase 6: Testing & Validation
 
-#### 6.1 Remove Deprecated Code
-
-```typescript
-// Remove from product-locations.ts:
-// - Inventory Service sync in POST handler
-// - PATCH /:id/quantity endpoint
-// - quantity from all responses
-
-// Remove from variant-locations.ts:
-// - validateVariantStockPerWarehouse() function
-// - quantity validation logic
-// - quantity from responses
-
-// Remove from product-uom-locations.ts:
-// - validateUOMStockPerWarehouse() function
-// - quantity validation logic
-// - quantity from responses
-```
-
-#### 6.2 Data Validation Queries
+### 6.1 Data Validation Queries
 
 ```sql
--- Verify all data migrated correctly
-
--- 1. Check product locations have matching inventory
-SELECT pl.productId, pl.warehouseId, inv.quantityAvailable
-FROM product_locations pl
-LEFT JOIN inventory inv ON pl.productId = inv.productId AND pl.warehouseId = inv.warehouseId
-WHERE inv.id IS NULL;
--- Should return 0 rows
-
--- 2. Check variant locations have matching inventory
-SELECT vl.variantId, vl.warehouseId, inv.quantityAvailable
-FROM variant_locations vl
-LEFT JOIN inventory inv ON vl.variantId = inv.variantId AND vl.warehouseId = inv.warehouseId
-WHERE inv.id IS NULL;
--- Should return 0 rows
-
--- 3. Check all expiration dates migrated
-SELECT p.id, p.expirationDate, b.expirationDate AS batchExpiration
-FROM products p
-LEFT JOIN inventory_batches b ON p.id = b.productId
-WHERE p.expirationDate IS NOT NULL AND b.id IS NULL;
--- Should return 0 rows
-
--- 4. Verify stock totals match
-SELECT
-  'product_locations' as source,
-  SUM(quantity) as total
-FROM product_locations
-UNION ALL
-SELECT
-  'inventory' as source,
-  SUM(quantityAvailable) as total
+-- 1. Verify product locations migrated
+SELECT COUNT(*) as product_locations FROM product_locations;
+SELECT COUNT(*) as inventory_records
 FROM inventory
-WHERE variantId IS NULL AND uomId IS NULL;
--- Totals should match
+WHERE variant_id IS NULL AND uom_id IS NULL;
+
+-- 2. Verify variant locations migrated
+SELECT COUNT(*) as variant_locations FROM variant_locations;
+SELECT COUNT(*) as variant_inventory FROM inventory WHERE variant_id IS NOT NULL;
+
+-- 3. Verify UOM locations migrated
+SELECT COUNT(*) as uom_locations FROM product_uom_locations;
+SELECT COUNT(*) as uom_inventory FROM inventory WHERE uom_id IS NOT NULL;
+
+-- 4. Verify expiration dates migrated
+SELECT COUNT(*) as products_with_expiration
+FROM products WHERE expiration_date IS NOT NULL;
+SELECT COUNT(*) as batch_records FROM inventory_batches;
+
+-- 5. Verify total stock matches
+SELECT SUM(quantity) as product_service_total FROM product_locations;
+SELECT SUM(quantity_available) as inventory_service_total
+FROM inventory WHERE variant_id IS NULL AND uom_id IS NULL;
 ```
 
-#### 6.3 Deliverables
-- [ ] Remove deprecated code
-- [ ] Remove unused sync logic
-- [ ] Run validation queries
-- [ ] Performance testing
-- [ ] Documentation update
+### 6.2 WebSocket Test
 
----
+```javascript
+// Browser console test
+const ws = new WebSocket('ws://localhost:8792/ws');
 
-### Phase 7: Documentation & Training (Week 7-8)
-**Risk: Low | Dependencies: All previous phases**
+ws.onopen = () => {
+  console.log('Connected!');
+  ws.send(JSON.stringify({ type: 'subscribe', channel: 'global' }));
+};
 
-#### 7.1 Documentation Updates
+ws.onmessage = (e) => {
+  console.log('Event:', JSON.parse(e.data));
+};
 
-- [ ] Update ARCHITECTURE.md with new bounded context diagram
-- [ ] Update API documentation
-- [ ] Update DDD_HEXAGONAL_BOUNDARY_REVIEW.md status
-- [ ] Create migration guide for external integrations
-- [ ] Update BUSINESS_RULES.md
-
-#### 7.2 Breaking Changes Summary
-
-| Breaking Change | Migration Path |
-|----------------|----------------|
-| `products.minimumStock` removed | Use `inventory.minimumStock` |
-| `products.expirationDate` removed | Use `inventoryBatches.expirationDate` |
-| `productUOMs.stock` removed | Use `GET /api/inventory/uom/:id` |
-| `productVariants.stock` removed | Use `GET /api/inventory/variant/:id` |
-| `productLocations.quantity` removed | Use `GET /api/inventory/:productId/:warehouseId` |
-| `variantLocations.quantity` removed | Use `GET /api/inventory/variant/:variantId/:warehouseId` |
-| `productUOMLocations.quantity` removed | Use `GET /api/inventory/uom/:uomId` |
-
----
-
-## Risk Mitigation
-
-### Rollback Strategy
-
-**Phase 1-2 Rollback:**
-- Keep original columns until Phase 4
-- Dual-write to both services during migration
-- Can revert to Product Service as source of truth
-
-**Phase 3-4 Rollback:**
-- Re-add columns via migration
-- Restore data from Inventory Service backup
-- Restore frontend to previous version
-
-### Data Integrity Checks
-
-```typescript
-// Run before and after each migration phase
-async function validateDataIntegrity() {
-  const checks = [
-    {
-      name: 'Total stock consistency',
-      query: async () => {
-        const productStock = await productDb.query(`SELECT SUM(quantity) FROM product_locations`);
-        const inventoryStock = await inventoryDb.query(`SELECT SUM(quantityAvailable) FROM inventory WHERE variantId IS NULL`);
-        return productStock === inventoryStock;
-      }
-    },
-    {
-      name: 'Location count matches',
-      query: async () => {
-        const productLocCount = await productDb.query(`SELECT COUNT(*) FROM product_locations`);
-        const inventoryCount = await inventoryDb.query(`SELECT COUNT(*) FROM inventory WHERE variantId IS NULL AND uomId IS NULL`);
-        return productLocCount === inventoryCount;
-      }
-    },
-    // ... more checks
-  ];
-
-  for (const check of checks) {
-    const passed = await check.query();
-    console.log(`${check.name}: ${passed ? '✅ PASS' : '❌ FAIL'}`);
-  }
-}
+// In another terminal, adjust inventory and watch for real-time event
 ```
 
+### 6.3 Optimistic Locking Test
+
+```bash
+# Run 5 concurrent updates
+for i in {1..5}; do
+  curl -X POST http://localhost:8792/api/inventory/adjust \
+    -H "Content-Type: application/json" \
+    -d '{
+      "productId": "test-product",
+      "warehouseId": "test-warehouse",
+      "quantity": -1,
+      "movementType": "out",
+      "reason": "Concurrent test '$i'"
+    }' &
+done
+wait
+
+# Verify: All 5 processed, stock reduced by exactly 5
+```
+
+### 6.4 Deliverables
+- [ ] All validation queries pass
+- [ ] WebSocket connection works
+- [ ] Real-time events received
+- [ ] Optimistic locking prevents conflicts
+- [ ] No data loss verified
+
 ---
 
-## Timeline Summary
+## API Reference
 
-| Week | Phase | Key Deliverables | Risk |
-|------|-------|------------------|------|
-| 1 | Phase 1: Schema Prep | New inventory columns, APIs | Low |
-| 2-3 | Phase 2: Data Migration | Migration scripts, data moved | Medium |
-| 3-4 | Phase 3: API Updates | Updated endpoints, deprecations | Medium |
-| 4-5 | Phase 4: Schema Cleanup | Drop old columns | High |
-| 5-6 | Phase 5: Frontend Updates | UI changes | Medium |
-| 6-7 | Phase 6: Validation | Testing, cleanup | Low |
-| 7-8 | Phase 7: Documentation | Docs, training | Low |
-
----
-
-## Success Criteria
-
-- [ ] All stock data in Inventory Service (single source of truth)
-- [ ] Product Service contains only catalog information
-- [ ] All APIs return correct data
-- [ ] All frontend screens work correctly
-- [ ] No data loss during migration
-- [ ] Performance maintained or improved
-- [ ] All tests passing
-- [ ] Documentation complete
-
----
-
-## Appendix: API Reference
-
-### Inventory Service New Endpoints
+### Inventory Service Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/inventory/variant/:variantId` | Get stock for variant |
-| GET | `/api/inventory/variant/:variantId/:warehouseId` | Get stock for variant at warehouse |
-| GET | `/api/inventory/uom/:uomId` | Get stock for UOM |
-| POST | `/api/inventory/adjust` | Adjust stock (enhanced with variant/UOM) |
+| GET | `/api/inventory` | List all inventory |
+| GET | `/api/inventory/:productId` | Get product inventory |
+| GET | `/api/inventory/:productId/:warehouseId` | Get specific inventory |
+| GET | `/api/inventory/variant/:variantId` | Get variant inventory |
+| GET | `/api/inventory/uom/:uomId` | Get UOM inventory |
+| GET | `/api/inventory/product/:id/total-stock` | Get aggregated stock |
+| GET | `/api/inventory/product/:id/low-stock-status` | Check low stock |
+| POST | `/api/inventory/adjust` | Adjust stock (with locking) |
+| GET | `/ws` | WebSocket real-time updates |
 
-### Product Service Deprecated Endpoints
+### WebSocket Events
 
-| Method | Endpoint | Replacement |
-|--------|----------|-------------|
-| PATCH | `/api/product-locations/:id/quantity` | `POST /api/inventory/adjust` |
-| PATCH | `/api/variant-locations/:id/quantity` | `POST /api/inventory/adjust` |
-| PATCH | `/api/product-uom-locations/:id/quantity` | `POST /api/inventory/adjust` |
+| Event Type | Description |
+|------------|-------------|
+| `inventory.updated` | Stock level changed |
+| `inventory.low_stock` | Stock below minimum threshold |
+| `inventory.out_of_stock` | Stock is zero |
+| `batch.expiring_soon` | Batch approaching expiration |
+
+### WebSocket Channels
+
+| Channel Format | Example | Description |
+|----------------|---------|-------------|
+| `global` | `global` | All inventory events |
+| `product:{id}` | `product:prod_123` | Specific product |
+| `warehouse:{id}` | `warehouse:wh_456` | Specific warehouse |
+| `variant:{id}` | `variant:var_789` | Specific variant |
+
+---
+
+## Summary
+
+### What Gets Removed from Product Service
+
+- `products.minimumStock` → Use `inventory.minimumStock`
+- `products.expirationDate` → Use `inventoryBatches.expirationDate`
+- `products.alertDate` → Use `inventoryBatches.alertDate`
+- `productUOMs.stock` → Use Inventory Service
+- `productVariants.stock` → Use Inventory Service
+- `productLocations.quantity` → Use Inventory Service
+- `variantLocations.quantity` → Use Inventory Service
+- `productUOMLocations.quantity` → Use Inventory Service
+
+### What Gets Added to Inventory Service
+
+- `inventory.variantId` - Variant support
+- `inventory.uomId` - UOM support
+- `inventory.rack/bin/zone/aisle` - Physical location
+- `inventory.version` - Optimistic locking
+- `inventory.lastModifiedAt` - Timestamp
+- WebSocket Durable Object - Real-time updates
+- `/ws` endpoint - WebSocket connection
+
+### Benefits
+
+✅ **Single Source of Truth** - All stock in Inventory Service
+✅ **Real-Time Updates** - WebSocket broadcasts all changes
+✅ **Race Condition Prevention** - Optimistic locking
+✅ **Clean Architecture** - Clear bounded contexts
+✅ **Scalable** - Independent service scaling
+✅ **Omnichannel Ready** - Live stock across all channels
 
 ---
 
 **Document Status**: Complete
 **Author**: Claude
 **Date**: 2025-12-08
-**Version**: 1.0
+**Version**: 2.0 (Simplified - No Backward Compatibility)
