@@ -81,8 +81,9 @@ This roadmap outlines the complete refactoring plan to achieve ideal DDD/Hexagon
 | **5** | API Refactoring | 2-3 days |
 | **6** | Testing & Validation | 2-3 days |
 | **7** | Inter-Warehouse Transfer (Inbound/Outbound) | 3-4 days |
+| **8** | Stock Opname & Physical Bundles | 4-5 days |
 
-**Total Estimated Time**: 3-4 weeks
+**Total Estimated Time**: 4-5 weeks
 
 ---
 
@@ -2339,6 +2340,1513 @@ async function checkAndTriggerTransfer(
 
 ---
 
+## Phase 8: Stock Opname & Physical Bundles
+
+> **DDD Pure Approach**: Stock Opname (Physical Inventory Count) reconciles system inventory with actual physical count. Physical Bundles allow pre-assembled inventory including nested bundles (bundle from bundle).
+
+### 8.1 Stock Opname Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         STOCK OPNAME WORKFLOW                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  1. CREATE OPNAME SESSION                                                    │
+│     - Select warehouse                                                       │
+│     - Select scope: Full / Zone / Category                                  │
+│     - Status: DRAFT                                                          │
+│              │                                                               │
+│              ▼                                                               │
+│  2. START COUNTING                                                           │
+│     - Warehouse staff scan barcodes                                          │
+│     - Enter actual physical quantities                                       │
+│     - Status: IN_PROGRESS                                                    │
+│              │                                                               │
+│              ▼                                                               │
+│  3. GENERATE VARIANCE REPORT                                                 │
+│     - Compare: systemQty vs countedQty                                      │
+│     - Calculate: variance = countedQty - systemQty                          │
+│     - Flag: discrepancies for review                                         │
+│     - Status: PENDING_REVIEW                                                 │
+│              │                                                               │
+│              ▼                                                               │
+│  4. REVIEW & APPROVE                                                         │
+│     - Manager reviews variances                                              │
+│     - Approve / Reject adjustments                                           │
+│     - Status: APPROVED / REJECTED                                            │
+│              │                                                               │
+│              ▼                                                               │
+│  5. APPLY ADJUSTMENTS                                                        │
+│     - Update inventory.quantityAvailable                                    │
+│     - Record movements with reason: "Stock Opname Adjustment"               │
+│     - Status: COMPLETED                                                      │
+│                                                                              │
+│  ⚠️ BUNDLE HANDLING:                                                         │
+│  ├── Virtual Bundles: SKIP (calculated from components)                     │
+│  └── Physical Bundles: COUNT (exists as physical inventory)                 │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 8.2 Stock Opname State Machine
+
+```
+┌───────┐    ┌─────────────┐    ┌────────────────┐    ┌──────────┐    ┌───────────┐
+│ DRAFT │───→│ IN_PROGRESS │───→│ PENDING_REVIEW │───→│ APPROVED │───→│ COMPLETED │
+└───────┘    └─────────────┘    └────────────────┘    └──────────┘    └───────────┘
+     │              │                    │                   │
+     ▼              ▼                    ▼                   │
+┌───────────┐ ┌───────────┐       ┌──────────┐              │
+│ CANCELLED │ │ CANCELLED │       │ REJECTED │◄─────────────┘
+└───────────┘ └───────────┘       └──────────┘     (if variances unacceptable)
+```
+
+### 8.3 Stock Opname Database Schema
+
+**Migration file**: `services/inventory-service/migrations/0007_stock_opname.sql`
+
+```sql
+-- Stock Opname Sessions (Main document)
+CREATE TABLE stock_opname_sessions (
+  id TEXT PRIMARY KEY,
+
+  -- Document identification
+  opname_number TEXT UNIQUE NOT NULL,  -- e.g., "SOP-2025-0001"
+
+  -- Scope
+  warehouse_id TEXT NOT NULL REFERENCES warehouses(id),
+  scope_type TEXT NOT NULL DEFAULT 'full',  -- 'full' | 'zone' | 'category' | 'product'
+  scope_zone TEXT,          -- If scope_type = 'zone'
+  scope_category_id TEXT,   -- If scope_type = 'category'
+  scope_product_ids TEXT,   -- JSON array if scope_type = 'product'
+
+  -- Status
+  status TEXT NOT NULL DEFAULT 'draft',
+  -- 'draft' | 'in_progress' | 'pending_review' | 'approved' | 'rejected' | 'completed' | 'cancelled'
+
+  -- Timing
+  started_at TEXT,
+  completed_at TEXT,
+
+  -- Review
+  reviewed_by TEXT,
+  reviewed_at TEXT,
+  review_notes TEXT,
+
+  -- Summary (calculated after counting)
+  total_items_counted INTEGER DEFAULT 0,
+  total_variance_qty INTEGER DEFAULT 0,
+  total_variance_value REAL DEFAULT 0,
+
+  -- Notes
+  notes TEXT,
+  cancellation_reason TEXT,
+
+  -- Optimistic locking
+  version INTEGER NOT NULL DEFAULT 1,
+
+  -- Audit
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  created_by TEXT,
+  updated_by TEXT
+);
+
+-- Stock Opname Items (Line items - each product counted)
+CREATE TABLE stock_opname_items (
+  id TEXT PRIMARY KEY,
+
+  opname_session_id TEXT NOT NULL REFERENCES stock_opname_sessions(id) ON DELETE CASCADE,
+
+  -- Product reference
+  product_id TEXT NOT NULL,
+  variant_id TEXT,
+  uom_id TEXT,
+  bundle_id TEXT,  -- If counting physical bundle
+
+  -- Bundle type indicator
+  is_physical_bundle INTEGER DEFAULT 0,  -- 1 = physical bundle, 0 = regular product
+
+  -- System quantity (snapshot at start)
+  system_quantity INTEGER NOT NULL,
+
+  -- Counted quantity (from barcode scan)
+  counted_quantity INTEGER,
+
+  -- Variance
+  variance_quantity INTEGER,  -- counted - system (can be negative)
+  variance_value REAL,        -- variance × unit cost
+
+  -- Location where counted
+  rack TEXT,
+  bin TEXT,
+  zone TEXT,
+  aisle TEXT,
+
+  -- Counting details
+  counted_by TEXT,
+  counted_at TEXT,
+
+  -- Adjustment status
+  adjustment_status TEXT DEFAULT 'pending',
+  -- 'pending' | 'approved' | 'rejected' | 'applied'
+  adjustment_reason TEXT,  -- Reason for discrepancy
+
+  -- Audit
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+-- Stock Opname Adjustments (Applied adjustments)
+CREATE TABLE stock_opname_adjustments (
+  id TEXT PRIMARY KEY,
+
+  opname_session_id TEXT NOT NULL REFERENCES stock_opname_sessions(id) ON DELETE CASCADE,
+  opname_item_id TEXT NOT NULL REFERENCES stock_opname_items(id),
+
+  -- Product reference
+  product_id TEXT NOT NULL,
+  variant_id TEXT,
+  uom_id TEXT,
+  bundle_id TEXT,
+  warehouse_id TEXT NOT NULL,
+
+  -- Adjustment details
+  previous_quantity INTEGER NOT NULL,
+  adjusted_quantity INTEGER NOT NULL,
+  adjustment_amount INTEGER NOT NULL,  -- adjusted - previous
+
+  -- Reference
+  inventory_movement_id TEXT,  -- Link to inventory_movements record
+
+  -- Approval
+  approved_by TEXT,
+  approved_at TEXT,
+
+  -- Audit
+  created_at INTEGER NOT NULL
+);
+
+-- Indexes
+CREATE INDEX idx_sos_warehouse ON stock_opname_sessions(warehouse_id);
+CREATE INDEX idx_sos_status ON stock_opname_sessions(status);
+CREATE INDEX idx_sos_opname_number ON stock_opname_sessions(opname_number);
+CREATE INDEX idx_soi_session ON stock_opname_items(opname_session_id);
+CREATE INDEX idx_soi_product ON stock_opname_items(product_id);
+CREATE INDEX idx_soi_bundle ON stock_opname_items(bundle_id);
+CREATE INDEX idx_soa_session ON stock_opname_adjustments(opname_session_id);
+```
+
+### 8.4 Stock Opname TypeScript Schema
+
+**File**: `services/inventory-service/src/infrastructure/db/schema.ts`
+
+```typescript
+// Stock Opname Sessions
+export const stockOpnameSessions = sqliteTable('stock_opname_sessions', {
+  id: text('id').primaryKey(),
+
+  opnameNumber: text('opname_number').unique().notNull(),
+
+  warehouseId: text('warehouse_id').notNull()
+    .references(() => warehouses.id),
+  scopeType: text('scope_type').notNull().default('full'),
+  scopeZone: text('scope_zone'),
+  scopeCategoryId: text('scope_category_id'),
+  scopeProductIds: text('scope_product_ids'),  // JSON array
+
+  status: text('status').notNull().default('draft'),
+
+  startedAt: text('started_at'),
+  completedAt: text('completed_at'),
+
+  reviewedBy: text('reviewed_by'),
+  reviewedAt: text('reviewed_at'),
+  reviewNotes: text('review_notes'),
+
+  totalItemsCounted: integer('total_items_counted').default(0),
+  totalVarianceQty: integer('total_variance_qty').default(0),
+  totalVarianceValue: real('total_variance_value').default(0),
+
+  notes: text('notes'),
+  cancellationReason: text('cancellation_reason'),
+
+  version: integer('version').default(1).notNull(),
+
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+  createdBy: text('created_by'),
+  updatedBy: text('updated_by'),
+});
+
+// Stock Opname Items
+export const stockOpnameItems = sqliteTable('stock_opname_items', {
+  id: text('id').primaryKey(),
+
+  opnameSessionId: text('opname_session_id').notNull()
+    .references(() => stockOpnameSessions.id, { onDelete: 'cascade' }),
+
+  productId: text('product_id').notNull(),
+  variantId: text('variant_id'),
+  uomId: text('uom_id'),
+  bundleId: text('bundle_id'),
+
+  isPhysicalBundle: integer('is_physical_bundle').default(0),
+
+  systemQuantity: integer('system_quantity').notNull(),
+  countedQuantity: integer('counted_quantity'),
+
+  varianceQuantity: integer('variance_quantity'),
+  varianceValue: real('variance_value'),
+
+  rack: text('rack'),
+  bin: text('bin'),
+  zone: text('zone'),
+  aisle: text('aisle'),
+
+  countedBy: text('counted_by'),
+  countedAt: text('counted_at'),
+
+  adjustmentStatus: text('adjustment_status').default('pending'),
+  adjustmentReason: text('adjustment_reason'),
+
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+});
+
+// Opname Status enum
+export const OpnameStatus = {
+  DRAFT: 'draft',
+  IN_PROGRESS: 'in_progress',
+  PENDING_REVIEW: 'pending_review',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled',
+} as const;
+```
+
+### 8.5 Stock Opname API Endpoints
+
+**File**: `services/inventory-service/src/routes/stock-opname.ts`
+
+```typescript
+import { Hono } from 'hono';
+import { zValidator } from '@hono/zod-validator';
+import { z } from 'zod';
+
+const app = new Hono<{ Bindings: Bindings }>();
+
+// Generate opname number
+const generateOpnameNumber = () => {
+  const year = new Date().getFullYear();
+  const random = Math.random().toString(36).substr(2, 6).toUpperCase();
+  return `SOP-${year}-${random}`;
+};
+
+// ============================================================
+// STEP 1: CREATE OPNAME SESSION
+// ============================================================
+app.post('/sessions', zValidator('json', z.object({
+  warehouseId: z.string(),
+  scopeType: z.enum(['full', 'zone', 'category', 'product']).default('full'),
+  scopeZone: z.string().optional(),
+  scopeCategoryId: z.string().optional(),
+  scopeProductIds: z.array(z.string()).optional(),
+  notes: z.string().optional(),
+})), async (c) => {
+  const data = c.req.valid('json');
+  const db = drizzle(c.env.DB);
+  const userId = c.req.header('X-User-Id');
+  const now = new Date();
+
+  const session = {
+    id: generateId(),
+    opnameNumber: generateOpnameNumber(),
+    warehouseId: data.warehouseId,
+    scopeType: data.scopeType,
+    scopeZone: data.scopeZone,
+    scopeCategoryId: data.scopeCategoryId,
+    scopeProductIds: data.scopeProductIds ? JSON.stringify(data.scopeProductIds) : null,
+    status: OpnameStatus.DRAFT,
+    notes: data.notes,
+    version: 1,
+    createdAt: now,
+    updatedAt: now,
+    createdBy: userId,
+  };
+
+  await db.insert(stockOpnameSessions).values(session).run();
+
+  return c.json({ session, message: 'Opname session created' }, 201);
+});
+
+// ============================================================
+// STEP 2: START COUNTING - Initialize items from inventory
+// ============================================================
+app.post('/sessions/:id/start', async (c) => {
+  const sessionId = c.req.param('id');
+  const db = drizzle(c.env.DB);
+  const userId = c.req.header('X-User-Id');
+  const now = new Date();
+
+  const session = await db.select().from(stockOpnameSessions)
+    .where(eq(stockOpnameSessions.id, sessionId)).get();
+
+  if (!session) return c.json({ error: 'Session not found' }, 404);
+  if (session.status !== OpnameStatus.DRAFT) {
+    return c.json({ error: `Cannot start session in ${session.status} status` }, 400);
+  }
+
+  // Get inventory items for this warehouse based on scope
+  let inventoryQuery = db.select().from(inventory)
+    .where(eq(inventory.warehouseId, session.warehouseId));
+
+  // Apply scope filters
+  if (session.scopeType === 'zone' && session.scopeZone) {
+    inventoryQuery = inventoryQuery.where(eq(inventory.zone, session.scopeZone));
+  }
+  if (session.scopeType === 'product' && session.scopeProductIds) {
+    const productIds = JSON.parse(session.scopeProductIds);
+    inventoryQuery = inventoryQuery.where(inArray(inventory.productId, productIds));
+  }
+
+  const inventoryItems = await inventoryQuery.all();
+
+  // Create opname items (snapshot system quantities)
+  for (const inv of inventoryItems) {
+    // Check if this is a physical bundle
+    const isBundle = inv.bundleId ? 1 : 0;
+
+    await db.insert(stockOpnameItems).values({
+      id: generateId(),
+      opnameSessionId: sessionId,
+      productId: inv.productId,
+      variantId: inv.variantId,
+      uomId: inv.uomId,
+      bundleId: inv.bundleId,
+      isPhysicalBundle: isBundle,
+      systemQuantity: inv.quantityAvailable,
+      rack: inv.rack,
+      bin: inv.bin,
+      zone: inv.zone,
+      aisle: inv.aisle,
+      adjustmentStatus: 'pending',
+      createdAt: now,
+      updatedAt: now,
+    }).run();
+  }
+
+  // Update session status
+  await db.update(stockOpnameSessions)
+    .set({
+      status: OpnameStatus.IN_PROGRESS,
+      startedAt: now.toISOString(),
+      totalItemsCounted: 0,
+      version: session.version + 1,
+      updatedAt: now,
+      updatedBy: userId,
+    })
+    .where(eq(stockOpnameSessions.id, sessionId))
+    .run();
+
+  return c.json({
+    message: 'Opname started',
+    itemsToCount: inventoryItems.length,
+    status: OpnameStatus.IN_PROGRESS,
+  });
+});
+
+// ============================================================
+// STEP 3: RECORD COUNT (Barcode scan entry)
+// ============================================================
+app.post('/sessions/:id/count', zValidator('json', z.object({
+  items: z.array(z.object({
+    itemId: z.string().optional(),
+    productId: z.string().optional(),  // For finding by barcode/SKU
+    barcode: z.string().optional(),
+    countedQuantity: z.number().min(0),
+    rack: z.string().optional(),
+    bin: z.string().optional(),
+  })),
+})), async (c) => {
+  const sessionId = c.req.param('id');
+  const data = c.req.valid('json');
+  const db = drizzle(c.env.DB);
+  const userId = c.req.header('X-User-Id');
+  const now = new Date();
+
+  const session = await db.select().from(stockOpnameSessions)
+    .where(eq(stockOpnameSessions.id, sessionId)).get();
+
+  if (!session) return c.json({ error: 'Session not found' }, 404);
+  if (session.status !== OpnameStatus.IN_PROGRESS) {
+    return c.json({ error: `Cannot count in ${session.status} status` }, 400);
+  }
+
+  let countedItems = 0;
+
+  for (const item of data.items) {
+    // Find opname item
+    let opnameItem;
+    if (item.itemId) {
+      opnameItem = await db.select().from(stockOpnameItems)
+        .where(eq(stockOpnameItems.id, item.itemId)).get();
+    } else if (item.productId) {
+      opnameItem = await db.select().from(stockOpnameItems)
+        .where(and(
+          eq(stockOpnameItems.opnameSessionId, sessionId),
+          eq(stockOpnameItems.productId, item.productId)
+        )).get();
+    }
+
+    if (!opnameItem) continue;
+
+    // Calculate variance
+    const variance = item.countedQuantity - opnameItem.systemQuantity;
+
+    // Update with counted quantity
+    await db.update(stockOpnameItems)
+      .set({
+        countedQuantity: item.countedQuantity,
+        varianceQuantity: variance,
+        countedBy: userId,
+        countedAt: now.toISOString(),
+        rack: item.rack || opnameItem.rack,
+        bin: item.bin || opnameItem.bin,
+        updatedAt: now,
+      })
+      .where(eq(stockOpnameItems.id, opnameItem.id))
+      .run();
+
+    countedItems++;
+  }
+
+  // Update session count
+  const totalCounted = await db.select({ count: count() }).from(stockOpnameItems)
+    .where(and(
+      eq(stockOpnameItems.opnameSessionId, sessionId),
+      isNotNull(stockOpnameItems.countedQuantity)
+    )).get();
+
+  await db.update(stockOpnameSessions)
+    .set({
+      totalItemsCounted: totalCounted?.count || 0,
+      updatedAt: now,
+    })
+    .where(eq(stockOpnameSessions.id, sessionId))
+    .run();
+
+  return c.json({
+    message: `Counted ${countedItems} items`,
+    totalCounted: totalCounted?.count || 0,
+  });
+});
+
+// ============================================================
+// STEP 4: FINALIZE COUNTING - Generate variance report
+// ============================================================
+app.post('/sessions/:id/finalize', async (c) => {
+  const sessionId = c.req.param('id');
+  const db = drizzle(c.env.DB);
+  const userId = c.req.header('X-User-Id');
+  const now = new Date();
+
+  const session = await db.select().from(stockOpnameSessions)
+    .where(eq(stockOpnameSessions.id, sessionId)).get();
+
+  if (!session) return c.json({ error: 'Session not found' }, 404);
+  if (session.status !== OpnameStatus.IN_PROGRESS) {
+    return c.json({ error: `Cannot finalize in ${session.status} status` }, 400);
+  }
+
+  // Get all items
+  const items = await db.select().from(stockOpnameItems)
+    .where(eq(stockOpnameItems.opnameSessionId, sessionId)).all();
+
+  // Calculate totals
+  let totalVarianceQty = 0;
+  let uncountedItems = 0;
+
+  for (const item of items) {
+    if (item.countedQuantity === null) {
+      uncountedItems++;
+    } else {
+      totalVarianceQty += item.varianceQuantity || 0;
+    }
+  }
+
+  // Warn if items not counted
+  if (uncountedItems > 0) {
+    return c.json({
+      error: 'Cannot finalize - some items not counted',
+      uncountedItems,
+      message: `${uncountedItems} items have not been counted yet`,
+    }, 400);
+  }
+
+  // Update session
+  await db.update(stockOpnameSessions)
+    .set({
+      status: OpnameStatus.PENDING_REVIEW,
+      totalVarianceQty,
+      version: session.version + 1,
+      updatedAt: now,
+      updatedBy: userId,
+    })
+    .where(eq(stockOpnameSessions.id, sessionId))
+    .run();
+
+  // Get variance summary
+  const variances = items.filter(i => i.varianceQuantity !== 0);
+
+  return c.json({
+    message: 'Counting finalized - pending review',
+    status: OpnameStatus.PENDING_REVIEW,
+    summary: {
+      totalItems: items.length,
+      itemsWithVariance: variances.length,
+      totalVarianceQty,
+      positiveVariances: variances.filter(i => (i.varianceQuantity || 0) > 0).length,
+      negativeVariances: variances.filter(i => (i.varianceQuantity || 0) < 0).length,
+    },
+    variances,
+  });
+});
+
+// ============================================================
+// STEP 5: REVIEW & APPROVE
+// ============================================================
+app.post('/sessions/:id/approve', zValidator('json', z.object({
+  approvedItems: z.array(z.object({
+    itemId: z.string(),
+    approved: z.boolean(),
+    adjustmentReason: z.string().optional(),
+  })),
+  reviewNotes: z.string().optional(),
+})), async (c) => {
+  const sessionId = c.req.param('id');
+  const data = c.req.valid('json');
+  const db = drizzle(c.env.DB);
+  const userId = c.req.header('X-User-Id');
+  const now = new Date();
+
+  const session = await db.select().from(stockOpnameSessions)
+    .where(eq(stockOpnameSessions.id, sessionId)).get();
+
+  if (!session) return c.json({ error: 'Session not found' }, 404);
+  if (session.status !== OpnameStatus.PENDING_REVIEW) {
+    return c.json({ error: `Cannot approve in ${session.status} status` }, 400);
+  }
+
+  // Update each item's approval status
+  for (const approval of data.approvedItems) {
+    await db.update(stockOpnameItems)
+      .set({
+        adjustmentStatus: approval.approved ? 'approved' : 'rejected',
+        adjustmentReason: approval.adjustmentReason,
+        updatedAt: now,
+      })
+      .where(eq(stockOpnameItems.id, approval.itemId))
+      .run();
+  }
+
+  // Update session
+  await db.update(stockOpnameSessions)
+    .set({
+      status: OpnameStatus.APPROVED,
+      reviewedBy: userId,
+      reviewedAt: now.toISOString(),
+      reviewNotes: data.reviewNotes,
+      version: session.version + 1,
+      updatedAt: now,
+      updatedBy: userId,
+    })
+    .where(eq(stockOpnameSessions.id, sessionId))
+    .run();
+
+  return c.json({ message: 'Opname approved', status: OpnameStatus.APPROVED });
+});
+
+// ============================================================
+// STEP 6: APPLY ADJUSTMENTS
+// ============================================================
+app.post('/sessions/:id/apply', async (c) => {
+  const sessionId = c.req.param('id');
+  const db = drizzle(c.env.DB);
+  const userId = c.req.header('X-User-Id');
+  const now = new Date();
+
+  const session = await db.select().from(stockOpnameSessions)
+    .where(eq(stockOpnameSessions.id, sessionId)).get();
+
+  if (!session) return c.json({ error: 'Session not found' }, 404);
+  if (session.status !== OpnameStatus.APPROVED) {
+    return c.json({ error: `Cannot apply in ${session.status} status` }, 400);
+  }
+
+  // Get approved items with variance
+  const approvedItems = await db.select().from(stockOpnameItems)
+    .where(and(
+      eq(stockOpnameItems.opnameSessionId, sessionId),
+      eq(stockOpnameItems.adjustmentStatus, 'approved'),
+      ne(stockOpnameItems.varianceQuantity, 0)
+    )).all();
+
+  let adjustmentsApplied = 0;
+
+  for (const item of approvedItems) {
+    // Get current inventory
+    const inv = await db.select().from(inventory)
+      .where(and(
+        eq(inventory.productId, item.productId),
+        eq(inventory.warehouseId, session.warehouseId),
+        item.variantId ? eq(inventory.variantId, item.variantId) : isNull(inventory.variantId)
+      )).get();
+
+    if (!inv) continue;
+
+    const newQuantity = item.countedQuantity!;
+    const adjustmentAmount = newQuantity - inv.quantityAvailable;
+
+    // Update inventory with optimistic locking
+    await db.update(inventory)
+      .set({
+        quantityAvailable: newQuantity,
+        version: inv.version + 1,
+        lastModifiedAt: now.toISOString(),
+        updatedAt: now,
+      })
+      .where(and(
+        eq(inventory.id, inv.id),
+        eq(inventory.version, inv.version)
+      ))
+      .run();
+
+    // Record movement
+    const movementId = generateId();
+    await db.insert(inventoryMovements).values({
+      id: movementId,
+      inventoryId: inv.id,
+      productId: item.productId,
+      warehouseId: session.warehouseId,
+      movementType: 'adjustment',
+      quantity: adjustmentAmount,
+      source: 'warehouse',
+      referenceType: 'stock_opname',
+      referenceId: sessionId,
+      reason: `Stock Opname Adjustment (${session.opnameNumber})`,
+      notes: item.adjustmentReason || `Variance: ${item.varianceQuantity}`,
+      performedBy: userId,
+      createdAt: now,
+    }).run();
+
+    // Record adjustment
+    await db.insert(stockOpnameAdjustments).values({
+      id: generateId(),
+      opnameSessionId: sessionId,
+      opnameItemId: item.id,
+      productId: item.productId,
+      variantId: item.variantId,
+      uomId: item.uomId,
+      bundleId: item.bundleId,
+      warehouseId: session.warehouseId,
+      previousQuantity: inv.quantityAvailable,
+      adjustedQuantity: newQuantity,
+      adjustmentAmount,
+      inventoryMovementId: movementId,
+      approvedBy: userId,
+      approvedAt: now.toISOString(),
+      createdAt: now,
+    }).run();
+
+    // Update item status
+    await db.update(stockOpnameItems)
+      .set({ adjustmentStatus: 'applied', updatedAt: now })
+      .where(eq(stockOpnameItems.id, item.id))
+      .run();
+
+    adjustmentsApplied++;
+
+    // Broadcast inventory update
+    await broadcastInventoryChange(c.env, {
+      type: 'inventory.updated',
+      data: {
+        productId: item.productId,
+        warehouseId: session.warehouseId,
+        reason: 'stock_opname',
+        timestamp: now.toISOString(),
+      },
+    });
+  }
+
+  // Complete session
+  await db.update(stockOpnameSessions)
+    .set({
+      status: OpnameStatus.COMPLETED,
+      completedAt: now.toISOString(),
+      version: session.version + 1,
+      updatedAt: now,
+      updatedBy: userId,
+    })
+    .where(eq(stockOpnameSessions.id, sessionId))
+    .run();
+
+  return c.json({
+    message: 'Adjustments applied',
+    status: OpnameStatus.COMPLETED,
+    adjustmentsApplied,
+  });
+});
+
+// ============================================================
+// GET ENDPOINTS
+// ============================================================
+
+// GET session with items
+app.get('/sessions/:id', async (c) => {
+  const sessionId = c.req.param('id');
+  const db = drizzle(c.env.DB);
+
+  const session = await db.select().from(stockOpnameSessions)
+    .where(eq(stockOpnameSessions.id, sessionId)).get();
+
+  if (!session) return c.json({ error: 'Session not found' }, 404);
+
+  const items = await db.select().from(stockOpnameItems)
+    .where(eq(stockOpnameItems.opnameSessionId, sessionId)).all();
+
+  return c.json({ session: { ...session, items } });
+});
+
+// GET variance report
+app.get('/sessions/:id/variance-report', async (c) => {
+  const sessionId = c.req.param('id');
+  const db = drizzle(c.env.DB);
+
+  const session = await db.select().from(stockOpnameSessions)
+    .where(eq(stockOpnameSessions.id, sessionId)).get();
+
+  if (!session) return c.json({ error: 'Session not found' }, 404);
+
+  const items = await db.select().from(stockOpnameItems)
+    .where(eq(stockOpnameItems.opnameSessionId, sessionId)).all();
+
+  const variances = items.filter(i => i.varianceQuantity !== 0);
+
+  return c.json({
+    session: {
+      opnameNumber: session.opnameNumber,
+      warehouseId: session.warehouseId,
+      status: session.status,
+    },
+    summary: {
+      totalItems: items.length,
+      countedItems: items.filter(i => i.countedQuantity !== null).length,
+      itemsWithVariance: variances.length,
+      totalPositiveVariance: variances.reduce((sum, i) => sum + Math.max(0, i.varianceQuantity || 0), 0),
+      totalNegativeVariance: variances.reduce((sum, i) => sum + Math.min(0, i.varianceQuantity || 0), 0),
+      netVariance: session.totalVarianceQty,
+    },
+    variances: variances.map(i => ({
+      productId: i.productId,
+      variantId: i.variantId,
+      bundleId: i.bundleId,
+      isPhysicalBundle: i.isPhysicalBundle === 1,
+      systemQuantity: i.systemQuantity,
+      countedQuantity: i.countedQuantity,
+      variance: i.varianceQuantity,
+      location: { rack: i.rack, bin: i.bin, zone: i.zone, aisle: i.aisle },
+      status: i.adjustmentStatus,
+      reason: i.adjustmentReason,
+    })),
+  });
+});
+
+export default app;
+```
+
+---
+
+### 8.6 Physical Bundles Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         BUNDLE TYPES COMPARISON                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  VIRTUAL BUNDLE (Current)                 PHYSICAL BUNDLE (New)              │
+│  ─────────────────────────                ─────────────────────              │
+│                                                                              │
+│  • Calculated stock from components       • Pre-assembled physical inventory │
+│  • No physical inventory record           • Has inventory record (bundleId)  │
+│  • Stock = min(component stocks / qty)    • Stock = quantityAvailable        │
+│  • Assembled at order fulfillment         • Assembled in warehouse ahead     │
+│  • Cannot exist without components        • Exists independently             │
+│                                                                              │
+│  Use case: E-commerce, flexible           Use case: Pre-packaged gifts,      │
+│            inventory                                 manufacturing           │
+│                                                                              │
+│  ⚠️ Stock Opname: SKIP                    ✅ Stock Opname: COUNT             │
+│                                                                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  NESTED/COMPOSITE BUNDLE (New)                                               │
+│  ─────────────────────────────                                               │
+│                                                                              │
+│  Bundle can contain:                                                         │
+│  ├── Regular products                                                        │
+│  ├── Product variants                                                        │
+│  ├── Other physical bundles  ← NEW!                                          │
+│  └── Virtual bundles (resolved to components)                                │
+│                                                                              │
+│  Example:                                                                    │
+│  "Super Baby Kit" (Physical Bundle)                                          │
+│  ├── 1× "Baby Starter Kit" (Physical Bundle)                                │
+│  │   ├── 2× Baby Bottle                                                      │
+│  │   ├── 1× Diaper Pack                                                      │
+│  │   └── 3× Baby Wipes                                                       │
+│  ├── 1× Baby Clothes Set (Regular Product)                                   │
+│  └── 1× Baby Toy (Regular Product)                                           │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 8.7 Physical Bundle Database Schema
+
+**Migration file**: `services/inventory-service/migrations/0008_physical_bundles.sql`
+
+```sql
+-- Add bundleId to inventory table (for physical bundles)
+ALTER TABLE inventory ADD COLUMN bundle_id TEXT;
+ALTER TABLE inventory ADD COLUMN is_physical_bundle INTEGER DEFAULT 0;
+
+-- Bundle Assembly Sessions
+CREATE TABLE bundle_assembly_sessions (
+  id TEXT PRIMARY KEY,
+
+  -- Document identification
+  assembly_number TEXT UNIQUE NOT NULL,  -- e.g., "ASM-2025-0001"
+
+  -- Bundle reference
+  bundle_id TEXT NOT NULL,  -- References product_bundles.id in Product Service
+  warehouse_id TEXT NOT NULL REFERENCES warehouses(id),
+
+  -- Operation type
+  operation_type TEXT NOT NULL,  -- 'assemble' | 'disassemble'
+
+  -- Quantities
+  quantity INTEGER NOT NULL,  -- Number of bundles to assemble/disassemble
+
+  -- Status
+  status TEXT NOT NULL DEFAULT 'pending',
+  -- 'pending' | 'in_progress' | 'completed' | 'cancelled' | 'partial'
+
+  -- Timing
+  started_at TEXT,
+  completed_at TEXT,
+
+  -- Notes
+  notes TEXT,
+  cancellation_reason TEXT,
+
+  -- Audit
+  version INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  created_by TEXT,
+  updated_by TEXT
+);
+
+-- Bundle Assembly Items (Components consumed/produced)
+CREATE TABLE bundle_assembly_items (
+  id TEXT PRIMARY KEY,
+
+  assembly_session_id TEXT NOT NULL REFERENCES bundle_assembly_sessions(id) ON DELETE CASCADE,
+
+  -- Component reference
+  product_id TEXT,  -- Regular product component
+  variant_id TEXT,  -- Variant component
+  bundle_id TEXT,   -- Nested bundle component (bundle within bundle)
+
+  -- Quantities
+  required_quantity INTEGER NOT NULL,  -- Qty needed per bundle × num bundles
+  actual_quantity INTEGER,              -- Qty actually consumed/produced
+
+  -- Movement reference
+  inventory_movement_id TEXT,
+
+  -- Status
+  item_status TEXT DEFAULT 'pending',
+  -- 'pending' | 'consumed' | 'produced' | 'failed'
+
+  -- Audit
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+-- Indexes
+CREATE INDEX idx_inventory_bundle ON inventory(bundle_id);
+CREATE INDEX idx_bas_bundle ON bundle_assembly_sessions(bundle_id);
+CREATE INDEX idx_bas_warehouse ON bundle_assembly_sessions(warehouse_id);
+CREATE INDEX idx_bas_status ON bundle_assembly_sessions(status);
+CREATE INDEX idx_bai_session ON bundle_assembly_items(assembly_session_id);
+```
+
+### 8.8 Physical Bundle Assembly API
+
+**File**: `services/inventory-service/src/routes/bundle-assembly.ts`
+
+```typescript
+import { Hono } from 'hono';
+import { zValidator } from '@hono/zod-validator';
+import { z } from 'zod';
+
+const app = new Hono<{ Bindings: Bindings }>();
+
+// ============================================================
+// ASSEMBLE BUNDLE - Create physical bundle from components
+// Supports nested bundles (bundle from bundle)
+// ============================================================
+app.post('/assemble', zValidator('json', z.object({
+  bundleId: z.string(),
+  warehouseId: z.string(),
+  quantity: z.number().positive(),
+  notes: z.string().optional(),
+})), async (c) => {
+  const data = c.req.valid('json');
+  const db = drizzle(c.env.DB);
+  const userId = c.req.header('X-User-Id');
+  const now = new Date();
+
+  // Get bundle definition from Product Service
+  const bundleResponse = await c.env.PRODUCT_SERVICE.fetch(
+    new Request(`http://product-service/api/bundles/${data.bundleId}`)
+  );
+
+  if (!bundleResponse.ok) {
+    return c.json({ error: 'Bundle not found' }, 404);
+  }
+
+  const bundle = await bundleResponse.json();
+  const bundleItems = bundle.items || [];
+
+  // Create assembly session
+  const sessionId = generateId();
+  const assemblyNumber = `ASM-${new Date().getFullYear()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+
+  await db.insert(bundleAssemblySessions).values({
+    id: sessionId,
+    assemblyNumber,
+    bundleId: data.bundleId,
+    warehouseId: data.warehouseId,
+    operationType: 'assemble',
+    quantity: data.quantity,
+    status: 'in_progress',
+    startedAt: now.toISOString(),
+    notes: data.notes,
+    version: 1,
+    createdAt: now,
+    updatedAt: now,
+    createdBy: userId,
+  }).run();
+
+  // Process each component (including nested bundles)
+  const results: any[] = [];
+
+  for (const item of bundleItems) {
+    const requiredQty = item.quantity * data.quantity;
+
+    // Check if component is a bundle (nested bundle)
+    const isNestedBundle = item.bundleId != null;
+
+    // Get component inventory
+    let componentInv;
+    if (isNestedBundle) {
+      // Nested bundle - look for physical bundle inventory
+      componentInv = await db.select().from(inventory)
+        .where(and(
+          eq(inventory.bundleId, item.bundleId),
+          eq(inventory.warehouseId, data.warehouseId),
+          eq(inventory.isPhysicalBundle, 1)
+        )).get();
+    } else {
+      // Regular product or variant
+      componentInv = await db.select().from(inventory)
+        .where(and(
+          eq(inventory.productId, item.productId),
+          eq(inventory.warehouseId, data.warehouseId),
+          item.variantId ? eq(inventory.variantId, item.variantId) : isNull(inventory.variantId),
+          eq(inventory.isPhysicalBundle, 0)
+        )).get();
+    }
+
+    // Check availability
+    if (!componentInv || componentInv.quantityAvailable < requiredQty) {
+      await db.update(bundleAssemblySessions)
+        .set({ status: 'cancelled', cancellationReason: `Insufficient ${isNestedBundle ? 'bundle' : 'product'}: ${item.productId || item.bundleId}` })
+        .where(eq(bundleAssemblySessions.id, sessionId))
+        .run();
+
+      return c.json({
+        error: 'Insufficient component stock',
+        component: item,
+        required: requiredQty,
+        available: componentInv?.quantityAvailable || 0,
+      }, 400);
+    }
+
+    // Deduct component
+    await db.update(inventory)
+      .set({
+        quantityAvailable: componentInv.quantityAvailable - requiredQty,
+        version: componentInv.version + 1,
+        lastModifiedAt: now.toISOString(),
+        updatedAt: now,
+      })
+      .where(eq(inventory.id, componentInv.id))
+      .run();
+
+    // Record movement
+    const movementId = generateId();
+    await db.insert(inventoryMovements).values({
+      id: movementId,
+      inventoryId: componentInv.id,
+      productId: item.productId || item.bundleId,
+      warehouseId: data.warehouseId,
+      movementType: 'out',
+      quantity: -requiredQty,
+      source: 'warehouse',
+      referenceType: 'bundle_assembly',
+      referenceId: sessionId,
+      reason: `Assembly: ${data.quantity}× ${bundle.bundleName}`,
+      notes: isNestedBundle ? 'Nested bundle consumed' : 'Component consumed',
+      performedBy: userId,
+      createdAt: now,
+    }).run();
+
+    // Record assembly item
+    await db.insert(bundleAssemblyItems).values({
+      id: generateId(),
+      assemblySessionId: sessionId,
+      productId: item.productId,
+      variantId: item.variantId,
+      bundleId: item.bundleId,  // For nested bundles
+      requiredQuantity: requiredQty,
+      actualQuantity: requiredQty,
+      inventoryMovementId: movementId,
+      itemStatus: 'consumed',
+      createdAt: now,
+      updatedAt: now,
+    }).run();
+
+    results.push({
+      component: item.productId || item.bundleId,
+      isNestedBundle,
+      consumed: requiredQty,
+    });
+  }
+
+  // Create physical bundle inventory
+  let bundleInv = await db.select().from(inventory)
+    .where(and(
+      eq(inventory.bundleId, data.bundleId),
+      eq(inventory.warehouseId, data.warehouseId),
+      eq(inventory.isPhysicalBundle, 1)
+    )).get();
+
+  if (bundleInv) {
+    // Add to existing bundle inventory
+    await db.update(inventory)
+      .set({
+        quantityAvailable: bundleInv.quantityAvailable + data.quantity,
+        version: bundleInv.version + 1,
+        lastModifiedAt: now.toISOString(),
+        updatedAt: now,
+      })
+      .where(eq(inventory.id, bundleInv.id))
+      .run();
+  } else {
+    // Create new bundle inventory record
+    bundleInv = {
+      id: generateId(),
+      productId: data.bundleId,  // Use bundleId as productId for tracking
+      bundleId: data.bundleId,
+      warehouseId: data.warehouseId,
+      isPhysicalBundle: 1,
+      quantityAvailable: data.quantity,
+      quantityReserved: 0,
+      quantityInTransit: 0,
+      minimumStock: 0,
+      version: 1,
+      lastModifiedAt: now.toISOString(),
+      createdAt: now,
+      updatedAt: now,
+    };
+    await db.insert(inventory).values(bundleInv).run();
+  }
+
+  // Record bundle creation movement
+  await db.insert(inventoryMovements).values({
+    id: generateId(),
+    inventoryId: bundleInv.id,
+    productId: data.bundleId,
+    warehouseId: data.warehouseId,
+    movementType: 'in',
+    quantity: data.quantity,
+    source: 'warehouse',
+    referenceType: 'bundle_assembly',
+    referenceId: sessionId,
+    reason: `Bundle assembled: ${data.quantity}× ${bundle.bundleName}`,
+    notes: `Assembly ${assemblyNumber}`,
+    performedBy: userId,
+    createdAt: now,
+  }).run();
+
+  // Complete session
+  await db.update(bundleAssemblySessions)
+    .set({
+      status: 'completed',
+      completedAt: now.toISOString(),
+      version: 2,
+      updatedAt: now,
+    })
+    .where(eq(bundleAssemblySessions.id, sessionId))
+    .run();
+
+  // Broadcast
+  await broadcastInventoryChange(c.env, {
+    type: 'inventory.bundle_assembled',
+    data: {
+      bundleId: data.bundleId,
+      warehouseId: data.warehouseId,
+      quantity: data.quantity,
+      assemblyNumber,
+      timestamp: now.toISOString(),
+    },
+  });
+
+  return c.json({
+    message: 'Bundle assembled successfully',
+    assemblyNumber,
+    bundlesCreated: data.quantity,
+    componentsConsumed: results,
+  });
+});
+
+// ============================================================
+// DISASSEMBLE BUNDLE - Break down physical bundle to components
+// ============================================================
+app.post('/disassemble', zValidator('json', z.object({
+  bundleId: z.string(),
+  warehouseId: z.string(),
+  quantity: z.number().positive(),
+  notes: z.string().optional(),
+})), async (c) => {
+  const data = c.req.valid('json');
+  const db = drizzle(c.env.DB);
+  const userId = c.req.header('X-User-Id');
+  const now = new Date();
+
+  // Check bundle inventory exists
+  const bundleInv = await db.select().from(inventory)
+    .where(and(
+      eq(inventory.bundleId, data.bundleId),
+      eq(inventory.warehouseId, data.warehouseId),
+      eq(inventory.isPhysicalBundle, 1)
+    )).get();
+
+  if (!bundleInv || bundleInv.quantityAvailable < data.quantity) {
+    return c.json({
+      error: 'Insufficient bundle stock',
+      available: bundleInv?.quantityAvailable || 0,
+      requested: data.quantity,
+    }, 400);
+  }
+
+  // Get bundle definition
+  const bundleResponse = await c.env.PRODUCT_SERVICE.fetch(
+    new Request(`http://product-service/api/bundles/${data.bundleId}`)
+  );
+
+  if (!bundleResponse.ok) {
+    return c.json({ error: 'Bundle definition not found' }, 404);
+  }
+
+  const bundle = await bundleResponse.json();
+  const bundleItems = bundle.items || [];
+
+  // Create disassembly session
+  const sessionId = generateId();
+  const assemblyNumber = `DIS-${new Date().getFullYear()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+
+  await db.insert(bundleAssemblySessions).values({
+    id: sessionId,
+    assemblyNumber,
+    bundleId: data.bundleId,
+    warehouseId: data.warehouseId,
+    operationType: 'disassemble',
+    quantity: data.quantity,
+    status: 'in_progress',
+    startedAt: now.toISOString(),
+    notes: data.notes,
+    version: 1,
+    createdAt: now,
+    updatedAt: now,
+    createdBy: userId,
+  }).run();
+
+  // Deduct bundle inventory
+  await db.update(inventory)
+    .set({
+      quantityAvailable: bundleInv.quantityAvailable - data.quantity,
+      version: bundleInv.version + 1,
+      lastModifiedAt: now.toISOString(),
+      updatedAt: now,
+    })
+    .where(eq(inventory.id, bundleInv.id))
+    .run();
+
+  // Record bundle deduction movement
+  await db.insert(inventoryMovements).values({
+    id: generateId(),
+    inventoryId: bundleInv.id,
+    productId: data.bundleId,
+    warehouseId: data.warehouseId,
+    movementType: 'out',
+    quantity: -data.quantity,
+    source: 'warehouse',
+    referenceType: 'bundle_disassembly',
+    referenceId: sessionId,
+    reason: `Bundle disassembled: ${data.quantity}× ${bundle.bundleName}`,
+    performedBy: userId,
+    createdAt: now,
+  }).run();
+
+  // Return components to inventory
+  const results: any[] = [];
+
+  for (const item of bundleItems) {
+    const returnQty = item.quantity * data.quantity;
+    const isNestedBundle = item.bundleId != null;
+
+    // Find or create component inventory
+    let componentInv;
+    if (isNestedBundle) {
+      componentInv = await db.select().from(inventory)
+        .where(and(
+          eq(inventory.bundleId, item.bundleId),
+          eq(inventory.warehouseId, data.warehouseId),
+          eq(inventory.isPhysicalBundle, 1)
+        )).get();
+    } else {
+      componentInv = await db.select().from(inventory)
+        .where(and(
+          eq(inventory.productId, item.productId),
+          eq(inventory.warehouseId, data.warehouseId),
+          item.variantId ? eq(inventory.variantId, item.variantId) : isNull(inventory.variantId),
+          eq(inventory.isPhysicalBundle, 0)
+        )).get();
+    }
+
+    if (componentInv) {
+      // Add back to inventory
+      await db.update(inventory)
+        .set({
+          quantityAvailable: componentInv.quantityAvailable + returnQty,
+          version: componentInv.version + 1,
+          lastModifiedAt: now.toISOString(),
+          updatedAt: now,
+        })
+        .where(eq(inventory.id, componentInv.id))
+        .run();
+    } else {
+      // Create new inventory record
+      componentInv = {
+        id: generateId(),
+        productId: item.productId || item.bundleId,
+        variantId: item.variantId,
+        bundleId: isNestedBundle ? item.bundleId : null,
+        warehouseId: data.warehouseId,
+        isPhysicalBundle: isNestedBundle ? 1 : 0,
+        quantityAvailable: returnQty,
+        quantityReserved: 0,
+        quantityInTransit: 0,
+        minimumStock: 0,
+        version: 1,
+        createdAt: now,
+        updatedAt: now,
+      };
+      await db.insert(inventory).values(componentInv).run();
+    }
+
+    // Record movement
+    await db.insert(inventoryMovements).values({
+      id: generateId(),
+      inventoryId: componentInv.id,
+      productId: item.productId || item.bundleId,
+      warehouseId: data.warehouseId,
+      movementType: 'in',
+      quantity: returnQty,
+      source: 'warehouse',
+      referenceType: 'bundle_disassembly',
+      referenceId: sessionId,
+      reason: `Disassembly: ${data.quantity}× ${bundle.bundleName}`,
+      notes: isNestedBundle ? 'Nested bundle returned' : 'Component returned',
+      performedBy: userId,
+      createdAt: now,
+    }).run();
+
+    results.push({
+      component: item.productId || item.bundleId,
+      isNestedBundle,
+      returned: returnQty,
+    });
+  }
+
+  // Complete session
+  await db.update(bundleAssemblySessions)
+    .set({
+      status: 'completed',
+      completedAt: now.toISOString(),
+      version: 2,
+      updatedAt: now,
+    })
+    .where(eq(bundleAssemblySessions.id, sessionId))
+    .run();
+
+  // Broadcast
+  await broadcastInventoryChange(c.env, {
+    type: 'inventory.bundle_disassembled',
+    data: {
+      bundleId: data.bundleId,
+      warehouseId: data.warehouseId,
+      quantity: data.quantity,
+      assemblyNumber,
+      timestamp: now.toISOString(),
+    },
+  });
+
+  return c.json({
+    message: 'Bundle disassembled successfully',
+    assemblyNumber,
+    bundlesDisassembled: data.quantity,
+    componentsReturned: results,
+  });
+});
+
+// ============================================================
+// GET Physical Bundle Stock
+// ============================================================
+app.get('/bundles/:bundleId/stock', async (c) => {
+  const bundleId = c.req.param('bundleId');
+  const warehouseId = c.req.query('warehouseId');
+  const db = drizzle(c.env.DB);
+
+  let query = db.select().from(inventory)
+    .where(and(
+      eq(inventory.bundleId, bundleId),
+      eq(inventory.isPhysicalBundle, 1)
+    ));
+
+  if (warehouseId) {
+    query = query.where(eq(inventory.warehouseId, warehouseId));
+  }
+
+  const records = await query.all();
+
+  return c.json({
+    bundleId,
+    isPhysicalBundle: true,
+    warehouses: records.map(r => ({
+      warehouseId: r.warehouseId,
+      quantityAvailable: r.quantityAvailable,
+      quantityReserved: r.quantityReserved,
+      quantityInTransit: r.quantityInTransit,
+    })),
+    totalAvailable: records.reduce((sum, r) => sum + r.quantityAvailable, 0),
+  });
+});
+
+export default app;
+```
+
+### 8.9 Stock Opname API Reference
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/stock-opname/sessions` | Create opname session |
+| POST | `/api/stock-opname/sessions/:id/start` | Start counting (initialize items) |
+| POST | `/api/stock-opname/sessions/:id/count` | Record counted quantities |
+| POST | `/api/stock-opname/sessions/:id/finalize` | Generate variance report |
+| POST | `/api/stock-opname/sessions/:id/approve` | Approve variances |
+| POST | `/api/stock-opname/sessions/:id/apply` | Apply adjustments to inventory |
+| GET | `/api/stock-opname/sessions/:id` | Get session with items |
+| GET | `/api/stock-opname/sessions/:id/variance-report` | Get variance report |
+
+### 8.10 Bundle Assembly API Reference
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/bundle-assembly/assemble` | Assemble physical bundle (supports nested) |
+| POST | `/api/bundle-assembly/disassemble` | Disassemble physical bundle |
+| GET | `/api/bundle-assembly/bundles/:id/stock` | Get physical bundle stock |
+
+### 8.11 Handling Bundles in Stock Opname
+
+```typescript
+/**
+ * BUNDLE HANDLING IN STOCK OPNAME
+ *
+ * 1. Virtual Bundles:
+ *    - SKIP in stock opname (no physical inventory)
+ *    - Stock is calculated from components
+ *    - Only count the component products
+ *
+ * 2. Physical Bundles:
+ *    - INCLUDE in stock opname
+ *    - Has inventory record with isPhysicalBundle=1
+ *    - Count as a single unit (don't count internal components)
+ *    - Identified by bundleId field in inventory
+ *
+ * 3. Nested Bundles:
+ *    - Physical bundles containing other bundles
+ *    - Count the parent bundle as a unit
+ *    - Internal bundles already consumed during assembly
+ */
+
+// When initializing opname items, differentiate bundle types
+async function initializeOpnameItems(session, inventoryItems) {
+  for (const inv of inventoryItems) {
+    // Check if this is a bundle
+    if (inv.bundleId) {
+      // Physical bundle - include in opname
+      if (inv.isPhysicalBundle === 1) {
+        createOpnameItem(inv, { isPhysicalBundle: true });
+      }
+      // Virtual bundle - skip (no physical inventory)
+      continue;
+    }
+
+    // Regular product - include
+    createOpnameItem(inv, { isPhysicalBundle: false });
+  }
+}
+```
+
+### 8.12 Deliverables
+- [ ] Stock Opname tables (sessions, items, adjustments) created
+- [ ] Stock Opname workflow implemented (6 statuses)
+- [ ] Variance report generation
+- [ ] Inventory adjustments with audit trail
+- [ ] Physical Bundle support in inventory table (bundleId, isPhysicalBundle)
+- [ ] Bundle Assembly/Disassembly operations
+- [ ] Nested bundle support (bundle from bundle)
+- [ ] Stock Opname correctly handles virtual vs physical bundles
+- [ ] WebSocket events for opname and assembly operations
+
+---
+
 ## API Reference
 
 ### Inventory Service Endpoints
@@ -2412,6 +3920,30 @@ REQUEST → APPROVE → PICKING → PACKED → SHIPPED → IN_TRANSIT → RECEIV
                               (source warehouse)                      (destination warehouse)
 ```
 
+**New Tables (Stock Opname & Physical Bundles):**
+- `stock_opname_sessions` - Physical inventory count sessions
+- `stock_opname_items` - Individual count items with system vs counted qty
+- `stock_opname_adjustments` - Variance adjustments with audit trail
+- `bundle_assembly_sessions` - Track bundle assembly/disassembly operations
+- `bundle_assembly_items` - Component tracking for assembly
+
+**New Inventory Fields (Physical Bundle Support):**
+- `inventory.bundleId` - Reference to bundle if physical bundle inventory
+- `inventory.isPhysicalBundle` - Flag (0/1) indicating physical bundle
+
+**Stock Opname Workflow:**
+```
+DRAFT → IN_PROGRESS → PENDING_REVIEW → APPROVED → COMPLETED
+              ↓                ↓
+         Count items      Generate variance
+         via barcode      report & adjustments
+```
+
+**Bundle Handling in Stock Opname:**
+- Virtual Bundles: SKIP (calculated from components, no physical inventory)
+- Physical Bundles: INCLUDE (count as single unit, has inventory record)
+- Nested Bundles: Count parent only (internal bundles consumed during assembly)
+
 ### What Gets KEPT in Product Service (Tables Not Deleted)
 
 - `productLocations` table - Physical location mapping (rack, bin, zone, aisle)
@@ -2431,10 +3963,14 @@ REQUEST → APPROVE → PICKING → PACKED → SHIPPED → IN_TRANSIT → RECEIV
 ✅ **ERP-Grade** - Goods Issue/Receipt, document-based state machine
 ✅ **Full Traceability** - Complete audit trail for all stock movements
 ✅ **Discrepancy Handling** - Track damaged/missing items during transfer
+✅ **Stock Opname** - Physical inventory count with variance detection
+✅ **Physical Bundle Support** - Pre-assembled bundle inventory tracking
+✅ **Nested Bundles** - Create bundles from bundles (composite products)
+✅ **Bundle Type Awareness** - Correctly handles virtual vs physical bundles
 
 ---
 
 **Document Status**: Complete
 **Author**: Claude
 **Date**: 2025-12-08
-**Version**: 3.0 (With Inter-Warehouse Transfer Workflow)
+**Version**: 4.0 (With Stock Opname & Physical Bundles)
