@@ -138,19 +138,19 @@ test_4_1_warehouse_soft_delete() {
   fi
   TESTS_RUN=$((TESTS_RUN + 1))
 
-  # Step 5: Verify product location still exists (orphaned)
-  log_info "Step 5: Verifying product location still exists (orphaned)..."
+  # Step 5: Verify product locations were cascaded (deleted)
+  log_info "Step 5: Verifying product locations were cascade deleted..."
 
   locations_response=$(http_get "$PRODUCT_SERVICE_URL/api/product-locations?warehouseId=$warehouse_id")
   locations_body=$(echo "$locations_response" | head -n -1)
 
   locations_count=$(extract_json_field "$locations_body" '.total')
 
-  if [ "$locations_count" -gt 0 ]; then
-    log_success "✅ Product locations still exist (orphaned, not cascaded)"
+  if [ "$locations_count" -eq 0 ]; then
+    log_success "✅ Product locations cascade deleted with warehouse"
     TESTS_PASSED=$((TESTS_PASSED + 1))
   else
-    log_error "❌ Product locations were deleted (should be orphaned, not cascaded)"
+    log_error "❌ Product locations not deleted (expected cascade delete)"
     TESTS_FAILED=$((TESTS_FAILED + 1))
   fi
   TESTS_RUN=$((TESTS_RUN + 1))
