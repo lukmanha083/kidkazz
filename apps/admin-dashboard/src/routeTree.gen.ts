@@ -30,6 +30,8 @@ import { Route as DashboardInventoryTransferStockRouteImport } from './routes/da
 import { Route as DashboardInventoryProductLocationsRouteImport } from './routes/dashboard/inventory/product-locations'
 import { Route as DashboardInventoryLowStockRouteImport } from './routes/dashboard/inventory/low-stock'
 import { Route as DashboardInventoryExpiredStockRouteImport } from './routes/dashboard/inventory/expired-stock'
+import { Route as DashboardInventoryBatchesRouteImport } from './routes/dashboard/inventory/batches'
+import { Route as DashboardAdminMaintenanceRouteImport } from './routes/dashboard/admin/maintenance'
 import { Route as DashboardAccountingJournalEntryRouteImport } from './routes/dashboard/accounting/journal-entry'
 import { Route as DashboardAccountingIncomeStatementRouteImport } from './routes/dashboard/accounting/income-statement'
 import { Route as DashboardAccountingGeneralLedgerRouteImport } from './routes/dashboard/accounting/general-ledger'
@@ -152,6 +154,18 @@ const DashboardInventoryExpiredStockRoute =
     path: '/inventory/expired-stock',
     getParentRoute: () => DashboardRoute,
   } as any)
+const DashboardInventoryBatchesRoute =
+  DashboardInventoryBatchesRouteImport.update({
+    id: '/inventory/batches',
+    path: '/inventory/batches',
+    getParentRoute: () => DashboardRoute,
+  } as any)
+const DashboardAdminMaintenanceRoute =
+  DashboardAdminMaintenanceRouteImport.update({
+    id: '/admin/maintenance',
+    path: '/admin/maintenance',
+    getParentRoute: () => DashboardRoute,
+  } as any)
 const DashboardAccountingJournalEntryRoute =
   DashboardAccountingJournalEntryRouteImport.update({
     id: '/accounting/journal-entry',
@@ -207,6 +221,8 @@ export interface FileRoutesByFullPath {
   '/dashboard/accounting/general-ledger': typeof DashboardAccountingGeneralLedgerRoute
   '/dashboard/accounting/income-statement': typeof DashboardAccountingIncomeStatementRoute
   '/dashboard/accounting/journal-entry': typeof DashboardAccountingJournalEntryRoute
+  '/dashboard/admin/maintenance': typeof DashboardAdminMaintenanceRoute
+  '/dashboard/inventory/batches': typeof DashboardInventoryBatchesRoute
   '/dashboard/inventory/expired-stock': typeof DashboardInventoryExpiredStockRoute
   '/dashboard/inventory/low-stock': typeof DashboardInventoryLowStockRoute
   '/dashboard/inventory/product-locations': typeof DashboardInventoryProductLocationsRoute
@@ -236,6 +252,8 @@ export interface FileRoutesByTo {
   '/dashboard/accounting/general-ledger': typeof DashboardAccountingGeneralLedgerRoute
   '/dashboard/accounting/income-statement': typeof DashboardAccountingIncomeStatementRoute
   '/dashboard/accounting/journal-entry': typeof DashboardAccountingJournalEntryRoute
+  '/dashboard/admin/maintenance': typeof DashboardAdminMaintenanceRoute
+  '/dashboard/inventory/batches': typeof DashboardInventoryBatchesRoute
   '/dashboard/inventory/expired-stock': typeof DashboardInventoryExpiredStockRoute
   '/dashboard/inventory/low-stock': typeof DashboardInventoryLowStockRoute
   '/dashboard/inventory/product-locations': typeof DashboardInventoryProductLocationsRoute
@@ -267,6 +285,8 @@ export interface FileRoutesById {
   '/dashboard/accounting/general-ledger': typeof DashboardAccountingGeneralLedgerRoute
   '/dashboard/accounting/income-statement': typeof DashboardAccountingIncomeStatementRoute
   '/dashboard/accounting/journal-entry': typeof DashboardAccountingJournalEntryRoute
+  '/dashboard/admin/maintenance': typeof DashboardAdminMaintenanceRoute
+  '/dashboard/inventory/batches': typeof DashboardInventoryBatchesRoute
   '/dashboard/inventory/expired-stock': typeof DashboardInventoryExpiredStockRoute
   '/dashboard/inventory/low-stock': typeof DashboardInventoryLowStockRoute
   '/dashboard/inventory/product-locations': typeof DashboardInventoryProductLocationsRoute
@@ -299,6 +319,8 @@ export interface FileRouteTypes {
     | '/dashboard/accounting/general-ledger'
     | '/dashboard/accounting/income-statement'
     | '/dashboard/accounting/journal-entry'
+    | '/dashboard/admin/maintenance'
+    | '/dashboard/inventory/batches'
     | '/dashboard/inventory/expired-stock'
     | '/dashboard/inventory/low-stock'
     | '/dashboard/inventory/product-locations'
@@ -328,6 +350,8 @@ export interface FileRouteTypes {
     | '/dashboard/accounting/general-ledger'
     | '/dashboard/accounting/income-statement'
     | '/dashboard/accounting/journal-entry'
+    | '/dashboard/admin/maintenance'
+    | '/dashboard/inventory/batches'
     | '/dashboard/inventory/expired-stock'
     | '/dashboard/inventory/low-stock'
     | '/dashboard/inventory/product-locations'
@@ -358,6 +382,8 @@ export interface FileRouteTypes {
     | '/dashboard/accounting/general-ledger'
     | '/dashboard/accounting/income-statement'
     | '/dashboard/accounting/journal-entry'
+    | '/dashboard/admin/maintenance'
+    | '/dashboard/inventory/batches'
     | '/dashboard/inventory/expired-stock'
     | '/dashboard/inventory/low-stock'
     | '/dashboard/inventory/product-locations'
@@ -531,6 +557,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardInventoryExpiredStockRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/inventory/batches': {
+      id: '/dashboard/inventory/batches'
+      path: '/inventory/batches'
+      fullPath: '/dashboard/inventory/batches'
+      preLoaderRoute: typeof DashboardInventoryBatchesRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/admin/maintenance': {
+      id: '/dashboard/admin/maintenance'
+      path: '/admin/maintenance'
+      fullPath: '/dashboard/admin/maintenance'
+      preLoaderRoute: typeof DashboardAdminMaintenanceRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/accounting/journal-entry': {
       id: '/dashboard/accounting/journal-entry'
       path: '/accounting/journal-entry'
@@ -593,6 +633,8 @@ interface DashboardRouteChildren {
   DashboardAccountingGeneralLedgerRoute: typeof DashboardAccountingGeneralLedgerRoute
   DashboardAccountingIncomeStatementRoute: typeof DashboardAccountingIncomeStatementRoute
   DashboardAccountingJournalEntryRoute: typeof DashboardAccountingJournalEntryRoute
+  DashboardAdminMaintenanceRoute: typeof DashboardAdminMaintenanceRoute
+  DashboardInventoryBatchesRoute: typeof DashboardInventoryBatchesRoute
   DashboardInventoryExpiredStockRoute: typeof DashboardInventoryExpiredStockRoute
   DashboardInventoryLowStockRoute: typeof DashboardInventoryLowStockRoute
   DashboardInventoryProductLocationsRoute: typeof DashboardInventoryProductLocationsRoute
@@ -624,6 +666,8 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardAccountingIncomeStatementRoute:
     DashboardAccountingIncomeStatementRoute,
   DashboardAccountingJournalEntryRoute: DashboardAccountingJournalEntryRoute,
+  DashboardAdminMaintenanceRoute: DashboardAdminMaintenanceRoute,
+  DashboardInventoryBatchesRoute: DashboardInventoryBatchesRoute,
   DashboardInventoryExpiredStockRoute: DashboardInventoryExpiredStockRoute,
   DashboardInventoryLowStockRoute: DashboardInventoryLowStockRoute,
   DashboardInventoryProductLocationsRoute:

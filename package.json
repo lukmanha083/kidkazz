@@ -51,6 +51,9 @@
       "glob@<8": "^10.4.0",
       "inflight@<2": "npm:@zkochan/inflight@^1.0.0",
       "esbuild": "^0.21.5"
-    }
+    },
+    "ignoredBuiltDependencies": [
+      "better-sqlite3"
+    ]
   }
 }
