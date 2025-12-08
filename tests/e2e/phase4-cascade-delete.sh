@@ -52,7 +52,7 @@ test_4_1_warehouse_soft_delete() {
 
   assert_http_post_status "$warehouse_status" "Warehouse creation"
 
-  warehouse_id=$(extract_json_field "$warehouse_body" '.warehouse.id')
+  warehouse_id=$(extract_id_from_response "$warehouse_body")
   save_test_data "phase4_delete_warehouse_id" "$warehouse_id"
 
   log_success "Warehouse created: $warehouse_id"
