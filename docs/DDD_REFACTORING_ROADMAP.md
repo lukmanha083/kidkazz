@@ -80,8 +80,9 @@ This roadmap outlines the complete refactoring plan to achieve ideal DDD/Hexagon
 | **4** | Product Service Schema Cleanup | 1-2 days |
 | **5** | API Refactoring | 2-3 days |
 | **6** | Testing & Validation | 2-3 days |
+| **7** | Inter-Warehouse Transfer (Inbound/Outbound) | 3-4 days |
 
-**Total Estimated Time**: 2-3 weeks
+**Total Estimated Time**: 3-4 weeks
 
 ---
 
@@ -1039,6 +1040,1305 @@ wait
 
 ---
 
+## Phase 7: Inter-Warehouse Transfer (Inbound/Outbound Workflow)
+
+> **DDD Pure Approach**: Stock transfers follow proper warehouse management workflow with document-based state transitions, audit trail, and real-time tracking.
+
+### 7.1 Transfer Workflow Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    INTER-WAREHOUSE TRANSFER WORKFLOW                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  DESTINATION WAREHOUSE (Inbound)          SOURCE WAREHOUSE (Outbound)        │
+│  ─────────────────────────────           ──────────────────────────          │
+│                                                                              │
+│  1. CREATE TRANSFER REQUEST ───────────→ 2. RECEIVE & APPROVE REQUEST        │
+│     (Low stock trigger or manual)           (Warehouse manager approval)     │
+│     Status: REQUESTED                       Status: APPROVED / REJECTED      │
+│                                                     │                        │
+│                                                     ▼                        │
+│                                          3. PICK & PACK STOCK                │
+│                                             (Picking list generated)         │
+│                                             Status: PICKING → PACKED         │
+│                                                     │                        │
+│                                                     ▼                        │
+│                                          4. GOODS ISSUE (GI)                 │
+│                                             - Deduct from quantityAvailable  │
+│                                             - Add to quantityInTransit       │
+│                                             Status: SHIPPED                  │
+│                                                     │                        │
+│                              ◄───────────────────────                        │
+│                                                                              │
+│  5. IN TRANSIT                                                               │
+│     (Stock cannot be sold)                                                   │
+│     Status: IN_TRANSIT                                                       │
+│              │                                                               │
+│              ▼                                                               │
+│  6. GOODS RECEIPT (GR)                                                       │
+│     - Receive & verify shipment                                              │
+│     Status: RECEIVED                                                         │
+│              │                                                               │
+│              ▼                                                               │
+│  7. PUTAWAY                                                                  │
+│     - Deduct from quantityInTransit                                          │
+│     - Add to quantityAvailable (destination)                                 │
+│     - Assign rack/bin/zone/aisle                                             │
+│     Status: COMPLETED                                                        │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 7.2 State Machine
+
+```
+                                    ┌──────────┐
+                                    │ REJECTED │
+                                    └──────────┘
+                                         ▲
+                                         │
+┌───────────┐    ┌──────────┐    ┌──────────┐    ┌────────┐    ┌─────────┐
+│ REQUESTED │───→│ APPROVED │───→│ PICKING  │───→│ PACKED │───→│ SHIPPED │
+└───────────┘    └──────────┘    └──────────┘    └────────┘    └─────────┘
+                      │                │              │              │
+                      ▼                ▼              ▼              ▼
+                ┌───────────┐   ┌───────────┐  ┌───────────┐        │
+                │ CANCELLED │   │ CANCELLED │  │ CANCELLED │        │
+                └───────────┘   └───────────┘  └───────────┘        │
+                                                                    ▼
+┌───────────┐    ┌──────────┐    ┌────────────┐              ┌────────────┐
+│ COMPLETED │◄───│ PUTAWAY  │◄───│  RECEIVED  │◄─────────────│ IN_TRANSIT │
+└───────────┘    └──────────┘    └────────────┘              └────────────┘
+```
+
+**Valid Status Transitions:**
+| Current Status | Allowed Next Status |
+|----------------|---------------------|
+| `requested` | `approved`, `rejected`, `cancelled` |
+| `approved` | `picking`, `cancelled` |
+| `picking` | `packed`, `cancelled` |
+| `packed` | `shipped`, `cancelled` |
+| `shipped` | `in_transit` |
+| `in_transit` | `received` |
+| `received` | `putaway` |
+| `putaway` | `completed` |
+
+### 7.3 Database Schema
+
+**Migration file**: `services/inventory-service/migrations/0006_stock_transfer.sql`
+
+```sql
+-- Stock Transfer Orders (Main document)
+CREATE TABLE stock_transfer_orders (
+  id TEXT PRIMARY KEY,
+
+  -- Document identification
+  transfer_number TEXT UNIQUE NOT NULL,  -- e.g., "STO-2025-0001"
+
+  -- Warehouses
+  source_warehouse_id TEXT NOT NULL REFERENCES warehouses(id),
+  destination_warehouse_id TEXT NOT NULL REFERENCES warehouses(id),
+
+  -- Request info
+  requested_by TEXT,                     -- User who requested
+  request_reason TEXT,                   -- 'low_stock' | 'replenishment' | 'rebalancing' | 'manual'
+  priority TEXT DEFAULT 'normal',        -- 'low' | 'normal' | 'high' | 'urgent'
+
+  -- Approval info
+  approved_by TEXT,
+  approved_at TEXT,
+  rejection_reason TEXT,
+
+  -- Status tracking
+  status TEXT NOT NULL DEFAULT 'requested',
+  -- 'requested' | 'approved' | 'rejected' | 'picking' | 'packed' | 'shipped'
+  -- | 'in_transit' | 'received' | 'putaway' | 'completed' | 'cancelled'
+
+  -- Shipping info
+  shipped_at TEXT,
+  carrier TEXT,
+  tracking_number TEXT,
+  estimated_arrival TEXT,
+
+  -- Receipt info
+  received_at TEXT,
+  received_by TEXT,
+  putaway_at TEXT,
+  completed_at TEXT,
+
+  -- Notes
+  notes TEXT,
+  cancellation_reason TEXT,
+
+  -- Optimistic locking
+  version INTEGER NOT NULL DEFAULT 1,
+
+  -- Audit
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  created_by TEXT,
+  updated_by TEXT
+);
+
+-- Stock Transfer Items (Line items)
+CREATE TABLE stock_transfer_items (
+  id TEXT PRIMARY KEY,
+
+  transfer_order_id TEXT NOT NULL REFERENCES stock_transfer_orders(id) ON DELETE CASCADE,
+
+  -- Product reference
+  product_id TEXT NOT NULL,
+  variant_id TEXT,
+  uom_id TEXT,
+
+  -- Quantities
+  quantity_requested INTEGER NOT NULL,    -- Originally requested
+  quantity_approved INTEGER,              -- Approved by source warehouse
+  quantity_picked INTEGER DEFAULT 0,      -- Actually picked
+  quantity_shipped INTEGER DEFAULT 0,     -- Actually shipped
+  quantity_received INTEGER DEFAULT 0,    -- Received at destination
+  quantity_putaway INTEGER DEFAULT 0,     -- Put away to shelf
+
+  -- Discrepancy tracking
+  quantity_damaged INTEGER DEFAULT 0,     -- Damaged during transit
+  quantity_missing INTEGER DEFAULT 0,     -- Missing/lost
+  discrepancy_notes TEXT,
+
+  -- Batch tracking (if using batches)
+  source_batch_id TEXT,
+  destination_batch_id TEXT,
+
+  -- Source location
+  source_rack TEXT,
+  source_bin TEXT,
+  source_zone TEXT,
+  source_aisle TEXT,
+
+  -- Destination location
+  destination_rack TEXT,
+  destination_bin TEXT,
+  destination_zone TEXT,
+  destination_aisle TEXT,
+
+  -- Status (item-level)
+  item_status TEXT DEFAULT 'pending',
+  -- 'pending' | 'picked' | 'packed' | 'shipped' | 'received' | 'putaway' | 'completed'
+
+  -- Audit
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+-- Stock Transfer Logs (Audit trail)
+CREATE TABLE stock_transfer_logs (
+  id TEXT PRIMARY KEY,
+
+  transfer_order_id TEXT NOT NULL REFERENCES stock_transfer_orders(id) ON DELETE CASCADE,
+  transfer_item_id TEXT REFERENCES stock_transfer_items(id),
+
+  -- Action details
+  action TEXT NOT NULL,  -- 'created' | 'approved' | 'rejected' | 'picking_started' | etc.
+  previous_status TEXT,
+  new_status TEXT,
+
+  -- Context
+  performed_by TEXT,
+  notes TEXT,
+  metadata TEXT,  -- JSON for additional data
+
+  -- Timestamp
+  created_at INTEGER NOT NULL
+);
+
+-- Indexes
+CREATE INDEX idx_sto_source_warehouse ON stock_transfer_orders(source_warehouse_id);
+CREATE INDEX idx_sto_dest_warehouse ON stock_transfer_orders(destination_warehouse_id);
+CREATE INDEX idx_sto_status ON stock_transfer_orders(status);
+CREATE INDEX idx_sto_transfer_number ON stock_transfer_orders(transfer_number);
+CREATE INDEX idx_sti_transfer_order ON stock_transfer_items(transfer_order_id);
+CREATE INDEX idx_sti_product ON stock_transfer_items(product_id);
+CREATE INDEX idx_stl_transfer_order ON stock_transfer_logs(transfer_order_id);
+```
+
+### 7.4 TypeScript Schema
+
+**File**: `services/inventory-service/src/infrastructure/db/schema.ts`
+
+```typescript
+// Stock Transfer Orders
+export const stockTransferOrders = sqliteTable('stock_transfer_orders', {
+  id: text('id').primaryKey(),
+
+  transferNumber: text('transfer_number').unique().notNull(),
+
+  sourceWarehouseId: text('source_warehouse_id').notNull()
+    .references(() => warehouses.id),
+  destinationWarehouseId: text('destination_warehouse_id').notNull()
+    .references(() => warehouses.id),
+
+  requestedBy: text('requested_by'),
+  requestReason: text('request_reason'), // 'low_stock' | 'replenishment' | 'rebalancing' | 'manual'
+  priority: text('priority').default('normal'),
+
+  approvedBy: text('approved_by'),
+  approvedAt: text('approved_at'),
+  rejectionReason: text('rejection_reason'),
+
+  status: text('status').notNull().default('requested'),
+
+  shippedAt: text('shipped_at'),
+  carrier: text('carrier'),
+  trackingNumber: text('tracking_number'),
+  estimatedArrival: text('estimated_arrival'),
+
+  receivedAt: text('received_at'),
+  receivedBy: text('received_by'),
+  putawayAt: text('putaway_at'),
+  completedAt: text('completed_at'),
+
+  notes: text('notes'),
+  cancellationReason: text('cancellation_reason'),
+
+  version: integer('version').default(1).notNull(),
+
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+  createdBy: text('created_by'),
+  updatedBy: text('updated_by'),
+});
+
+// Stock Transfer Items
+export const stockTransferItems = sqliteTable('stock_transfer_items', {
+  id: text('id').primaryKey(),
+
+  transferOrderId: text('transfer_order_id').notNull()
+    .references(() => stockTransferOrders.id, { onDelete: 'cascade' }),
+
+  productId: text('product_id').notNull(),
+  variantId: text('variant_id'),
+  uomId: text('uom_id'),
+
+  quantityRequested: integer('quantity_requested').notNull(),
+  quantityApproved: integer('quantity_approved'),
+  quantityPicked: integer('quantity_picked').default(0),
+  quantityShipped: integer('quantity_shipped').default(0),
+  quantityReceived: integer('quantity_received').default(0),
+  quantityPutaway: integer('quantity_putaway').default(0),
+
+  quantityDamaged: integer('quantity_damaged').default(0),
+  quantityMissing: integer('quantity_missing').default(0),
+  discrepancyNotes: text('discrepancy_notes'),
+
+  sourceBatchId: text('source_batch_id'),
+  destinationBatchId: text('destination_batch_id'),
+
+  sourceRack: text('source_rack'),
+  sourceBin: text('source_bin'),
+  sourceZone: text('source_zone'),
+  sourceAisle: text('source_aisle'),
+
+  destinationRack: text('destination_rack'),
+  destinationBin: text('destination_bin'),
+  destinationZone: text('destination_zone'),
+  destinationAisle: text('destination_aisle'),
+
+  itemStatus: text('item_status').default('pending'),
+
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+});
+
+// Stock Transfer Logs
+export const stockTransferLogs = sqliteTable('stock_transfer_logs', {
+  id: text('id').primaryKey(),
+
+  transferOrderId: text('transfer_order_id').notNull()
+    .references(() => stockTransferOrders.id, { onDelete: 'cascade' }),
+  transferItemId: text('transfer_item_id'),
+
+  action: text('action').notNull(),
+  previousStatus: text('previous_status'),
+  newStatus: text('new_status'),
+
+  performedBy: text('performed_by'),
+  notes: text('notes'),
+  metadata: text('metadata'), // JSON
+
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+});
+
+// Types
+export type StockTransferOrder = typeof stockTransferOrders.$inferSelect;
+export type InsertStockTransferOrder = typeof stockTransferOrders.$inferInsert;
+
+export type StockTransferItem = typeof stockTransferItems.$inferSelect;
+export type InsertStockTransferItem = typeof stockTransferItems.$inferInsert;
+
+export type StockTransferLog = typeof stockTransferLogs.$inferSelect;
+export type InsertStockTransferLog = typeof stockTransferLogs.$inferInsert;
+
+// Status enum for type safety
+export const TransferStatus = {
+  REQUESTED: 'requested',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+  PICKING: 'picking',
+  PACKED: 'packed',
+  SHIPPED: 'shipped',
+  IN_TRANSIT: 'in_transit',
+  RECEIVED: 'received',
+  PUTAWAY: 'putaway',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled',
+} as const;
+
+export type TransferStatusType = typeof TransferStatus[keyof typeof TransferStatus];
+```
+
+### 7.5 Transfer API Endpoints
+
+**File**: `services/inventory-service/src/routes/transfers.ts`
+
+```typescript
+import { Hono } from 'hono';
+import { zValidator } from '@hono/zod-validator';
+import { z } from 'zod';
+import { drizzle } from 'drizzle-orm/d1';
+import { eq, and } from 'drizzle-orm';
+import {
+  stockTransferOrders,
+  stockTransferItems,
+  stockTransferLogs,
+  inventory,
+  TransferStatus,
+} from '../infrastructure/db/schema';
+
+const app = new Hono<{ Bindings: Bindings }>();
+
+// Helper: Generate transfer number
+const generateTransferNumber = () => {
+  const year = new Date().getFullYear();
+  const random = Math.random().toString(36).substr(2, 6).toUpperCase();
+  return `STO-${year}-${random}`;
+};
+
+// Helper: Log transfer action
+async function logTransferAction(
+  db: any,
+  transferOrderId: string,
+  action: string,
+  previousStatus: string | null,
+  newStatus: string | null,
+  performedBy?: string,
+  notes?: string,
+  metadata?: any
+) {
+  await db.insert(stockTransferLogs).values({
+    id: generateId(),
+    transferOrderId,
+    action,
+    previousStatus,
+    newStatus,
+    performedBy,
+    notes,
+    metadata: metadata ? JSON.stringify(metadata) : null,
+    createdAt: new Date(),
+  }).run();
+}
+
+// Validation schemas
+const createTransferRequestSchema = z.object({
+  sourceWarehouseId: z.string(),
+  destinationWarehouseId: z.string(),
+  requestReason: z.enum(['low_stock', 'replenishment', 'rebalancing', 'manual']),
+  priority: z.enum(['low', 'normal', 'high', 'urgent']).optional(),
+  notes: z.string().optional(),
+  items: z.array(z.object({
+    productId: z.string(),
+    variantId: z.string().optional(),
+    uomId: z.string().optional(),
+    quantityRequested: z.number().positive(),
+  })).min(1),
+});
+
+// ============================================================
+// STEP 1: CREATE TRANSFER REQUEST (Destination Warehouse)
+// ============================================================
+app.post('/request', zValidator('json', createTransferRequestSchema), async (c) => {
+  const data = c.req.valid('json');
+  const db = drizzle(c.env.DB);
+  const userId = c.req.header('X-User-Id');
+  const now = new Date();
+
+  // Validate: Source and destination must be different
+  if (data.sourceWarehouseId === data.destinationWarehouseId) {
+    return c.json({ error: 'Source and destination warehouse must be different' }, 400);
+  }
+
+  // Create transfer order
+  const transferOrder = {
+    id: generateId(),
+    transferNumber: generateTransferNumber(),
+    sourceWarehouseId: data.sourceWarehouseId,
+    destinationWarehouseId: data.destinationWarehouseId,
+    requestedBy: userId,
+    requestReason: data.requestReason,
+    priority: data.priority || 'normal',
+    status: TransferStatus.REQUESTED,
+    notes: data.notes,
+    version: 1,
+    createdAt: now,
+    updatedAt: now,
+    createdBy: userId,
+  };
+
+  await db.insert(stockTransferOrders).values(transferOrder).run();
+
+  // Create transfer items
+  const items = data.items.map(item => ({
+    id: generateId(),
+    transferOrderId: transferOrder.id,
+    productId: item.productId,
+    variantId: item.variantId || null,
+    uomId: item.uomId || null,
+    quantityRequested: item.quantityRequested,
+    itemStatus: 'pending',
+    createdAt: now,
+    updatedAt: now,
+  }));
+
+  for (const item of items) {
+    await db.insert(stockTransferItems).values(item).run();
+  }
+
+  // Log action
+  await logTransferAction(db, transferOrder.id, 'created', null, TransferStatus.REQUESTED, userId);
+
+  // Broadcast WebSocket event
+  await broadcastTransferEvent(c.env, {
+    type: 'transfer.requested',
+    data: {
+      transferId: transferOrder.id,
+      transferNumber: transferOrder.transferNumber,
+      sourceWarehouseId: data.sourceWarehouseId,
+      destinationWarehouseId: data.destinationWarehouseId,
+      itemCount: items.length,
+      priority: transferOrder.priority,
+      timestamp: now.toISOString(),
+    },
+  });
+
+  return c.json({
+    transferOrder: { ...transferOrder, items },
+    message: 'Transfer request created',
+  }, 201);
+});
+
+// ============================================================
+// STEP 2: APPROVE/REJECT TRANSFER (Source Warehouse)
+// ============================================================
+app.post('/:id/approve', zValidator('json', z.object({
+  approvedItems: z.array(z.object({
+    itemId: z.string(),
+    quantityApproved: z.number().min(0),
+  })),
+  notes: z.string().optional(),
+})), async (c) => {
+  const transferId = c.req.param('id');
+  const data = c.req.valid('json');
+  const db = drizzle(c.env.DB);
+  const userId = c.req.header('X-User-Id');
+  const now = new Date();
+
+  // Get transfer order
+  const transfer = await db.select().from(stockTransferOrders)
+    .where(eq(stockTransferOrders.id, transferId)).get();
+
+  if (!transfer) return c.json({ error: 'Transfer not found' }, 404);
+  if (transfer.status !== TransferStatus.REQUESTED) {
+    return c.json({ error: `Cannot approve transfer in ${transfer.status} status` }, 400);
+  }
+
+  // Validate stock availability and update items
+  for (const approvedItem of data.approvedItems) {
+    const item = await db.select().from(stockTransferItems)
+      .where(eq(stockTransferItems.id, approvedItem.itemId)).get();
+
+    if (!item) continue;
+
+    // Check stock availability
+    const inv = await db.select().from(inventory)
+      .where(and(
+        eq(inventory.productId, item.productId),
+        eq(inventory.warehouseId, transfer.sourceWarehouseId),
+        item.variantId ? eq(inventory.variantId, item.variantId) : isNull(inventory.variantId)
+      )).get();
+
+    const availableQty = inv?.quantityAvailable || 0;
+    const approvedQty = Math.min(approvedItem.quantityApproved, availableQty);
+
+    await db.update(stockTransferItems)
+      .set({
+        quantityApproved: approvedQty,
+        updatedAt: now,
+      })
+      .where(eq(stockTransferItems.id, approvedItem.itemId))
+      .run();
+  }
+
+  // Update transfer status
+  await db.update(stockTransferOrders)
+    .set({
+      status: TransferStatus.APPROVED,
+      approvedBy: userId,
+      approvedAt: now.toISOString(),
+      notes: data.notes || transfer.notes,
+      version: transfer.version + 1,
+      updatedAt: now,
+      updatedBy: userId,
+    })
+    .where(and(
+      eq(stockTransferOrders.id, transferId),
+      eq(stockTransferOrders.version, transfer.version)
+    ))
+    .run();
+
+  await logTransferAction(db, transferId, 'approved', TransferStatus.REQUESTED, TransferStatus.APPROVED, userId);
+
+  // Broadcast
+  await broadcastTransferEvent(c.env, {
+    type: 'transfer.approved',
+    data: { transferId, transferNumber: transfer.transferNumber, timestamp: now.toISOString() },
+  });
+
+  return c.json({ message: 'Transfer approved', status: TransferStatus.APPROVED });
+});
+
+app.post('/:id/reject', zValidator('json', z.object({
+  reason: z.string(),
+})), async (c) => {
+  const transferId = c.req.param('id');
+  const { reason } = c.req.valid('json');
+  const db = drizzle(c.env.DB);
+  const userId = c.req.header('X-User-Id');
+
+  const transfer = await db.select().from(stockTransferOrders)
+    .where(eq(stockTransferOrders.id, transferId)).get();
+
+  if (!transfer) return c.json({ error: 'Transfer not found' }, 404);
+  if (transfer.status !== TransferStatus.REQUESTED) {
+    return c.json({ error: `Cannot reject transfer in ${transfer.status} status` }, 400);
+  }
+
+  await db.update(stockTransferOrders)
+    .set({
+      status: TransferStatus.REJECTED,
+      rejectionReason: reason,
+      version: transfer.version + 1,
+      updatedAt: new Date(),
+      updatedBy: userId,
+    })
+    .where(eq(stockTransferOrders.id, transferId))
+    .run();
+
+  await logTransferAction(db, transferId, 'rejected', TransferStatus.REQUESTED, TransferStatus.REJECTED, userId, reason);
+
+  return c.json({ message: 'Transfer rejected', status: TransferStatus.REJECTED });
+});
+
+// ============================================================
+// STEP 3: START PICKING (Source Warehouse)
+// ============================================================
+app.post('/:id/start-picking', async (c) => {
+  const transferId = c.req.param('id');
+  const db = drizzle(c.env.DB);
+  const userId = c.req.header('X-User-Id');
+
+  const transfer = await db.select().from(stockTransferOrders)
+    .where(eq(stockTransferOrders.id, transferId)).get();
+
+  if (!transfer) return c.json({ error: 'Transfer not found' }, 404);
+  if (transfer.status !== TransferStatus.APPROVED) {
+    return c.json({ error: `Cannot start picking for transfer in ${transfer.status} status` }, 400);
+  }
+
+  await db.update(stockTransferOrders)
+    .set({
+      status: TransferStatus.PICKING,
+      version: transfer.version + 1,
+      updatedAt: new Date(),
+      updatedBy: userId,
+    })
+    .where(eq(stockTransferOrders.id, transferId))
+    .run();
+
+  await logTransferAction(db, transferId, 'picking_started', TransferStatus.APPROVED, TransferStatus.PICKING, userId);
+
+  // Broadcast
+  await broadcastTransferEvent(c.env, {
+    type: 'transfer.picking_started',
+    data: { transferId, transferNumber: transfer.transferNumber, timestamp: new Date().toISOString() },
+  });
+
+  return c.json({ message: 'Picking started', status: TransferStatus.PICKING });
+});
+
+// ============================================================
+// STEP 4: CONFIRM PICKED & PACK (Source Warehouse)
+// ============================================================
+app.post('/:id/confirm-picked', zValidator('json', z.object({
+  items: z.array(z.object({
+    itemId: z.string(),
+    quantityPicked: z.number().min(0),
+    sourceRack: z.string().optional(),
+    sourceBin: z.string().optional(),
+  })),
+})), async (c) => {
+  const transferId = c.req.param('id');
+  const data = c.req.valid('json');
+  const db = drizzle(c.env.DB);
+  const userId = c.req.header('X-User-Id');
+  const now = new Date();
+
+  const transfer = await db.select().from(stockTransferOrders)
+    .where(eq(stockTransferOrders.id, transferId)).get();
+
+  if (!transfer) return c.json({ error: 'Transfer not found' }, 404);
+  if (transfer.status !== TransferStatus.PICKING) {
+    return c.json({ error: `Cannot confirm picked for transfer in ${transfer.status} status` }, 400);
+  }
+
+  // Update item quantities
+  for (const pickedItem of data.items) {
+    await db.update(stockTransferItems)
+      .set({
+        quantityPicked: pickedItem.quantityPicked,
+        sourceRack: pickedItem.sourceRack,
+        sourceBin: pickedItem.sourceBin,
+        itemStatus: 'picked',
+        updatedAt: now,
+      })
+      .where(eq(stockTransferItems.id, pickedItem.itemId))
+      .run();
+  }
+
+  // Update transfer status to PACKED
+  await db.update(stockTransferOrders)
+    .set({
+      status: TransferStatus.PACKED,
+      version: transfer.version + 1,
+      updatedAt: now,
+      updatedBy: userId,
+    })
+    .where(eq(stockTransferOrders.id, transferId))
+    .run();
+
+  await logTransferAction(db, transferId, 'packed', TransferStatus.PICKING, TransferStatus.PACKED, userId);
+
+  return c.json({ message: 'Items picked and packed', status: TransferStatus.PACKED });
+});
+
+// ============================================================
+// STEP 5: GOODS ISSUE - SHIP (Source Warehouse)
+// Critical: This deducts from quantityAvailable and adds to quantityInTransit
+// ============================================================
+app.post('/:id/ship', zValidator('json', z.object({
+  carrier: z.string().optional(),
+  trackingNumber: z.string().optional(),
+  estimatedArrival: z.string().optional(),
+  notes: z.string().optional(),
+})), async (c) => {
+  const transferId = c.req.param('id');
+  const data = c.req.valid('json');
+  const db = drizzle(c.env.DB);
+  const userId = c.req.header('X-User-Id');
+  const now = new Date();
+
+  const transfer = await db.select().from(stockTransferOrders)
+    .where(eq(stockTransferOrders.id, transferId)).get();
+
+  if (!transfer) return c.json({ error: 'Transfer not found' }, 404);
+  if (transfer.status !== TransferStatus.PACKED) {
+    return c.json({ error: `Cannot ship transfer in ${transfer.status} status` }, 400);
+  }
+
+  // Get all items
+  const items = await db.select().from(stockTransferItems)
+    .where(eq(stockTransferItems.transferOrderId, transferId)).all();
+
+  // GOODS ISSUE: Deduct from source warehouse, add to in-transit
+  for (const item of items) {
+    const quantityToShip = item.quantityPicked || 0;
+    if (quantityToShip === 0) continue;
+
+    // Get source inventory
+    const sourceInv = await db.select().from(inventory)
+      .where(and(
+        eq(inventory.productId, item.productId),
+        eq(inventory.warehouseId, transfer.sourceWarehouseId),
+        item.variantId ? eq(inventory.variantId, item.variantId) : isNull(inventory.variantId)
+      )).get();
+
+    if (!sourceInv) continue;
+
+    // Deduct from quantityAvailable, add to quantityInTransit
+    await db.update(inventory)
+      .set({
+        quantityAvailable: sourceInv.quantityAvailable - quantityToShip,
+        quantityInTransit: (sourceInv.quantityInTransit || 0) + quantityToShip,
+        version: sourceInv.version + 1,
+        lastModifiedAt: now.toISOString(),
+        updatedAt: now,
+      })
+      .where(and(
+        eq(inventory.id, sourceInv.id),
+        eq(inventory.version, sourceInv.version)
+      ))
+      .run();
+
+    // Record movement (Goods Issue)
+    await db.insert(inventoryMovements).values({
+      id: generateId(),
+      inventoryId: sourceInv.id,
+      productId: item.productId,
+      warehouseId: transfer.sourceWarehouseId,
+      movementType: 'transfer_out',
+      quantity: -quantityToShip,
+      source: 'warehouse',
+      referenceType: 'stock_transfer',
+      referenceId: transferId,
+      reason: `Goods Issue for STO ${transfer.transferNumber}`,
+      performedBy: userId,
+      createdAt: now,
+    }).run();
+
+    // Update item
+    await db.update(stockTransferItems)
+      .set({
+        quantityShipped: quantityToShip,
+        itemStatus: 'shipped',
+        updatedAt: now,
+      })
+      .where(eq(stockTransferItems.id, item.id))
+      .run();
+  }
+
+  // Update transfer status
+  await db.update(stockTransferOrders)
+    .set({
+      status: TransferStatus.SHIPPED,
+      shippedAt: now.toISOString(),
+      carrier: data.carrier,
+      trackingNumber: data.trackingNumber,
+      estimatedArrival: data.estimatedArrival,
+      notes: data.notes || transfer.notes,
+      version: transfer.version + 1,
+      updatedAt: now,
+      updatedBy: userId,
+    })
+    .where(eq(stockTransferOrders.id, transferId))
+    .run();
+
+  await logTransferAction(db, transferId, 'shipped', TransferStatus.PACKED, TransferStatus.SHIPPED, userId, null, {
+    carrier: data.carrier,
+    trackingNumber: data.trackingNumber,
+  });
+
+  // Broadcast to both warehouses
+  await broadcastTransferEvent(c.env, {
+    type: 'transfer.shipped',
+    data: {
+      transferId,
+      transferNumber: transfer.transferNumber,
+      sourceWarehouseId: transfer.sourceWarehouseId,
+      destinationWarehouseId: transfer.destinationWarehouseId,
+      carrier: data.carrier,
+      trackingNumber: data.trackingNumber,
+      timestamp: now.toISOString(),
+    },
+  });
+
+  // Also update status to IN_TRANSIT immediately (shipment started)
+  await db.update(stockTransferOrders)
+    .set({ status: TransferStatus.IN_TRANSIT })
+    .where(eq(stockTransferOrders.id, transferId))
+    .run();
+
+  return c.json({
+    message: 'Goods issued and shipped',
+    status: TransferStatus.IN_TRANSIT,
+    trackingNumber: data.trackingNumber,
+  });
+});
+
+// ============================================================
+// STEP 6: GOODS RECEIPT (Destination Warehouse)
+// ============================================================
+app.post('/:id/receive', zValidator('json', z.object({
+  items: z.array(z.object({
+    itemId: z.string(),
+    quantityReceived: z.number().min(0),
+    quantityDamaged: z.number().min(0).optional(),
+    quantityMissing: z.number().min(0).optional(),
+    discrepancyNotes: z.string().optional(),
+  })),
+  notes: z.string().optional(),
+})), async (c) => {
+  const transferId = c.req.param('id');
+  const data = c.req.valid('json');
+  const db = drizzle(c.env.DB);
+  const userId = c.req.header('X-User-Id');
+  const now = new Date();
+
+  const transfer = await db.select().from(stockTransferOrders)
+    .where(eq(stockTransferOrders.id, transferId)).get();
+
+  if (!transfer) return c.json({ error: 'Transfer not found' }, 404);
+  if (transfer.status !== TransferStatus.IN_TRANSIT) {
+    return c.json({ error: `Cannot receive transfer in ${transfer.status} status` }, 400);
+  }
+
+  // Update received quantities
+  for (const receivedItem of data.items) {
+    await db.update(stockTransferItems)
+      .set({
+        quantityReceived: receivedItem.quantityReceived,
+        quantityDamaged: receivedItem.quantityDamaged || 0,
+        quantityMissing: receivedItem.quantityMissing || 0,
+        discrepancyNotes: receivedItem.discrepancyNotes,
+        itemStatus: 'received',
+        updatedAt: now,
+      })
+      .where(eq(stockTransferItems.id, receivedItem.itemId))
+      .run();
+  }
+
+  // Update transfer status
+  await db.update(stockTransferOrders)
+    .set({
+      status: TransferStatus.RECEIVED,
+      receivedAt: now.toISOString(),
+      receivedBy: userId,
+      notes: data.notes || transfer.notes,
+      version: transfer.version + 1,
+      updatedAt: now,
+      updatedBy: userId,
+    })
+    .where(eq(stockTransferOrders.id, transferId))
+    .run();
+
+  await logTransferAction(db, transferId, 'received', TransferStatus.IN_TRANSIT, TransferStatus.RECEIVED, userId);
+
+  // Broadcast
+  await broadcastTransferEvent(c.env, {
+    type: 'transfer.received',
+    data: { transferId, transferNumber: transfer.transferNumber, timestamp: now.toISOString() },
+  });
+
+  return c.json({ message: 'Goods received', status: TransferStatus.RECEIVED });
+});
+
+// ============================================================
+// STEP 7: PUTAWAY - Complete Transfer (Destination Warehouse)
+// Critical: This deducts from quantityInTransit and adds to destination quantityAvailable
+// ============================================================
+app.post('/:id/putaway', zValidator('json', z.object({
+  items: z.array(z.object({
+    itemId: z.string(),
+    quantityPutaway: z.number().min(0),
+    destinationRack: z.string().optional(),
+    destinationBin: z.string().optional(),
+    destinationZone: z.string().optional(),
+    destinationAisle: z.string().optional(),
+  })),
+})), async (c) => {
+  const transferId = c.req.param('id');
+  const data = c.req.valid('json');
+  const db = drizzle(c.env.DB);
+  const userId = c.req.header('X-User-Id');
+  const now = new Date();
+
+  const transfer = await db.select().from(stockTransferOrders)
+    .where(eq(stockTransferOrders.id, transferId)).get();
+
+  if (!transfer) return c.json({ error: 'Transfer not found' }, 404);
+  if (transfer.status !== TransferStatus.RECEIVED) {
+    return c.json({ error: `Cannot putaway transfer in ${transfer.status} status` }, 400);
+  }
+
+  // Process putaway for each item
+  for (const putawayItem of data.items) {
+    const item = await db.select().from(stockTransferItems)
+      .where(eq(stockTransferItems.id, putawayItem.itemId)).get();
+
+    if (!item || putawayItem.quantityPutaway === 0) continue;
+
+    // Deduct from source warehouse's quantityInTransit
+    const sourceInv = await db.select().from(inventory)
+      .where(and(
+        eq(inventory.productId, item.productId),
+        eq(inventory.warehouseId, transfer.sourceWarehouseId),
+        item.variantId ? eq(inventory.variantId, item.variantId) : isNull(inventory.variantId)
+      )).get();
+
+    if (sourceInv) {
+      await db.update(inventory)
+        .set({
+          quantityInTransit: Math.max(0, (sourceInv.quantityInTransit || 0) - putawayItem.quantityPutaway),
+          version: sourceInv.version + 1,
+          lastModifiedAt: now.toISOString(),
+          updatedAt: now,
+        })
+        .where(eq(inventory.id, sourceInv.id))
+        .run();
+    }
+
+    // Add to destination warehouse's quantityAvailable
+    let destInv = await db.select().from(inventory)
+      .where(and(
+        eq(inventory.productId, item.productId),
+        eq(inventory.warehouseId, transfer.destinationWarehouseId),
+        item.variantId ? eq(inventory.variantId, item.variantId) : isNull(inventory.variantId)
+      )).get();
+
+    if (destInv) {
+      // Update existing inventory
+      await db.update(inventory)
+        .set({
+          quantityAvailable: destInv.quantityAvailable + putawayItem.quantityPutaway,
+          rack: putawayItem.destinationRack || destInv.rack,
+          bin: putawayItem.destinationBin || destInv.bin,
+          zone: putawayItem.destinationZone || destInv.zone,
+          aisle: putawayItem.destinationAisle || destInv.aisle,
+          version: destInv.version + 1,
+          lastModifiedAt: now.toISOString(),
+          updatedAt: now,
+        })
+        .where(eq(inventory.id, destInv.id))
+        .run();
+    } else {
+      // Create new inventory record at destination
+      const newInvId = generateId();
+      await db.insert(inventory).values({
+        id: newInvId,
+        productId: item.productId,
+        warehouseId: transfer.destinationWarehouseId,
+        variantId: item.variantId,
+        uomId: item.uomId,
+        quantityAvailable: putawayItem.quantityPutaway,
+        quantityReserved: 0,
+        quantityInTransit: 0,
+        minimumStock: 0,
+        rack: putawayItem.destinationRack,
+        bin: putawayItem.destinationBin,
+        zone: putawayItem.destinationZone,
+        aisle: putawayItem.destinationAisle,
+        version: 1,
+        lastModifiedAt: now.toISOString(),
+        createdAt: now,
+        updatedAt: now,
+      }).run();
+      destInv = { id: newInvId } as any;
+    }
+
+    // Record movement (Goods Receipt)
+    await db.insert(inventoryMovements).values({
+      id: generateId(),
+      inventoryId: destInv.id,
+      productId: item.productId,
+      warehouseId: transfer.destinationWarehouseId,
+      movementType: 'transfer_in',
+      quantity: putawayItem.quantityPutaway,
+      source: 'warehouse',
+      referenceType: 'stock_transfer',
+      referenceId: transferId,
+      reason: `Goods Receipt for STO ${transfer.transferNumber}`,
+      performedBy: userId,
+      createdAt: now,
+    }).run();
+
+    // Update item
+    await db.update(stockTransferItems)
+      .set({
+        quantityPutaway: putawayItem.quantityPutaway,
+        destinationRack: putawayItem.destinationRack,
+        destinationBin: putawayItem.destinationBin,
+        destinationZone: putawayItem.destinationZone,
+        destinationAisle: putawayItem.destinationAisle,
+        itemStatus: 'completed',
+        updatedAt: now,
+      })
+      .where(eq(stockTransferItems.id, putawayItem.itemId))
+      .run();
+
+    // Broadcast inventory update for destination warehouse
+    await broadcastInventoryChange(c.env, {
+      type: 'inventory.updated',
+      data: {
+        productId: item.productId,
+        warehouseId: transfer.destinationWarehouseId,
+        variantId: item.variantId,
+        timestamp: now.toISOString(),
+      },
+    });
+  }
+
+  // Update transfer status to PUTAWAY then COMPLETED
+  await db.update(stockTransferOrders)
+    .set({
+      status: TransferStatus.COMPLETED,
+      putawayAt: now.toISOString(),
+      completedAt: now.toISOString(),
+      version: transfer.version + 1,
+      updatedAt: now,
+      updatedBy: userId,
+    })
+    .where(eq(stockTransferOrders.id, transferId))
+    .run();
+
+  await logTransferAction(db, transferId, 'completed', TransferStatus.RECEIVED, TransferStatus.COMPLETED, userId);
+
+  // Broadcast completion
+  await broadcastTransferEvent(c.env, {
+    type: 'transfer.completed',
+    data: {
+      transferId,
+      transferNumber: transfer.transferNumber,
+      sourceWarehouseId: transfer.sourceWarehouseId,
+      destinationWarehouseId: transfer.destinationWarehouseId,
+      timestamp: now.toISOString(),
+    },
+  });
+
+  return c.json({ message: 'Transfer completed', status: TransferStatus.COMPLETED });
+});
+
+// ============================================================
+// CANCEL TRANSFER (Before shipping)
+// ============================================================
+app.post('/:id/cancel', zValidator('json', z.object({
+  reason: z.string(),
+})), async (c) => {
+  const transferId = c.req.param('id');
+  const { reason } = c.req.valid('json');
+  const db = drizzle(c.env.DB);
+  const userId = c.req.header('X-User-Id');
+
+  const transfer = await db.select().from(stockTransferOrders)
+    .where(eq(stockTransferOrders.id, transferId)).get();
+
+  if (!transfer) return c.json({ error: 'Transfer not found' }, 404);
+
+  const cancellableStatuses = [
+    TransferStatus.REQUESTED,
+    TransferStatus.APPROVED,
+    TransferStatus.PICKING,
+    TransferStatus.PACKED,
+  ];
+
+  if (!cancellableStatuses.includes(transfer.status as any)) {
+    return c.json({ error: `Cannot cancel transfer in ${transfer.status} status` }, 400);
+  }
+
+  await db.update(stockTransferOrders)
+    .set({
+      status: TransferStatus.CANCELLED,
+      cancellationReason: reason,
+      version: transfer.version + 1,
+      updatedAt: new Date(),
+      updatedBy: userId,
+    })
+    .where(eq(stockTransferOrders.id, transferId))
+    .run();
+
+  await logTransferAction(db, transferId, 'cancelled', transfer.status, TransferStatus.CANCELLED, userId, reason);
+
+  return c.json({ message: 'Transfer cancelled', status: TransferStatus.CANCELLED });
+});
+
+// ============================================================
+// GET ENDPOINTS
+// ============================================================
+
+// GET all transfers for a warehouse
+app.get('/warehouse/:warehouseId', async (c) => {
+  const warehouseId = c.req.param('warehouseId');
+  const direction = c.req.query('direction'); // 'inbound' | 'outbound' | 'all'
+  const status = c.req.query('status');
+  const db = drizzle(c.env.DB);
+
+  let query = db.select().from(stockTransferOrders);
+
+  if (direction === 'inbound') {
+    query = query.where(eq(stockTransferOrders.destinationWarehouseId, warehouseId));
+  } else if (direction === 'outbound') {
+    query = query.where(eq(stockTransferOrders.sourceWarehouseId, warehouseId));
+  } else {
+    query = query.where(or(
+      eq(stockTransferOrders.sourceWarehouseId, warehouseId),
+      eq(stockTransferOrders.destinationWarehouseId, warehouseId)
+    ));
+  }
+
+  const transfers = await query.all();
+
+  return c.json({ transfers });
+});
+
+// GET single transfer with items
+app.get('/:id', async (c) => {
+  const transferId = c.req.param('id');
+  const db = drizzle(c.env.DB);
+
+  const transfer = await db.select().from(stockTransferOrders)
+    .where(eq(stockTransferOrders.id, transferId)).get();
+
+  if (!transfer) return c.json({ error: 'Transfer not found' }, 404);
+
+  const items = await db.select().from(stockTransferItems)
+    .where(eq(stockTransferItems.transferOrderId, transferId)).all();
+
+  const logs = await db.select().from(stockTransferLogs)
+    .where(eq(stockTransferLogs.transferOrderId, transferId))
+    .orderBy(stockTransferLogs.createdAt)
+    .all();
+
+  return c.json({ transfer: { ...transfer, items, logs } });
+});
+
+// GET transfer by number
+app.get('/number/:transferNumber', async (c) => {
+  const transferNumber = c.req.param('transferNumber');
+  const db = drizzle(c.env.DB);
+
+  const transfer = await db.select().from(stockTransferOrders)
+    .where(eq(stockTransferOrders.transferNumber, transferNumber)).get();
+
+  if (!transfer) return c.json({ error: 'Transfer not found' }, 404);
+
+  return c.json({ transfer });
+});
+
+export default app;
+```
+
+### 7.6 WebSocket Events for Transfers
+
+```typescript
+// Add to InventoryWebSocket event types
+export interface TransferEvent {
+  type:
+    | 'transfer.requested'
+    | 'transfer.approved'
+    | 'transfer.rejected'
+    | 'transfer.picking_started'
+    | 'transfer.packed'
+    | 'transfer.shipped'
+    | 'transfer.received'
+    | 'transfer.completed'
+    | 'transfer.cancelled';
+  data: {
+    transferId: string;
+    transferNumber: string;
+    sourceWarehouseId?: string;
+    destinationWarehouseId?: string;
+    timestamp: string;
+    [key: string]: any;
+  };
+}
+
+// Broadcast helper
+async function broadcastTransferEvent(env: Env, event: TransferEvent) {
+  // Broadcast to both source and destination warehouse channels
+  const channels = [
+    `warehouse:${event.data.sourceWarehouseId}`,
+    `warehouse:${event.data.destinationWarehouseId}`,
+    'global',
+  ].filter(Boolean);
+
+  for (const channel of channels) {
+    await broadcastInventoryChange(env, {
+      ...event,
+      channel,
+    });
+  }
+}
+```
+
+### 7.7 Auto-Trigger Transfer on Low Stock
+
+```typescript
+// Optional: Automatic transfer request when stock falls below minimum
+async function checkAndTriggerTransfer(
+  env: Env,
+  productId: string,
+  warehouseId: string
+) {
+  const db = drizzle(env.DB);
+
+  // Get inventory at this warehouse
+  const inv = await db.select().from(inventory)
+    .where(and(
+      eq(inventory.productId, productId),
+      eq(inventory.warehouseId, warehouseId)
+    )).get();
+
+  if (!inv || !inv.minimumStock) return;
+
+  // Check if below minimum
+  if (inv.quantityAvailable < inv.minimumStock) {
+    // Find warehouse with highest stock of this product
+    const otherWarehouses = await db.select().from(inventory)
+      .where(and(
+        eq(inventory.productId, productId),
+        ne(inventory.warehouseId, warehouseId)
+      ))
+      .orderBy(desc(inventory.quantityAvailable))
+      .all();
+
+    const sourceWarehouse = otherWarehouses.find(w => w.quantityAvailable > inv.minimumStock);
+
+    if (sourceWarehouse) {
+      // Create automatic transfer request
+      const quantityNeeded = inv.minimumStock - inv.quantityAvailable;
+
+      // ... create transfer request with requestReason: 'low_stock'
+      console.log(`Auto-triggered transfer request: ${quantityNeeded} units from ${sourceWarehouse.warehouseId} to ${warehouseId}`);
+    }
+  }
+}
+```
+
+### 7.8 Transfer API Reference
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/transfers/request` | Create transfer request (destination) |
+| POST | `/api/transfers/:id/approve` | Approve transfer (source) |
+| POST | `/api/transfers/:id/reject` | Reject transfer (source) |
+| POST | `/api/transfers/:id/start-picking` | Start picking process |
+| POST | `/api/transfers/:id/confirm-picked` | Confirm items picked & pack |
+| POST | `/api/transfers/:id/ship` | Goods Issue - ship items |
+| POST | `/api/transfers/:id/receive` | Goods Receipt - receive items |
+| POST | `/api/transfers/:id/putaway` | Complete transfer - putaway |
+| POST | `/api/transfers/:id/cancel` | Cancel transfer |
+| GET | `/api/transfers/warehouse/:id` | Get transfers for warehouse |
+| GET | `/api/transfers/:id` | Get transfer details |
+| GET | `/api/transfers/number/:num` | Get by transfer number |
+
+### 7.9 Deliverables
+- [ ] Migration SQL created for stock_transfer tables
+- [ ] Schema.ts updated with transfer entities
+- [ ] Transfer routes implemented with state machine
+- [ ] Goods Issue deducts from source, adds to in-transit
+- [ ] Goods Receipt deducts from in-transit, adds to destination
+- [ ] WebSocket events for all transfer status changes
+- [ ] Auto-trigger transfer on low stock (optional)
+- [ ] Complete audit trail in stock_transfer_logs
+
+---
+
 ## API Reference
 
 ### Inventory Service Endpoints
@@ -1099,6 +2399,19 @@ wait
 - WebSocket Durable Object - Real-time updates
 - `/ws` endpoint - WebSocket connection
 
+**New Tables (Inter-Warehouse Transfer):**
+- `stock_transfer_orders` - Transfer document with state machine
+- `stock_transfer_items` - Line items with quantity tracking
+- `stock_transfer_logs` - Complete audit trail
+
+**Transfer Workflow (DDD Pure Approach):**
+```
+REQUEST → APPROVE → PICKING → PACKED → SHIPPED → IN_TRANSIT → RECEIVED → PUTAWAY → COMPLETED
+                                         ↓
+                              quantityAvailable → quantityInTransit → quantityAvailable
+                              (source warehouse)                      (destination warehouse)
+```
+
 ### What Gets KEPT in Product Service (Tables Not Deleted)
 
 - `productLocations` table - Physical location mapping (rack, bin, zone, aisle)
@@ -1114,10 +2427,14 @@ wait
 ✅ **Clean Architecture** - Clear bounded contexts
 ✅ **Scalable** - Independent service scaling
 ✅ **Omnichannel Ready** - Live stock across all channels
+✅ **Multi-Warehouse** - Full inter-warehouse transfer with proper workflow
+✅ **ERP-Grade** - Goods Issue/Receipt, document-based state machine
+✅ **Full Traceability** - Complete audit trail for all stock movements
+✅ **Discrepancy Handling** - Track damaged/missing items during transfer
 
 ---
 
 **Document Status**: Complete
 **Author**: Claude
 **Date**: 2025-12-08
-**Version**: 2.0 (Simplified - No Backward Compatibility)
+**Version**: 3.0 (With Inter-Warehouse Transfer Workflow)
