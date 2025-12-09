@@ -23,7 +23,6 @@ compatibility_flags = ["nodejs_compat"]
 binding = "PRODUCT_DB"
 database_name = "product-db"
 database_id = "43857977-dffc-4978-bbc9-b64d0f60bc69"
-
 # Inventory Service Database (target)
 [[d1_databases]]
 binding = "INVENTORY_DB"
