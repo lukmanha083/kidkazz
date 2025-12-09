@@ -68,7 +68,8 @@ export const inventory = sqliteTable('inventory', {
   aisle: text('aisle'),
 
   // NEW: Optimistic locking (Phase 1 DDD Enhancement)
-  version: integer('version').default(1).notNull(),
+  // Note: Using default(1) without notNull() due to SQLite ALTER TABLE limitations
+  version: integer('version').default(1),
   lastModifiedAt: text('last_modified_at'),
 
   // Audit fields
@@ -179,7 +180,8 @@ export const inventoryBatches = sqliteTable('inventory_batches', {
   recallReason: text('recall_reason'), // If status = 'recalled'
 
   // NEW: Optimistic locking (Phase 1 DDD Enhancement)
-  version: integer('version').default(1).notNull(),
+  // Note: Using default(1) without notNull() due to SQLite ALTER TABLE limitations
+  version: integer('version').default(1),
   lastModifiedAt: text('last_modified_at'),
 
   // Audit fields

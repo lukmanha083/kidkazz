@@ -93,13 +93,31 @@ This roadmap outlines the complete refactoring plan to achieve ideal DDD/Hexagon
 
 **Migration file**: `services/inventory-service/migrations/0005_ddd_enhancement.sql`
 
+> **⚠️ IMPORTANT: SQLite Limitation**
+>
+> SQLite does not allow `DEFAULT CURRENT_TIMESTAMP` or other non-constant defaults in `ALTER TABLE ADD COLUMN` statements.
+>
+> **What doesn't work:**
+> ```sql
+> ALTER TABLE inventory ADD COLUMN last_modified_at TEXT DEFAULT CURRENT_TIMESTAMP; -- ❌ ERROR
+> ALTER TABLE inventory ADD COLUMN version INTEGER NOT NULL DEFAULT 1; -- ❌ May cause issues
+> ```
+>
+> **What works:**
+> ```sql
+> ALTER TABLE inventory ADD COLUMN last_modified_at TEXT; -- ✅ OK (null by default)
+> ALTER TABLE inventory ADD COLUMN version INTEGER DEFAULT 1; -- ✅ OK (without NOT NULL)
+> ```
+>
+> **Solution:** Set `last_modified_at` in application code when creating/updating records:
+> ```typescript
+> lastModifiedAt: new Date().toISOString()
+> ```
+
 ```sql
 -- Add variant and UOM support
 ALTER TABLE inventory ADD COLUMN variant_id TEXT;
 ALTER TABLE inventory ADD COLUMN uom_id TEXT;
-
--- Add stock in transit (shipping/waiting to unpack)
-ALTER TABLE inventory ADD COLUMN quantity_in_transit INTEGER DEFAULT 0;
 
 -- Add physical location fields (from Product Service)
 ALTER TABLE inventory ADD COLUMN rack TEXT;
@@ -108,17 +126,20 @@ ALTER TABLE inventory ADD COLUMN zone TEXT;
 ALTER TABLE inventory ADD COLUMN aisle TEXT;
 
 -- Add optimistic locking fields
-ALTER TABLE inventory ADD COLUMN version INTEGER NOT NULL DEFAULT 1;
-ALTER TABLE inventory ADD COLUMN last_modified_at TEXT DEFAULT CURRENT_TIMESTAMP;
+-- Note: SQLite doesn't allow DEFAULT CURRENT_TIMESTAMP in ALTER TABLE
+ALTER TABLE inventory ADD COLUMN version INTEGER DEFAULT 1;
+ALTER TABLE inventory ADD COLUMN last_modified_at TEXT;
 
 -- Indexes for performance
-CREATE INDEX idx_inventory_variant ON inventory(variant_id);
-CREATE INDEX idx_inventory_uom ON inventory(uom_id);
-CREATE INDEX idx_inventory_version ON inventory(product_id, warehouse_id, version);
+CREATE INDEX IF NOT EXISTS idx_inventory_variant ON inventory(variant_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_uom ON inventory(uom_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_version ON inventory(product_id, warehouse_id, version);
+CREATE INDEX IF NOT EXISTS idx_inventory_location ON inventory(warehouse_id, zone, aisle, rack, bin);
 
 -- Add optimistic locking to batches
-ALTER TABLE inventory_batches ADD COLUMN version INTEGER NOT NULL DEFAULT 1;
-ALTER TABLE inventory_batches ADD COLUMN last_modified_at TEXT DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE inventory_batches ADD COLUMN version INTEGER DEFAULT 1;
+ALTER TABLE inventory_batches ADD COLUMN last_modified_at TEXT;
+CREATE INDEX IF NOT EXISTS idx_inventory_batches_version ON inventory_batches(inventory_id, version);
 ```
 
 ### 1.2 Update Inventory Service Schema
@@ -132,7 +153,7 @@ export const inventory = sqliteTable('inventory', {
     .references(() => warehouses.id, { onDelete: 'cascade' }),
   productId: text('product_id').notNull(),
 
-  // NEW: Variant and UOM support
+  // NEW: Variant and UOM support (Phase 1 DDD Enhancement)
   variantId: text('variant_id'),
   uomId: text('uom_id'),
 
@@ -142,15 +163,16 @@ export const inventory = sqliteTable('inventory', {
   quantityInTransit: integer('quantity_in_transit').default(0),
   minimumStock: integer('minimum_stock').default(0),
 
-  // NEW: Physical location (moved from Product Service)
+  // NEW: Physical location (moved from Product Service - Phase 1 DDD Enhancement)
   rack: text('rack'),
   bin: text('bin'),
   zone: text('zone'),
   aisle: text('aisle'),
 
-  // NEW: Optimistic locking
-  version: integer('version').default(1).notNull(),
-  lastModifiedAt: text('last_modified_at'),
+  // NEW: Optimistic locking (Phase 1 DDD Enhancement)
+  // Note: Using default(1) without notNull() due to SQLite ALTER TABLE limitations
+  version: integer('version').default(1),
+  lastModifiedAt: text('last_modified_at'), // Set in application code: new Date().toISOString()
 
   // Audit
   lastRestockedAt: integer('last_restocked_at', { mode: 'timestamp' }),
