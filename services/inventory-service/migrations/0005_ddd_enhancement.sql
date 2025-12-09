@@ -20,15 +20,16 @@ ALTER TABLE inventory ADD COLUMN aisle TEXT;
 -- ============================================
 -- 3. Add optimistic locking fields
 -- Used to prevent race conditions during concurrent updates
+-- Note: SQLite doesn't allow DEFAULT CURRENT_TIMESTAMP in ALTER TABLE
 -- ============================================
-ALTER TABLE inventory ADD COLUMN version INTEGER NOT NULL DEFAULT 1;
-ALTER TABLE inventory ADD COLUMN last_modified_at TEXT DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE inventory ADD COLUMN version INTEGER DEFAULT 1;
+ALTER TABLE inventory ADD COLUMN last_modified_at TEXT;
 
 -- ============================================
 -- 4. Add optimistic locking to batches
 -- ============================================
-ALTER TABLE inventory_batches ADD COLUMN version INTEGER NOT NULL DEFAULT 1;
-ALTER TABLE inventory_batches ADD COLUMN last_modified_at TEXT DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE inventory_batches ADD COLUMN version INTEGER DEFAULT 1;
+ALTER TABLE inventory_batches ADD COLUMN last_modified_at TEXT;
 
 -- ============================================
 -- 5. Indexes for performance
