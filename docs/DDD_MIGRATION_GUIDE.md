@@ -92,6 +92,57 @@ The data migration moves stock/location data from Product Service to Inventory S
 | `product_uom_locations` | `inventory` (with `uom_id`) |
 | `products.expiration_date` | `inventory_batches` |
 
+### Step 0: Seed Test Data (Optional, for Testing)
+
+If you're working with fresh databases and want to test the migration with sample data:
+
+```bash
+# From project root
+cd scripts
+
+# Start the seed data worker
+npx wrangler dev seed-test-data.ts --config wrangler-seed.toml --local
+```
+
+In a new terminal, seed the test data:
+
+```bash
+# Seed test data
+curl -X POST "http://localhost:8788/seed"
+```
+
+This will create:
+- 2 warehouses (WH-CENTRAL, WH-NORTH) in Inventory DB
+- 1 category, 3 products (with 2 having expiration dates) in Product DB
+- 2 product variants
+- 3 product UOMs
+- 6 product locations (3 products × 2 warehouses)
+- 4 variant locations (2 variants × 2 warehouses)
+- 6 UOM locations (3 UOMs × 2 warehouses)
+
+Expected response:
+```json
+{
+  "success": true,
+  "result": {
+    "warehouses": 2,
+    "categories": 1,
+    "products": 3,
+    "variants": 2,
+    "uoms": 3,
+    "productLocations": 6,
+    "variantLocations": 4,
+    "uomLocations": 6,
+    "productsWithExpiration": 2
+  }
+}
+```
+
+To clear test data:
+```bash
+curl -X POST "http://localhost:8788/clear"
+```
+
 ### Step 1: Start Migration Server
 
 ```bash
@@ -276,14 +327,26 @@ npx wrangler d1 migrations apply inventory-db
 # Check table structure
 npx wrangler d1 execute inventory-db --local --command "PRAGMA table_info(inventory);"
 
+# === SEED TEST DATA (Optional) ===
+cd scripts
+
+# Start seed data worker
+npx wrangler dev seed-test-data.ts --config wrangler-seed.toml --local
+
+# Seed test data (in another terminal)
+curl -X POST "http://localhost:8788/seed"
+
+# Clear test data
+curl -X POST "http://localhost:8788/clear"
+
 # === DATA MIGRATION (Phase 2) ===
 cd scripts
 
 # Start migration server
-npx wrangler dev run-ddd-migration.ts --local
+npx wrangler dev run-ddd-migration.ts --config wrangler-migration.toml --local
 
 # Dry run
-curl "http://localhost:8787/migrate?dryRun=true"
+curl "http://localhost:8787/migrate?dryRun=true&verbose=true"
 
 # Actual migration
 curl "http://localhost:8787/migrate?dryRun=false"
