@@ -4,22 +4,14 @@ This directory contains scripts for DDD Phase 2 data migration and test data see
 
 ## Available Scripts
 
-### 1. `seed-test-data.ts` - Seed Test Data
+### 1. `seed-databases.sh` - Seed Test Data
 
-Seeds test data into Product and Inventory databases for testing the migration.
-
-**Config:** `wrangler-seed.toml`
+Seeds test data directly into Product and Inventory databases using SQL commands.
 
 **Usage:**
 ```bash
-# Start the seed worker
-npx wrangler dev seed-test-data.ts --config wrangler-seed.toml --local
-
-# In another terminal, seed the data
-curl -X POST "http://localhost:8788/seed"
-
-# Clear test data
-curl -X POST "http://localhost:8788/clear"
+# From project root
+bash scripts/seed-databases.sh
 ```
 
 **What it creates:**
@@ -31,6 +23,11 @@ curl -X POST "http://localhost:8788/clear"
 - 4 variant locations (2 variants × 2 warehouses)
 - 6 UOM locations (3 UOMs × 2 warehouses)
 
+**How it works:**
+- Uses `npx wrangler d1 execute` to run SQL INSERT statements directly
+- Accesses databases via their respective service configurations
+- No worker setup needed - runs entirely via CLI commands
+
 ### 2. `run-ddd-migration.ts` + `migrate-to-inventory-service.ts` - Data Migration
 
 Migrates data from Product Service to Inventory Service.
@@ -40,6 +37,7 @@ Migrates data from Product Service to Inventory Service.
 **Usage:**
 ```bash
 # Start the migration worker
+cd scripts
 npx wrangler dev run-ddd-migration.ts --config wrangler-migration.toml --local
 
 # In another terminal:
@@ -75,17 +73,13 @@ curl "http://localhost:8787/validate"
 
 2. **Seed test data:**
    ```bash
-   cd ../../scripts
-   npx wrangler dev seed-test-data.ts --config wrangler-seed.toml --local
-   ```
-
-   In another terminal:
-   ```bash
-   curl -X POST "http://localhost:8788/seed"
+   # From project root
+   bash scripts/seed-databases.sh
    ```
 
 3. **Run migration (dry run first):**
    ```bash
+   cd scripts
    npx wrangler dev run-ddd-migration.ts --config wrangler-migration.toml --local
    ```
 
@@ -104,6 +98,7 @@ curl "http://localhost:8787/validate"
 4. **Verify results:**
    ```bash
    # Check inventory records
+   cd services/inventory-service
    npx wrangler d1 execute inventory-db --local --command "SELECT COUNT(*) as count FROM inventory;"
 
    # Check inventory batches
@@ -112,13 +107,10 @@ curl "http://localhost:8787/validate"
 
 ## Configuration Files
 
-### `wrangler-seed.toml`
-Configuration for the seed data worker. Contains D1 database bindings for:
+### `wrangler-migration.toml`
+Configuration for the migration worker. Contains D1 database bindings for:
 - `PRODUCT_DB` - Product Service database
 - `INVENTORY_DB` - Inventory Service database
-
-### `wrangler-migration.toml`
-Configuration for the migration worker. Contains the same D1 database bindings.
 
 ## Database IDs
 
@@ -128,15 +120,19 @@ Current database IDs (update these if needed):
 
 ## Troubleshooting
 
-### Port Already in Use
+### Migration Errors: No Data to Migrate
 
-If you get "port already in use" errors:
+If the migration shows 0 migrated with errors:
+```json
+{
+  "productLocations": { "migrated": 0, "errors": 1 },
+  "variantLocations": { "migrated": 0, "errors": 1 }
+}
+```
+
+**Solution:** Run the seed script first to populate test data:
 ```bash
-# Kill existing wrangler processes
-pkill -f wrangler
-
-# Or use different ports
-npx wrangler dev seed-test-data.ts --config wrangler-seed.toml --local --port 8789
+bash scripts/seed-databases.sh
 ```
 
 ### Database Connection Errors
@@ -150,15 +146,13 @@ cd ../inventory-service
 npx wrangler d1 migrations apply inventory-db --local
 ```
 
-### No Data to Migrate
+### Table Does Not Exist Errors
 
-Run the seed script first:
-```bash
-cd scripts
-npx wrangler dev seed-test-data.ts --config wrangler-seed.toml --local
-# In another terminal:
-curl -X POST "http://localhost:8788/seed"
-```
+This usually means:
+1. Migrations haven't been applied to the local database
+2. You're running from the wrong directory
+
+Make sure to run migrations from the respective service directories.
 
 ## Related Documentation
 

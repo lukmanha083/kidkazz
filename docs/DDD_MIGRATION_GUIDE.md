@@ -94,21 +94,11 @@ The data migration moves stock/location data from Product Service to Inventory S
 
 ### Step 0: Seed Test Data (Optional, for Testing)
 
-If you're working with fresh databases and want to test the migration with sample data:
+If you're working with fresh databases and want to test the migration with sample data, run the seed script:
 
 ```bash
 # From project root
-cd scripts
-
-# Start the seed data worker
-npx wrangler dev seed-test-data.ts --config wrangler-seed.toml --local
-```
-
-In a new terminal, seed the test data:
-
-```bash
-# Seed test data
-curl -X POST "http://localhost:8788/seed"
+bash scripts/seed-databases.sh
 ```
 
 This will create:
@@ -120,28 +110,22 @@ This will create:
 - 4 variant locations (2 variants × 2 warehouses)
 - 6 UOM locations (3 UOMs × 2 warehouses)
 
-Expected response:
-```json
-{
-  "success": true,
-  "result": {
-    "warehouses": 2,
-    "categories": 1,
-    "products": 3,
-    "variants": 2,
-    "uoms": 3,
-    "productLocations": 6,
-    "variantLocations": 4,
-    "uomLocations": 6,
-    "productsWithExpiration": 2
-  }
-}
+Expected output:
+```
+=== Test Data Seeding Complete ===
+
+Summary:
+- 2 warehouses
+- 1 category
+- 3 products (2 with expiration dates)
+- 2 product variants
+- 3 product UOMs
+- 6 product locations
+- 4 variant locations
+- 6 UOM locations
 ```
 
-To clear test data:
-```bash
-curl -X POST "http://localhost:8788/clear"
-```
+> **Note**: This script directly inserts data via SQL commands using `wrangler d1 execute`, avoiding the complexity of worker-based seeding with multiple database locations.
 
 ### Step 1: Start Migration Server
 
@@ -328,16 +312,8 @@ npx wrangler d1 migrations apply inventory-db
 npx wrangler d1 execute inventory-db --local --command "PRAGMA table_info(inventory);"
 
 # === SEED TEST DATA (Optional) ===
-cd scripts
-
-# Start seed data worker
-npx wrangler dev seed-test-data.ts --config wrangler-seed.toml --local
-
-# Seed test data (in another terminal)
-curl -X POST "http://localhost:8788/seed"
-
-# Clear test data
-curl -X POST "http://localhost:8788/clear"
+# Run seed script to populate test data
+bash scripts/seed-databases.sh
 
 # === DATA MIGRATION (Phase 2) ===
 cd scripts
