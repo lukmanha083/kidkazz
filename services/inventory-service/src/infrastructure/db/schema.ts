@@ -38,6 +38,7 @@ export const warehouses = sqliteTable('warehouses', {
 /**
  * Inventory table
  * Stores product stock levels per warehouse
+ * Enhanced for DDD compliance with variant/UOM support and optimistic locking
  */
 export const inventory = sqliteTable('inventory', {
   id: text('id').primaryKey(),
@@ -48,6 +49,10 @@ export const inventory = sqliteTable('inventory', {
 
   productId: text('product_id').notNull(),
 
+  // NEW: Variant and UOM support (Phase 1 DDD Enhancement)
+  variantId: text('variant_id'),
+  uomId: text('uom_id'),
+
   // Stock levels
   quantityAvailable: integer('quantity_available').default(0).notNull(),
   quantityReserved: integer('quantity_reserved').default(0).notNull(),
@@ -55,6 +60,16 @@ export const inventory = sqliteTable('inventory', {
 
   // Minimum stock level for reordering
   minimumStock: integer('minimum_stock').default(0),
+
+  // NEW: Physical location (moved from Product Service - Phase 1 DDD Enhancement)
+  rack: text('rack'),
+  bin: text('bin'),
+  zone: text('zone'),
+  aisle: text('aisle'),
+
+  // NEW: Optimistic locking (Phase 1 DDD Enhancement)
+  version: integer('version').default(1).notNull(),
+  lastModifiedAt: text('last_modified_at'),
 
   // Audit fields
   lastRestockedAt: integer('last_restocked_at', { mode: 'timestamp' }),
@@ -162,6 +177,10 @@ export const inventoryBatches = sqliteTable('inventory_batches', {
   status: text('status').default('active').notNull(), // 'active' | 'expired' | 'quarantined' | 'recalled'
   quarantineReason: text('quarantine_reason'), // If status = 'quarantined'
   recallReason: text('recall_reason'), // If status = 'recalled'
+
+  // NEW: Optimistic locking (Phase 1 DDD Enhancement)
+  version: integer('version').default(1).notNull(),
+  lastModifiedAt: text('last_modified_at'),
 
   // Audit fields
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
