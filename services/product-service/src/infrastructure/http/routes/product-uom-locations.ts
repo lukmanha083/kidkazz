@@ -3,8 +3,19 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { drizzle } from 'drizzle-orm/d1';
 import { eq, and } from 'drizzle-orm';
-import { productUOMLocations, productUOMs, products, productLocations } from '../../db/schema';
+import { productUOMLocations, productUOMs } from '../../db/schema';
 import { generateId } from '../../../shared/utils/helpers';
+
+/**
+ * Product UOM Locations Routes - DDD Phase 5 Refactored
+ *
+ * This module manages physical location mapping only (rack, bin, zone, aisle).
+ * All stock/quantity data is now managed by Inventory Service.
+ *
+ * To get stock at locations, use:
+ * - Inventory Service: GET /api/inventory/uom/:uomId
+ * - Or the helper endpoint: GET /api/product-uom-locations/uom/:productUOMId/with-stock
+ */
 
 type Bindings = {
   DB: D1Database;
@@ -13,7 +24,7 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>();
 
-// Validation schemas
+// Validation schemas - Phase 5: quantity removed
 const createUOMLocationSchema = z.object({
   productUOMId: z.string(),
   warehouseId: z.string(),
@@ -21,103 +32,13 @@ const createUOMLocationSchema = z.object({
   bin: z.string().optional().nullable(),
   zone: z.string().optional().nullable(),
   aisle: z.string().optional().nullable(),
-  quantity: z.number().int().min(0).default(0),
+  // REMOVED: quantity - now managed by Inventory Service
 });
 
 const updateUOMLocationSchema = createUOMLocationSchema.partial().omit({ productUOMId: true });
 
-/**
- * Helper function to validate UOM stock doesn't exceed product stock at a specific warehouse
- * Returns error message if validation fails, null if valid
- *
- * This validates WAREHOUSE-SPECIFIC stock (not global stock), ensuring that for each warehouse,
- * the total UOM stock (in base units) matches the product location stock (in base units).
- */
-async function validateUOMStockPerWarehouse(
-  db: any,
-  productId: string,
-  warehouseId: string,
-  productUOMId: string,
-  conversionFactor: number,
-  newQuantity: number,
-  isUpdate: boolean = false
-): Promise<string | null> {
-  // Get product to access baseUnit
-  const product = await db
-    .select()
-    .from(products)
-    .where(eq(products.id, productId))
-    .get();
-
-  if (!product) {
-    return 'Product not found';
-  }
-
-  const baseUnit = product.baseUnit || 'PCS';
-
-  // Get product location stock at this warehouse (base units)
-  const productLocation = await db
-    .select()
-    .from(productLocations)
-    .where(
-      and(
-        eq(productLocations.productId, productId),
-        eq(productLocations.warehouseId, warehouseId)
-      )
-    )
-    .get();
-
-  if (!productLocation) {
-    return `Product location not found for warehouse. Please create product location first.`;
-  }
-
-  const warehouseBaseStock = productLocation.quantity || 0;
-
-  // Get all product UOMs for this product
-  const allProductUOMs = await db
-    .select()
-    .from(productUOMs)
-    .where(eq(productUOMs.productId, productId))
-    .all();
-
-  // Calculate total UOM stock at this warehouse (in base units)
-  let totalUOMStockAtWarehouse = 0;
-
-  for (const pUom of allProductUOMs) {
-    // Get UOM location at this warehouse
-    const uomLocation = await db
-      .select()
-      .from(productUOMLocations)
-      .where(
-        and(
-          eq(productUOMLocations.productUOMId, pUom.id),
-          eq(productUOMLocations.warehouseId, warehouseId)
-        )
-      )
-      .get();
-
-    if (uomLocation) {
-      // If this is the UOM being updated, use new quantity
-      if (pUom.id === productUOMId && isUpdate) {
-        totalUOMStockAtWarehouse += newQuantity * conversionFactor;
-      } else {
-        totalUOMStockAtWarehouse += (uomLocation.quantity || 0) * pUom.conversionFactor;
-      }
-    }
-  }
-
-  // If creating new UOM location (not updating), add the new quantity
-  if (!isUpdate) {
-    totalUOMStockAtWarehouse += newQuantity * conversionFactor;
-  }
-
-  // Validate: total UOM stock at warehouse should not exceed warehouse base stock
-  if (totalUOMStockAtWarehouse > warehouseBaseStock) {
-    return `Stock validation failed for warehouse: Total UOM stock at this warehouse would be ${totalUOMStockAtWarehouse} ${baseUnit}, but product location stock is only ${warehouseBaseStock} ${baseUnit}. Please adjust product location stock first or reduce UOM quantities.`;
-  }
-
-  return null; // Valid
-}
+// REMOVED: validateUOMStockPerWarehouse function
+// Stock validation is now handled by Inventory Service
 
 // GET /api/product-uom-locations - List all product UOM locations with optional filters
 app.get('/', async (c) => {
@@ -211,6 +132,67 @@ app.get('/uom/:productUOMId', async (c) => {
   });
 });
 
+/**
+ * GET /api/product-uom-locations/uom/:productUOMId/with-stock
+ * Helper endpoint that combines location data with stock from Inventory Service
+ * This provides a unified view for clients that need both location and stock data
+ */
+app.get('/uom/:productUOMId/with-stock', async (c) => {
+  const productUOMId = c.req.param('productUOMId');
+  const db = drizzle(c.env.DB);
+
+  // Get physical locations from Product Service
+  const locations = await db
+    .select()
+    .from(productUOMLocations)
+    .where(eq(productUOMLocations.productUOMId, productUOMId))
+    .all();
+
+  // Get UOM details for context
+  const productUOM = await db
+    .select()
+    .from(productUOMs)
+    .where(eq(productUOMs.id, productUOMId))
+    .get();
+
+  // Get stock data from Inventory Service
+  let inventoryData: any[] = [];
+  try {
+    const inventoryResponse = await c.env.INVENTORY_SERVICE.fetch(
+      new Request(`http://inventory-service/api/inventory/uom/${productUOMId}`)
+    );
+    if (inventoryResponse.ok) {
+      const result = await inventoryResponse.json();
+      inventoryData = (result as any).inventories || [];
+    }
+  } catch (error) {
+    console.error('Failed to fetch inventory data:', error);
+  }
+
+  // Merge location data with stock data
+  const locationsWithStock = locations.map((location) => {
+    const inventory = inventoryData.find(
+      (inv: any) => inv.warehouseId === location.warehouseId
+    );
+    return {
+      ...location,
+      quantity: inventory?.quantity || 0,
+      reservedQuantity: inventory?.reservedQuantity || 0,
+      availableQuantity: inventory?.availableQuantity || 0,
+      inventoryId: inventory?.id || null,
+      uomCode: productUOM?.uomCode,
+      uomName: productUOM?.uomName,
+      conversionFactor: productUOM?.conversionFactor,
+    };
+  });
+
+  return c.json({
+    locations: locationsWithStock,
+    total: locationsWithStock.length,
+    note: 'Stock data fetched from Inventory Service (DDD Phase 5)',
+  });
+});
+
 // GET /api/product-uom-locations/warehouse/:warehouseId - Get all UOM locations in a warehouse
 app.get('/warehouse/:warehouseId', async (c) => {
   const warehouseId = c.req.param('warehouseId');
@@ -228,7 +210,7 @@ app.get('/warehouse/:warehouseId', async (c) => {
   });
 });
 
-// POST /api/product-uom-locations - Create new UOM location
+// POST /api/product-uom-locations - Create new UOM location (physical location only)
 app.post('/', zValidator('json', createUOMLocationSchema), async (c) => {
   const data = c.req.valid('json');
   const db = drizzle(c.env.DB);
@@ -265,20 +247,8 @@ app.post('/', zValidator('json', createUOMLocationSchema), async (c) => {
     );
   }
 
-  // Validate stock consistency per warehouse
-  const validationError = await validateUOMStockPerWarehouse(
-    db,
-    productUOM.productId,
-    data.warehouseId,
-    data.productUOMId,
-    productUOM.conversionFactor,
-    data.quantity,
-    false // isUpdate = false (creating new)
-  );
-
-  if (validationError) {
-    return c.json({ error: validationError }, 400);
-  }
+  // DDD Phase 5: Stock validation removed
+  // Stock is now managed by Inventory Service
 
   const now = new Date();
   const newLocation = {
@@ -289,7 +259,7 @@ app.post('/', zValidator('json', createUOMLocationSchema), async (c) => {
     bin: data.bin || null,
     zone: data.zone || null,
     aisle: data.aisle || null,
-    quantity: data.quantity,
+    // REMOVED: quantity - use Inventory Service for stock management
     createdAt: now,
     updatedAt: now,
     createdBy: null,
@@ -304,14 +274,13 @@ app.post('/', zValidator('json', createUOMLocationSchema), async (c) => {
     .where(eq(productUOMLocations.id, newLocation.id))
     .get();
 
-  // Note: UOM locations are SUBDIVISIONS of product location stock, not additions.
-  // They do NOT update inventory - only product locations update inventory.
-  // The validation above ensures UOM total doesn't exceed product location stock.
+  // DDD Phase 5: No longer validating or syncing stock here
+  // Stock management is the responsibility of Inventory Service
 
   return c.json(created, 201);
 });
 
-// PUT /api/product-uom-locations/:id - Update UOM location
+// PUT /api/product-uom-locations/:id - Update UOM location (physical location only)
 app.put('/:id', zValidator('json', updateUOMLocationSchema), async (c) => {
   const id = c.req.param('id');
   const data = c.req.valid('json');
@@ -325,34 +294,6 @@ app.put('/:id', zValidator('json', updateUOMLocationSchema), async (c) => {
 
   if (!existingLocation) {
     return c.json({ error: 'UOM location not found' }, 404);
-  }
-
-  // Get product UOM to access product ID and conversion factor
-  const productUOM = await db
-    .select()
-    .from(productUOMs)
-    .where(eq(productUOMs.id, existingLocation.productUOMId))
-    .get();
-
-  if (!productUOM) {
-    return c.json({ error: 'Product UOM not found' }, 404);
-  }
-
-  // Validate stock consistency per warehouse if quantity is being updated
-  if (data.quantity !== undefined) {
-    const validationError = await validateUOMStockPerWarehouse(
-      db,
-      productUOM.productId,
-      data.warehouseId || existingLocation.warehouseId,
-      existingLocation.productUOMId,
-      productUOM.conversionFactor,
-      data.quantity,
-      true // isUpdate = true
-    );
-
-    if (validationError) {
-      return c.json({ error: validationError }, 400);
-    }
   }
 
   const updateData: any = {
@@ -372,70 +313,13 @@ app.put('/:id', zValidator('json', updateUOMLocationSchema), async (c) => {
     .where(eq(productUOMLocations.id, id))
     .get();
 
-  // Note: UOM locations are SUBDIVISIONS of product location stock, not additions.
-  // They do NOT update inventory - only product locations update inventory.
-  // The validation above ensures UOM total doesn't exceed product location stock.
+  // DDD Phase 5: No longer validating or syncing stock here
+  // Stock management is the responsibility of Inventory Service
 
   return c.json(updated);
 });
 
-// PATCH /api/product-uom-locations/:id/quantity - Update UOM location quantity
-app.patch('/:id/quantity', zValidator('json', z.object({ quantity: z.number().int().min(0) })), async (c) => {
-  const id = c.req.param('id');
-  const { quantity } = c.req.valid('json');
-  const db = drizzle(c.env.DB);
-
-  const existingLocation = await db
-    .select()
-    .from(productUOMLocations)
-    .where(eq(productUOMLocations.id, id))
-    .get();
-
-  if (!existingLocation) {
-    return c.json({ error: 'UOM location not found' }, 404);
-  }
-
-  // Get productUOM for conversion factor and validation
-  const productUOM = await db
-    .select()
-    .from(productUOMs)
-    .where(eq(productUOMs.id, existingLocation.productUOMId))
-    .get();
-
-  if (!productUOM) {
-    return c.json({ error: 'Product UOM not found' }, 404);
-  }
-
-  // Validate stock consistency per warehouse
-  const validationError = await validateUOMStockPerWarehouse(
-    db,
-    productUOM.productId,
-    existingLocation.warehouseId,
-    existingLocation.productUOMId,
-    productUOM.conversionFactor,
-    quantity,
-    true // isUpdate = true
-  );
-
-  if (validationError) {
-    return c.json({ error: validationError }, 400);
-  }
-
-  await db
-    .update(productUOMLocations)
-    .set({
-      quantity,
-      updatedAt: new Date(),
-    })
-    .where(eq(productUOMLocations.id, id))
-    .run();
-
-  // Note: UOM locations are SUBDIVISIONS of product location stock, not additions.
-  // They do NOT update inventory - only product locations update inventory.
-  // The validation above ensures UOM total doesn't exceed product location stock.
-
-  return c.json({ message: 'Quantity updated successfully' });
-});
+// REMOVED: PATCH /:id/quantity - Use Inventory Service POST /api/inventory/uom/:uomId/adjust instead
 
 // DELETE /api/product-uom-locations/:id - Delete UOM location
 app.delete('/:id', async (c) => {

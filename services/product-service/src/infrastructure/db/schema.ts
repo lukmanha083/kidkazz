@@ -55,9 +55,10 @@ export const products = sqliteTable('products', {
   retailPrice: real('retail_price'), // Retail price (nullable for wholesale-only)
   wholesalePrice: real('wholesale_price'), // Wholesale price
 
-  // Stock - REMOVED: Stock is now managed by Inventory Service (DDD Phase 2C)
-  // Deprecated: stock field removed - use Inventory Service API for stock data
-  minimumStock: integer('minimum_stock'), // Minimum stock threshold for alert reports
+  // REMOVED (DDD Phase 4): stock, minimumStock, expirationDate, alertDate
+  // These fields are now managed by Inventory Service
+  // - minimumStock: Use Inventory Service GET /api/inventory/:productId
+  // - expirationDate/alertDate: Use Inventory Service GET /api/batches/product/:productId
 
   // Base unit
   baseUnit: text('base_unit').default('PCS').notNull(),
@@ -84,9 +85,9 @@ export const products = sqliteTable('products', {
   status: text('status').default('omnichannel sales'), // 'online sales' | 'offline sales' | 'omnichannel sales' | 'inactive' | 'discontinued'
   isBundle: integer('is_bundle', { mode: 'boolean' }).default(false),
 
-  // Product Expiration and Alert
-  expirationDate: text('expiration_date'), // ISO date string - product expiration date
-  alertDate: text('alert_date'), // ISO date string - alert/notification date (must be before expiration date)
+  // REMOVED (DDD Phase 4): expirationDate, alertDate
+  // Expiration is now tracked at batch level in Inventory Service (inventoryBatches table)
+  // Use Inventory Service GET /api/batches/product/:productId for expiration data
 
   // Accounting Integration (links to Accounting Service Chart of Accounts)
   revenueAccountId: text('revenue_account_id'), // Revenue account for sales
@@ -133,7 +134,8 @@ export const productUOMs = sqliteTable('product_uoms', {
   uomName: text('uom_name').notNull(), // Denormalized for performance
   barcode: text('barcode').unique().notNull(), // Unique barcode for this UOM
   conversionFactor: integer('conversion_factor').notNull(), // e.g., 6 for BOX6, 18 for CARTON18
-  stock: integer('stock').default(0).notNull(), // Stock in this UOM
+  // REMOVED (DDD Phase 4): stock - now managed by Inventory Service
+  // Use Inventory Service GET /api/inventory/uom/:uomId for UOM stock
   isDefault: integer('is_default', { mode: 'boolean' }).default(false),
 
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
@@ -158,7 +160,8 @@ export const productVariants = sqliteTable('product_variants', {
   variantType: text('variant_type').notNull(), // 'Color' | 'Size' | 'Material' | 'Style'
 
   price: real('price').notNull(), // Variant price
-  stock: integer('stock').default(0).notNull(), // Variant stock
+  // REMOVED (DDD Phase 4): stock - now managed by Inventory Service
+  // Use Inventory Service GET /api/inventory/variant/:variantId for variant stock
   status: text('status').default('active').notNull(), // 'active' | 'inactive'
 
   image: text('image'), // Optional variant image
@@ -356,8 +359,9 @@ export const productLocations = sqliteTable('product_locations', {
   zone: text('zone'), // Warehouse zone (e.g., 'Zone A', 'Cold Storage')
   aisle: text('aisle'), // Aisle number/identifier
 
-  // Stock tracking at this specific location
-  quantity: integer('quantity').default(0).notNull(), // Quantity at this location
+  // REMOVED (DDD Phase 4): quantity - now managed by Inventory Service
+  // Physical location only - stock data comes from Inventory Service
+  // Use Inventory Service GET /api/inventory/:productId for stock quantities
 
   // Audit fields
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
@@ -385,8 +389,9 @@ export const variantLocations = sqliteTable('variant_locations', {
   zone: text('zone'), // Warehouse zone (e.g., 'Zone A', 'Cold Storage')
   aisle: text('aisle'), // Aisle number/identifier
 
-  // Stock tracking at this specific location
-  quantity: integer('quantity').default(0).notNull(), // Quantity at this location
+  // REMOVED (DDD Phase 4): quantity - now managed by Inventory Service
+  // Physical location only - stock data comes from Inventory Service
+  // Use Inventory Service GET /api/inventory/variant/:variantId for stock quantities
 
   // Audit fields
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
@@ -397,12 +402,15 @@ export const variantLocations = sqliteTable('variant_locations', {
 
 /**
  * Product UOM Locations table
- * Tracks the physical location and stock of product UOMs (BOX6, CARTON18, etc.) in warehouses
+ * Tracks the physical location of product UOMs (BOX6, CARTON18, etc.) in warehouses
  * This allows multi-warehouse support for different packaging units
  *
+ * NOTE: Stock quantity is now managed by Inventory Service (DDD Phase 4)
+ * Use Inventory Service GET /api/inventory/uom/:uomId for stock quantities
+ *
  * Example:
- * - Product "Baby Bottle" BOX6 in Jakarta: 6 boxes = 36 PCS
- * - Product "Baby Bottle" BOX6 in Cilangkap: 4 boxes = 24 PCS
+ * - Product "Baby Bottle" BOX6 in Jakarta: Rack A1, Bin 01
+ * - Product "Baby Bottle" BOX6 in Cilangkap: Rack B3, Bin 02
  */
 export const productUOMLocations = sqliteTable('product_uom_locations', {
   id: text('id').primaryKey(),
@@ -418,8 +426,9 @@ export const productUOMLocations = sqliteTable('product_uom_locations', {
   zone: text('zone'), // Warehouse zone (e.g., 'Zone A', 'Cold Storage')
   aisle: text('aisle'), // Aisle number/identifier
 
-  // Stock tracking at this specific location (in this UOM unit)
-  quantity: integer('quantity').default(0).notNull(), // Quantity in this UOM (e.g., 6 boxes, 2 cartons)
+  // REMOVED (DDD Phase 4): quantity - now managed by Inventory Service
+  // Physical location only - stock data comes from Inventory Service
+  // Use Inventory Service GET /api/inventory/uom/:uomId for stock quantities
 
   // Audit fields
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),

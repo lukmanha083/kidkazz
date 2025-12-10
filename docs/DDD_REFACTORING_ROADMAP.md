@@ -72,16 +72,16 @@ This roadmap outlines the complete refactoring plan to achieve ideal DDD/Hexagon
 
 ## Phase Overview
 
-| Phase | Description | Duration |
-|-------|-------------|----------|
-| **1** | Inventory Service Schema Enhancement | 2-3 days |
-| **2** | Data Migration Scripts | 2-3 days |
-| **3** | WebSocket & Optimistic Locking | 3-4 days |
-| **4** | Product Service Schema Cleanup | 1-2 days |
-| **5** | API Refactoring | 2-3 days |
-| **6** | Testing & Validation | 2-3 days |
-| **7** | Inter-Warehouse Transfer (Inbound/Outbound) | 3-4 days |
-| **8** | Stock Opname & Physical Bundles | 4-5 days |
+| Phase | Description | Duration | Status |
+|-------|-------------|----------|--------|
+| **1** | Inventory Service Schema Enhancement | 2-3 days | ✅ Complete |
+| **2** | Data Migration Scripts | 2-3 days | ✅ Complete |
+| **3** | WebSocket & Optimistic Locking | 3-4 days | ✅ Complete |
+| **4** | Product Service Schema Cleanup | 1-2 days | ✅ Complete (2025-12-10) |
+| **5** | API Refactoring | 2-3 days | ✅ Complete (2025-12-10) |
+| **6** | Testing & Validation | 2-3 days | 🔄 In Progress |
+| **7** | Inter-Warehouse Transfer (Inbound/Outbound) | 3-4 days | ⏳ Pending |
+| **8** | Stock Opname & Physical Bundles | 4-5 days | ⏳ Pending |
 
 **Total Estimated Time**: 4-5 weeks
 
@@ -882,9 +882,11 @@ ALTER TABLE product_uom_locations DROP COLUMN quantity;
 ```
 
 ### 4.3 Deliverables
-- [ ] Migration SQL created
-- [ ] Schema.ts cleaned up
-- [ ] TypeScript types updated
+- [x] Migration SQL created (`services/product-service/migrations/0018_ddd_phase4_remove_stock_fields.sql`)
+- [x] Schema.ts cleaned up (removed minimumStock, expirationDate, alertDate, stock, quantity fields)
+- [x] TypeScript types updated (automatically inferred from schema)
+
+**Completed: 2025-12-10**
 
 ---
 
@@ -978,11 +980,16 @@ app.get('/product/:productId/with-stock', async (c) => {
 ```
 
 ### 5.4 Deliverables
-- [ ] Product location routes simplified
-- [ ] Variant location routes simplified
-- [ ] UOM location routes simplified
-- [ ] All inventory sync code removed
-- [ ] Helper endpoint added (optional)
+- [x] Product location routes simplified (removed quantity from schema, removed inventory sync code)
+- [x] Variant location routes simplified (removed quantity from schema, removed stock validation)
+- [x] UOM location routes simplified (removed quantity from schema, removed stock validation)
+- [x] All inventory sync code removed (no more INVENTORY_SERVICE.fetch calls for stock sync)
+- [x] Helper endpoints added:
+  - `GET /api/product-locations/product/:productId/with-stock` - Fetches stock from Inventory Service
+  - `GET /api/variant-locations/variant/:variantId/with-stock` - Fetches variant stock from Inventory Service
+  - `GET /api/product-uom-locations/uom/:productUOMId/with-stock` - Fetches UOM stock from Inventory Service
+
+**Completed: 2025-12-10**
 
 ---
 
