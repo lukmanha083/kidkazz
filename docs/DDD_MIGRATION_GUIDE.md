@@ -2,6 +2,19 @@
 
 This guide explains how to run the database schema migration (Phase 1) and data migration (Phase 2) for the DDD refactoring.
 
+## Current Status
+
+**Phase 1 (Schema Migration):** ✅ Complete
+- Inventory Service database schema updated successfully
+- All required columns and indexes added to `inventory` and `inventory_batches` tables
+
+**Phase 2 (Data Migration):** 🔄 In Progress
+- ✅ Seed script now populates both service and migration worker databases
+- ✅ Migration worker can access populated test data (16 location records detected)
+- ⚠️ **Known Issue:** Migration script expects camelCase property names but D1 returns snake_case columns
+  - Impact: All location migrations fail with "Type 'undefined' not supported" errors
+  - Next Step: Update migration queries to handle snake_case column names from database
+
 ## Prerequisites
 
 - Node.js 18+
