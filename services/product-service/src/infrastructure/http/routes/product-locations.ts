@@ -3,8 +3,19 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { drizzle } from 'drizzle-orm/d1';
 import { eq, and } from 'drizzle-orm';
-import { productLocations, products } from '../../db/schema';
+import { productLocations } from '../../db/schema';
 import { generateId } from '../../../shared/utils/helpers';
+
+/**
+ * Product Locations Routes - DDD Phase 5 Refactored
+ *
+ * This module manages physical location mapping only (rack, bin, zone, aisle).
+ * All stock/quantity data is now managed by Inventory Service.
+ *
+ * To get stock at locations, use:
+ * - Inventory Service: GET /api/inventory/:productId
+ * - Or the helper endpoint: GET /api/product-locations/product/:productId/with-stock
+ */
 
 type Bindings = {
   DB: D1Database;
@@ -13,7 +24,7 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>();
 
-// Validation schemas
+// Validation schemas - Phase 5: quantity removed
 const createLocationSchema = z.object({
   productId: z.string(),
   warehouseId: z.string(),
@@ -21,7 +32,7 @@ const createLocationSchema = z.object({
   bin: z.string().optional().nullable(),
   zone: z.string().optional().nullable(),
   aisle: z.string().optional().nullable(),
-  quantity: z.number().int().min(0).default(0),
+  // REMOVED: quantity - now managed by Inventory Service
 });
 
 const updateLocationSchema = createLocationSchema.partial().omit({ productId: true });
@@ -88,6 +99,58 @@ app.get('/product/:productId', async (c) => {
   });
 });
 
+/**
+ * GET /api/product-locations/product/:productId/with-stock
+ * Helper endpoint that combines location data with stock from Inventory Service
+ * This provides a unified view for clients that need both location and stock data
+ */
+app.get('/product/:productId/with-stock', async (c) => {
+  const productId = c.req.param('productId');
+  const db = drizzle(c.env.DB);
+
+  // Get physical locations from Product Service
+  const locations = await db
+    .select()
+    .from(productLocations)
+    .where(eq(productLocations.productId, productId))
+    .all();
+
+  // Get stock data from Inventory Service
+  let inventoryData: any[] = [];
+  try {
+    const inventoryResponse = await c.env.INVENTORY_SERVICE.fetch(
+      new Request(`http://inventory-service/api/inventory/product/${productId}`)
+    );
+    if (inventoryResponse.ok) {
+      const result = await inventoryResponse.json();
+      inventoryData = (result as any).inventories || [];
+    }
+  } catch (error) {
+    console.error('Failed to fetch inventory data:', error);
+  }
+
+  // Merge location data with stock data
+  const locationsWithStock = locations.map((location) => {
+    const inventory = inventoryData.find(
+      (inv: any) => inv.warehouseId === location.warehouseId
+    );
+    return {
+      ...location,
+      quantity: inventory?.quantity || 0,
+      reservedQuantity: inventory?.reservedQuantity || 0,
+      availableQuantity: inventory?.availableQuantity || 0,
+      minimumStock: inventory?.minimumStock || null,
+      inventoryId: inventory?.id || null,
+    };
+  });
+
+  return c.json({
+    locations: locationsWithStock,
+    total: locationsWithStock.length,
+    note: 'Stock data fetched from Inventory Service (DDD Phase 5)',
+  });
+});
+
 // GET /api/product-locations/warehouse/:warehouseId - Get all locations in a warehouse
 app.get('/warehouse/:warehouseId', async (c) => {
   const warehouseId = c.req.param('warehouseId');
@@ -105,7 +168,7 @@ app.get('/warehouse/:warehouseId', async (c) => {
   });
 });
 
-// POST /api/product-locations - Create new location
+// POST /api/product-locations - Create new location (physical location only)
 app.post('/', zValidator('json', createLocationSchema), async (c) => {
   const data = c.req.valid('json');
   const db = drizzle(c.env.DB);
@@ -140,7 +203,7 @@ app.post('/', zValidator('json', createLocationSchema), async (c) => {
     bin: data.bin || null,
     zone: data.zone || null,
     aisle: data.aisle || null,
-    quantity: data.quantity,
+    // REMOVED: quantity - use Inventory Service for stock management
     createdAt: now,
     updatedAt: now,
     createdBy: null,
@@ -155,82 +218,14 @@ app.post('/', zValidator('json', createLocationSchema), async (c) => {
     .where(eq(productLocations.id, newLocation.id))
     .get();
 
-  // DDD FIX: Create/update inventory record in Inventory Service
-  // This ensures inventory tracking is synchronized with product locations
-  try {
-    // Get product details for minimumStock
-    const product = await db
-      .select()
-      .from(products)
-      .where(eq(products.id, data.productId))
-      .get();
-
-    // Check if inventory record already exists
-    const inventoryCheckResponse = await c.env.INVENTORY_SERVICE.fetch(
-      new Request(`http://inventory-service/api/inventory/${data.productId}/${data.warehouseId}`)
-    );
-
-    if (inventoryCheckResponse.status === 404) {
-      // Inventory record doesn't exist, create it via adjust endpoint
-      const adjustResponse = await c.env.INVENTORY_SERVICE.fetch(
-        new Request('http://inventory-service/api/inventory/adjust', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            productId: data.productId,
-            warehouseId: data.warehouseId,
-            quantity: data.quantity,
-            movementType: 'adjustment',
-            reason: 'Product location created',
-            notes: `Initial stock from product location creation`,
-          }),
-        })
-      );
-
-      if (adjustResponse.ok) {
-        const invData = await adjustResponse.json();
-        const inventoryId = invData.inventory?.id;
-
-        // Set minimumStock if product has it defined
-        if (inventoryId && product?.minimumStock) {
-          await c.env.INVENTORY_SERVICE.fetch(
-            new Request(`http://inventory-service/api/inventory/${inventoryId}/minimum-stock`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ minimumStock: product.minimumStock }),
-            })
-          );
-        }
-        console.log(`✅ Created inventory record for product ${data.productId} at warehouse ${data.warehouseId}`);
-      }
-    } else if (inventoryCheckResponse.ok) {
-      // Inventory exists, update the quantity
-      await c.env.INVENTORY_SERVICE.fetch(
-        new Request('http://inventory-service/api/inventory/adjust', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            productId: data.productId,
-            warehouseId: data.warehouseId,
-            quantity: data.quantity,
-            movementType: 'adjustment',
-            reason: 'Product location updated',
-            notes: `Stock adjusted from product location update`,
-          }),
-        })
-      );
-      console.log(`✅ Updated inventory record for product ${data.productId} at warehouse ${data.warehouseId}`);
-    }
-  } catch (invError) {
-    console.error('❌ Failed to create/update inventory record:', invError);
-    // Don't fail the entire request if inventory sync fails
-    // The product location was still created successfully
-  }
+  // DDD Phase 5: No longer syncing inventory here
+  // Stock management is the responsibility of Inventory Service
+  // Use POST /api/inventory/adjust for stock operations
 
   return c.json(created, 201);
 });
 
-// PUT /api/product-locations/:id - Update location
+// PUT /api/product-locations/:id - Update location (physical location only)
 app.put('/:id', zValidator('json', updateLocationSchema), async (c) => {
   const id = c.req.param('id');
   const data = c.req.valid('json');
@@ -263,61 +258,15 @@ app.put('/:id', zValidator('json', updateLocationSchema), async (c) => {
     .where(eq(productLocations.id, id))
     .get();
 
-  // DDD FIX: Sync inventory if quantity changed
-  if (data.quantity !== undefined && updated) {
-    try {
-      await c.env.INVENTORY_SERVICE.fetch(
-        new Request('http://inventory-service/api/inventory/adjust', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            productId: updated.productId,
-            warehouseId: updated.warehouseId,
-            quantity: data.quantity,
-            movementType: 'adjustment',
-            reason: 'Product location quantity updated',
-            notes: `Quantity adjusted from product location update`,
-          }),
-        })
-      );
-      console.log(`✅ Synced inventory for product ${updated.productId} at warehouse ${updated.warehouseId}`);
-    } catch (invError) {
-      console.error('❌ Failed to sync inventory on location update:', invError);
-    }
-  }
+  // DDD Phase 5: No longer syncing inventory here
+  // Stock management is the responsibility of Inventory Service
 
   return c.json(updated);
 });
 
-// PATCH /api/product-locations/:id/quantity - Update location quantity
-app.patch('/:id/quantity', zValidator('json', z.object({ quantity: z.number().int().min(0) })), async (c) => {
-  const id = c.req.param('id');
-  const { quantity } = c.req.valid('json');
-  const db = drizzle(c.env.DB);
+// REMOVED: PATCH /:id/quantity - Use Inventory Service POST /api/inventory/adjust instead
 
-  const existingLocation = await db
-    .select()
-    .from(productLocations)
-    .where(eq(productLocations.id, id))
-    .get();
-
-  if (!existingLocation) {
-    return c.json({ error: 'Location not found' }, 404);
-  }
-
-  await db
-    .update(productLocations)
-    .set({
-      quantity,
-      updatedAt: new Date(),
-    })
-    .where(eq(productLocations.id, id))
-    .run();
-
-  return c.json({ message: 'Quantity updated successfully' });
-});
-
-// DELETE /api/product-locations/warehouse/:warehouseId - Delete all locations for a warehouse (cascade delete support)
+// DELETE /api/product-locations/warehouse/:warehouseId - Delete all locations for a warehouse
 app.delete('/warehouse/:warehouseId', async (c) => {
   const warehouseId = c.req.param('warehouseId');
   const db = drizzle(c.env.DB);
@@ -339,7 +288,7 @@ app.delete('/warehouse/:warehouseId', async (c) => {
   const productIds = [...new Set(locations.map(loc => loc.productId))];
 
   // 2. Delete all product locations for this warehouse
-  const deleteResult = await db
+  await db
     .delete(productLocations)
     .where(eq(productLocations.warehouseId, warehouseId))
     .run();
