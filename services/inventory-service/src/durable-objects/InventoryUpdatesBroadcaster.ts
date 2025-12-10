@@ -7,20 +7,17 @@
  * Features:
  * - WebSocket connection management
  * - Channel-based subscriptions (global, product:xxx, warehouse:xxx, variant:xxx)
- * - Automatic connection cleanup with reconnection support
+ * - Automatic connection cleanup
  * - Broadcast to all subscribers in matching channels
  * - Optimistic locking support via version field
  *
- * Phase 3 DDD Enhancement:
- * - New event types for inventory states
- * - Variant and UOM support
- * - Transfer and batch events
+ * Phase 3 DDD Implementation
  */
 
 import { DurableObject } from 'cloudflare:workers';
 
 /**
- * Phase 3 Inventory Event Types (DDD Compliant)
+ * Inventory Event Types (DDD Compliant)
  */
 export type InventoryEventType =
   | 'inventory.updated'
@@ -38,7 +35,7 @@ export type InventoryEventType =
   | 'transfer.cancelled';
 
 /**
- * Phase 3 Enhanced Inventory Event (DDD Compliant)
+ * Inventory Event (DDD Compliant)
  */
 export interface InventoryEvent {
   type: InventoryEventType;
@@ -61,26 +58,9 @@ export interface InventoryEvent {
   };
 }
 
-/**
- * Legacy InventoryUpdate type (for backward compatibility)
- * @deprecated Use InventoryEvent instead
- */
-export interface InventoryUpdate {
-  type: 'inventory_updated' | 'inventory_adjusted' | 'stock_low';
-  data: {
-    inventoryId: string;
-    productId: string;
-    warehouseId: string;
-    quantityAvailable: number;
-    quantityReserved: number;
-    minimumStock?: number;
-    timestamp: string;
-  };
-}
-
 interface WebSocketSession {
   webSocket: WebSocket;
-  subscriptions: Set<string>; // Set of channel names (e.g., 'global', 'product:xxx', 'warehouse:xxx')
+  subscriptions: Set<string>;
   connectedAt: number;
   lastPingAt: number;
 }
@@ -93,17 +73,14 @@ export class InventoryUpdatesBroadcaster extends DurableObject {
     this.sessions = new Map();
   }
 
-  /**
-   * Handle HTTP requests (WebSocket upgrade or broadcast)
-   */
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
 
     // Handle internal broadcast endpoint
     if (url.pathname === '/broadcast' && request.method === 'POST') {
       try {
-        const event = (await request.json()) as InventoryEvent | InventoryUpdate;
-        await this.broadcastEvent(event);
+        const event = (await request.json()) as InventoryEvent;
+        await this.broadcast(event);
         return new Response('OK', { status: 200 });
       } catch (error) {
         console.error('Broadcast error:', error);
@@ -120,12 +97,9 @@ export class InventoryUpdatesBroadcaster extends DurableObject {
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
 
-    // Accept the WebSocket connection
     server.accept();
 
     const now = Date.now();
-
-    // Initialize session with default 'global' subscription
     const session: WebSocketSession = {
       webSocket: server,
       subscriptions: new Set(['global']),
@@ -144,7 +118,6 @@ export class InventoryUpdatesBroadcaster extends DurableObject {
       })
     );
 
-    // Set up event handlers
     server.addEventListener('message', (event) => {
       this.handleMessage(server, session, event);
     });
@@ -157,16 +130,12 @@ export class InventoryUpdatesBroadcaster extends DurableObject {
       this.sessions.delete(server);
     });
 
-    // Return the client-side WebSocket
     return new Response(null, {
       status: 101,
       webSocket: client,
     });
   }
 
-  /**
-   * Handle incoming WebSocket messages
-   */
   private handleMessage(
     webSocket: WebSocket,
     session: WebSocketSession,
@@ -177,11 +146,11 @@ export class InventoryUpdatesBroadcaster extends DurableObject {
 
       switch (message.type) {
         case 'subscribe':
-          this.handleSubscribe(webSocket, session, message);
+          this.handleSubscribe(webSocket, session, message.channel);
           break;
 
         case 'unsubscribe':
-          this.handleUnsubscribe(webSocket, session, message);
+          this.handleUnsubscribe(webSocket, session, message.channel);
           break;
 
         case 'ping':
@@ -209,31 +178,20 @@ export class InventoryUpdatesBroadcaster extends DurableObject {
 
   /**
    * Subscribe to a channel
-   * Channels can be:
+   * Channels:
    * - 'global' - receive all updates
    * - 'product:{productId}' - updates for a specific product
    * - 'warehouse:{warehouseId}' - updates for a specific warehouse
    * - 'variant:{variantId}' - updates for a specific variant
-   * - 'product:{productId}:warehouse:{warehouseId}' - updates for specific product+warehouse
+   * - 'uom:{uomId}' - updates for a specific UOM
+   * - 'product:{productId}:warehouse:{warehouseId}' - specific product+warehouse
+   * - 'transfer:{transferId}' - updates for a specific transfer
    */
   private handleSubscribe(
     webSocket: WebSocket,
     session: WebSocketSession,
-    message: { channel?: string; payload?: { productId?: string; warehouseId?: string; variantId?: string } }
+    channel: string = 'global'
   ): void {
-    let channel: string;
-
-    // Support both new channel format and legacy payload format
-    if (message.channel) {
-      channel = message.channel;
-    } else if (message.payload) {
-      // Legacy format support
-      const { productId, warehouseId, variantId } = message.payload;
-      channel = this.getChannelFromParams(productId, warehouseId, variantId);
-    } else {
-      channel = 'global';
-    }
-
     session.subscriptions.add(channel);
 
     webSocket.send(
@@ -245,25 +203,11 @@ export class InventoryUpdatesBroadcaster extends DurableObject {
     );
   }
 
-  /**
-   * Unsubscribe from a channel
-   */
   private handleUnsubscribe(
     webSocket: WebSocket,
     session: WebSocketSession,
-    message: { channel?: string; payload?: { productId?: string; warehouseId?: string; variantId?: string } }
+    channel: string = 'global'
   ): void {
-    let channel: string;
-
-    if (message.channel) {
-      channel = message.channel;
-    } else if (message.payload) {
-      const { productId, warehouseId, variantId } = message.payload;
-      channel = this.getChannelFromParams(productId, warehouseId, variantId);
-    } else {
-      channel = 'global';
-    }
-
     session.subscriptions.delete(channel);
 
     webSocket.send(
@@ -276,16 +220,15 @@ export class InventoryUpdatesBroadcaster extends DurableObject {
   }
 
   /**
-   * Broadcast event to all subscribed clients (Phase 3 DDD compliant)
+   * Broadcast event to all subscribed clients
    */
-  async broadcastEvent(event: InventoryEvent | InventoryUpdate): Promise<void> {
+  async broadcast(event: InventoryEvent): Promise<void> {
     const channels = this.getEventChannels(event);
     const message = JSON.stringify(event);
 
     let count = 0;
     const deadConnections: WebSocket[] = [];
 
-    // Broadcast to all sessions that match any of the event's channels
     for (const [webSocket, session] of this.sessions.entries()) {
       const shouldReceive =
         session.subscriptions.has('global') ||
@@ -296,13 +239,11 @@ export class InventoryUpdatesBroadcaster extends DurableObject {
           webSocket.send(message);
           count++;
         } catch (error) {
-          // Mark for removal
           deadConnections.push(webSocket);
         }
       }
     }
 
-    // Remove dead connections
     for (const ws of deadConnections) {
       this.sessions.delete(ws);
     }
@@ -312,22 +253,10 @@ export class InventoryUpdatesBroadcaster extends DurableObject {
     );
   }
 
-  /**
-   * Legacy broadcast method for backward compatibility
-   * @deprecated Use broadcastEvent instead
-   */
-  async broadcastUpdate(update: InventoryUpdate): Promise<void> {
-    return this.broadcastEvent(update);
-  }
-
-  /**
-   * Get all relevant channels for an event
-   */
-  private getEventChannels(event: InventoryEvent | InventoryUpdate): string[] {
+  private getEventChannels(event: InventoryEvent): string[] {
     const channels: string[] = [];
-    const { productId, warehouseId, variantId, uomId } = event.data as any;
+    const { productId, warehouseId, variantId, uomId, transferId } = event.data;
 
-    // Add specific channels based on event data
     if (variantId) {
       channels.push(`variant:${variantId}`);
     }
@@ -348,35 +277,13 @@ export class InventoryUpdatesBroadcaster extends DurableObject {
       channels.push(`warehouse:${warehouseId}`);
     }
 
-    // Transfer events get their own channel
-    if (event.type.startsWith('transfer.')) {
-      const { transferId } = event.data as any;
-      if (transferId) {
-        channels.push(`transfer:${transferId}`);
-      }
+    if (event.type.startsWith('transfer.') && transferId) {
+      channels.push(`transfer:${transferId}`);
     }
 
     return channels;
   }
 
-  /**
-   * Generate channel name from parameters (legacy support)
-   */
-  private getChannelFromParams(
-    productId?: string,
-    warehouseId?: string,
-    variantId?: string
-  ): string {
-    if (variantId) return `variant:${variantId}`;
-    if (productId && warehouseId) return `product:${productId}:warehouse:${warehouseId}`;
-    if (productId) return `product:${productId}`;
-    if (warehouseId) return `warehouse:${warehouseId}`;
-    return 'global';
-  }
-
-  /**
-   * Get connection stats (for monitoring)
-   */
   getStats(): {
     totalConnections: number;
     subscriptionCounts: Record<string, number>;
