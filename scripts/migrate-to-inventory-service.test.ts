@@ -48,35 +48,7 @@ function createMockDatabase(mockData: Record<string, unknown[]>): MockD1Database
           return statement;
         },
         all: async <T>() => {
-          // Determine which data to return based on query
-          if (query.includes('product_locations')) {
-            return { results: (mockData['product_locations'] || []) as T[] };
-          }
-          if (query.includes('variant_locations')) {
-            return { results: (mockData['variant_locations'] || []) as T[] };
-          }
-          if (query.includes('product_uom_locations')) {
-            return { results: (mockData['product_uom_locations'] || []) as T[] };
-          }
-          if (query.includes('products') && query.includes('expiration_date')) {
-            return { results: (mockData['products_with_expiration'] || []) as T[] };
-          }
-          if (query.includes('inventory') && query.includes('SELECT')) {
-            // Check for variant/UOM specific queries
-            if (query.includes('variant_id IS NOT NULL')) {
-              return { results: (mockData['inventory_variants'] || []) as T[] };
-            }
-            if (query.includes('uom_id IS NOT NULL')) {
-              return { results: (mockData['inventory_uoms'] || []) as T[] };
-            }
-            if (query.includes('variant_id IS NULL AND uom_id IS NULL')) {
-              return { results: (mockData['inventory_products'] || []) as T[] };
-            }
-            return { results: (mockData['inventory'] || []) as T[] };
-          }
-          if (query.includes('inventory_batches')) {
-            return { results: (mockData['inventory_batches'] || []) as T[] };
-          }
+          // Handle COUNT queries first (before table name checks)
           if (query.includes('COUNT')) {
             // Return count based on table
             if (query.includes('product_locations')) {
@@ -87,6 +59,9 @@ function createMockDatabase(mockData: Record<string, unknown[]>): MockD1Database
             }
             if (query.includes('product_uom_locations')) {
               return { results: [{ count: (mockData['product_uom_locations'] || []).length }] as T[] };
+            }
+            if (query.includes('products') && query.includes('expiration_date')) {
+              return { results: [{ count: (mockData['products_with_expiration'] || []).length }] as T[] };
             }
             if (query.includes('inventory_batches')) {
               return { results: [{ count: (mockData['inventory_batches'] || []).length }] as T[] };
@@ -101,6 +76,51 @@ function createMockDatabase(mockData: Record<string, unknown[]>): MockD1Database
               return { results: [{ count: (mockData['inventory_products'] || []).length }] as T[] };
             }
             return { results: [{ count: 0 }] as T[] };
+          }
+
+          // Determine which data to return based on query
+          if (query.includes('product_locations')) {
+            return { results: (mockData['product_locations'] || []) as T[] };
+          }
+          if (query.includes('variant_locations')) {
+            return { results: (mockData['variant_locations'] || []) as T[] };
+          }
+          if (query.includes('product_uom_locations')) {
+            return { results: (mockData['product_uom_locations'] || []) as T[] };
+          }
+          if (query.includes('products') && query.includes('expiration_date')) {
+            return { results: (mockData['products_with_expiration'] || []) as T[] };
+          }
+          if (query.includes('inventory') && query.includes('SELECT')) {
+            let results = mockData['inventory'] || [];
+
+            // Check for variant/UOM specific queries
+            if (query.includes('variant_id IS NOT NULL')) {
+              results = mockData['inventory_variants'] || [];
+            } else if (query.includes('uom_id IS NOT NULL')) {
+              results = mockData['inventory_uoms'] || [];
+            } else if (query.includes('variant_id IS NULL AND uom_id IS NULL')) {
+              results = mockData['inventory_products'] || mockData['inventory'] || [];
+            }
+
+            // Filter by product_id if bound
+            if (query.includes('product_id = ?') && boundArgs.length > 0) {
+              const productId = boundArgs[0];
+              results = results.filter((r: any) => r.product_id === productId || r.productId === productId);
+            }
+
+            return { results: results as T[] };
+          }
+          if (query.includes('inventory_batches')) {
+            let results = mockData['inventory_batches'] || [];
+
+            // Filter by inventory_id if bound
+            if (query.includes('inventory_id = ?') && boundArgs.length > 0) {
+              const inventoryId = boundArgs[0];
+              results = results.filter((r: any) => r.inventory_id === inventoryId || r.inventoryId === inventoryId);
+            }
+
+            return { results: results as T[] };
           }
           return { results: [] as T[] };
         },
@@ -449,8 +469,8 @@ describe('Phase 2: Data Migration Script', () => {
             id: 'prod-1',
             name: 'Fresh Milk',
             sku: 'MILK-001',
-            expiration_date: '2025-12-31',
-            alert_date: '2025-12-24',
+            expirationDate: '2025-12-31',
+            alertDate: '2025-12-24',
           },
         ],
       });
@@ -459,6 +479,7 @@ describe('Phase 2: Data Migration Script', () => {
         inventory: [
           {
             id: 'inv-1',
+            product_id: 'prod-1',
             warehouse_id: 'wh-1',
             quantity_available: 100,
           },
@@ -542,16 +563,16 @@ describe('Phase 2: Data Migration Script', () => {
             id: 'prod-1',
             name: 'Fresh Milk',
             sku: 'MILK-001',
-            expiration_date: '2025-12-31',
-            alert_date: '2025-12-24',
+            expirationDate: '2025-12-31',
+            alertDate: '2025-12-24',
           },
         ],
       });
 
       const inventoryDB = createMockDatabase({
         inventory: [
-          { id: 'inv-1', warehouse_id: 'wh-1', quantity_available: 100 },
-          { id: 'inv-2', warehouse_id: 'wh-2', quantity_available: 50 },
+          { id: 'inv-1', product_id: 'prod-1', warehouse_id: 'wh-1', quantity_available: 100 },
+          { id: 'inv-2', product_id: 'prod-1', warehouse_id: 'wh-2', quantity_available: 50 },
         ],
         inventory_batches: [],
       });
@@ -574,13 +595,13 @@ describe('Phase 2: Data Migration Script', () => {
           { id: 'pl-1', productId: 'prod-1', warehouseId: 'wh-1', quantity: 100 },
         ],
         variant_locations: [
-          { id: 'vl-1', variantId: 'var-1', warehouseId: 'wh-1', quantity: 50, product_id: 'prod-1' },
+          { id: 'vl-1', variantId: 'var-1', warehouseId: 'wh-1', quantity: 50, productId: 'prod-1' },
         ],
         product_uom_locations: [
-          { id: 'ul-1', productUOMId: 'uom-1', warehouseId: 'wh-1', quantity: 10, product_id: 'prod-1', uom_code: 'BOX6' },
+          { id: 'ul-1', productUOMId: 'uom-1', warehouseId: 'wh-1', quantity: 10, productId: 'prod-1', uomCode: 'BOX6' },
         ],
         products_with_expiration: [
-          { id: 'prod-1', name: 'Test', sku: 'TEST-001', expiration_date: '2025-12-31', alert_date: null },
+          { id: 'prod-1', name: 'Test', sku: 'TEST-001', expirationDate: '2025-12-31', alertDate: null },
         ],
       });
 
@@ -804,14 +825,14 @@ describe('Migration Edge Cases', () => {
             id: 'prod-1',
             name: 'Test Product',
             sku: 'TEST-001',
-            expiration_date: '2025-12-31',
-            alert_date: null, // No alert date
+            expirationDate: '2025-12-31',
+            alertDate: null, // No alert date
           },
         ],
       });
 
       const inventoryDB = createMockDatabase({
-        inventory: [{ id: 'inv-1', warehouse_id: 'wh-1', quantity_available: 100 }],
+        inventory: [{ id: 'inv-1', product_id: 'prod-1', warehouse_id: 'wh-1', quantity_available: 100 }],
         inventory_batches: [],
       });
 
@@ -832,14 +853,14 @@ describe('Migration Edge Cases', () => {
             id: 'prod-1',
             name: 'Test Product',
             sku: 'TEST-001',
-            expiration_date: '2025-12-31T23:59:59.000Z',
-            alert_date: '2025-12-24T00:00:00.000Z',
+            expirationDate: '2025-12-31T23:59:59.000Z',
+            alertDate: '2025-12-24T00:00:00.000Z',
           },
         ],
       });
 
       const inventoryDB = createMockDatabase({
-        inventory: [{ id: 'inv-1', warehouse_id: 'wh-1', quantity_available: 100 }],
+        inventory: [{ id: 'inv-1', product_id: 'prod-1', warehouse_id: 'wh-1', quantity_available: 100 }],
         inventory_batches: [],
       });
 
