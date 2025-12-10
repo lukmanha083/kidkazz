@@ -58,7 +58,26 @@ app.route('/api/inventory', inventoryRoutes);
 app.route('/api/batches', inventoryBatchesRoutes); // Phase 3: Batch tracking
 app.route('/api/cleanup', cleanupRoutes); // Admin: Orphaned data cleanup
 
-// WebSocket endpoints for real-time updates
+// ============================================
+// Phase 3: WebSocket Endpoints for Real-Time Updates
+// ============================================
+
+// Generic WebSocket endpoint (Phase 3 DDD - matches roadmap specification)
+app.get('/ws', async (c) => {
+  const upgradeHeader = c.req.header('Upgrade');
+  if (upgradeHeader !== 'websocket') {
+    return c.json({ error: 'Expected WebSocket upgrade' }, 426);
+  }
+
+  // Get Durable Object instance (use a single instance for all connections)
+  const id = c.env.INVENTORY_UPDATES.idFromName('global');
+  const stub = c.env.INVENTORY_UPDATES.get(id);
+
+  // Forward the request to the Durable Object
+  return stub.fetch(c.req.raw);
+});
+
+// Legacy inventory WebSocket endpoint (backward compatibility)
 app.get('/ws/inventory', async (c) => {
   const upgradeHeader = c.req.header('Upgrade');
   if (upgradeHeader !== 'websocket') {
