@@ -2,31 +2,32 @@
  * Broadcast Utility
  *
  * Helper functions to trigger real-time broadcasts via Durable Objects.
- * These are called after inventory or warehouse changes to notify connected clients.
+ * Called after inventory or warehouse changes to notify connected clients.
+ *
+ * Phase 3 DDD Implementation
  */
 
-import type { InventoryUpdate } from '../durable-objects/InventoryUpdatesBroadcaster';
+import type { InventoryEvent } from '../durable-objects/InventoryUpdatesBroadcaster';
 import type { WarehouseUpdate } from '../durable-objects/WarehouseUpdatesBroadcaster';
 
 /**
- * Trigger inventory update broadcast
+ * Broadcast inventory event to all subscribed WebSocket clients
  */
-export async function broadcastInventoryUpdate(
+export async function broadcastInventoryEvent(
   env: { INVENTORY_UPDATES: DurableObjectNamespace },
-  update: InventoryUpdate
+  event: InventoryEvent
 ): Promise<void> {
   try {
     const id = env.INVENTORY_UPDATES.idFromName('global');
     const stub = env.INVENTORY_UPDATES.get(id) as any;
-    await stub.broadcastUpdate(update);
+    await stub.broadcast(event);
   } catch (error) {
-    console.error('Failed to broadcast inventory update:', error);
-    // Don't throw - broadcasts are best-effort
+    console.error('Failed to broadcast inventory event:', error);
   }
 }
 
 /**
- * Trigger warehouse update broadcast
+ * Broadcast warehouse update to all subscribed WebSocket clients
  */
 export async function broadcastWarehouseUpdate(
   env: { WAREHOUSE_UPDATES: DurableObjectNamespace },
@@ -38,6 +39,5 @@ export async function broadcastWarehouseUpdate(
     await stub.broadcastUpdate(update);
   } catch (error) {
     console.error('Failed to broadcast warehouse update:', error);
-    // Don't throw - broadcasts are best-effort
   }
 }
