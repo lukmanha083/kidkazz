@@ -2,9 +2,10 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 import { inventory, inventoryMovements } from '../infrastructure/db/schema';
-import { broadcastInventoryUpdate } from '../infrastructure/broadcast';
+import { broadcastInventoryEvent } from '../infrastructure/broadcast';
+import type { InventoryEvent } from '../durable-objects/InventoryUpdatesBroadcaster';
 
 type Bindings = {
   DB: D1Database;
@@ -18,16 +19,27 @@ const app = new Hono<{ Bindings: Bindings }>();
 // Helper to generate ID
 const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-// Validation schemas
+// Phase 3: Optimistic locking configuration
+const MAX_RETRIES = 3;
+const BASE_RETRY_DELAY_MS = 100;
+
+// Validation schemas (Phase 3: Enhanced with variant and UOM support)
 const adjustStockSchema = z.object({
   warehouseId: z.string(),
   productId: z.string(),
+  variantId: z.string().optional(), // Phase 3: Variant support
+  uomId: z.string().optional(), // Phase 3: UOM support
   quantity: z.number(),
   movementType: z.enum(['in', 'out', 'adjustment']),
-  source: z.enum(['warehouse', 'pos']).optional(), // NEW: Operation source (defaults to 'warehouse')
+  source: z.enum(['warehouse', 'pos']).optional(), // Operation source (defaults to 'warehouse')
   reason: z.string().optional(),
   notes: z.string().optional(),
   performedBy: z.string().optional(),
+  // Phase 3: Physical location support
+  rack: z.string().optional(),
+  bin: z.string().optional(),
+  zone: z.string().optional(),
+  aisle: z.string().optional(),
 });
 
 const setMinimumStockSchema = z.object({
@@ -80,122 +92,225 @@ app.get('/movements/:productId', async (c) => {
   });
 });
 
-// POST /api/inventory/adjust - Adjust inventory (add/remove stock)
+// POST /api/inventory/adjust - Adjust inventory with optimistic locking (Phase 3 DDD)
 app.post('/adjust', zValidator('json', adjustStockSchema), async (c) => {
   const data = c.req.valid('json');
   const db = drizzle(c.env.DB);
-  const now = new Date();
+  let retries = 0;
 
-  // Find or create inventory record
-  let inventoryRecord = await db
-    .select()
-    .from(inventory)
-    .where(and(
-      eq(inventory.productId, data.productId),
-      eq(inventory.warehouseId, data.warehouseId)
-    ))
-    .get();
+  while (retries < MAX_RETRIES) {
+    try {
+      const now = new Date();
 
-  if (!inventoryRecord) {
-    // Create new inventory record
-    inventoryRecord = {
-      id: generateId(),
-      productId: data.productId,
-      warehouseId: data.warehouseId,
-      quantityAvailable: 0,
-      quantityReserved: 0,
-      quantityInTransit: null,
-      minimumStock: 0,
-      lastRestockedAt: null,
-      createdAt: now,
-      updatedAt: now,
-    };
+      // 1. Find or create inventory record with version
+      let inventoryRecord = await db
+        .select()
+        .from(inventory)
+        .where(
+          and(
+            eq(inventory.productId, data.productId),
+            eq(inventory.warehouseId, data.warehouseId),
+            data.variantId ? eq(inventory.variantId, data.variantId) : isNull(inventory.variantId),
+            data.uomId ? eq(inventory.uomId, data.uomId) : isNull(inventory.uomId)
+          )
+        )
+        .get();
 
-    await db.insert(inventory).values(inventoryRecord).run();
-  }
+      if (!inventoryRecord) {
+        // Create new inventory record with optimistic locking
+        const newInv = {
+          id: generateId(),
+          productId: data.productId,
+          warehouseId: data.warehouseId,
+          variantId: data.variantId || null,
+          uomId: data.uomId || null,
+          quantityAvailable: data.movementType === 'adjustment' ? data.quantity : Math.abs(data.quantity),
+          quantityReserved: 0,
+          quantityInTransit: 0,
+          minimumStock: 0,
+          rack: data.rack || null,
+          bin: data.bin || null,
+          zone: data.zone || null,
+          aisle: data.aisle || null,
+          version: 1,
+          lastModifiedAt: now.toISOString(),
+          lastRestockedAt: data.movementType === 'in' ? now : null,
+          createdAt: now,
+          updatedAt: now,
+        };
 
-  // Determine operation source (defaults to 'warehouse')
-  const source = data.source || 'warehouse';
+        await db.insert(inventory).values(newInv).run();
 
-  // Calculate new quantity
-  let newQuantity = inventoryRecord.quantityAvailable;
-  if (data.movementType === 'in') {
-    newQuantity += Math.abs(data.quantity); // Use absolute value to ensure addition
-  } else if (data.movementType === 'out') {
-    const quantityToRemove = Math.abs(data.quantity); // Always use absolute value for removal
-    // BUSINESS RULE: Warehouse operations cannot create negative stock
-    if (source === 'warehouse' && inventoryRecord.quantityAvailable < quantityToRemove) {
+        // Record movement for new inventory
+        await db.insert(inventoryMovements).values({
+          id: generateId(),
+          inventoryId: newInv.id,
+          productId: data.productId,
+          warehouseId: data.warehouseId,
+          movementType: data.movementType,
+          quantity: data.quantity,
+          source: data.source || 'warehouse',
+          referenceType: null,
+          referenceId: null,
+          reason: data.reason || null,
+          notes: data.notes || null,
+          performedBy: data.performedBy || null,
+          createdAt: now,
+        }).run();
+
+        // Broadcast new inventory event
+        await broadcastInventoryEvent(c.env, {
+          type: 'inventory.updated',
+          data: {
+            inventoryId: newInv.id,
+            productId: data.productId,
+            warehouseId: data.warehouseId,
+            variantId: data.variantId,
+            uomId: data.uomId,
+            quantityAvailable: newInv.quantityAvailable,
+            quantityReserved: 0,
+            version: 1,
+            timestamp: now.toISOString(),
+          },
+        });
+
+        return c.json({ inventory: newInv, message: 'Inventory created' }, 201);
+      }
+
+      // 2. Get current version for optimistic locking
+      const currentVersion = inventoryRecord.version || 1;
+      const previousQty = inventoryRecord.quantityAvailable;
+
+      // 3. Calculate new quantity
+      const source = data.source || 'warehouse';
+      let newQty: number;
+
+      if (data.movementType === 'in') {
+        newQty = previousQty + Math.abs(data.quantity);
+      } else if (data.movementType === 'out') {
+        const qtyToRemove = Math.abs(data.quantity);
+        // BUSINESS RULE: Warehouse operations cannot create negative stock
+        if (source === 'warehouse' && previousQty < qtyToRemove) {
+          return c.json(
+            {
+              error: 'Insufficient stock for warehouse adjustment',
+              available: previousQty,
+              requested: qtyToRemove,
+            },
+            400
+          );
+        }
+        newQty = previousQty - qtyToRemove;
+      } else {
+        // adjustment - set to exact quantity
+        newQty = data.quantity;
+      }
+
+      // 4. Update with version check (optimistic locking)
+      const updateResult = await db
+        .update(inventory)
+        .set({
+          quantityAvailable: newQty,
+          version: currentVersion + 1,
+          lastModifiedAt: now.toISOString(),
+          lastRestockedAt: data.movementType === 'in' ? now : inventoryRecord.lastRestockedAt,
+          updatedAt: now,
+          ...(data.rack && { rack: data.rack }),
+          ...(data.bin && { bin: data.bin }),
+          ...(data.zone && { zone: data.zone }),
+          ...(data.aisle && { aisle: data.aisle }),
+        })
+        .where(
+          and(
+            eq(inventory.id, inventoryRecord.id),
+            eq(inventory.version, currentVersion) // Optimistic lock check
+          )
+        )
+        .run();
+
+      // 5. Check if update succeeded (version matched)
+      if (updateResult.meta?.changes === 0) {
+        retries++;
+        if (retries >= MAX_RETRIES) {
+          return c.json(
+            {
+              error: 'Concurrent update conflict. Please refresh and try again.',
+              code: 'OPTIMISTIC_LOCK_FAILURE',
+            },
+            409
+          );
+        }
+        // Exponential backoff before retry
+        await new Promise((r) => setTimeout(r, BASE_RETRY_DELAY_MS * Math.pow(2, retries)));
+        continue;
+      }
+
+      // 6. Record movement
+      const movement = {
+        id: generateId(),
+        inventoryId: inventoryRecord.id,
+        productId: data.productId,
+        warehouseId: data.warehouseId,
+        movementType: data.movementType,
+        quantity: data.quantity,
+        source: source,
+        referenceType: null,
+        referenceId: null,
+        reason: data.reason || null,
+        notes: data.notes || null,
+        performedBy: data.performedBy || null,
+        createdAt: now,
+      };
+
+      await db.insert(inventoryMovements).values(movement).run();
+
+      // 7. Determine event type based on new quantity
+      let eventType: InventoryEvent['type'] = 'inventory.updated';
+      if (newQty === 0) {
+        eventType = 'inventory.out_of_stock';
+      } else if (inventoryRecord.minimumStock && newQty < inventoryRecord.minimumStock) {
+        eventType = 'inventory.low_stock';
+      }
+
+      // 8. Broadcast change via WebSocket
+      await broadcastInventoryEvent(c.env, {
+        type: eventType,
+        data: {
+          inventoryId: inventoryRecord.id,
+          productId: data.productId,
+          warehouseId: data.warehouseId,
+          variantId: data.variantId,
+          uomId: data.uomId,
+          quantityAvailable: newQty,
+          quantityReserved: inventoryRecord.quantityReserved,
+          minimumStock: inventoryRecord.minimumStock ?? undefined,
+          version: currentVersion + 1,
+          previousQuantity: previousQty,
+          changeAmount: data.quantity,
+          movementType: data.movementType,
+          timestamp: now.toISOString(),
+        },
+      });
+
       return c.json({
-        error: 'Insufficient stock for warehouse adjustment',
-        available: inventoryRecord.quantityAvailable,
-        requested: quantityToRemove,
-      }, 400);
+        inventory: {
+          ...inventoryRecord,
+          quantityAvailable: newQty,
+          version: currentVersion + 1,
+          lastModifiedAt: now.toISOString(),
+        },
+        previousQuantity: previousQty,
+        newQuantity: newQty,
+        movement,
+        message: 'Inventory adjusted successfully',
+      });
+    } catch (error) {
+      console.error('Inventory adjustment error:', error);
+      return c.json({ error: 'Failed to adjust inventory' }, 500);
     }
-    // POS operations can create negative stock (first-pay-first-served)
-    newQuantity -= quantityToRemove;
-  } else {
-    // adjustment - set to exact quantity
-    newQuantity = data.quantity;
   }
 
-  // Update inventory
-  await db
-    .update(inventory)
-    .set({
-      quantityAvailable: newQuantity,
-      lastRestockedAt: data.movementType === 'in' ? now : inventoryRecord.lastRestockedAt,
-      updatedAt: now,
-    })
-    .where(eq(inventory.id, inventoryRecord.id))
-    .run();
-
-  // Record movement
-  const movement = {
-    id: generateId(),
-    inventoryId: inventoryRecord.id,
-    productId: data.productId,
-    warehouseId: data.warehouseId,
-    movementType: data.movementType,
-    quantity: data.quantity,
-    source: source, // Track operation source
-    referenceType: null,
-    referenceId: null,
-    reason: data.reason || null,
-    notes: data.notes || null,
-    performedBy: data.performedBy || null,
-    createdAt: now,
-  };
-
-  await db.insert(inventoryMovements).values(movement).run();
-
-  // Get updated record
-  const updated = await db
-    .select()
-    .from(inventory)
-    .where(eq(inventory.id, inventoryRecord.id))
-    .get();
-
-  // Broadcast real-time update via WebSocket
-  if (updated) {
-    await broadcastInventoryUpdate(c.env, {
-      type: 'inventory_adjusted',
-      data: {
-        inventoryId: updated.id,
-        productId: updated.productId,
-        warehouseId: updated.warehouseId,
-        quantityAvailable: updated.quantityAvailable,
-        quantityReserved: updated.quantityReserved,
-        minimumStock: updated.minimumStock ?? undefined,
-        timestamp: new Date().toISOString(),
-      },
-    });
-  }
-
-  return c.json({
-    inventory: updated,
-    movement,
-    message: 'Inventory adjusted successfully',
-  });
+  return c.json({ error: 'Unexpected error in inventory adjustment' }, 500);
 });
 
 // PATCH /api/inventory/:id/minimum-stock - Set minimum stock level
@@ -725,6 +840,93 @@ app.post('/admin/sync-minimum-stock', async (c) => {
     });
     return c.json(result, 500);
   }
+});
+
+// ============================================
+// Phase 3: New DDD-Compliant Endpoints
+// ============================================
+
+// GET /api/inventory/variant/:variantId - Get stock for a variant across all warehouses
+app.get('/variant/:variantId', async (c) => {
+  const variantId = c.req.param('variantId');
+  const db = drizzle(c.env.DB);
+
+  const records = await db
+    .select()
+    .from(inventory)
+    .where(eq(inventory.variantId, variantId))
+    .all();
+
+  const totalAvailable = records.reduce((sum, inv) => sum + inv.quantityAvailable, 0);
+  const totalReserved = records.reduce((sum, inv) => sum + inv.quantityReserved, 0);
+  const isLowStock = records.some(
+    (inv) => inv.minimumStock && inv.quantityAvailable < inv.minimumStock
+  );
+
+  return c.json({
+    variantId,
+    warehouses: records,
+    totalAvailable,
+    totalReserved,
+    isLowStock,
+  });
+});
+
+// GET /api/inventory/uom/:uomId - Get stock for a UOM across all warehouses
+app.get('/uom/:uomId', async (c) => {
+  const uomId = c.req.param('uomId');
+  const db = drizzle(c.env.DB);
+
+  const records = await db
+    .select()
+    .from(inventory)
+    .where(eq(inventory.uomId, uomId))
+    .all();
+
+  const totalAvailable = records.reduce((sum, inv) => sum + inv.quantityAvailable, 0);
+  const totalReserved = records.reduce((sum, inv) => sum + inv.quantityReserved, 0);
+
+  return c.json({
+    uomId,
+    warehouses: records,
+    totalAvailable,
+    totalReserved,
+  });
+});
+
+// GET /api/inventory/low-stock - Get all low stock items (Phase 3 DDD)
+app.get('/low-stock', async (c) => {
+  const warehouseId = c.req.query('warehouseId');
+  const db = drizzle(c.env.DB);
+
+  let query = db.select().from(inventory);
+
+  if (warehouseId) {
+    query = query.where(eq(inventory.warehouseId, warehouseId)) as typeof query;
+  }
+
+  const allRecords = await query.all();
+
+  // Filter for low stock items (where quantityAvailable < minimumStock)
+  const lowStockItems = allRecords
+    .filter((inv) => inv.minimumStock && inv.quantityAvailable < inv.minimumStock)
+    .map((inv) => ({
+      inventoryId: inv.id,
+      productId: inv.productId,
+      warehouseId: inv.warehouseId,
+      variantId: inv.variantId,
+      uomId: inv.uomId,
+      quantityAvailable: inv.quantityAvailable,
+      minimumStock: inv.minimumStock,
+      deficit: (inv.minimumStock || 0) - inv.quantityAvailable,
+      version: inv.version,
+    }));
+
+  return c.json({
+    items: lowStockItems,
+    total: lowStockItems.length,
+    timestamp: new Date().toISOString(),
+  });
 });
 
 export default app;

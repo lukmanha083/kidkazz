@@ -2,34 +2,67 @@
  * Durable Object: Inventory Updates Broadcaster
  *
  * Handles WebSocket connections for real-time inventory updates.
- * Clients subscribe to specific product/warehouse combinations and receive
- * instant notifications when inventory changes occur.
+ * Clients subscribe to channels and receive instant notifications when inventory changes occur.
  *
  * Features:
  * - WebSocket connection management
- * - Room-based subscriptions (product+warehouse)
+ * - Channel-based subscriptions (global, product:xxx, warehouse:xxx, variant:xxx)
  * - Automatic connection cleanup
- * - Broadcast to all subscribers in a room
+ * - Broadcast to all subscribers in matching channels
+ * - Optimistic locking support via version field
+ *
+ * Phase 3 DDD Implementation
  */
 
 import { DurableObject } from 'cloudflare:workers';
 
-export interface InventoryUpdate {
-  type: 'inventory_updated' | 'inventory_adjusted' | 'stock_low';
+/**
+ * Inventory Event Types (DDD Compliant)
+ */
+export type InventoryEventType =
+  | 'inventory.updated'
+  | 'inventory.low_stock'
+  | 'inventory.out_of_stock'
+  | 'batch.expiring_soon'
+  | 'transfer.requested'
+  | 'transfer.approved'
+  | 'transfer.rejected'
+  | 'transfer.picking_started'
+  | 'transfer.packed'
+  | 'transfer.shipped'
+  | 'transfer.received'
+  | 'transfer.completed'
+  | 'transfer.cancelled';
+
+/**
+ * Inventory Event (DDD Compliant)
+ */
+export interface InventoryEvent {
+  type: InventoryEventType;
   data: {
-    inventoryId: string;
-    productId: string;
-    warehouseId: string;
-    quantityAvailable: number;
-    quantityReserved: number;
+    inventoryId?: string;
+    productId?: string;
+    warehouseId?: string;
+    variantId?: string;
+    uomId?: string;
+    quantityAvailable?: number;
+    quantityReserved?: number;
+    quantityInTransit?: number;
     minimumStock?: number;
+    version?: number;
+    previousQuantity?: number;
+    changeAmount?: number;
+    movementType?: string;
     timestamp: string;
+    [key: string]: any;
   };
 }
 
 interface WebSocketSession {
   webSocket: WebSocket;
-  subscriptions: Set<string>; // Set of "productId:warehouseId" room keys
+  subscriptions: Set<string>;
+  connectedAt: number;
+  lastPingAt: number;
 }
 
 export class InventoryUpdatesBroadcaster extends DurableObject {
@@ -40,10 +73,21 @@ export class InventoryUpdatesBroadcaster extends DurableObject {
     this.sessions = new Map();
   }
 
-  /**
-   * Handle HTTP requests (WebSocket upgrade)
-   */
   async fetch(request: Request): Promise<Response> {
+    const url = new URL(request.url);
+
+    // Handle internal broadcast endpoint
+    if (url.pathname === '/broadcast' && request.method === 'POST') {
+      try {
+        const event = (await request.json()) as InventoryEvent;
+        await this.broadcast(event);
+        return new Response('OK', { status: 200 });
+      } catch (error) {
+        console.error('Broadcast error:', error);
+        return new Response('Broadcast failed', { status: 500 });
+      }
+    }
+
     // Only accept WebSocket upgrades
     if (request.headers.get('Upgrade') !== 'websocket') {
       return new Response('Expected WebSocket upgrade', { status: 426 });
@@ -53,17 +97,27 @@ export class InventoryUpdatesBroadcaster extends DurableObject {
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
 
-    // Accept the WebSocket connection
     server.accept();
 
-    // Initialize session
+    const now = Date.now();
     const session: WebSocketSession = {
       webSocket: server,
-      subscriptions: new Set(),
+      subscriptions: new Set(['global']),
+      connectedAt: now,
+      lastPingAt: now,
     };
     this.sessions.set(server, session);
 
-    // Set up event handlers
+    // Send welcome message
+    server.send(
+      JSON.stringify({
+        type: 'connected',
+        message: 'Connected to Inventory WebSocket',
+        timestamp: new Date().toISOString(),
+        defaultChannel: 'global',
+      })
+    );
+
     server.addEventListener('message', (event) => {
       this.handleMessage(server, session, event);
     });
@@ -76,16 +130,12 @@ export class InventoryUpdatesBroadcaster extends DurableObject {
       this.sessions.delete(server);
     });
 
-    // Return the client-side WebSocket
     return new Response(null, {
       status: 101,
       webSocket: client,
     });
   }
 
-  /**
-   * Handle incoming WebSocket messages
-   */
   private handleMessage(
     webSocket: WebSocket,
     session: WebSocketSession,
@@ -96,14 +146,15 @@ export class InventoryUpdatesBroadcaster extends DurableObject {
 
       switch (message.type) {
         case 'subscribe':
-          this.handleSubscribe(session, message.payload);
+          this.handleSubscribe(webSocket, session, message.channel);
           break;
 
         case 'unsubscribe':
-          this.handleUnsubscribe(session, message.payload);
+          this.handleUnsubscribe(webSocket, session, message.channel);
           break;
 
         case 'ping':
+          session.lastPingAt = Date.now();
           webSocket.send(JSON.stringify({ type: 'pong', timestamp: Date.now() }));
           break;
 
@@ -126,105 +177,141 @@ export class InventoryUpdatesBroadcaster extends DurableObject {
   }
 
   /**
-   * Subscribe to inventory updates for specific product/warehouse
+   * Subscribe to a channel
+   * Channels:
+   * - 'global' - receive all updates
+   * - 'product:{productId}' - updates for a specific product
+   * - 'warehouse:{warehouseId}' - updates for a specific warehouse
+   * - 'variant:{variantId}' - updates for a specific variant
+   * - 'uom:{uomId}' - updates for a specific UOM
+   * - 'product:{productId}:warehouse:{warehouseId}' - specific product+warehouse
+   * - 'transfer:{transferId}' - updates for a specific transfer
    */
   private handleSubscribe(
+    webSocket: WebSocket,
     session: WebSocketSession,
-    payload: { productId?: string; warehouseId?: string }
+    channel: string = 'global'
   ): void {
-    const { productId, warehouseId } = payload;
+    session.subscriptions.add(channel);
 
-    // Create room key
-    const roomKey = this.getRoomKey(productId, warehouseId);
-    session.subscriptions.add(roomKey);
-
-    // Send confirmation
-    session.webSocket.send(
+    webSocket.send(
       JSON.stringify({
         type: 'subscribed',
-        roomKey,
-        productId,
-        warehouseId,
+        channel,
+        timestamp: new Date().toISOString(),
       })
     );
   }
 
-  /**
-   * Unsubscribe from inventory updates
-   */
   private handleUnsubscribe(
+    webSocket: WebSocket,
     session: WebSocketSession,
-    payload: { productId?: string; warehouseId?: string }
+    channel: string = 'global'
   ): void {
-    const { productId, warehouseId } = payload;
-    const roomKey = this.getRoomKey(productId, warehouseId);
-    session.subscriptions.delete(roomKey);
+    session.subscriptions.delete(channel);
 
-    session.webSocket.send(
+    webSocket.send(
       JSON.stringify({
         type: 'unsubscribed',
-        roomKey,
-        productId,
-        warehouseId,
+        channel,
+        timestamp: new Date().toISOString(),
       })
     );
   }
 
   /**
-   * Broadcast inventory update to all subscribed clients
-   * This method is called via HTTP POST from the inventory service
+   * Broadcast event to all subscribed clients
    */
-  async broadcastUpdate(update: InventoryUpdate): Promise<void> {
-    const roomKey = this.getRoomKey(update.data.productId, update.data.warehouseId);
+  async broadcast(event: InventoryEvent): Promise<void> {
+    const channels = this.getEventChannels(event);
+    const message = JSON.stringify(event);
 
     let count = 0;
-    const message = JSON.stringify(update);
+    const deadConnections: WebSocket[] = [];
 
-    // Broadcast to all sessions subscribed to this room
     for (const [webSocket, session] of this.sessions.entries()) {
-      if (session.subscriptions.has(roomKey) || session.subscriptions.has('*')) {
+      const shouldReceive =
+        session.subscriptions.has('global') ||
+        channels.some((channel) => session.subscriptions.has(channel));
+
+      if (shouldReceive) {
         try {
           webSocket.send(message);
           count++;
         } catch (error) {
-          // Remove dead connections
-          this.sessions.delete(webSocket);
+          deadConnections.push(webSocket);
         }
       }
     }
 
-    console.log(`Broadcasted update to ${count} clients for room: ${roomKey}`);
+    for (const ws of deadConnections) {
+      this.sessions.delete(ws);
+    }
+
+    console.log(
+      `[InventoryWebSocket] Broadcasted ${event.type} to ${count} clients. Channels: ${channels.join(', ')}`
+    );
   }
 
-  /**
-   * Generate room key for subscriptions
-   */
-  private getRoomKey(productId?: string, warehouseId?: string): string {
-    if (!productId && !warehouseId) return '*'; // Subscribe to all
-    if (productId && warehouseId) return `${productId}:${warehouseId}`;
-    if (productId) return `product:${productId}`;
-    if (warehouseId) return `warehouse:${warehouseId}`;
-    return '*';
+  private getEventChannels(event: InventoryEvent): string[] {
+    const channels: string[] = [];
+    const { productId, warehouseId, variantId, uomId, transferId } = event.data;
+
+    if (variantId) {
+      channels.push(`variant:${variantId}`);
+    }
+
+    if (uomId) {
+      channels.push(`uom:${uomId}`);
+    }
+
+    if (productId && warehouseId) {
+      channels.push(`product:${productId}:warehouse:${warehouseId}`);
+    }
+
+    if (productId) {
+      channels.push(`product:${productId}`);
+    }
+
+    if (warehouseId) {
+      channels.push(`warehouse:${warehouseId}`);
+    }
+
+    if (event.type.startsWith('transfer.') && transferId) {
+      channels.push(`transfer:${transferId}`);
+    }
+
+    return channels;
   }
 
-  /**
-   * Get connection stats (for monitoring)
-   */
   getStats(): {
     totalConnections: number;
     subscriptionCounts: Record<string, number>;
+    oldestConnection: number | null;
+    newestConnection: number | null;
   } {
     const subscriptionCounts: Record<string, number> = {};
+    let oldestConnection: number | null = null;
+    let newestConnection: number | null = null;
 
     for (const session of this.sessions.values()) {
-      for (const roomKey of session.subscriptions) {
-        subscriptionCounts[roomKey] = (subscriptionCounts[roomKey] || 0) + 1;
+      for (const channel of session.subscriptions) {
+        subscriptionCounts[channel] = (subscriptionCounts[channel] || 0) + 1;
+      }
+
+      if (oldestConnection === null || session.connectedAt < oldestConnection) {
+        oldestConnection = session.connectedAt;
+      }
+      if (newestConnection === null || session.connectedAt > newestConnection) {
+        newestConnection = session.connectedAt;
       }
     }
 
     return {
       totalConnections: this.sessions.size,
       subscriptionCounts,
+      oldestConnection,
+      newestConnection,
     };
   }
 }
