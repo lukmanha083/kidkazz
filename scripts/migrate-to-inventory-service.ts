@@ -197,7 +197,18 @@ export async function migrateProductLocations(
   try {
     // Fetch all product locations
     const { results: productLocations } = await productDB.prepare(
-      `SELECT * FROM product_locations`
+      `SELECT
+        id,
+        product_id as productId,
+        warehouse_id as warehouseId,
+        rack,
+        bin,
+        zone,
+        aisle,
+        quantity,
+        created_at as createdAt,
+        updated_at as updatedAt
+      FROM product_locations`
     ).all<ProductLocation>();
 
     if (!productLocations || productLocations.length === 0) {
@@ -296,10 +307,21 @@ export async function migrateVariantLocations(
   try {
     // Fetch variant locations with parent product info
     const { results: variantLocations } = await productDB.prepare(
-      `SELECT vl.*, pv.product_id
+      `SELECT
+        vl.id,
+        vl.variant_id as variantId,
+        vl.warehouse_id as warehouseId,
+        vl.rack,
+        vl.bin,
+        vl.zone,
+        vl.aisle,
+        vl.quantity,
+        vl.created_at as createdAt,
+        vl.updated_at as updatedAt,
+        pv.product_id as productId
        FROM variant_locations vl
        INNER JOIN product_variants pv ON vl.variant_id = pv.id`
-    ).all<VariantLocation & { product_id: string }>();
+    ).all<VariantLocation & { productId: string }>();
 
     if (!variantLocations || variantLocations.length === 0) {
       if (verbose) console.log('  No variant locations to migrate');
@@ -312,7 +334,7 @@ export async function migrateVariantLocations(
         const { results: existing } = await inventoryDB.prepare(
           `SELECT id FROM inventory
            WHERE product_id = ? AND warehouse_id = ? AND variant_id = ?`
-        ).bind(loc.product_id, loc.warehouseId, loc.variantId).all<Inventory>();
+        ).bind(loc.productId, loc.warehouseId, loc.variantId).all<Inventory>();
 
         if (existing && existing.length > 0) {
           result.skipped++;
@@ -332,7 +354,7 @@ export async function migrateVariantLocations(
             ) VALUES (?, ?, ?, ?, NULL, ?, 0, 0, 0, ?, ?, ?, ?, 1, ?, ?, ?)`
           ).bind(
             newId,
-            loc.product_id,
+            loc.productId,
             loc.warehouseId,
             loc.variantId,
             loc.quantity,
@@ -374,10 +396,22 @@ export async function migrateUOMLocations(
   try {
     // Fetch UOM locations with parent product info
     const { results: uomLocations } = await productDB.prepare(
-      `SELECT ul.*, pu.product_id, pu.uom_code
+      `SELECT
+        ul.id,
+        ul.product_uom_id as productUOMId,
+        ul.warehouse_id as warehouseId,
+        ul.rack,
+        ul.bin,
+        ul.zone,
+        ul.aisle,
+        ul.quantity,
+        ul.created_at as createdAt,
+        ul.updated_at as updatedAt,
+        pu.product_id as productId,
+        pu.uom_code as uomCode
        FROM product_uom_locations ul
        INNER JOIN product_uoms pu ON ul.product_uom_id = pu.id`
-    ).all<ProductUOMLocation & { product_id: string; uom_code: string }>();
+    ).all<ProductUOMLocation & { productId: string; uomCode: string }>();
 
     if (!uomLocations || uomLocations.length === 0) {
       if (verbose) console.log('  No UOM locations to migrate');
@@ -390,7 +424,7 @@ export async function migrateUOMLocations(
         const { results: existing } = await inventoryDB.prepare(
           `SELECT id FROM inventory
            WHERE product_id = ? AND warehouse_id = ? AND uom_id = ?`
-        ).bind(loc.product_id, loc.warehouseId, loc.productUOMId).all<Inventory>();
+        ).bind(loc.productId, loc.warehouseId, loc.productUOMId).all<Inventory>();
 
         if (existing && existing.length > 0) {
           result.skipped++;
@@ -410,7 +444,7 @@ export async function migrateUOMLocations(
             ) VALUES (?, ?, ?, NULL, ?, ?, 0, 0, 0, ?, ?, ?, ?, 1, ?, ?, ?)`
           ).bind(
             newId,
-            loc.product_id,
+            loc.productId,
             loc.warehouseId,
             loc.productUOMId,
             loc.quantity,
@@ -423,7 +457,7 @@ export async function migrateUOMLocations(
             Date.now()
           ).run();
         }
-        if (verbose) console.log(`  Created inventory for UOM ${loc.productUOMId} (${loc.uom_code})`);
+        if (verbose) console.log(`  Created inventory for UOM ${loc.productUOMId} (${loc.uomCode})`);
         result.migrated++;
       } catch (error) {
         console.error(`  Error migrating UOM location ${loc.id}:`, error);
@@ -452,10 +486,15 @@ export async function migrateExpirationDates(
   try {
     // Fetch products with expiration dates
     const { results: products } = await productDB.prepare(
-      `SELECT id, name, sku, expiration_date, alert_date
+      `SELECT
+        id,
+        name,
+        sku,
+        expiration_date as expirationDate,
+        alert_date as alertDate
        FROM products
        WHERE expiration_date IS NOT NULL`
-    ).all<{ id: string; name: string; sku: string; expiration_date: string; alert_date: string | null }>();
+    ).all<{ id: string; name: string; sku: string; expirationDate: string; alertDate: string | null }>();
 
     if (!products || products.length === 0) {
       if (verbose) console.log('  No products with expiration dates to migrate');
@@ -508,8 +547,8 @@ export async function migrateExpirationDates(
               product.id,
               inv.warehouse_id,
               batchNumber,
-              product.expiration_date,
-              product.alert_date,
+              product.expirationDate,
+              product.alertDate,
               inv.quantity_available,
               new Date().toISOString(),
               Date.now(),
