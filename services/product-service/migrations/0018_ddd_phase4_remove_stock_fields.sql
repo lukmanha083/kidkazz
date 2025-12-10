@@ -21,14 +21,14 @@ CREATE TABLE products_new (
   sku TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
   description TEXT,
+  image TEXT,
   category_id TEXT REFERENCES categories(id) ON DELETE SET NULL,
-  brand TEXT,
 
   price REAL NOT NULL,
   retail_price REAL,
   wholesale_price REAL,
 
-  -- REMOVED: minimumStock - now in Inventory Service
+  -- REMOVED: minimum_stock - now in Inventory Service
 
   base_unit TEXT DEFAULT 'PCS' NOT NULL,
   wholesale_threshold INTEGER DEFAULT 100,
@@ -45,7 +45,7 @@ CREATE TABLE products_new (
   available_for_retail INTEGER DEFAULT 1,
   available_for_wholesale INTEGER DEFAULT 1,
 
-  status TEXT DEFAULT 'omnichannel sales',
+  status TEXT DEFAULT 'active',
   is_bundle INTEGER DEFAULT 0,
 
   -- REMOVED: expiration_date, alert_date - now in Inventory Service batches
@@ -69,12 +69,14 @@ CREATE TABLE products_new (
   gl_segment3 TEXT,
 
   created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL
+  updated_at INTEGER NOT NULL,
+  created_by TEXT,
+  updated_by TEXT
 );
 
--- Copy data (excluding removed columns)
+-- Copy data (excluding removed columns: minimum_stock, expiration_date, alert_date)
 INSERT INTO products_new SELECT
-  id, barcode, sku, name, description, category_id, brand,
+  id, barcode, sku, name, description, image, category_id,
   price, retail_price, wholesale_price,
   base_unit, wholesale_threshold, minimum_order_quantity,
   weight, length, width, height,
@@ -86,7 +88,7 @@ INSERT INTO products_new SELECT
   cost_price, costing_method,
   taxable, tax_category_id,
   gl_segment1, gl_segment2, gl_segment3,
-  created_at, updated_at
+  created_at, updated_at, created_by, updated_by
 FROM products;
 
 DROP TABLE products;
