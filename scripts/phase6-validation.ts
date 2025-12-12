@@ -6,13 +6,29 @@
  * Reference: docs/DDD_REFACTORING_ROADMAP.md - Phase 6
  *
  * Usage:
- *   npx tsx scripts/phase6-validation.ts [command]
+ *   npx tsx scripts/phase6-validation.ts [command] [options]
  *
  * Commands:
  *   data        - Run data validation queries
  *   websocket   - Test WebSocket connection
  *   locking     - Test optimistic locking
- *   all         - Run all validations
+ *   integrity   - Run data integrity tests
+ *   all         - Run all validations (default)
+ *
+ * Options:
+ *   --inventory-url <url>  - Inventory service URL (default: http://localhost:8792)
+ *   --product-url <url>    - Product service URL (default: http://localhost:8788)
+ *   --ws-url <url>         - WebSocket URL (default: ws://localhost:8792/ws)
+ *
+ * Environment Variables (alternative to options):
+ *   INVENTORY_SERVICE_URL  - Inventory service URL
+ *   PRODUCT_SERVICE_URL    - Product service URL
+ *   INVENTORY_WS_URL       - WebSocket URL
+ *
+ * Examples:
+ *   npx tsx scripts/phase6-validation.ts all
+ *   npx tsx scripts/phase6-validation.ts data --product-url http://localhost:8793
+ *   npx tsx scripts/phase6-validation.ts all --inventory-url http://localhost:8792 --product-url http://localhost:8793
  */
 
 interface ValidationResult {
@@ -511,16 +527,40 @@ function printReport(report: ValidationReport): void {
 // Main Entry Point
 // ============================================
 
+function parseArgs(args: string[]): {
+  command: string;
+  inventoryUrl: string;
+  productUrl: string;
+  wsUrl: string;
+} {
+  let command = 'all';
+  let inventoryUrl = process.env.INVENTORY_SERVICE_URL || 'http://localhost:8792';
+  let productUrl = process.env.PRODUCT_SERVICE_URL || 'http://localhost:8788';
+  let wsUrl = process.env.INVENTORY_WS_URL || 'ws://localhost:8792/ws';
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === '--inventory-url' && args[i + 1]) {
+      inventoryUrl = args[++i];
+    } else if (arg === '--product-url' && args[i + 1]) {
+      productUrl = args[++i];
+    } else if (arg === '--ws-url' && args[i + 1]) {
+      wsUrl = args[++i];
+    } else if (!arg.startsWith('--')) {
+      command = arg;
+    }
+  }
+
+  return { command, inventoryUrl, productUrl, wsUrl };
+}
+
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
-  const command = args[0] || 'all';
+  const { command, inventoryUrl, productUrl, wsUrl } = parseArgs(args);
 
-  // Default URLs (can be overridden with environment variables)
-  const inventoryServiceUrl =
-    process.env.INVENTORY_SERVICE_URL || 'http://localhost:8792';
-  const productServiceUrl =
-    process.env.PRODUCT_SERVICE_URL || 'http://localhost:8788';
-  const wsUrl = process.env.INVENTORY_WS_URL || 'ws://localhost:8792/ws';
+  // URLs from parsed arguments
+  const inventoryServiceUrl = inventoryUrl;
+  const productServiceUrl = productUrl;
 
   console.log('\n🚀 Phase 6: DDD Refactoring Validation');
   console.log('=' .repeat(60));
