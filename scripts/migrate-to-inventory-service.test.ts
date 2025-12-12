@@ -50,7 +50,7 @@ function createMockDatabase(mockData: Record<string, unknown[]>): MockD1Database
         all: async <T>() => {
           // Handle COUNT queries first (before table name checks)
           if (query.includes('COUNT')) {
-            // Return count based on table
+            // Return count based on table - check inventory_batches BEFORE inventory
             if (query.includes('product_locations')) {
               return { results: [{ count: (mockData['product_locations'] || []).length }] as T[] };
             }
@@ -63,6 +63,7 @@ function createMockDatabase(mockData: Record<string, unknown[]>): MockD1Database
             if (query.includes('products') && query.includes('expiration_date')) {
               return { results: [{ count: (mockData['products_with_expiration'] || []).length }] as T[] };
             }
+            // Check inventory_batches BEFORE inventory (inventory_batches contains 'inventory')
             if (query.includes('inventory_batches')) {
               return { results: [{ count: (mockData['inventory_batches'] || []).length }] as T[] };
             }
@@ -79,6 +80,18 @@ function createMockDatabase(mockData: Record<string, unknown[]>): MockD1Database
           }
 
           // Determine which data to return based on query
+          // IMPORTANT: Check inventory_batches BEFORE inventory (inventory_batches contains 'inventory')
+          if (query.includes('inventory_batches')) {
+            let results = mockData['inventory_batches'] || [];
+
+            // Filter by inventory_id if bound
+            if (query.includes('inventory_id = ?') && boundArgs.length > 0) {
+              const inventoryId = boundArgs[0];
+              results = results.filter((r: any) => r.inventory_id === inventoryId || r.inventoryId === inventoryId);
+            }
+
+            return { results: results as T[] };
+          }
           if (query.includes('product_locations')) {
             return { results: (mockData['product_locations'] || []) as T[] };
           }
@@ -107,17 +120,6 @@ function createMockDatabase(mockData: Record<string, unknown[]>): MockD1Database
             if (query.includes('product_id = ?') && boundArgs.length > 0) {
               const productId = boundArgs[0];
               results = results.filter((r: any) => r.product_id === productId || r.productId === productId);
-            }
-
-            return { results: results as T[] };
-          }
-          if (query.includes('inventory_batches')) {
-            let results = mockData['inventory_batches'] || [];
-
-            // Filter by inventory_id if bound
-            if (query.includes('inventory_id = ?') && boundArgs.length > 0) {
-              const inventoryId = boundArgs[0];
-              results = results.filter((r: any) => r.inventory_id === inventoryId || r.inventoryId === inventoryId);
             }
 
             return { results: results as T[] };

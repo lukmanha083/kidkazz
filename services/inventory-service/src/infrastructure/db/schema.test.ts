@@ -294,7 +294,8 @@ describe('Phase 1: Inventory Schema Enhancement', () => {
         ))
         .run();
 
-      expect(updateResult.meta?.changes).toBe(1);
+      // For better-sqlite3, changes is directly on the result object
+      expect(updateResult.changes).toBe(1);
 
       const result = await db
         .select()
@@ -332,8 +333,8 @@ describe('Phase 1: Inventory Schema Enhancement', () => {
         ))
         .run();
 
-      // No rows should be updated
-      expect(updateResult.meta?.changes).toBe(0);
+      // No rows should be updated - for better-sqlite3, changes is directly on result
+      expect(updateResult.changes).toBe(0);
 
       // Verify quantity unchanged
       const result = await db
