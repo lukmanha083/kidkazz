@@ -79,7 +79,7 @@ This roadmap outlines the complete refactoring plan to achieve ideal DDD/Hexagon
 | **3** | WebSocket & Optimistic Locking | 3-4 days | ✅ Complete |
 | **4** | Product Service Schema Cleanup | 1-2 days | ✅ Complete (2025-12-10) |
 | **5** | API Refactoring | 2-3 days | ✅ Complete (2025-12-10) |
-| **6** | Testing & Validation | 2-3 days | 🔄 In Progress |
+| **6** | Testing & Validation | 2-3 days | ✅ Complete (2025-12-11) |
 | **7** | Inter-Warehouse Transfer (Inbound/Outbound) | 3-4 days | ⏳ Pending |
 | **8** | Stock Opname & Physical Bundles | 4-5 days | ⏳ Pending |
 
@@ -1062,11 +1062,39 @@ wait
 ```
 
 ### 6.4 Deliverables
-- [ ] All validation queries pass
-- [ ] WebSocket connection works
-- [ ] Real-time events received
-- [ ] Optimistic locking prevents conflicts
-- [ ] No data loss verified
+- [x] All validation queries pass
+- [x] WebSocket connection works
+- [x] Real-time events received
+- [x] Optimistic locking prevents conflicts
+- [x] No data loss verified
+
+### 6.5 Implementation Files (Added 2025-12-11)
+
+**Test Suite:**
+- `services/inventory-service/src/tests/phase6-validation.test.ts` - Comprehensive test suite with:
+  - 6.1 Data Validation Queries (inventory records, batches, low stock)
+  - 6.2 WebSocket Tests (event types, channel routing, message handling)
+  - 6.3 Optimistic Locking Tests (version checking, concurrent updates)
+  - 6.4 Data Integrity Tests (referential integrity, stock consistency, audit trail)
+
+**Validation Scripts:**
+- `scripts/phase6-validation.ts` - CLI validation tool
+  - Run with: `npx tsx scripts/phase6-validation.ts [command]`
+  - Commands: `data`, `websocket`, `locking`, `integrity`, `all`
+  - Generates detailed validation report with pass/fail status
+
+**Usage:**
+```bash
+# Run all validations
+npx tsx scripts/phase6-validation.ts all
+
+# Run specific validation
+npx tsx scripts/phase6-validation.ts data
+npx tsx scripts/phase6-validation.ts locking
+
+# Run unit tests
+cd services/inventory-service && pnpm test
+```
 
 ---
 
