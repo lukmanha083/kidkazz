@@ -37,6 +37,6 @@
 
   // Development settings
   "dev": {
-    "port": 8793
+    "port": 8798
   }
 }
