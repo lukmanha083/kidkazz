@@ -201,7 +201,7 @@ async function runDataValidation(
 
   // 5. Verify inventory batches exist
   try {
-    const response = await fetch(`${inventoryServiceUrl}/api/inventory-batches`);
+    const response = await fetch(`${inventoryServiceUrl}/api/batches`);
     if (response.ok) {
       const data = await response.json();
       const batches = data.batches || [];
