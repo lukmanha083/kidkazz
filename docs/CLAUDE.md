@@ -11,22 +11,24 @@
 
 ### Project Overview
 
-Kidkazz is a dual-market e-commerce platform (B2C Retail + B2B Wholesale) with multi-warehouse inventory management, built on Cloudflare Workers using microservices architecture.
+Kidkazz is Real-Time Omnichannel ERP with Real-Time multi-warehouse inventory management using websocket, built on Cloudflare Workers using microservices architecture for backend. The frontend will using tanstack router, query, table, virtual table, form. For UIDesign it will leverage Shadcn UI as UI Component. We will have several frontend app such as admin-dashboard web for internal ERP, Point of Sale for on-store offline sales, E-Commerce Web for Retail, E-Commerce Web for Wholesale, Mobile Android App for kidkazz admin, Mobile Android and IOS App for Retail.
 
 **Key Technologies**:
 - Backend: Cloudflare Workers (Hono framework)
 - Database: D1 (SQLite-based)
+- Saga Pattern: Cloudflare workflow
 - Real-time: Durable Objects + WebSocket
-- Frontend: Next.js + ShadCN UI
+- Frontend: Tanstack + ShadCN UI
 - Testing: Vitest
 
 **Core Services**:
 1. **Product Service** - Catalog, pricing, bundles (virtual)
 2. **Inventory Service** - Stock management, batches, movements (single source of truth)
-3. **Order Service** - Retail/Wholesale orders, Saga pattern
-4. **Payment Service** - Xendit integration
+3. **Order Service** - Retail/wholesale orders, Saga pattern
+4. **Payment Service** - midtrans integration/direct rest api integration for BCA, BRI and CIMB Niaga
 5. **User Service** - Authentication, RBAC
 6. **Accounting Service** - Double-entry bookkeeping
+7. **Shipping Service** - Lalamove & J&T integration through Rest-Api
 
 ---
 
@@ -190,7 +192,7 @@ inventory.version  // Incremented on every update
 
 ### Frontend Context
 **Technologies**:
-- Next.js (App Router)
+- Tanstack Framework
 - ShadCN UI components
 - Zustand (state management)
 - TanStack Query (API caching)
