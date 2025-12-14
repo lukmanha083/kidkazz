@@ -1,125 +1,164 @@
-# Frontend Refactoring Roadmap: Admin Dashboard DDD Integration
+# Frontend Refactoring Roadmap: TanStack Ecosystem Integration
 
 ## Executive Summary
 
-This roadmap outlines the refactoring plan for the **admin-dashboard** frontend application to align with the DDD/Hexagonal architecture refactoring of the backend services.
+This roadmap outlines the comprehensive refactoring plan for the **admin-dashboard** frontend application to:
+1. Align with the DDD/Hexagonal architecture of backend services
+2. Leverage the **TanStack Ecosystem** for modern React development
+3. Implement real-time inventory updates via WebSocket
 
-**Goal**: Integrate frontend with refactored backend APIs and implement real-time inventory updates via WebSocket
+**Goal**: Modern, type-safe, performant frontend integrated with DDD-compliant backend APIs
 
-**Dependencies**: Backend Phases 1-6 must be completed before frontend Phase 3
+**TanStack Ecosystem Stack**:
+- **@tanstack/react-query** - Server state management & caching (✅ Partially Implemented)
+- **@tanstack/react-router** - Type-safe file-based routing
+- **@tanstack/react-table** - Headless table primitives
+- **@tanstack/react-virtual** - Virtualized lists for large datasets
+- **@tanstack/react-form** - Type-safe form management
 
-**Key Changes**:
-- Remove stock fields from Product Service API calls
-- Fetch all stock data from Inventory Service (single source of truth)
-- Implement WebSocket for real-time inventory updates
-- Add new UI for Stock Transfers (Phase 7) and Stock Opname (Phase 8)
+**Dependencies**: Backend Phases 1-6 complete, Phases 7-8 pending
+
+---
+
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      FRONTEND ARCHITECTURE (TanStack)                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                    TanStack Router                                      │ │
+│  │  - Type-safe file-based routing                                        │ │
+│  │  - Automatic code splitting                                            │ │
+│  │  - Search param validation (Zod)                                       │ │
+│  │  - Loader/action patterns for data fetching                            │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                              │                                               │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                    TanStack Query                                       │ │
+│  │  - Server state management                                             │ │
+│  │  - Automatic caching & cache invalidation                              │ │
+│  │  - Optimistic updates for mutations                                    │ │
+│  │  - Real-time sync via WebSocket                                        │ │
+│  │  - Status: ✅ Partially Implemented (warehouses, inventory)            │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                              │                                               │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                    TanStack Table                                       │ │
+│  │  - Headless table primitives                                           │ │
+│  │  - Sorting, filtering, pagination                                      │ │
+│  │  - Column resizing & ordering                                          │ │
+│  │  - Row selection & expansion                                           │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                              │                                               │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                    TanStack Virtual                                     │ │
+│  │  - Virtualized lists for 10,000+ rows                                  │ │
+│  │  - Window/container virtualization                                     │ │
+│  │  - Dynamic row heights                                                 │ │
+│  │  - Smooth scrolling                                                    │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                              │                                               │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                    TanStack Form                                        │ │
+│  │  - Type-safe form state management                                     │ │
+│  │  - Zod schema validation                                               │ │
+│  │  - Field-level & form-level validation                                 │ │
+│  │  - Async validation support                                            │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                              │                                               │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │                    UI Layer (Shadcn/UI)                                 │ │
+│  │  - Radix primitives                                                    │ │
+│  │  - Tailwind CSS styling                                                │ │
+│  │  - Consistent design system                                            │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                  │
+            ┌─────────────────────┴─────────────────────┐
+            │                                           │
+       REST API                                   WebSocket
+            │                                           │
+            ▼                                           ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    BACKEND MICROSERVICES (DDD)                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Product Service (8788)    │  Inventory Service (8792)                       │
+│  - Catalog data only       │  - Stock data (single source of truth)          │
+│  - NO stock fields         │  - Batches, movements, transfers                │
+│                            │  - WebSocket real-time updates                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ## Current State Analysis
 
-### Current API Structure (`src/lib/api.ts`)
+### Implemented (✅)
 
-| API Module | Current Service | Stock Fields | DDD Status |
-|------------|-----------------|--------------|------------|
-| `productApi` | Product Service | `stock`, `minimumStock`, `expirationDate` | **VIOLATION** |
-| `variantApi` | Product Service | `stock` | **VIOLATION** |
-| `productLocationApi` | Product Service | `quantity` | **VIOLATION** |
-| `productUOMLocationApi` | Product Service | `quantity` | **VIOLATION** |
-| `variantLocationApi` | Product Service | `quantity` | **VIOLATION** |
-| `inventoryApi` | Inventory Service | `quantityAvailable`, `quantityReserved` | **CORRECT** |
-| `warehouseApi` | Inventory Service | N/A | **CORRECT** |
+| Component | Status | Location |
+|-----------|--------|----------|
+| React Query Client | ✅ Done | `src/lib/query-client.ts` |
+| Query Keys Factory | ✅ Done | `src/lib/query-client.ts` |
+| useWarehouses Hook | ✅ Done | `src/hooks/queries/useWarehouses.ts` |
+| useInventory Hook | ✅ Done | `src/hooks/queries/useInventory.ts` |
+| WebSocket Hook | ✅ Done | `src/hooks/useWebSocket.ts` |
+| API Client Layer | ✅ Partial | `src/lib/api.ts` |
 
-### Current Data Flow (Before Refactoring)
+### Pending (⏳)
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     CURRENT STATE (VIOLATIONS)                           │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│  Admin Dashboard                                                         │
-│       │                                                                  │
-│       ├──→ Product Service                                               │
-│       │    ├── GET /api/products (includes stock, minimumStock) ❌       │
-│       │    ├── GET /api/variants (includes stock) ❌                     │
-│       │    ├── GET /api/product-locations (includes quantity) ❌         │
-│       │    └── PATCH /api/products/:id/stock (updates Product) ❌        │
-│       │                                                                  │
-│       └──→ Inventory Service                                             │
-│            ├── GET /api/inventory/:productId ✅                          │
-│            └── POST /api/inventory/adjust ✅                             │
-│                                                                          │
-│  Problem: Stock data in two places, potential inconsistency              │
-│                                                                          │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+| Component | Status | Description |
+|-----------|--------|-------------|
+| TanStack Router Migration | ⏳ Pending | Replace react-router with @tanstack/react-router |
+| TanStack Table Integration | ⏳ Pending | Replace current tables with TanStack Table |
+| TanStack Virtual Integration | ⏳ Pending | Virtualize large product/inventory lists |
+| TanStack Form Integration | ⏳ Pending | Replace current form handling |
+| API Types Cleanup | ⏳ Pending | Remove deprecated stock fields from Product types |
+| Transfer UI (Phase 7) | ⏳ Pending | Inter-warehouse transfer management |
+| Stock Opname UI (Phase 8) | ⏳ Pending | Physical inventory count interface |
 
----
+### Current API Structure Issues
 
-## Target State Architecture
-
-### Target Data Flow (After Refactoring)
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     TARGET STATE (DDD COMPLIANT)                         │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│  Admin Dashboard                                                         │
-│       │                                                                  │
-│       ├──→ Product Service (Catalog Only)                                │
-│       │    ├── GET /api/products (NO stock fields) ✅                    │
-│       │    ├── GET /api/variants (NO stock field) ✅                     │
-│       │    ├── GET /api/product-locations (NO quantity) ✅               │
-│       │    └── POST /api/products (catalog data only) ✅                 │
-│       │                                                                  │
-│       ├──→ Inventory Service (All Stock Data)                            │
-│       │    ├── GET /api/inventory/:productId ✅                          │
-│       │    ├── GET /api/inventory/variant/:variantId ✅ (NEW)            │
-│       │    ├── GET /api/inventory/uom/:uomId ✅ (NEW)                    │
-│       │    ├── POST /api/inventory/adjust ✅                             │
-│       │    └── GET /api/batches/:productId (expiration) ✅ (NEW)         │
-│       │                                                                  │
-│       └──→ WebSocket (Real-time Updates)                                 │
-│            ├── inventory.updated ✅                                      │
-│            ├── inventory.low_stock ✅                                    │
-│            ├── inventory.out_of_stock ✅                                 │
-│            ├── transfer.* events ✅                                      │
-│            └── batch.expiring_soon ✅                                    │
-│                                                                          │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+| API Module | Issue | DDD Status |
+|------------|-------|------------|
+| `productApi` | Still has `stock`, `minimumStock` fields | **NEEDS CLEANUP** |
+| `variantApi` | Still has `stock` field | **NEEDS CLEANUP** |
+| `productLocationApi` | Still has `quantity` field | **NEEDS CLEANUP** |
+| `inventoryApi` | Correct structure | ✅ **COMPLIANT** |
+| `warehouseApi` | Correct structure | ✅ **COMPLIANT** |
 
 ---
 
 ## Phase Overview
 
-| Phase | Description | Depends On Backend Phase |
-|-------|-------------|-------------------------|
-| **F1** | API Types & Interface Updates | Phase 4, 5 |
-| **F2** | Service Layer Refactoring | Phase 4, 5 |
-| **F3** | WebSocket Integration | Phase 3 |
-| **F4** | Component Updates | Phase 4, 5 |
-| **F5** | Reports & Dashboard Updates | Phase 6 |
-| **F6** | Stock Transfer UI | Phase 7 |
-| **F7** | Stock Opname UI | Phase 8 |
+| Phase | Description | Dependencies | Priority |
+|-------|-------------|--------------|----------|
+| **F1** | API Types & Interface Cleanup | Backend Phase 4-5 | 🔴 High |
+| **F2** | TanStack Query Completion | F1 | 🔴 High |
+| **F3** | TanStack Router Migration | None | 🟡 Medium |
+| **F4** | TanStack Table Integration | F2 | 🟡 Medium |
+| **F5** | TanStack Virtual Integration | F4 | 🟢 Low |
+| **F6** | TanStack Form Integration | F1 | 🟡 Medium |
+| **F7** | Transfer UI (Phase 7 Backend) | Backend Phase 7 | 🟡 Medium |
+| **F8** | Stock Opname UI (Phase 8 Backend) | Backend Phase 8 | 🟢 Low |
 
 ---
 
-## Phase F1: API Types & Interface Updates
+## Phase F1: API Types & Interface Cleanup
 
 ### F1.1 Update Product Types (Remove Stock Fields)
 
 **File**: `src/lib/api.ts`
 
 ```typescript
-// BEFORE (with violations)
+// ❌ BEFORE (with violations)
 export interface Product {
   id: string;
   barcode: string;
   name: string;
   sku: string;
-  // ... catalog fields
   stock: number;                    // ❌ REMOVE
   minimumStock?: number | null;     // ❌ REMOVE
   expirationDate?: string | null;   // ❌ REMOVE
@@ -127,7 +166,7 @@ export interface Product {
   // ...
 }
 
-// AFTER (DDD compliant)
+// ✅ AFTER (DDD compliant)
 export interface Product {
   id: string;
   barcode: string;
@@ -154,14 +193,13 @@ export interface Product {
   isBundle: boolean;
   createdAt: Date;
   updatedAt: Date;
-  // Stock data fetched separately from Inventory Service
 }
 ```
 
 ### F1.2 Update Variant Types (Remove Stock Field)
 
 ```typescript
-// BEFORE
+// ❌ BEFORE
 export interface ProductVariant {
   id: string;
   productId: string;
@@ -176,7 +214,7 @@ export interface ProductVariant {
   updatedAt: Date;
 }
 
-// AFTER
+// ✅ AFTER
 export interface ProductVariant {
   id: string;
   productId: string;
@@ -194,83 +232,33 @@ export interface ProductVariant {
 }
 ```
 
-### F1.3 Update Location Types (Remove Quantity Field)
+### F1.3 Add Enhanced Inventory Types
 
 ```typescript
-// BEFORE
-export interface ProductLocation {
-  id: string;
-  productId: string;
-  warehouseId: string;
-  rack?: string | null;
-  bin?: string | null;
-  zone?: string | null;
-  aisle?: string | null;
-  quantity: number;        // ❌ REMOVE
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// AFTER
-export interface ProductLocation {
-  id: string;
-  productId: string;
-  warehouseId: string;
-  rack?: string | null;
-  bin?: string | null;
-  zone?: string | null;
-  aisle?: string | null;
-  // NO quantity - fetch from Inventory Service
-  createdAt: Date;
-  updatedAt: Date;
-}
-```
-
-### F1.4 Add New Inventory Types
-
-```typescript
-// Enhanced Inventory type with new fields
+// Enhanced Inventory type (already implemented)
 export interface Inventory {
   id: string;
   warehouseId: string;
   productId: string;
-  variantId?: string | null;    // NEW: variant support
-  uomId?: string | null;        // NEW: UOM support
+  variantId?: string | null;
+  uomId?: string | null;
   quantityAvailable: number;
   quantityReserved: number;
-  quantityInTransit?: number;   // NEW: for transfers
+  quantityInTransit?: number;
   minimumStock: number;
-  rack?: string | null;         // NEW: moved from Product Service
+  rack?: string | null;
   bin?: string | null;
   zone?: string | null;
   aisle?: string | null;
-  version: number;              // NEW: optimistic locking
+  version: number;
   lastModifiedAt?: string;
   lastRestockedAt?: Date | string;
   createdAt: Date | string;
   updatedAt: Date | string;
 }
 
-// Inventory Batch (for expiration tracking)
-export interface InventoryBatch {
-  id: string;
-  inventoryId: string;
-  productId: string;
-  warehouseId: string;
-  batchNumber: string;
-  lotNumber?: string;
-  expirationDate?: string;      // Moved from Product
-  alertDate?: string;           // Moved from Product
-  quantityAvailable: number;
-  quantityReserved: number;
-  status: 'active' | 'expired' | 'depleted';
-  version: number;
-  createdAt: Date | string;
-  updatedAt: Date | string;
-}
-
-// Product with stock (combined view)
-export interface ProductWithStock extends Product {
+// NEW: Product with Inventory (combined view for UI)
+export interface ProductWithInventory extends Product {
   inventory?: {
     totalAvailable: number;
     totalReserved: number;
@@ -280,814 +268,963 @@ export interface ProductWithStock extends Product {
     warehouses: Inventory[];
   };
 }
+
+// NEW: Inventory Batch (for expiration tracking)
+export interface InventoryBatch {
+  id: string;
+  inventoryId: string;
+  productId: string;
+  warehouseId: string;
+  batchNumber: string;
+  lotNumber?: string;
+  expirationDate?: string;
+  alertDate?: string;
+  quantityAvailable: number;
+  quantityReserved: number;
+  status: 'active' | 'expired' | 'depleted' | 'quarantined';
+  version: number;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+```
+
+### F1.4 Add Transfer & Stock Opname Types (For Phases 7 & 8)
+
+```typescript
+// Stock Transfer Order
+export interface StockTransferOrder {
+  id: string;
+  transferNumber: string;
+  sourceWarehouseId: string;
+  destinationWarehouseId: string;
+  requestedBy?: string;
+  requestReason: 'low_stock' | 'replenishment' | 'rebalancing' | 'manual';
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  status: TransferStatus;
+  approvedBy?: string;
+  approvedAt?: string;
+  shippedAt?: string;
+  receivedAt?: string;
+  completedAt?: string;
+  notes?: string;
+  items: StockTransferItem[];
+  version: number;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export type TransferStatus =
+  | 'requested'
+  | 'approved'
+  | 'rejected'
+  | 'picking'
+  | 'packed'
+  | 'shipped'
+  | 'in_transit'
+  | 'received'
+  | 'putaway'
+  | 'completed'
+  | 'cancelled';
+
+export interface StockTransferItem {
+  id: string;
+  transferOrderId: string;
+  productId: string;
+  variantId?: string;
+  uomId?: string;
+  quantityRequested: number;
+  quantityApproved?: number;
+  quantityPicked?: number;
+  quantityShipped?: number;
+  quantityReceived?: number;
+  quantityDamaged?: number;
+  quantityMissing?: number;
+  itemStatus: 'pending' | 'picked' | 'packed' | 'shipped' | 'received' | 'putaway' | 'completed';
+}
+
+// Stock Opname Session
+export interface StockOpnameSession {
+  id: string;
+  opnameNumber: string;
+  warehouseId: string;
+  scopeType: 'full' | 'zone' | 'category' | 'product';
+  scopeZone?: string;
+  scopeCategoryId?: string;
+  status: OpnameStatus;
+  startedAt?: string;
+  completedAt?: string;
+  totalItemsCounted: number;
+  totalVarianceQty: number;
+  totalVarianceValue: number;
+  notes?: string;
+  version: number;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export type OpnameStatus =
+  | 'draft'
+  | 'in_progress'
+  | 'pending_review'
+  | 'approved'
+  | 'rejected'
+  | 'completed'
+  | 'cancelled';
+
+export interface StockOpnameItem {
+  id: string;
+  opnameSessionId: string;
+  productId: string;
+  variantId?: string;
+  systemQuantity: number;
+  countedQuantity?: number;
+  varianceQuantity?: number;
+  varianceValue?: number;
+  countedBy?: string;
+  countedAt?: string;
+  adjustmentStatus: 'pending' | 'approved' | 'rejected' | 'applied';
+}
 ```
 
 ### F1.5 Deliverables
+
 - [ ] Update Product interface (remove stock fields)
 - [ ] Update ProductVariant interface (remove stock field)
 - [ ] Update ProductLocation interface (remove quantity)
-- [ ] Update ProductUOMLocation interface (remove quantity)
-- [ ] Update VariantLocation interface (remove quantity)
+- [ ] Add ProductWithInventory combined type
 - [ ] Add InventoryBatch interface
-- [ ] Add ProductWithStock combined type
-- [ ] Add WebSocket event types
+- [ ] Add StockTransferOrder interfaces
+- [ ] Add StockOpnameSession interfaces
+- [ ] Update CreateProductInput (remove stock fields)
 
 ---
 
-## Phase F2: Service Layer Refactoring
+## Phase F2: TanStack Query Completion
 
-### F2.1 Create Inventory Service API Module
+### F2.1 Extend Query Keys Factory
 
-**File**: `src/lib/api.ts` - Enhanced inventoryApi
+**File**: `src/lib/query-client.ts`
 
 ```typescript
-export const inventoryApi = {
-  // ============================================
-  // PRODUCT INVENTORY
-  // ============================================
-
-  // Get inventory for a product across all warehouses
-  getByProduct: async (productId: string): Promise<{
-    productId: string;
-    warehouses: Inventory[];
-    totalAvailable: number;
-    totalReserved: number;
-    totalInTransit: number;
-    isLowStock: boolean;
-  }> => {
-    const url = `${INVENTORY_SERVICE_URL}/api/inventory/${productId}`;
-    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
+export const queryKeys = {
+  // Warehouses (✅ Already implemented)
+  warehouses: {
+    all: ['warehouses'] as const,
+    lists: () => [...queryKeys.warehouses.all, 'list'] as const,
+    list: (filters?: Record<string, any>) =>
+      [...queryKeys.warehouses.lists(), filters] as const,
+    details: () => [...queryKeys.warehouses.all, 'detail'] as const,
+    detail: (id: string) => [...queryKeys.warehouses.details(), id] as const,
   },
 
-  // Get specific product-warehouse inventory
-  getByProductAndWarehouse: async (productId: string, warehouseId: string): Promise<Inventory> => {
-    const url = `${INVENTORY_SERVICE_URL}/api/inventory/${productId}/${warehouseId}`;
-    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
+  // Inventory (✅ Already implemented)
+  inventory: {
+    all: ['inventory'] as const,
+    lists: () => [...queryKeys.inventory.all, 'list'] as const,
+    list: (filters?: Record<string, any>) =>
+      [...queryKeys.inventory.lists(), filters] as const,
+    details: () => [...queryKeys.inventory.all, 'detail'] as const,
+    detail: (productId: string, warehouseId?: string) =>
+      [...queryKeys.inventory.details(), productId, warehouseId] as const,
+    movements: (productId: string) =>
+      [...queryKeys.inventory.all, 'movements', productId] as const,
+    lowStock: (warehouseId?: string) =>
+      [...queryKeys.inventory.all, 'low-stock', warehouseId] as const,
   },
 
-  // ============================================
-  // VARIANT INVENTORY (NEW)
-  // ============================================
-
-  // Get inventory for a variant across all warehouses
-  getByVariant: async (variantId: string): Promise<{
-    variantId: string;
-    warehouses: Inventory[];
-    totalAvailable: number;
-  }> => {
-    const url = `${INVENTORY_SERVICE_URL}/api/inventory/variant/${variantId}`;
-    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
+  // Products (⏳ Needs implementation)
+  products: {
+    all: ['products'] as const,
+    lists: () => [...queryKeys.products.all, 'list'] as const,
+    list: (filters?: { status?: string; category?: string; search?: string }) =>
+      [...queryKeys.products.lists(), filters] as const,
+    details: () => [...queryKeys.products.all, 'detail'] as const,
+    detail: (id: string) => [...queryKeys.products.details(), id] as const,
+    stock: (id: string) => [...queryKeys.products.all, 'stock', id] as const,
+    lowStock: (id: string) => [...queryKeys.products.all, 'low-stock', id] as const,
   },
 
-  // ============================================
-  // UOM INVENTORY (NEW)
-  // ============================================
-
-  // Get inventory for a UOM across all warehouses
-  getByUOM: async (uomId: string): Promise<{
-    uomId: string;
-    warehouses: Inventory[];
-    totalAvailable: number;
-  }> => {
-    const url = `${INVENTORY_SERVICE_URL}/api/inventory/uom/${uomId}`;
-    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
+  // Variants (⏳ Needs implementation)
+  variants: {
+    all: ['variants'] as const,
+    lists: () => [...queryKeys.variants.all, 'list'] as const,
+    list: (productId?: string) =>
+      [...queryKeys.variants.lists(), { productId }] as const,
+    detail: (id: string) => [...queryKeys.variants.all, 'detail', id] as const,
   },
 
-  // ============================================
-  // INVENTORY ADJUSTMENTS
-  // ============================================
+  // Bundles (⏳ Needs implementation)
+  bundles: {
+    all: ['bundles'] as const,
+    lists: () => [...queryKeys.bundles.all, 'list'] as const,
+    list: (filters?: { status?: string }) =>
+      [...queryKeys.bundles.lists(), filters] as const,
+    detail: (id: string) => [...queryKeys.bundles.all, 'detail', id] as const,
+    availableStock: (id: string, warehouseId?: string) =>
+      [...queryKeys.bundles.all, 'available-stock', id, warehouseId] as const,
+  },
 
-  // Adjust inventory (with optimistic locking support)
-  adjust: async (data: {
-    productId: string;
-    warehouseId: string;
-    variantId?: string;
-    uomId?: string;
-    quantity: number;
-    movementType: 'in' | 'out' | 'adjustment';
-    reason?: string;
-    notes?: string;
-    performedBy?: string;
-    rack?: string;
-    bin?: string;
-    zone?: string;
-    aisle?: string;
-  }): Promise<{
-    inventory: Inventory;
-    previousQuantity: number;
-    newQuantity: number;
-    message: string;
-  }> => {
-    const url = `${INVENTORY_SERVICE_URL}/api/inventory/adjust`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      // Handle optimistic locking conflict
-      if (response.status === 409) {
-        throw new Error('Concurrent update conflict. Please refresh and try again.');
+  // Batches (⏳ Needs implementation)
+  batches: {
+    all: ['batches'] as const,
+    lists: () => [...queryKeys.batches.all, 'list'] as const,
+    list: (filters?: { productId?: string; warehouseId?: string; status?: string }) =>
+      [...queryKeys.batches.lists(), filters] as const,
+    detail: (id: string) => [...queryKeys.batches.all, 'detail', id] as const,
+    expiring: (days: number) =>
+      [...queryKeys.batches.all, 'expiring', days] as const,
+    expired: () => [...queryKeys.batches.all, 'expired'] as const,
+  },
+
+  // Transfers (⏳ Phase 7)
+  transfers: {
+    all: ['transfers'] as const,
+    lists: () => [...queryKeys.transfers.all, 'list'] as const,
+    list: (filters?: { warehouseId?: string; direction?: 'inbound' | 'outbound'; status?: TransferStatus }) =>
+      [...queryKeys.transfers.lists(), filters] as const,
+    detail: (id: string) => [...queryKeys.transfers.all, 'detail', id] as const,
+    logs: (transferId: string) =>
+      [...queryKeys.transfers.all, 'logs', transferId] as const,
+  },
+
+  // Stock Opname (⏳ Phase 8)
+  stockOpname: {
+    all: ['stock-opname'] as const,
+    lists: () => [...queryKeys.stockOpname.all, 'list'] as const,
+    list: (filters?: { warehouseId?: string; status?: OpnameStatus }) =>
+      [...queryKeys.stockOpname.lists(), filters] as const,
+    detail: (id: string) => [...queryKeys.stockOpname.all, 'detail', id] as const,
+    items: (sessionId: string) =>
+      [...queryKeys.stockOpname.all, 'items', sessionId] as const,
+  },
+
+  // Categories
+  categories: {
+    all: ['categories'] as const,
+    lists: () => [...queryKeys.categories.all, 'list'] as const,
+    tree: () => [...queryKeys.categories.all, 'tree'] as const,
+    detail: (id: string) => [...queryKeys.categories.all, 'detail', id] as const,
+  },
+} as const;
+```
+
+### F2.2 Create Product Query Hooks
+
+**File**: `src/hooks/queries/useProducts.ts`
+
+```typescript
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { productApi, inventoryApi, type Product, type ProductWithInventory } from '../../lib/api';
+import { queryKeys } from '../../lib/query-client';
+
+/**
+ * Hook to fetch products with optional inventory data
+ */
+export function useProducts(
+  filters?: { status?: string; category?: string; search?: string },
+  options?: { enabled?: boolean; includeInventory?: boolean }
+) {
+  const { enabled = true, includeInventory = false } = options || {};
+
+  return useQuery({
+    queryKey: queryKeys.products.list(filters),
+    queryFn: async () => {
+      const { products, total } = await productApi.getAll(filters);
+
+      if (!includeInventory) {
+        return { products, total };
       }
-      throw new Error(error.error || 'Failed to adjust inventory');
-    }
-    return response.json();
-  },
 
-  // Set minimum stock level
-  setMinimumStock: async (
-    productId: string,
-    warehouseId: string,
-    minimumStock: number
-  ): Promise<{ message: string }> => {
-    const url = `${INVENTORY_SERVICE_URL}/api/inventory/${productId}/${warehouseId}/minimum-stock`;
-    return fetch(url, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ minimumStock }),
-    }).then(r => r.json());
-  },
-
-  // ============================================
-  // INVENTORY BATCHES (EXPIRATION)
-  // ============================================
-
-  // Get batches for a product (for expiration tracking)
-  getBatches: async (productId: string, warehouseId?: string): Promise<{
-    batches: InventoryBatch[];
-    total: number;
-  }> => {
-    const params = warehouseId ? `?warehouseId=${warehouseId}` : '';
-    const url = `${INVENTORY_SERVICE_URL}/api/batches/product/${productId}${params}`;
-    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
-  },
-
-  // Get expiring batches
-  getExpiringBatches: async (daysAhead: number = 30): Promise<{
-    batches: InventoryBatch[];
-    total: number;
-  }> => {
-    const url = `${INVENTORY_SERVICE_URL}/api/batches/expiring?days=${daysAhead}`;
-    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
-  },
-
-  // Create batch for a product
-  createBatch: async (data: {
-    productId: string;
-    warehouseId: string;
-    batchNumber: string;
-    lotNumber?: string;
-    expirationDate?: string;
-    alertDate?: string;
-    quantity: number;
-  }): Promise<InventoryBatch> => {
-    const url = `${INVENTORY_SERVICE_URL}/api/batches`;
-    return fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    }).then(r => r.json());
-  },
-
-  // ============================================
-  // LOW STOCK REPORTS
-  // ============================================
-
-  // Get all low stock items
-  getLowStock: async (warehouseId?: string): Promise<{
-    items: Array<{
-      productId: string;
-      warehouseId: string;
-      quantityAvailable: number;
-      minimumStock: number;
-      deficit: number;
-    }>;
-    total: number;
-  }> => {
-    const params = warehouseId ? `?warehouseId=${warehouseId}` : '';
-    const url = `${INVENTORY_SERVICE_URL}/api/inventory/low-stock${params}`;
-    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
-  },
-
-  // ============================================
-  // MOVEMENT HISTORY
-  // ============================================
-
-  // Get movement history for a product
-  getMovements: async (
-    productId: string,
-    options?: { limit?: number; warehouseId?: string }
-  ): Promise<{ movements: InventoryMovement[]; total: number }> => {
-    const params = new URLSearchParams();
-    if (options?.limit) params.append('limit', options.limit.toString());
-    if (options?.warehouseId) params.append('warehouseId', options.warehouseId);
-    const query = params.toString() ? `?${params.toString()}` : '';
-    const url = `${INVENTORY_SERVICE_URL}/api/inventory/movements/${productId}${query}`;
-    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
-  },
-};
-```
-
-### F2.2 Remove Stock Operations from Product API
-
-```typescript
-export const productApi = {
-  // ... existing methods ...
-
-  // ❌ REMOVE: updateStock method (use inventoryApi.adjust instead)
-  // updateStock: async (id: string, stock: number): Promise<{ message: string }> => { ... }
-
-  // ✅ KEEP: All catalog operations
-  getAll: async (params?: {
-    status?: string;
-    category?: string;
-    search?: string;
-  }): Promise<{ products: Product[]; total: number }> => { ... },
-
-  getById: async (id: string): Promise<Product> => { ... },
-
-  create: async (data: CreateProductInput): Promise<Product> => { ... },
-
-  update: async (id: string, data: Partial<CreateProductInput>): Promise<Product> => { ... },
-
-  delete: async (id: string): Promise<{ message: string }> => { ... },
-};
-```
-
-### F2.3 Update CreateProductInput (Remove Stock Fields)
-
-```typescript
-// BEFORE
-export interface CreateProductInput {
-  barcode: string;
-  name: string;
-  sku: string;
-  // ... catalog fields
-  stock?: number;               // ❌ REMOVE
-  minimumStock?: number;        // ❌ REMOVE
-  expirationDate?: string;      // ❌ REMOVE
-  alertDate?: string;           // ❌ REMOVE
-}
-
-// AFTER
-export interface CreateProductInput {
-  barcode: string;
-  name: string;
-  sku: string;
-  description?: string;
-  image?: string;
-  categoryId?: string;
-  price: number;
-  retailPrice?: number | null;
-  wholesalePrice?: number | null;
-  weight?: number;
-  length?: number;
-  width?: number;
-  height?: number;
-  baseUnit?: string;
-  wholesaleThreshold?: number;
-  minimumOrderQuantity?: number;  // ✅ KEEP (sales rule)
-  rating?: number;
-  reviews?: number;
-  availableForRetail?: boolean;
-  availableForWholesale?: boolean;
-  status?: ProductStatus;
-  isBundle?: boolean;
-  // NO stock fields - set via Inventory Service after product creation
-}
-```
-
-### F2.4 Deliverables
-- [ ] Update inventoryApi with variant/UOM endpoints
-- [ ] Add batch management endpoints
-- [ ] Add low stock report endpoint
-- [ ] Remove stock operations from productApi
-- [ ] Remove stock operations from variantApi
-- [ ] Update CreateProductInput
-- [ ] Update CreateVariantInput
-
----
-
-## Phase F3: WebSocket Integration
-
-### F3.1 Create WebSocket Hook
-
-**File**: `src/hooks/useInventoryWebSocket.ts`
-
-```typescript
-import { useEffect, useRef, useState, useCallback } from 'react';
-
-export interface InventoryEvent {
-  type: 'inventory.updated' | 'inventory.low_stock' | 'inventory.out_of_stock' | 'batch.expiring_soon';
-  data: {
-    productId?: string;
-    warehouseId?: string;
-    variantId?: string;
-    uomId?: string;
-    quantityAvailable?: number;
-    quantityReserved?: number;
-    minimumStock?: number;
-    version?: number;
-    previousQuantity?: number;
-    changeAmount?: number;
-    movementType?: string;
-    timestamp: string;
-    [key: string]: any;
-  };
-}
-
-export interface TransferEvent {
-  type:
-    | 'transfer.requested'
-    | 'transfer.approved'
-    | 'transfer.rejected'
-    | 'transfer.picking_started'
-    | 'transfer.packed'
-    | 'transfer.shipped'
-    | 'transfer.received'
-    | 'transfer.completed'
-    | 'transfer.cancelled';
-  data: {
-    transferId: string;
-    transferNumber: string;
-    sourceWarehouseId?: string;
-    destinationWarehouseId?: string;
-    timestamp: string;
-    [key: string]: any;
-  };
-}
-
-type WebSocketEvent = InventoryEvent | TransferEvent;
-
-interface UseInventoryWebSocketOptions {
-  channels?: string[];
-  onInventoryUpdate?: (event: InventoryEvent) => void;
-  onTransferUpdate?: (event: TransferEvent) => void;
-  onLowStock?: (event: InventoryEvent) => void;
-  onOutOfStock?: (event: InventoryEvent) => void;
-  autoReconnect?: boolean;
-}
-
-const INVENTORY_WS_URL = import.meta.env.VITE_INVENTORY_WS_URL || 'ws://localhost:8792/ws';
-
-export function useInventoryWebSocket(options: UseInventoryWebSocketOptions = {}) {
-  const {
-    channels = ['global'],
-    onInventoryUpdate,
-    onTransferUpdate,
-    onLowStock,
-    onOutOfStock,
-    autoReconnect = true,
-  } = options;
-
-  const [isConnected, setIsConnected] = useState(false);
-  const [lastEvent, setLastEvent] = useState<WebSocketEvent | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const reconnectAttemptsRef = useRef(0);
-
-  const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) return;
-
-    const ws = new WebSocket(INVENTORY_WS_URL);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      console.log('[WebSocket] Connected to Inventory Service');
-      setIsConnected(true);
-      reconnectAttemptsRef.current = 0;
-
-      // Subscribe to channels
-      channels.forEach(channel => {
-        ws.send(JSON.stringify({ type: 'subscribe', channel }));
-      });
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data) as WebSocketEvent;
-        setLastEvent(data);
-
-        // Route to appropriate handler
-        if (data.type.startsWith('inventory.')) {
-          const inventoryEvent = data as InventoryEvent;
-          if (data.type === 'inventory.updated' && onInventoryUpdate) {
-            onInventoryUpdate(inventoryEvent);
+      // Fetch inventory for each product in parallel
+      const productsWithInventory: ProductWithInventory[] = await Promise.all(
+        products.map(async (product) => {
+          try {
+            const inventory = await inventoryApi.getByProduct(product.id);
+            return {
+              ...product,
+              inventory: {
+                totalAvailable: inventory.totalAvailable,
+                totalReserved: inventory.totalReserved,
+                totalInTransit: inventory.totalInTransit || 0,
+                minimumStock: inventory.minimumStock || 0,
+                isLowStock: inventory.totalAvailable < (inventory.minimumStock || 0),
+                warehouses: inventory.warehouses,
+              },
+            };
+          } catch {
+            return product;
           }
-          if (data.type === 'inventory.low_stock' && onLowStock) {
-            onLowStock(inventoryEvent);
-          }
-          if (data.type === 'inventory.out_of_stock' && onOutOfStock) {
-            onOutOfStock(inventoryEvent);
-          }
-        } else if (data.type.startsWith('transfer.') && onTransferUpdate) {
-          onTransferUpdate(data as TransferEvent);
-        }
-      } catch (error) {
-        console.error('[WebSocket] Failed to parse message:', error);
-      }
-    };
+        })
+      );
 
-    ws.onerror = (error) => {
-      console.error('[WebSocket] Error:', error);
-    };
-
-    ws.onclose = () => {
-      console.log('[WebSocket] Disconnected');
-      setIsConnected(false);
-      wsRef.current = null;
-
-      // Auto reconnect with exponential backoff
-      if (autoReconnect && reconnectAttemptsRef.current < 5) {
-        const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
-        console.log(`[WebSocket] Reconnecting in ${delay}ms...`);
-        reconnectTimeoutRef.current = setTimeout(() => {
-          reconnectAttemptsRef.current++;
-          connect();
-        }, delay);
-      }
-    };
-  }, [channels, onInventoryUpdate, onTransferUpdate, onLowStock, onOutOfStock, autoReconnect]);
-
-  const disconnect = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-    }
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-  }, []);
-
-  const subscribe = useCallback((channel: string) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type: 'subscribe', channel }));
-    }
-  }, []);
-
-  const unsubscribe = useCallback((channel: string) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type: 'unsubscribe', channel }));
-    }
-  }, []);
-
-  useEffect(() => {
-    connect();
-    return () => disconnect();
-  }, [connect, disconnect]);
-
-  return {
-    isConnected,
-    lastEvent,
-    subscribe,
-    unsubscribe,
-    reconnect: connect,
-    disconnect,
-  };
-}
-```
-
-### F3.2 Create Inventory Query Hook with Real-Time Updates
-
-**File**: `src/hooks/useInventory.ts`
-
-```typescript
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { inventoryApi, Inventory, InventoryBatch } from '../lib/api';
-import { useInventoryWebSocket, InventoryEvent } from './useInventoryWebSocket';
-import { useCallback } from 'react';
-
-interface UseInventoryOptions {
-  productId: string;
-  warehouseId?: string;
-  enableRealTime?: boolean;
+      return { products: productsWithInventory, total };
+    },
+    enabled,
+  });
 }
 
-export function useInventory({ productId, warehouseId, enableRealTime = true }: UseInventoryOptions) {
+/**
+ * Hook to fetch a single product with inventory
+ */
+export function useProduct(id: string, options?: { enabled?: boolean }) {
+  const { enabled = true } = options || {};
+
+  return useQuery({
+    queryKey: queryKeys.products.detail(id),
+    queryFn: () => productApi.getById(id),
+    enabled: enabled && !!id,
+  });
+}
+
+/**
+ * Hook to fetch product stock (from Inventory Service)
+ */
+export function useProductStock(productId: string, options?: { enabled?: boolean }) {
+  const { enabled = true } = options || {};
+
+  return useQuery({
+    queryKey: queryKeys.products.stock(productId),
+    queryFn: () => inventoryApi.getByProduct(productId),
+    enabled: enabled && !!productId,
+  });
+}
+
+/**
+ * Hook to create a product
+ */
+export function useCreateProduct() {
   const queryClient = useQueryClient();
 
-  // Real-time inventory update handler
-  const handleInventoryUpdate = useCallback((event: InventoryEvent) => {
-    if (event.data.productId === productId) {
-      // Invalidate and refetch inventory queries
-      queryClient.invalidateQueries({ queryKey: ['inventory', productId] });
-
-      if (warehouseId && event.data.warehouseId === warehouseId) {
-        queryClient.invalidateQueries({
-          queryKey: ['inventory', productId, warehouseId]
-        });
-      }
-    }
-  }, [productId, warehouseId, queryClient]);
-
-  // Connect to WebSocket
-  const { isConnected } = useInventoryWebSocket({
-    channels: warehouseId
-      ? [`product:${productId}:warehouse:${warehouseId}`]
-      : [`product:${productId}`],
-    onInventoryUpdate: enableRealTime ? handleInventoryUpdate : undefined,
-  });
-
-  // Fetch inventory data
-  const inventoryQuery = useQuery({
-    queryKey: ['inventory', productId, warehouseId],
-    queryFn: async () => {
-      if (warehouseId) {
-        return inventoryApi.getByProductAndWarehouse(productId, warehouseId);
-      }
-      return inventoryApi.getByProduct(productId);
+  return useMutation({
+    mutationFn: productApi.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
     },
   });
+}
 
-  // Fetch batches (for expiration)
-  const batchesQuery = useQuery({
-    queryKey: ['inventory-batches', productId, warehouseId],
-    queryFn: () => inventoryApi.getBatches(productId, warehouseId),
-  });
+/**
+ * Hook to update a product
+ */
+export function useUpdateProduct() {
+  const queryClient = useQueryClient();
 
-  return {
-    inventory: inventoryQuery.data,
-    batches: batchesQuery.data?.batches || [],
-    isLoading: inventoryQuery.isLoading || batchesQuery.isLoading,
-    isError: inventoryQuery.isError || batchesQuery.isError,
-    error: inventoryQuery.error || batchesQuery.error,
-    isConnected,
-    refetch: () => {
-      inventoryQuery.refetch();
-      batchesQuery.refetch();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<Product> }) =>
+      productApi.update(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.detail(id) });
     },
-  };
+  });
+}
+
+/**
+ * Hook to delete a product
+ */
+export function useDeleteProduct() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: productApi.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
+    },
+  });
 }
 ```
 
-### F3.3 Create Real-Time Notifications Component
+### F2.3 Create Bundle Query Hooks
 
-**File**: `src/components/InventoryNotifications.tsx`
+**File**: `src/hooks/queries/useBundles.ts`
 
 ```typescript
-import React, { useState } from 'react';
-import { useInventoryWebSocket, InventoryEvent, TransferEvent } from '../hooks/useInventoryWebSocket';
-import { toast } from 'sonner';
-import { Badge } from './ui/badge';
-import { Bell, Package, AlertTriangle, Truck } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { bundleApi, type Bundle } from '../../lib/api';
+import { queryKeys } from '../../lib/query-client';
 
-export function InventoryNotifications() {
-  const [notifications, setNotifications] = useState<Array<{
-    id: string;
-    message: string;
-    type: 'info' | 'warning' | 'error';
-    timestamp: Date;
-  }>>([]);
+/**
+ * Hook to fetch all bundles
+ */
+export function useBundles(
+  filters?: { status?: string },
+  options?: { enabled?: boolean }
+) {
+  const { enabled = true } = options || {};
 
-  const addNotification = (message: string, type: 'info' | 'warning' | 'error') => {
-    const notification = {
-      id: Date.now().toString(),
-      message,
-      type,
-      timestamp: new Date(),
-    };
-    setNotifications(prev => [notification, ...prev].slice(0, 50));
-
-    // Show toast
-    if (type === 'warning') {
-      toast.warning(message);
-    } else if (type === 'error') {
-      toast.error(message);
-    } else {
-      toast.info(message);
-    }
-  };
-
-  const handleInventoryUpdate = (event: InventoryEvent) => {
-    addNotification(
-      `Stock updated: Product ${event.data.productId?.slice(-8)} → ${event.data.quantityAvailable} units`,
-      'info'
-    );
-  };
-
-  const handleLowStock = (event: InventoryEvent) => {
-    addNotification(
-      `Low stock alert: Product ${event.data.productId?.slice(-8)} at ${event.data.quantityAvailable} units`,
-      'warning'
-    );
-  };
-
-  const handleOutOfStock = (event: InventoryEvent) => {
-    addNotification(
-      `OUT OF STOCK: Product ${event.data.productId?.slice(-8)}`,
-      'error'
-    );
-  };
-
-  const handleTransferUpdate = (event: TransferEvent) => {
-    addNotification(
-      `Transfer ${event.data.transferNumber}: ${event.type.replace('transfer.', '')}`,
-      'info'
-    );
-  };
-
-  const { isConnected } = useInventoryWebSocket({
-    channels: ['global'],
-    onInventoryUpdate: handleInventoryUpdate,
-    onLowStock: handleLowStock,
-    onOutOfStock: handleOutOfStock,
-    onTransferUpdate: handleTransferUpdate,
+  return useQuery({
+    queryKey: queryKeys.bundles.list(filters),
+    queryFn: () => bundleApi.getAll(filters),
+    enabled,
   });
+}
 
-  return (
-    <div className="flex items-center gap-2">
-      <Badge variant={isConnected ? 'default' : 'destructive'}>
-        {isConnected ? 'Live' : 'Offline'}
-      </Badge>
-      <div className="relative">
-        <Bell className="h-5 w-5" />
-        {notifications.length > 0 && (
-          <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
-            {notifications.length > 9 ? '9+' : notifications.length}
-          </span>
-        )}
-      </div>
-    </div>
-  );
+/**
+ * Hook to fetch bundle available stock (virtual calculation)
+ */
+export function useBundleAvailableStock(
+  bundleId: string,
+  warehouseId?: string,
+  options?: { enabled?: boolean }
+) {
+  const { enabled = true } = options || {};
+
+  return useQuery({
+    queryKey: queryKeys.bundles.availableStock(bundleId, warehouseId),
+    queryFn: () => bundleApi.getAvailableStock(bundleId, warehouseId),
+    enabled: enabled && !!bundleId,
+  });
 }
 ```
 
-### F3.4 Deliverables
-- [ ] Create useInventoryWebSocket hook
-- [ ] Create useInventory hook with real-time updates
-- [ ] Create InventoryNotifications component
-- [ ] Add WebSocket connection status indicator
-- [ ] Implement automatic reconnection logic
-- [ ] Add toast notifications for stock events
+### F2.4 Create Batch Query Hooks
+
+**File**: `src/hooks/queries/useBatches.ts`
+
+```typescript
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { batchApi, type InventoryBatch } from '../../lib/api';
+import { queryKeys } from '../../lib/query-client';
+
+/**
+ * Hook to fetch batches
+ */
+export function useBatches(
+  filters?: { productId?: string; warehouseId?: string; status?: string },
+  options?: { enabled?: boolean }
+) {
+  const { enabled = true } = options || {};
+
+  return useQuery({
+    queryKey: queryKeys.batches.list(filters),
+    queryFn: () => batchApi.getAll(filters),
+    enabled,
+  });
+}
+
+/**
+ * Hook to fetch expiring batches
+ */
+export function useExpiringBatches(days: number = 30, options?: { enabled?: boolean }) {
+  const { enabled = true } = options || {};
+
+  return useQuery({
+    queryKey: queryKeys.batches.expiring(days),
+    queryFn: () => batchApi.getExpiring(days),
+    enabled,
+  });
+}
+
+/**
+ * Hook to fetch expired batches
+ */
+export function useExpiredBatches(options?: { enabled?: boolean }) {
+  const { enabled = true } = options || {};
+
+  return useQuery({
+    queryKey: queryKeys.batches.expired(),
+    queryFn: () => batchApi.getExpired(),
+    enabled,
+  });
+}
+
+/**
+ * Hook to create a batch
+ */
+export function useCreateBatch() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: batchApi.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.batches.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
+    },
+  });
+}
+
+/**
+ * Hook to adjust batch quantity
+ */
+export function useAdjustBatch() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ batchId, data }: { batchId: string; data: { quantity: number; reason: string } }) =>
+      batchApi.adjust(batchId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.batches.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
+    },
+  });
+}
+```
+
+### F2.5 Deliverables
+
+- [ ] Extend queryKeys factory with all domains
+- [ ] Create useProducts hook with inventory integration
+- [ ] Create useVariants hook
+- [ ] Create useBundles hook with virtual stock calculation
+- [ ] Create useBatches hook for expiration tracking
+- [ ] Create useCategories hook
+- [ ] Update existing hooks to match new patterns
 
 ---
 
-## Phase F4: Component Updates
+## Phase F3: TanStack Router Migration
 
-### F4.1 Update Product List Component
+### F3.1 Install & Configure TanStack Router
 
-Remove stock column from Product Service data, add separate inventory fetch:
+```bash
+npm install @tanstack/react-router @tanstack/router-devtools
+```
+
+### F3.2 Route Configuration
+
+**File**: `src/routes/__root.tsx`
 
 ```typescript
-// Before: Stock from Product response
-<TableCell>{product.stock}</TableCell>
+import { createRootRoute, Outlet } from '@tanstack/react-router';
+import { TanStackRouterDevtools } from '@tanstack/router-devtools';
+import { RootLayout } from '../components/layout/RootLayout';
 
-// After: Stock from Inventory Service
-const { data: inventoryData } = useQuery({
-  queryKey: ['inventory', product.id],
-  queryFn: () => inventoryApi.getByProduct(product.id),
+export const Route = createRootRoute({
+  component: () => (
+    <RootLayout>
+      <Outlet />
+      {process.env.NODE_ENV === 'development' && <TanStackRouterDevtools />}
+    </RootLayout>
+  ),
+});
+```
+
+### F3.3 File-Based Route Structure
+
+```
+src/routes/
+├── __root.tsx                         # Root layout
+├── index.tsx                          # Dashboard home
+├── dashboard/
+│   ├── products/
+│   │   ├── index.tsx                  # Product list
+│   │   ├── $productId.tsx             # Product detail
+│   │   ├── create.tsx                 # Create product
+│   │   └── bundles/
+│   │       ├── index.tsx              # Bundle list
+│   │       └── $bundleId.tsx          # Bundle detail
+│   ├── inventory/
+│   │   ├── index.tsx                  # Inventory overview
+│   │   ├── warehouses/
+│   │   │   ├── index.tsx              # Warehouse list
+│   │   │   └── $warehouseId.tsx       # Warehouse detail
+│   │   ├── batches/
+│   │   │   ├── index.tsx              # Batch list
+│   │   │   └── expiring.tsx           # Expiring batches
+│   │   ├── transfers/                 # Phase 7
+│   │   │   ├── index.tsx              # Transfer list
+│   │   │   ├── create.tsx             # Create transfer
+│   │   │   └── $transferId.tsx        # Transfer detail
+│   │   └── stock-opname/              # Phase 8
+│   │       ├── index.tsx              # Opname sessions
+│   │       ├── create.tsx             # Start new count
+│   │       └── $sessionId/
+│   │           ├── index.tsx          # Session detail
+│   │           └── count.tsx          # Counting interface
+│   └── reports/
+│       ├── low-stock.tsx              # Low stock report
+│       └── expiring-stock.tsx         # Expiring stock report
+```
+
+### F3.4 Route with Search Params & Loader
+
+**File**: `src/routes/dashboard/products/index.tsx`
+
+```typescript
+import { createFileRoute } from '@tanstack/react-router';
+import { z } from 'zod';
+import { queryClient, queryKeys } from '../../../lib/query-client';
+import { productApi } from '../../../lib/api';
+import { ProductListPage } from '../../../pages/products/ProductListPage';
+
+const productSearchSchema = z.object({
+  status: z.enum(['active', 'inactive', 'omnichannel sales']).optional(),
+  category: z.string().optional(),
+  search: z.string().optional(),
+  page: z.number().default(1),
+  pageSize: z.number().default(20),
 });
 
-<TableCell>
-  {inventoryData?.totalAvailable ?? <Spinner size="sm" />}
-</TableCell>
+export const Route = createFileRoute('/dashboard/products/')({
+  validateSearch: productSearchSchema,
+  loaderDeps: ({ search }) => ({ search }),
+  loader: async ({ deps: { search } }) => {
+    // Prefetch products
+    await queryClient.ensureQueryData({
+      queryKey: queryKeys.products.list(search),
+      queryFn: () => productApi.getAll(search),
+    });
+  },
+  component: ProductListPage,
+});
 ```
 
-### F4.2 Update Product Form (Remove Stock Fields)
+### F3.5 Deliverables
 
-```typescript
-// REMOVE from form:
-// - stock input
-// - minimumStock input
-// - expirationDate input
-// - alertDate input
+- [ ] Install @tanstack/react-router
+- [ ] Create route tree configuration
+- [ ] Migrate all existing routes
+- [ ] Add search param validation with Zod
+- [ ] Implement loaders for data prefetching
+- [ ] Add route-level code splitting
+- [ ] Configure router devtools
 
-// ADD: Link to inventory management after product creation
-<div className="mt-4 p-4 bg-blue-50 rounded-md">
-  <p className="text-sm text-blue-800">
-    After creating the product, manage stock in the Inventory section.
-  </p>
-  <Button variant="outline" size="sm" asChild>
-    <Link to={`/dashboard/inventory?productId=${productId}`}>
-      Manage Inventory
-    </Link>
-  </Button>
-</div>
+---
+
+## Phase F4: TanStack Table Integration
+
+### F4.1 Install TanStack Table
+
+```bash
+npm install @tanstack/react-table
 ```
 
-### F4.3 Update Low Stock Report
+### F4.2 Create Reusable DataTable Component
 
-**File**: `src/routes/dashboard/inventory/low-stock.tsx`
+**File**: `src/components/ui/data-table.tsx`
 
 ```typescript
-// Before: Fetch from Product Service with minimumStock
-// After: Fetch from Inventory Service
+import {
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  useReactTable,
+  SortingState,
+  ColumnFiltersState,
+  VisibilityState,
+  RowSelectionState,
+} from '@tanstack/react-table';
+import { useState } from 'react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from './table';
+import { DataTablePagination } from './data-table-pagination';
+import { DataTableToolbar } from './data-table-toolbar';
 
-export function LowStockReport() {
-  const { data, isLoading } = useQuery({
-    queryKey: ['low-stock'],
-    queryFn: () => inventoryApi.getLowStock(),
-  });
+interface DataTableProps<TData, TValue> {
+  columns: ColumnDef<TData, TValue>[];
+  data: TData[];
+  searchKey?: string;
+  isLoading?: boolean;
+  enableRowSelection?: boolean;
+  onRowSelectionChange?: (rows: TData[]) => void;
+}
 
-  // Use WebSocket for real-time updates
-  const { isConnected } = useInventoryWebSocket({
-    channels: ['global'],
-    onLowStock: () => {
-      queryClient.invalidateQueries({ queryKey: ['low-stock'] });
+export function DataTable<TData, TValue>({
+  columns,
+  data,
+  searchKey,
+  isLoading,
+  enableRowSelection = false,
+  onRowSelectionChange,
+}: DataTableProps<TData, TValue>) {
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+
+  const table = useReactTable({
+    data,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onColumnVisibilityChange: setColumnVisibility,
+    onRowSelectionChange: setRowSelection,
+    state: {
+      sorting,
+      columnFilters,
+      columnVisibility,
+      rowSelection,
     },
+    enableRowSelection,
   });
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <h1>Low Stock Report</h1>
-        <Badge variant={isConnected ? 'default' : 'secondary'}>
-          {isConnected ? 'Real-time updates' : 'Static'}
-        </Badge>
+    <div className="space-y-4">
+      <DataTableToolbar table={table} searchKey={searchKey} />
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  Loading...
+                </TableCell>
+              </TableRow>
+            ) : table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && 'selected'}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  No results.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
-
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Product</TableHead>
-            <TableHead>Warehouse</TableHead>
-            <TableHead>Current Stock</TableHead>
-            <TableHead>Minimum Stock</TableHead>
-            <TableHead>Deficit</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data?.items.map((item) => (
-            <TableRow key={`${item.productId}-${item.warehouseId}`}>
-              <TableCell>{item.productId}</TableCell>
-              <TableCell>{item.warehouseId}</TableCell>
-              <TableCell className="text-red-600 font-bold">
-                {item.quantityAvailable}
-              </TableCell>
-              <TableCell>{item.minimumStock}</TableCell>
-              <TableCell className="text-red-600">
-                -{item.deficit}
-              </TableCell>
-              <TableCell>
-                <Button size="sm" variant="outline">
-                  Create Transfer
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <DataTablePagination table={table} />
     </div>
   );
 }
 ```
 
-### F4.4 Update Expired Stock Report
+### F4.3 Product Table Columns with Stock from Inventory Service
+
+**File**: `src/pages/products/columns.tsx`
 
 ```typescript
-// Before: Fetch products with expirationDate field
-// After: Fetch from Inventory Service batches
+import { ColumnDef } from '@tanstack/react-table';
+import { ProductWithInventory } from '../../lib/api';
+import { Badge } from '../../components/ui/badge';
+import { DataTableColumnHeader } from '../../components/ui/data-table-column-header';
+import { DataTableRowActions } from '../../components/ui/data-table-row-actions';
 
-export function ExpiredStockReport() {
-  const { data, isLoading } = useQuery({
-    queryKey: ['expiring-batches'],
-    queryFn: () => inventoryApi.getExpiringBatches(30), // 30 days ahead
+export const productColumns: ColumnDef<ProductWithInventory>[] = [
+  {
+    accessorKey: 'sku',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="SKU" />
+    ),
+  },
+  {
+    accessorKey: 'name',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Product Name" />
+    ),
+    cell: ({ row }) => (
+      <div className="flex items-center gap-2">
+        {row.original.image && (
+          <img
+            src={row.original.image}
+            alt={row.original.name}
+            className="h-8 w-8 rounded object-cover"
+          />
+        )}
+        <span className="font-medium">{row.original.name}</span>
+      </div>
+    ),
+  },
+  {
+    accessorKey: 'price',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Price" />
+    ),
+    cell: ({ row }) => (
+      <span>Rp {row.original.price.toLocaleString('id-ID')}</span>
+    ),
+  },
+  {
+    // Stock from Inventory Service (NOT from Product)
+    id: 'stock',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Stock" />
+    ),
+    cell: ({ row }) => {
+      const inventory = row.original.inventory;
+      if (!inventory) {
+        return <span className="text-muted-foreground">-</span>;
+      }
+
+      const isLowStock = inventory.isLowStock;
+      const isCritical = inventory.totalAvailable < (inventory.minimumStock * 0.4);
+
+      return (
+        <div className="flex items-center gap-2">
+          <span className={
+            isCritical ? 'text-red-600 font-bold' :
+            isLowStock ? 'text-yellow-600 font-medium' :
+            ''
+          }>
+            {inventory.totalAvailable}
+          </span>
+          {inventory.totalReserved > 0 && (
+            <Badge variant="outline" className="text-xs">
+              {inventory.totalReserved} reserved
+            </Badge>
+          )}
+          {isLowStock && (
+            <Badge variant={isCritical ? 'destructive' : 'secondary'} className="text-xs">
+              {isCritical ? 'Critical' : 'Low'}
+            </Badge>
+          )}
+        </div>
+      );
+    },
+    sortingFn: (rowA, rowB) => {
+      const a = rowA.original.inventory?.totalAvailable || 0;
+      const b = rowB.original.inventory?.totalAvailable || 0;
+      return a - b;
+    },
+  },
+  {
+    accessorKey: 'status',
+    header: 'Status',
+    cell: ({ row }) => {
+      const status = row.original.status;
+      return (
+        <Badge variant={status === 'omnichannel sales' ? 'default' : 'secondary'}>
+          {status}
+        </Badge>
+      );
+    },
+    filterFn: (row, id, value) => {
+      return value.includes(row.getValue(id));
+    },
+  },
+  {
+    id: 'actions',
+    cell: ({ row }) => <DataTableRowActions row={row} />,
+  },
+];
+```
+
+### F4.4 Deliverables
+
+- [ ] Install @tanstack/react-table
+- [ ] Create reusable DataTable component
+- [ ] Create DataTablePagination component
+- [ ] Create DataTableToolbar component
+- [ ] Create DataTableColumnHeader component
+- [ ] Migrate Product table
+- [ ] Migrate Inventory table
+- [ ] Migrate Warehouse table
+- [ ] Migrate Transfer table (Phase 7)
+- [ ] Migrate Stock Opname table (Phase 8)
+
+---
+
+## Phase F5: TanStack Virtual Integration
+
+### F5.1 Install TanStack Virtual
+
+```bash
+npm install @tanstack/react-virtual
+```
+
+### F5.2 Create Virtualized Table Component
+
+**File**: `src/components/ui/virtual-table.tsx`
+
+```typescript
+import { useVirtualizer } from '@tanstack/react-virtual';
+import { useRef } from 'react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from './table';
+
+interface VirtualTableProps<TData> {
+  columns: { header: string; accessor: keyof TData | ((row: TData) => React.ReactNode) }[];
+  data: TData[];
+  rowHeight?: number;
+  overscan?: number;
+}
+
+export function VirtualTable<TData>({
+  columns,
+  data,
+  rowHeight = 52,
+  overscan = 5,
+}: VirtualTableProps<TData>) {
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const virtualizer = useVirtualizer({
+    count: data.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => rowHeight,
+    overscan,
   });
 
-  return (
-    <div>
-      <h1>Expiring Stock Report</h1>
-      <p className="text-muted-foreground mb-4">
-        Batches expiring within the next 30 days
-      </p>
+  const items = virtualizer.getVirtualItems();
 
+  return (
+    <div ref={parentRef} className="h-[600px] overflow-auto">
       <Table>
-        <TableHeader>
+        <TableHeader className="sticky top-0 bg-background z-10">
           <TableRow>
-            <TableHead>Product</TableHead>
-            <TableHead>Batch Number</TableHead>
-            <TableHead>Warehouse</TableHead>
-            <TableHead>Expiration Date</TableHead>
-            <TableHead>Days Until Expiry</TableHead>
-            <TableHead>Quantity</TableHead>
-            <TableHead>Actions</TableHead>
+            {columns.map((col, idx) => (
+              <TableHead key={idx}>{col.header}</TableHead>
+            ))}
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data?.batches.map((batch) => {
-            const daysUntil = Math.ceil(
-              (new Date(batch.expirationDate!).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-            );
+          <tr style={{ height: `${items[0]?.start ?? 0}px` }} />
+          {items.map((virtualRow) => {
+            const row = data[virtualRow.index];
             return (
-              <TableRow key={batch.id}>
-                <TableCell>{batch.productId}</TableCell>
-                <TableCell>{batch.batchNumber}</TableCell>
-                <TableCell>{batch.warehouseId}</TableCell>
-                <TableCell>{batch.expirationDate}</TableCell>
-                <TableCell className={daysUntil < 7 ? 'text-red-600 font-bold' : ''}>
-                  {daysUntil} days
-                </TableCell>
-                <TableCell>{batch.quantityAvailable}</TableCell>
-                <TableCell>
-                  <Button size="sm" variant="outline">
-                    Manage
-                  </Button>
-                </TableCell>
+              <TableRow
+                key={virtualRow.key}
+                style={{ height: `${rowHeight}px` }}
+              >
+                {columns.map((col, idx) => (
+                  <TableCell key={idx}>
+                    {typeof col.accessor === 'function'
+                      ? col.accessor(row)
+                      : String(row[col.accessor] ?? '')}
+                  </TableCell>
+                ))}
               </TableRow>
             );
           })}
+          <tr
+            style={{
+              height: `${virtualizer.getTotalSize() - (items[items.length - 1]?.end ?? 0)}px`,
+            }}
+          />
         </TableBody>
       </Table>
     </div>
@@ -1095,551 +1232,469 @@ export function ExpiredStockReport() {
 }
 ```
 
-### F4.5 Components to Update
+### F5.3 Use Cases for Virtualization
 
-| Component | Changes Required |
-|-----------|------------------|
-| `ProductList` | Fetch stock from Inventory Service, add real-time updates |
-| `ProductForm` | Remove stock, minimumStock, expirationDate, alertDate fields |
-| `ProductDetail` | Separate inventory section with real-time updates |
-| `VariantList` | Fetch stock from Inventory Service |
-| `VariantForm` | Remove stock field |
-| `ProductWarehouseAllocation` | Use Inventory Service for quantities |
-| `LowStockReport` | Use Inventory Service endpoint |
-| `ExpiredStockReport` | Use Inventory Service batches endpoint |
+| Component | Row Count | Virtualization |
+|-----------|-----------|----------------|
+| Product List | 100-1,000 | Optional |
+| Inventory List | 1,000-10,000 | **Recommended** |
+| Movement History | 10,000+ | **Required** |
+| Stock Opname Count | 1,000-5,000 | **Recommended** |
+| Transfer Items | 100-500 | Optional |
 
-### F4.6 Deliverables
-- [ ] Update ProductList component
-- [ ] Update ProductForm component
-- [ ] Update ProductDetail component
-- [ ] Update VariantList component
-- [ ] Update VariantForm component
-- [ ] Update ProductWarehouseAllocation component
-- [ ] Update LowStockReport page
-- [ ] Update ExpiredStockReport page
-- [ ] Add real-time stock indicators
+### F5.4 Deliverables
+
+- [ ] Install @tanstack/react-virtual
+- [ ] Create VirtualTable component
+- [ ] Integrate with DataTable for large datasets
+- [ ] Create VirtualList component for non-table lists
+- [ ] Optimize inventory movement history
+- [ ] Optimize stock opname counting interface
 
 ---
 
-## Phase F5: Reports & Dashboard Updates
+## Phase F6: TanStack Form Integration
 
-### F5.1 Update Dashboard Metrics
+### F6.1 Install TanStack Form
 
-```typescript
-// Dashboard should show:
-// - Total products (from Product Service)
-// - Total stock value (from Inventory Service)
-// - Low stock alerts (from Inventory Service)
-// - Expiring products (from Inventory Service batches)
-// - Recent movements (from Inventory Service)
-
-export function DashboardMetrics() {
-  // Product count from Product Service
-  const { data: productsData } = useQuery({
-    queryKey: ['products-count'],
-    queryFn: () => productApi.getAll({ limit: 0 }),
-  });
-
-  // Inventory metrics from Inventory Service
-  const { data: inventoryMetrics } = useQuery({
-    queryKey: ['inventory-metrics'],
-    queryFn: async () => {
-      const [lowStock, expiring] = await Promise.all([
-        inventoryApi.getLowStock(),
-        inventoryApi.getExpiringBatches(7),
-      ]);
-      return { lowStock, expiring };
-    },
-  });
-
-  // Real-time updates
-  const { isConnected } = useInventoryWebSocket({
-    channels: ['global'],
-    onLowStock: () => {
-      queryClient.invalidateQueries({ queryKey: ['inventory-metrics'] });
-    },
-  });
-
-  return (
-    <div className="grid grid-cols-4 gap-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Total Products</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-3xl font-bold">{productsData?.total || 0}</p>
-        </CardContent>
-      </Card>
-
-      <Card className={inventoryMetrics?.lowStock.total > 0 ? 'border-yellow-500' : ''}>
-        <CardHeader>
-          <CardTitle>Low Stock Alerts</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-3xl font-bold text-yellow-600">
-            {inventoryMetrics?.lowStock.total || 0}
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card className={inventoryMetrics?.expiring.total > 0 ? 'border-red-500' : ''}>
-        <CardHeader>
-          <CardTitle>Expiring Soon (7 days)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-3xl font-bold text-red-600">
-            {inventoryMetrics?.expiring.total || 0}
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Connection Status</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Badge variant={isConnected ? 'default' : 'destructive'}>
-            {isConnected ? 'Real-time Active' : 'Disconnected'}
-          </Badge>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
+```bash
+npm install @tanstack/react-form @tanstack/zod-form-adapter
 ```
 
-### F5.2 Deliverables
-- [ ] Update main dashboard with inventory metrics
-- [ ] Add real-time connection status
-- [ ] Create inventory summary cards
-- [ ] Add quick actions for low stock items
+### F6.2 Create Product Form with TanStack Form
 
----
-
-## Phase F6: Stock Transfer UI
-
-### F6.1 Transfer List Page
-
-**File**: `src/routes/dashboard/inventory/transfers.tsx`
+**File**: `src/pages/products/ProductForm.tsx`
 
 ```typescript
-export function TransfersPage() {
-  const [direction, setDirection] = useState<'all' | 'inbound' | 'outbound'>('all');
-  const [selectedWarehouse, setSelectedWarehouse] = useState<string>('');
+import { useForm } from '@tanstack/react-form';
+import { zodValidator } from '@tanstack/zod-form-adapter';
+import { z } from 'zod';
+import { useCreateProduct, useUpdateProduct } from '../../hooks/queries/useProducts';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
 
-  const { data: transfers, isLoading } = useQuery({
-    queryKey: ['transfers', selectedWarehouse, direction],
-    queryFn: () => transferApi.getByWarehouse(selectedWarehouse, direction),
-    enabled: !!selectedWarehouse,
-  });
+// Zod schema for validation (NO stock fields - DDD compliant)
+const productSchema = z.object({
+  barcode: z.string().min(1, 'Barcode is required'),
+  name: z.string().min(1, 'Name is required'),
+  sku: z.string().min(1, 'SKU is required'),
+  description: z.string().optional(),
+  price: z.number().positive('Price must be positive'),
+  retailPrice: z.number().positive().optional(),
+  wholesalePrice: z.number().positive().optional(),
+  baseUnit: z.string().default('PCS'),
+  minimumOrderQuantity: z.number().int().positive().default(1),
+  wholesaleThreshold: z.number().int().positive().default(10),
+  weight: z.number().optional(),
+  categoryId: z.string().optional(),
+  availableForRetail: z.boolean().default(true),
+  availableForWholesale: z.boolean().default(false),
+  status: z.enum(['active', 'inactive', 'omnichannel sales']).default('active'),
+});
 
-  // Real-time updates for transfers
-  const { isConnected } = useInventoryWebSocket({
-    channels: [`warehouse:${selectedWarehouse}`],
-    onTransferUpdate: () => {
-      queryClient.invalidateQueries({ queryKey: ['transfers'] });
+type ProductFormData = z.infer<typeof productSchema>;
+
+interface ProductFormProps {
+  product?: ProductFormData;
+  productId?: string;
+  onSuccess?: () => void;
+}
+
+export function ProductForm({ product, productId, onSuccess }: ProductFormProps) {
+  const createProduct = useCreateProduct();
+  const updateProduct = useUpdateProduct();
+
+  const form = useForm({
+    defaultValues: product || {
+      barcode: '',
+      name: '',
+      sku: '',
+      description: '',
+      price: 0,
+      baseUnit: 'PCS',
+      minimumOrderQuantity: 1,
+      wholesaleThreshold: 10,
+      availableForRetail: true,
+      availableForWholesale: false,
+      status: 'active' as const,
+    },
+    validatorAdapter: zodValidator(),
+    validators: {
+      onChange: productSchema,
+    },
+    onSubmit: async ({ value }) => {
+      if (productId) {
+        await updateProduct.mutateAsync({ id: productId, data: value });
+      } else {
+        await createProduct.mutateAsync(value);
+      }
+      onSuccess?.();
     },
   });
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1>Stock Transfers</h1>
-        <div className="flex items-center gap-2">
-          <Badge variant={isConnected ? 'default' : 'secondary'}>
-            {isConnected ? 'Live' : 'Static'}
-          </Badge>
-          <Button asChild>
-            <Link to="/dashboard/inventory/transfers/new">
-              Create Transfer Request
-            </Link>
-          </Button>
-        </div>
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        form.handleSubmit();
+      }}
+      className="space-y-6"
+    >
+      {/* Basic Info */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <form.Field name="barcode">
+          {(field) => (
+            <div className="space-y-2">
+              <Label htmlFor={field.name}>Barcode</Label>
+              <Input
+                id={field.name}
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.target.value)}
+                onBlur={field.handleBlur}
+              />
+              {field.state.meta.errors.length > 0 && (
+                <p className="text-sm text-destructive">
+                  {field.state.meta.errors.join(', ')}
+                </p>
+              )}
+            </div>
+          )}
+        </form.Field>
+
+        <form.Field name="sku">
+          {(field) => (
+            <div className="space-y-2">
+              <Label htmlFor={field.name}>SKU</Label>
+              <Input
+                id={field.name}
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.target.value)}
+                onBlur={field.handleBlur}
+              />
+              {field.state.meta.errors.length > 0 && (
+                <p className="text-sm text-destructive">
+                  {field.state.meta.errors.join(', ')}
+                </p>
+              )}
+            </div>
+          )}
+        </form.Field>
       </div>
 
-      <div className="flex items-center gap-4">
-        <Select value={selectedWarehouse} onValueChange={setSelectedWarehouse}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Select Warehouse" />
-          </SelectTrigger>
-          <SelectContent>
-            {warehouses.map(wh => (
-              <SelectItem key={wh.id} value={wh.id}>{wh.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Tabs value={direction} onValueChange={setDirection as any}>
-          <TabsList>
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="inbound">Inbound</TabsTrigger>
-            <TabsTrigger value="outbound">Outbound</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
-
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Transfer #</TableHead>
-            <TableHead>From</TableHead>
-            <TableHead>To</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Priority</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {transfers?.map((transfer) => (
-            <TableRow key={transfer.id}>
-              <TableCell className="font-mono">{transfer.transferNumber}</TableCell>
-              <TableCell>{transfer.sourceWarehouseId}</TableCell>
-              <TableCell>{transfer.destinationWarehouseId}</TableCell>
-              <TableCell>
-                <TransferStatusBadge status={transfer.status} />
-              </TableCell>
-              <TableCell>
-                <PriorityBadge priority={transfer.priority} />
-              </TableCell>
-              <TableCell>{formatDate(transfer.createdAt)}</TableCell>
-              <TableCell>
-                <Button size="sm" variant="outline" asChild>
-                  <Link to={`/dashboard/inventory/transfers/${transfer.id}`}>
-                    View
-                  </Link>
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  );
-}
-```
-
-### F6.2 Transfer Detail Page with Workflow Actions
-
-```typescript
-export function TransferDetailPage() {
-  const { transferId } = useParams();
-  const { data: transfer, isLoading } = useQuery({
-    queryKey: ['transfer', transferId],
-    queryFn: () => transferApi.getById(transferId!),
-  });
-
-  const approveTransfer = useMutation({
-    mutationFn: (data: ApproveTransferInput) =>
-      transferApi.approve(transferId!, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transfer', transferId] });
-      toast.success('Transfer approved');
-    },
-  });
-
-  // ... other mutations for reject, startPicking, confirmPicked, ship, receive, putaway
-
-  return (
-    <div className="space-y-6">
-      {/* Transfer Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{transfer?.transferNumber}</h1>
-          <p className="text-muted-foreground">
-            {transfer?.sourceWarehouseId} → {transfer?.destinationWarehouseId}
-          </p>
-        </div>
-        <TransferStatusBadge status={transfer?.status} />
-      </div>
-
-      {/* Workflow Progress */}
-      <TransferWorkflowProgress status={transfer?.status} />
-
-      {/* Action Buttons based on status */}
-      <TransferActions
-        transfer={transfer}
-        onApprove={approveTransfer.mutate}
-        onReject={rejectTransfer.mutate}
-        onStartPicking={startPicking.mutate}
-        onConfirmPicked={confirmPicked.mutate}
-        onShip={ship.mutate}
-        onReceive={receive.mutate}
-        onPutaway={putaway.mutate}
-        onCancel={cancel.mutate}
-      />
-
-      {/* Transfer Items */}
-      <TransferItemsTable items={transfer?.items} status={transfer?.status} />
-
-      {/* Audit Log */}
-      <TransferAuditLog logs={transfer?.logs} />
-    </div>
-  );
-}
-```
-
-### F6.3 Deliverables
-- [ ] Create transferApi module
-- [ ] Create TransfersPage (list view)
-- [ ] Create TransferDetailPage (detail view with actions)
-- [ ] Create CreateTransferPage (request form)
-- [ ] Create TransferWorkflowProgress component
-- [ ] Create TransferActions component
-- [ ] Create TransferItemsTable component
-- [ ] Create TransferAuditLog component
-- [ ] Add transfer notifications via WebSocket
-
----
-
-## Phase F7: Stock Opname UI
-
-### F7.1 Stock Opname List Page
-
-**File**: `src/routes/dashboard/inventory/stock-opname.tsx`
-
-```typescript
-export function StockOpnamePage() {
-  const { data: sessions, isLoading } = useQuery({
-    queryKey: ['stock-opname-sessions'],
-    queryFn: () => stockOpnameApi.getSessions(),
-  });
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1>Stock Opname</h1>
-        <Button asChild>
-          <Link to="/dashboard/inventory/stock-opname/new">
-            Start New Count
-          </Link>
-        </Button>
-      </div>
-
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Opname #</TableHead>
-            <TableHead>Warehouse</TableHead>
-            <TableHead>Scope</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Items Counted</TableHead>
-            <TableHead>Variance</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {sessions?.map((session) => (
-            <TableRow key={session.id}>
-              <TableCell className="font-mono">{session.opnameNumber}</TableCell>
-              <TableCell>{session.warehouseId}</TableCell>
-              <TableCell>{session.scopeType}</TableCell>
-              <TableCell>
-                <OpnameStatusBadge status={session.status} />
-              </TableCell>
-              <TableCell>{session.totalItemsCounted}</TableCell>
-              <TableCell className={session.totalVarianceQty !== 0 ? 'text-red-600' : ''}>
-                {session.totalVarianceQty}
-              </TableCell>
-              <TableCell>{formatDate(session.createdAt)}</TableCell>
-              <TableCell>
-                <Button size="sm" variant="outline" asChild>
-                  <Link to={`/dashboard/inventory/stock-opname/${session.id}`}>
-                    {session.status === 'in_progress' ? 'Continue' : 'View'}
-                  </Link>
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  );
-}
-```
-
-### F7.2 Stock Opname Counting Interface
-
-```typescript
-export function StockOpnameCountingPage() {
-  const { sessionId } = useParams();
-  const [barcode, setBarcode] = useState('');
-  const barcodeInputRef = useRef<HTMLInputElement>(null);
-
-  const { data: session } = useQuery({
-    queryKey: ['stock-opname', sessionId],
-    queryFn: () => stockOpnameApi.getSession(sessionId!),
-  });
-
-  const countMutation = useMutation({
-    mutationFn: (data: { barcode: string; quantity: number }) =>
-      stockOpnameApi.count(sessionId!, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['stock-opname', sessionId] });
-      setBarcode('');
-      barcodeInputRef.current?.focus();
-    },
-  });
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1>{session?.opnameNumber}</h1>
-          <p className="text-muted-foreground">
-            {session?.totalItemsCounted} of {session?.items?.length} items counted
-          </p>
-        </div>
-        <OpnameStatusBadge status={session?.status} />
-      </div>
-
-      {/* Progress Bar */}
-      <Progress
-        value={(session?.totalItemsCounted / session?.items?.length) * 100}
-      />
-
-      {/* Barcode Scanner Input */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Scan Barcode</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
+      <form.Field name="name">
+        {(field) => (
+          <div className="space-y-2">
+            <Label htmlFor={field.name}>Product Name</Label>
             <Input
-              ref={barcodeInputRef}
-              value={barcode}
-              onChange={(e) => setBarcode(e.target.value)}
-              placeholder="Scan or enter barcode..."
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  // Show quantity input dialog
-                }
-              }}
+              id={field.name}
+              value={field.state.value}
+              onChange={(e) => field.handleChange(e.target.value)}
+              onBlur={field.handleBlur}
             />
-            <Button onClick={() => {/* Show quantity dialog */}}>
-              Enter Count
-            </Button>
+            {field.state.meta.errors.length > 0 && (
+              <p className="text-sm text-destructive">
+                {field.state.meta.errors.join(', ')}
+              </p>
+            )}
           </div>
-        </CardContent>
-      </Card>
+        )}
+      </form.Field>
 
-      {/* Items List */}
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Product</TableHead>
-            <TableHead>Location</TableHead>
-            <TableHead>System Qty</TableHead>
-            <TableHead>Counted Qty</TableHead>
-            <TableHead>Variance</TableHead>
-            <TableHead>Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {session?.items?.map((item) => (
-            <TableRow
-              key={item.id}
-              className={
-                item.countedQuantity === null
-                  ? 'bg-yellow-50'
-                  : item.varianceQuantity !== 0
-                    ? 'bg-red-50'
-                    : ''
-              }
-            >
-              <TableCell>{item.productId}</TableCell>
-              <TableCell>
-                {item.rack && `${item.rack}-`}
-                {item.bin && `${item.bin}`}
-              </TableCell>
-              <TableCell>{item.systemQuantity}</TableCell>
-              <TableCell>
-                {item.countedQuantity ?? '-'}
-              </TableCell>
-              <TableCell className={item.varianceQuantity !== 0 ? 'text-red-600 font-bold' : ''}>
-                {item.varianceQuantity ?? '-'}
-              </TableCell>
-              <TableCell>
-                <Badge variant={item.countedQuantity !== null ? 'default' : 'secondary'}>
-                  {item.countedQuantity !== null ? 'Counted' : 'Pending'}
-                </Badge>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      {/* Pricing */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <form.Field name="price">
+          {(field) => (
+            <div className="space-y-2">
+              <Label htmlFor={field.name}>Base Price</Label>
+              <Input
+                id={field.name}
+                type="number"
+                value={field.state.value}
+                onChange={(e) => field.handleChange(Number(e.target.value))}
+                onBlur={field.handleBlur}
+              />
+            </div>
+          )}
+        </form.Field>
 
-      {/* Actions */}
+        <form.Field name="retailPrice">
+          {(field) => (
+            <div className="space-y-2">
+              <Label htmlFor={field.name}>Retail Price</Label>
+              <Input
+                id={field.name}
+                type="number"
+                value={field.state.value || ''}
+                onChange={(e) => field.handleChange(Number(e.target.value) || undefined)}
+                onBlur={field.handleBlur}
+              />
+            </div>
+          )}
+        </form.Field>
+
+        <form.Field name="wholesalePrice">
+          {(field) => (
+            <div className="space-y-2">
+              <Label htmlFor={field.name}>Wholesale Price</Label>
+              <Input
+                id={field.name}
+                type="number"
+                value={field.state.value || ''}
+                onChange={(e) => field.handleChange(Number(e.target.value) || undefined)}
+                onBlur={field.handleBlur}
+              />
+            </div>
+          )}
+        </form.Field>
+      </div>
+
+      {/* NOTE: NO stock fields - stock is managed via Inventory Service */}
+      <div className="p-4 bg-muted rounded-md">
+        <p className="text-sm text-muted-foreground">
+          Stock and inventory data are managed separately in the Inventory section.
+          After creating this product, assign it to warehouses in the Inventory management.
+        </p>
+      </div>
+
       <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={() => {/* Cancel */}}>
-          Cancel Session
+        <Button type="button" variant="outline">
+          Cancel
         </Button>
         <Button
-          onClick={() => stockOpnameApi.finalize(sessionId!)}
-          disabled={session?.items?.some(i => i.countedQuantity === null)}
+          type="submit"
+          disabled={form.state.isSubmitting || !form.state.canSubmit}
         >
-          Finalize Counting
+          {form.state.isSubmitting ? 'Saving...' : productId ? 'Update' : 'Create'}
         </Button>
       </div>
-    </div>
+    </form>
   );
 }
 ```
 
-### F7.3 Deliverables
-- [ ] Create stockOpnameApi module
-- [ ] Create StockOpnamePage (list view)
-- [ ] Create CreateStockOpnamePage (create session)
-- [ ] Create StockOpnameCountingPage (barcode scanning interface)
-- [ ] Create StockOpnameReviewPage (variance review)
+### F6.3 Forms to Migrate
+
+| Form | Current | TanStack Form | Priority |
+|------|---------|---------------|----------|
+| Product Form | Manual state | ⏳ Migrate | High |
+| Variant Form | Manual state | ⏳ Migrate | High |
+| Warehouse Form | Manual state | ⏳ Migrate | Medium |
+| Inventory Adjust | Manual state | ⏳ Migrate | High |
+| Batch Form | Manual state | ⏳ Migrate | Medium |
+| Transfer Request | New | ⏳ Create | Phase 7 |
+| Stock Opname Count | New | ⏳ Create | Phase 8 |
+
+### F6.4 Deliverables
+
+- [ ] Install @tanstack/react-form
+- [ ] Create form validation schemas (Zod)
+- [ ] Migrate Product form
+- [ ] Migrate Variant form
+- [ ] Migrate Warehouse form
+- [ ] Migrate Inventory adjustment form
+- [ ] Create Batch form
+- [ ] Create Transfer request form (Phase 7)
+- [ ] Create Stock opname counting form (Phase 8)
+
+---
+
+## Phase F7: Transfer UI (Backend Phase 7 Dependency)
+
+### F7.1 Transfer List Page
+
+**Route**: `/dashboard/inventory/transfers`
+
+**Features**:
+- Filter by warehouse (inbound/outbound)
+- Filter by status
+- Real-time status updates via WebSocket
+- Priority indicators
+
+### F7.2 Transfer Detail Page
+
+**Route**: `/dashboard/inventory/transfers/$transferId`
+
+**Features**:
+- Workflow progress visualization
+- Action buttons based on current status
+- Item-level tracking
+- Audit log display
+
+### F7.3 Create Transfer Request
+
+**Route**: `/dashboard/inventory/transfers/create`
+
+**Features**:
+- Source/destination warehouse selection
+- Product selection with current stock display
+- Quantity validation against available stock
+- Priority selection
+- Notes
+
+### F7.4 Transfer Query Hooks
+
+**File**: `src/hooks/queries/useTransfers.ts`
+
+```typescript
+// Hook to fetch transfers
+export function useTransfers(
+  filters?: { warehouseId?: string; direction?: 'inbound' | 'outbound'; status?: TransferStatus },
+  options?: { enabled?: boolean; realtime?: boolean }
+) { ... }
+
+// Hook to fetch single transfer
+export function useTransfer(id: string, options?: { enabled?: boolean }) { ... }
+
+// Hook to create transfer request
+export function useCreateTransfer() { ... }
+
+// Hook to approve transfer
+export function useApproveTransfer() { ... }
+
+// Hook to reject transfer
+export function useRejectTransfer() { ... }
+
+// Hook to update transfer status
+export function useUpdateTransferStatus() { ... }
+```
+
+### F7.5 Deliverables
+
+- [ ] Create transferApi in api.ts
+- [ ] Create useTransfers query hooks
+- [ ] Create TransfersListPage
+- [ ] Create TransferDetailPage
+- [ ] Create CreateTransferPage
+- [ ] Create TransferWorkflowProgress component
+- [ ] Create TransferStatusBadge component
+- [ ] Add WebSocket subscription for transfer updates
+
+---
+
+## Phase F8: Stock Opname UI (Backend Phase 8 Dependency)
+
+### F8.1 Stock Opname Sessions List
+
+**Route**: `/dashboard/inventory/stock-opname`
+
+**Features**:
+- List of opname sessions
+- Filter by warehouse, status
+- Summary statistics
+- Quick actions
+
+### F8.2 Create Opname Session
+
+**Route**: `/dashboard/inventory/stock-opname/create`
+
+**Features**:
+- Warehouse selection
+- Scope selection (full/zone/category/product)
+- Notes
+
+### F8.3 Counting Interface
+
+**Route**: `/dashboard/inventory/stock-opname/$sessionId/count`
+
+**Features**:
+- Barcode scanner integration
+- Quantity input (touch-friendly)
+- Progress indicator
+- Variance highlighting
+- Keyboard shortcuts
+
+### F8.4 Stock Opname Query Hooks
+
+**File**: `src/hooks/queries/useStockOpname.ts`
+
+```typescript
+// Hook to fetch opname sessions
+export function useStockOpnameSessions(
+  filters?: { warehouseId?: string; status?: OpnameStatus },
+  options?: { enabled?: boolean }
+) { ... }
+
+// Hook to fetch single session
+export function useStockOpnameSession(id: string, options?: { enabled?: boolean }) { ... }
+
+// Hook to fetch session items
+export function useStockOpnameItems(sessionId: string, options?: { enabled?: boolean }) { ... }
+
+// Hook to create session
+export function useCreateStockOpnameSession() { ... }
+
+// Hook to start counting
+export function useStartStockOpname() { ... }
+
+// Hook to record count
+export function useRecordCount() { ... }
+
+// Hook to finalize session
+export function useFinalizeStockOpname() { ... }
+```
+
+### F8.5 Deliverables
+
+- [ ] Create stockOpnameApi in api.ts
+- [ ] Create useStockOpname query hooks
+- [ ] Create StockOpnameListPage
+- [ ] Create CreateStockOpnamePage
+- [ ] Create StockOpnameCountingPage
+- [ ] Create StockOpnameReviewPage
 - [ ] Create VarianceReport component
-- [ ] Add keyboard shortcuts for barcode scanning
+- [ ] Add barcode scanner integration
+- [ ] Add keyboard shortcuts for counting
 
 ---
 
 ## Migration Checklist
 
 ### Pre-Migration
-- [ ] Ensure backend Phases 1-5 are complete
+- [ ] Ensure backend Phases 1-6 complete
 - [ ] Create feature branch for frontend refactoring
-- [ ] Document current API usage in all components
-- [ ] Set up WebSocket testing environment
+- [ ] Document current component usage
+- [ ] Set up testing environment
 
-### Phase F1-F2 (API Changes)
-- [ ] Update TypeScript interfaces
-- [ ] Update API modules
-- [ ] Add new inventory endpoints
-- [ ] Remove deprecated stock endpoints
+### Phase F1-F2 (API & Query)
+- [ ] Update TypeScript interfaces (remove stock fields)
+- [ ] Extend query keys factory
+- [ ] Create all query hooks
+- [ ] Test API integration
 
-### Phase F3 (WebSocket)
-- [ ] Implement WebSocket hook
-- [ ] Add connection management
-- [ ] Implement real-time notifications
+### Phase F3 (Router)
+- [ ] Install TanStack Router
+- [ ] Create route tree
+- [ ] Migrate all routes
+- [ ] Add search param validation
+- [ ] Test navigation
 
-### Phase F4 (Components)
-- [ ] Update all product components
-- [ ] Update all variant components
-- [ ] Update all location components
-- [ ] Update reports
+### Phase F4-F5 (Table & Virtual)
+- [ ] Install TanStack Table
+- [ ] Create DataTable component
+- [ ] Migrate all tables
+- [ ] Add virtualization for large lists
 
-### Phase F5-F7 (New Features)
-- [ ] Build dashboard updates
-- [ ] Build transfer UI
-- [ ] Build stock opname UI
+### Phase F6 (Form)
+- [ ] Install TanStack Form
+- [ ] Create form schemas
+- [ ] Migrate all forms
+
+### Phase F7-F8 (New Features)
+- [ ] Wait for backend Phases 7-8
+- [ ] Create Transfer UI
+- [ ] Create Stock Opname UI
 
 ### Post-Migration
 - [ ] Full regression testing
-- [ ] Performance testing with WebSocket
-- [ ] Update user documentation
-- [ ] Train users on new features
+- [ ] Performance testing
+- [ ] Update documentation
+- [ ] User training
 
 ---
 
 ## Environment Variables
-
-Add to `.env`:
 
 ```bash
 # Service URLs
@@ -1653,9 +1708,30 @@ VITE_INVENTORY_WS_URL=ws://localhost:8792/ws
 
 ---
 
-**Document Status**: Complete
-**Created**: 2025-12-08
+## Package Dependencies
+
+```json
+{
+  "dependencies": {
+    "@tanstack/react-query": "^5.x",
+    "@tanstack/react-router": "^1.x",
+    "@tanstack/react-table": "^8.x",
+    "@tanstack/react-virtual": "^3.x",
+    "@tanstack/react-form": "^0.x",
+    "@tanstack/zod-form-adapter": "^0.x",
+    "@tanstack/react-query-devtools": "^5.x",
+    "@tanstack/router-devtools": "^1.x",
+    "zod": "^3.x"
+  }
+}
+```
+
+---
+
+**Document Status**: Updated for TanStack Ecosystem
+**Last Updated**: 2025-12-14
 **Related Documents**:
-- `docs/DDD_HEXAGONAL_BOUNDARY_REVIEW.md`
-- `docs/DDD_REFACTORING_ROADMAP.md`
-- `docs/ARCHITECTURE_PROPOSAL_HEXAGONAL_DDD.md`
+- `docs/CLAUDE.md` - Main context document
+- `docs/ddd/DDD_REFACTORING_ROADMAP.md` - Backend roadmap
+- `docs/bounded-contexts/frontend/FRONTEND_ARCHITECTURE.md` - Architecture overview
+- `docs/testing/DDD_REFACTORING_TESTING_GUIDE.md` - Testing guide
