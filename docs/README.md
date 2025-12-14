@@ -32,6 +32,8 @@ High-level system design and architectural patterns.
 | [EVENT_DRIVEN_ARCHITECTURE_CLOUDFLARE.md](architecture/EVENT_DRIVEN_ARCHITECTURE_CLOUDFLARE.md) | Event-driven patterns on Cloudflare |
 | [SAGA_PATTERN_DISTRIBUTED_TRANSACTIONS.md](architecture/SAGA_PATTERN_DISTRIBUTED_TRANSACTIONS.md) | Distributed transaction handling |
 | [CLOUDFLARE_WORKERS_LIMITS_ANALYSIS.md](architecture/CLOUDFLARE_WORKERS_LIMITS_ANALYSIS.md) | Platform limitations and workarounds |
+| [ECOMMERCE_WHOLESALE_ROADMAP.md](architecture/ECOMMERCE_WHOLESALE_ROADMAP.md) | Dual-market e-commerce platform roadmap |
+| [RETAIL_WHOLESALE_ARCHITECTURE.md](architecture/RETAIL_WHOLESALE_ARCHITECTURE.md) | Retail + Wholesale architecture design |
 
 **Start here if you want to**: Understand system design, learn about microservices communication, or review architectural decisions.
 
@@ -85,6 +87,7 @@ Domain-specific documentation organized by microservice.
 |----------|-------------|
 | [FRONTEND_ARCHITECTURE.md](bounded-contexts/frontend/FRONTEND_ARCHITECTURE.md) | Next.js + ShadCN UI architecture |
 | [FRONTEND_REFACTORING_ROADMAP.md](bounded-contexts/frontend/FRONTEND_REFACTORING_ROADMAP.md) | Frontend modernization plan |
+| [FRONTEND_INTEGRATION_ROADMAP.md](bounded-contexts/frontend/FRONTEND_INTEGRATION_ROADMAP.md) | DDD + tRPC frontend integration |
 | [POS_VARIANT_SELECTION_WORKFLOW.md](bounded-contexts/frontend/POS_VARIANT_SELECTION_WORKFLOW.md) | Point-of-sale variant selection UX |
 
 **Start here if you want to**: Work on a specific service, understand domain responsibilities, or implement service-specific features.
@@ -105,12 +108,17 @@ Phase-by-phase implementation tracking and strategies.
 | [PHASE2B_2C_COMPLETION_SUMMARY.md](implementation/phases/PHASE2B_2C_COMPLETION_SUMMARY.md) | Phase 2 Completion | ✅ Complete |
 | [PHASE2B_FRONTEND_MIGRATION_GUIDE.md](implementation/phases/PHASE2B_FRONTEND_MIGRATION_GUIDE.md) | Frontend Migration | Reference |
 | [PHASE_3_IMPLEMENTATION.md](implementation/phases/PHASE_3_IMPLEMENTATION.md) | Batch Tracking & FEFO | ✅ Complete |
+| [PHASE_7_8_COMPLETE.md](implementation/phases/PHASE_7_8_COMPLETE.md) | WebSocket Real-Time | ✅ Complete |
+| [ALL_PHASES_COMPLETE.md](implementation/phases/ALL_PHASES_COMPLETE.md) | Frontend Integration (6 phases) | ✅ Complete |
+| [PHASE_1_COMPLETION_REPORT.md](implementation/phases/PHASE_1_COMPLETION_REPORT.md) | Phase 1 Report | ✅ Complete |
+| [ISSUE_1_AND_2_IMPLEMENTATION_SUMMARY.md](implementation/phases/ISSUE_1_AND_2_IMPLEMENTATION_SUMMARY.md) | Negative Stock + Physical Attrs | ✅ Complete |
 
 #### Strategies (`implementation/strategies/`)
 | Document | Description |
 |----------|-------------|
 | [CASCADE_DELETE_STRATEGY.md](implementation/strategies/CASCADE_DELETE_STRATEGY.md) | Cascade delete handling |
 | [LOCATION_FIELDS_STRATEGY.md](implementation/strategies/LOCATION_FIELDS_STRATEGY.md) | Physical location tracking |
+| [MULTI_WAREHOUSE_REFACTOR_PLAN.md](implementation/strategies/MULTI_WAREHOUSE_REFACTOR_PLAN.md) | Multi-warehouse allocation strategy |
 
 **Start here if you want to**: Track implementation progress, review phase summaries, or understand implementation strategies.
 
@@ -124,6 +132,10 @@ Comprehensive testing documentation and guides.
 | [DDD_REFACTORING_TESTING_GUIDE.md](testing/DDD_REFACTORING_TESTING_GUIDE.md) | Complete E2E testing guide (909 lines!) |
 | [TESTING.md](testing/TESTING.md) | General testing practices |
 | [INVENTORY_INTEGRATION_TESTING.md](testing/INVENTORY_INTEGRATION_TESTING.md) | Inventory service integration tests |
+| [TESTING_PLAN.md](testing/TESTING_PLAN.md) | Comprehensive testing strategy |
+| [TESTING_ROADMAP.md](testing/TESTING_ROADMAP.md) | Testing implementation roadmap |
+| [MANUAL_TESTING_CHECKLIST.md](testing/MANUAL_TESTING_CHECKLIST.md) | Step-by-step manual testing |
+| [MULTI_WAREHOUSE_TESTING.md](testing/MULTI_WAREHOUSE_TESTING.md) | Multi-warehouse feature testing |
 
 **Start here if you want to**: Write tests, run test suites, or understand testing strategy.
 
@@ -142,6 +154,14 @@ How-to guides and tutorials.
 | [VIDEO_HANDLING_GUIDE.md](guides/VIDEO_HANDLING_GUIDE.md) | Video upload and management |
 | [SHADCN_UI_REFACTORING_GUIDE.md](guides/SHADCN_UI_REFACTORING_GUIDE.md) | ShadCN UI component migration |
 | [CRON_CONFIGURATION.md](guides/CRON_CONFIGURATION.md) | Scheduled jobs setup |
+| [WEIGHT_BASED_BARCODE_GUIDE.md](guides/WEIGHT_BASED_BARCODE_GUIDE.md) | Weight-based barcode system for POS |
+| [MOBILE_APP_EXPO_GUIDE.md](guides/MOBILE_APP_EXPO_GUIDE.md) | Mobile app development with Expo |
+| [UI_DESIGN_GUIDELINE.md](guides/UI_DESIGN_GUIDELINE.md) | UI design standards and guidelines |
+| [SERVICE_STARTUP_GUIDE.md](guides/SERVICE_STARTUP_GUIDE.md) | Microservices startup guide |
+| [EXPIRATION_DATE_FEATURE_GUIDE.md](guides/EXPIRATION_DATE_FEATURE_GUIDE.md) | Product expiration tracking |
+| [MULTI_UOM_BARCODE_IMPLEMENTATION.md](guides/MULTI_UOM_BARCODE_IMPLEMENTATION.md) | Multi-UOM barcode implementation |
+| [MULTI_WAREHOUSE_UOM_API_GUIDE.md](guides/MULTI_WAREHOUSE_UOM_API_GUIDE.md) | Multi-warehouse UOM API guide |
+| [DATABASE_MIGRATION_RETAIL_WHOLESALE.md](guides/DATABASE_MIGRATION_RETAIL_WHOLESALE.md) | Database migration for dual markets |
 
 **Start here if you want to**: Set up your development environment, learn specific features, or follow tutorials.
 
@@ -154,6 +174,7 @@ Cross-service integration and external systems.
 |----------|-------------|
 | [MICROSERVICES_INTEGRATION_ROADMAP.md](integration/MICROSERVICES_INTEGRATION_ROADMAP.md) | Service-to-service integration plan |
 | [RBAC_IMPLEMENTATION_PLAN.md](integration/RBAC_IMPLEMENTATION_PLAN.md) | Role-based access control design |
+| [BACKEND_INTEGRATION_REQUIREMENTS.md](integration/BACKEND_INTEGRATION_REQUIREMENTS.md) | Backend API integration requirements |
 
 **Start here if you want to**: Integrate services, implement RBAC, or understand cross-cutting concerns.
 
@@ -165,6 +186,8 @@ Development tools and CI/CD.
 | Document | Description |
 |----------|-------------|
 | [SENTRY_CLAUDE_GITHUB_INTEGRATION.md](tooling/SENTRY_CLAUDE_GITHUB_INTEGRATION.md) | Error tracking and AI integration |
+| [DEPENDENCY_STATUS.md](tooling/DEPENDENCY_STATUS.md) | Dependency status and deprecation warnings |
+| [ESLINT_WARNINGS_EXPLAINED.md](tooling/ESLINT_WARNINGS_EXPLAINED.md) | ESLint warnings explanation and fixes |
 
 **Start here if you want to**: Set up monitoring, error tracking, or development tools.
 
