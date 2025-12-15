@@ -215,6 +215,10 @@ export const warehouseApi = {
 // PRODUCTS API (Full Features)
 // ============================================
 
+// Variant type options
+export type VariantType = 'Color' | 'Size' | 'Material' | 'Style';
+
+// ProductVariant type - DDD compliant (stock managed by Inventory Service)
 export interface ProductVariant {
   id: string;
   productId: string;
@@ -222,15 +226,15 @@ export interface ProductVariant {
   productSKU: string;
   variantName: string;
   variantSKU: string;
-  variantType: 'Color' | 'Size' | 'Material' | 'Style';
+  variantType: VariantType;
   price: number;
-  stock: number;
   status: 'active' | 'inactive';
   image?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
+// ProductUOM type - DDD compliant (stock managed by Inventory Service)
 export interface ProductUOM {
   id: string;
   productId: string;
@@ -238,12 +242,12 @@ export interface ProductUOM {
   uomName: string;
   barcode: string;
   conversionFactor: number;
-  stock: number;
   isDefault: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
+// ProductLocation type - DDD compliant (quantity managed by Inventory Service)
 export interface ProductLocation {
   id: string;
   productId: string;
@@ -252,7 +256,6 @@ export interface ProductLocation {
   bin?: string | null;
   zone?: string | null;
   aisle?: string | null;
-  quantity: number;
   createdAt: Date;
   updatedAt: Date;
   createdBy?: string | null;
@@ -266,13 +269,14 @@ export interface CreateProductLocationInput {
   bin?: string | null;
   zone?: string | null;
   aisle?: string | null;
-  quantity?: number;
+  // NO quantity - managed via Inventory Service
 }
 
 // ============================================
 // PRODUCT UOM LOCATIONS
 // ============================================
 
+// ProductUOMLocation type - DDD compliant (quantity managed by Inventory Service)
 export interface ProductUOMLocation {
   id: string;
   productUOMId: string;
@@ -281,7 +285,6 @@ export interface ProductUOMLocation {
   bin?: string | null;
   zone?: string | null;
   aisle?: string | null;
-  quantity: number;
   createdAt: Date;
   updatedAt: Date;
   createdBy?: string | null;
@@ -295,8 +298,11 @@ export interface CreateProductUOMLocationInput {
   bin?: string | null;
   zone?: string | null;
   aisle?: string | null;
-  quantity?: number;
+  // NO quantity - managed via Inventory Service
 }
+
+// Product type - DDD compliant (stock managed by Inventory Service)
+export type ProductStatus = 'online sales' | 'offline sales' | 'omnichannel sales' | 'inactive' | 'discontinued';
 
 export interface Product {
   id: string;
@@ -309,22 +315,18 @@ export interface Product {
   price: number;
   retailPrice?: number | null;
   wholesalePrice?: number | null;
-  stock: number;
   baseUnit: string;
   wholesaleThreshold: number;
-  minimumOrderQuantity: number;
-  minimumStock?: number | null; // Minimum stock threshold for alert reports
-  weight?: number | null; // NEW: in kg
-  length?: number | null; // NEW: in cm (panjang)
-  width?: number | null; // NEW: in cm (lebar)
-  height?: number | null; // NEW: in cm (tinggi)
-  expirationDate?: string | null; // Product expiration date (ISO date string)
-  alertDate?: string | null; // Alert date for notification before expiration (ISO date string)
+  minimumOrderQuantity: number; // Sales rule - kept in Product
+  weight?: number | null; // in kg
+  length?: number | null; // in cm (panjang)
+  width?: number | null; // in cm (lebar)
+  height?: number | null; // in cm (tinggi)
   rating: number;
   reviews: number;
   availableForRetail: boolean;
   availableForWholesale: boolean;
-  status: 'online sales' | 'offline sales' | 'omnichannel sales' | 'inactive' | 'discontinued';
+  status: ProductStatus;
   isBundle: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -364,6 +366,41 @@ export interface LowStockStatusResponse {
   message: string;
 }
 
+// ============================================
+// COMBINED VIEW TYPES (for UI)
+// ============================================
+
+/**
+ * ProductWithInventory - Combined view for UI
+ * Combines Product catalog data with Inventory stock data
+ */
+export interface ProductWithInventory extends Product {
+  inventory?: {
+    totalAvailable: number;
+    totalReserved: number;
+    totalInTransit: number;
+    minimumStock: number;
+    isLowStock: boolean;
+    warehouses: Inventory[];
+  };
+}
+
+/**
+ * VariantWithInventory - Combined view for UI
+ * Combines ProductVariant data with Inventory stock data
+ */
+export interface VariantWithInventory extends ProductVariant {
+  inventory?: {
+    totalAvailable: number;
+    totalReserved: number;
+    totalInTransit: number;
+    minimumStock: number;
+    isLowStock: boolean;
+    warehouses: Inventory[];
+  };
+}
+
+// CreateProductInput - DDD compliant (stock managed via Inventory Service)
 export interface CreateProductInput {
   barcode: string;
   name: string;
@@ -374,22 +411,18 @@ export interface CreateProductInput {
   price: number;
   retailPrice?: number | null;
   wholesalePrice?: number | null;
-  weight?: number; // NEW: in kg
-  length?: number; // NEW: in cm
-  width?: number; // NEW: in cm
-  height?: number; // NEW: in cm
-  expirationDate?: string; // Product expiration date (ISO date string)
-  alertDate?: string; // Alert date for notification before expiration (ISO date string)
-  stock?: number;
+  weight?: number; // in kg
+  length?: number; // in cm
+  width?: number; // in cm
+  height?: number; // in cm
   baseUnit?: string;
   wholesaleThreshold?: number;
-  minimumOrderQuantity?: number;
-  minimumStock?: number; // Minimum stock threshold for alert reports
+  minimumOrderQuantity?: number; // Sales rule - kept in Product
   rating?: number;
   reviews?: number;
   availableForRetail?: boolean;
   availableForWholesale?: boolean;
-  status?: 'online sales' | 'offline sales' | 'omnichannel sales' | 'inactive' | 'discontinued';
+  status?: ProductStatus;
   isBundle?: boolean;
 }
 
@@ -549,15 +582,15 @@ export const productApi = {
 // PRODUCT VARIANTS API
 // ============================================
 
+// CreateVariantInput - DDD compliant (stock managed via Inventory Service)
 export interface CreateVariantInput {
   productId: string;
   productName: string;
   productSKU: string;
   variantName: string;
   variantSKU: string;
-  variantType: 'Color' | 'Size' | 'Material' | 'Style';
+  variantType: VariantType;
   price: number;
-  stock?: number;
   status?: 'active' | 'inactive';
   image?: string;
 }
@@ -867,32 +900,6 @@ export const uomApi = {
   },
 };
 
-// Product UOM Location interface and input types
-export interface ProductUOMLocation {
-  id: string;
-  productUOMId: string;
-  warehouseId: string;
-  rack?: string | null;
-  bin?: string | null;
-  zone?: string | null;
-  aisle?: string | null;
-  quantity: number;
-  createdAt: Date;
-  updatedAt: Date;
-  createdBy?: string | null;
-  updatedBy?: string | null;
-}
-
-export interface CreateProductUOMLocationInput {
-  productUOMId: string;
-  warehouseId: string;
-  rack?: string | null;
-  bin?: string | null;
-  zone?: string | null;
-  aisle?: string | null;
-  quantity?: number;
-}
-
 // ============================================
 // ACCOUNTING API
 // ============================================
@@ -1093,15 +1100,48 @@ export const accountingApi = {
 // INVENTORY API
 // ============================================
 
+/**
+ * Enhanced Inventory type - DDD compliant
+ * Single source of truth for stock data
+ */
 export interface Inventory {
   id: string;
   warehouseId: string;
   productId: string;
+  variantId?: string | null;    // For variant-level inventory
+  uomId?: string | null;        // For UOM-specific inventory
   quantityAvailable: number;
   quantityReserved: number;
   quantityInTransit?: number;
   minimumStock: number;
+  rack?: string | null;         // Location within warehouse
+  bin?: string | null;
+  zone?: string | null;
+  aisle?: string | null;
+  version: number;              // For optimistic locking
+  lastModifiedAt?: string;
   lastRestockedAt?: Date | string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+/**
+ * InventoryBatch - For expiration tracking (FEFO)
+ * Managed by Inventory Service
+ */
+export interface InventoryBatch {
+  id: string;
+  inventoryId: string;
+  productId: string;
+  warehouseId: string;
+  batchNumber: string;
+  lotNumber?: string;
+  expirationDate?: string;
+  alertDate?: string;
+  quantityAvailable: number;
+  quantityReserved: number;
+  status: 'active' | 'expired' | 'depleted' | 'quarantined';
+  version: number;
   createdAt: Date | string;
   updatedAt: Date | string;
 }
@@ -1109,6 +1149,8 @@ export interface Inventory {
 export interface InventoryAdjustmentInput {
   productId: string;
   warehouseId: string;
+  variantId?: string;
+  uomId?: string;
   quantity: number;
   movementType: 'in' | 'out' | 'adjustment';
   reason?: string;
@@ -1128,6 +1170,139 @@ export interface InventoryMovement {
   notes?: string;
   performedBy?: string;
   createdAt: Date | string;
+}
+
+// ============================================
+// STOCK TRANSFER TYPES (Phase 7)
+// ============================================
+
+export type TransferStatus =
+  | 'requested'
+  | 'approved'
+  | 'rejected'
+  | 'picking'
+  | 'packed'
+  | 'shipped'
+  | 'in_transit'
+  | 'received'
+  | 'putaway'
+  | 'completed'
+  | 'cancelled';
+
+export type TransferPriority = 'low' | 'normal' | 'high' | 'urgent';
+export type TransferReason = 'low_stock' | 'replenishment' | 'rebalancing' | 'manual';
+
+/**
+ * StockTransferOrder - Inter-warehouse transfers
+ */
+export interface StockTransferOrder {
+  id: string;
+  transferNumber: string;
+  sourceWarehouseId: string;
+  destinationWarehouseId: string;
+  requestedBy?: string;
+  requestReason: TransferReason;
+  priority: TransferPriority;
+  status: TransferStatus;
+  approvedBy?: string;
+  approvedAt?: string;
+  shippedAt?: string;
+  receivedAt?: string;
+  completedAt?: string;
+  notes?: string;
+  items: StockTransferItem[];
+  version: number;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface StockTransferItem {
+  id: string;
+  transferOrderId: string;
+  productId: string;
+  variantId?: string;
+  uomId?: string;
+  quantityRequested: number;
+  quantityApproved?: number;
+  quantityPicked?: number;
+  quantityShipped?: number;
+  quantityReceived?: number;
+  quantityDamaged?: number;
+  quantityMissing?: number;
+  itemStatus: 'pending' | 'picked' | 'packed' | 'shipped' | 'received' | 'putaway' | 'completed';
+}
+
+export interface CreateTransferInput {
+  sourceWarehouseId: string;
+  destinationWarehouseId: string;
+  requestReason: TransferReason;
+  priority?: TransferPriority;
+  notes?: string;
+  items: Array<{
+    productId: string;
+    variantId?: string;
+    uomId?: string;
+    quantityRequested: number;
+  }>;
+}
+
+// ============================================
+// STOCK OPNAME TYPES (Phase 8)
+// ============================================
+
+export type OpnameStatus =
+  | 'draft'
+  | 'in_progress'
+  | 'pending_review'
+  | 'approved'
+  | 'rejected'
+  | 'completed'
+  | 'cancelled';
+
+export type OpnameScopeType = 'full' | 'zone' | 'category' | 'product';
+
+/**
+ * StockOpnameSession - Physical inventory count
+ */
+export interface StockOpnameSession {
+  id: string;
+  opnameNumber: string;
+  warehouseId: string;
+  scopeType: OpnameScopeType;
+  scopeZone?: string;
+  scopeCategoryId?: string;
+  status: OpnameStatus;
+  startedAt?: string;
+  completedAt?: string;
+  totalItemsCounted: number;
+  totalVarianceQty: number;
+  totalVarianceValue: number;
+  notes?: string;
+  version: number;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface StockOpnameItem {
+  id: string;
+  opnameSessionId: string;
+  productId: string;
+  variantId?: string;
+  systemQuantity: number;
+  countedQuantity?: number;
+  varianceQuantity?: number;
+  varianceValue?: number;
+  countedBy?: string;
+  countedAt?: string;
+  adjustmentStatus: 'pending' | 'approved' | 'rejected' | 'applied';
+}
+
+export interface CreateStockOpnameInput {
+  warehouseId: string;
+  scopeType: OpnameScopeType;
+  scopeZone?: string;
+  scopeCategoryId?: string;
+  notes?: string;
 }
 
 export const inventoryApi = {
