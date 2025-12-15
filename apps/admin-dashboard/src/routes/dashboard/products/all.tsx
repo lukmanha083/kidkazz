@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -78,8 +78,34 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { ProductWarehouseAllocation, type WarehouseAllocation } from '@/components/products/ProductWarehouseAllocation';
 import { ProductUOMWarehouseAllocation, type UOMWarehouseAllocation } from '@/components/products/ProductUOMWarehouseAllocation';
 import { WarehouseDetailModal, type WarehouseStockDetail } from '@/components/products/WarehouseDetailModal';
+import { productListSearchSchema } from '@/lib/route-search-schemas';
+import { queryKeys } from '@/lib/query-client';
 
+/**
+ * All Products Route
+ *
+ * Features:
+ * - Zod-validated search params for filtering
+ * - Route loader for data prefetching
+ * - Pagination synced with URL
+ */
 export const Route = createFileRoute('/dashboard/products/all')({
+  validateSearch: productListSearchSchema,
+
+  // Prefetch products and categories data
+  loader: async ({ context: { queryClient } }) => {
+    await Promise.all([
+      queryClient.ensureQueryData({
+        queryKey: queryKeys.products.all,
+        queryFn: () => productApi.getAll(),
+      }),
+      queryClient.ensureQueryData({
+        queryKey: queryKeys.categories.all,
+        queryFn: () => categoryApi.getAll(),
+      }),
+    ]);
+  },
+
   component: AllProductsPage,
 });
 
@@ -349,9 +375,9 @@ function AllProductsPage() {
   // Product stocks from Inventory Service (DDD pattern)
   const [productStocks, setProductStocks] = useState<Record<string, { totalStock: number; isLoading: boolean }>>({});
 
-  // Fetch products - removed searchTerm from queryKey to fix invalidation issue
+  // Fetch products - using centralized query keys
   const { data: productsData, isLoading, error } = useQuery({
-    queryKey: ['products'],
+    queryKey: queryKeys.products.all,
     queryFn: () => productApi.getAll(),
   });
 
@@ -359,7 +385,7 @@ function AllProductsPage() {
 
   // Fetch categories
   const { data: categoriesData } = useQuery({
-    queryKey: ['categories'],
+    queryKey: queryKeys.categories.all,
     queryFn: () => categoryApi.getAll(),
   });
 
@@ -367,7 +393,7 @@ function AllProductsPage() {
 
   // Fetch warehouses
   const { data: warehousesData } = useQuery({
-    queryKey: ['warehouses'],
+    queryKey: queryKeys.warehouses.all,
     queryFn: () => warehouseApi.getAll(),
   });
 
@@ -375,7 +401,7 @@ function AllProductsPage() {
 
   // Fetch UOMs from master data
   const { data: uomsData } = useQuery({
-    queryKey: ['uoms'],
+    queryKey: queryKeys.uoms.all,
     queryFn: () => uomApi.getAll(),
   });
 
@@ -418,7 +444,7 @@ function AllProductsPage() {
     mutationFn: (data: CreateProductInput) => productApi.create(data),
     onSuccess: () => {
       // Invalidate all products queries (including those with search term)
-      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
       toast.success('Product created successfully');
       setFormDrawerOpen(false);
     },
@@ -435,7 +461,7 @@ function AllProductsPage() {
     mutationFn: ({ id, data }: { id: string; data: Partial<CreateProductInput> }) =>
       productApi.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
       queryClient.invalidateQueries({ queryKey: ['product', selectedProduct?.id] });
       toast.success('Product updated successfully');
       setFormDrawerOpen(false);
@@ -452,7 +478,7 @@ function AllProductsPage() {
   const deleteProductMutation = useMutation({
     mutationFn: (id: string) => productApi.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
       toast.success('Product deleted successfully');
       setDeleteDialogOpen(false);
       setProductToDelete(null);
@@ -1091,7 +1117,7 @@ function AllProductsPage() {
           }
         }
 
-        queryClient.invalidateQueries({ queryKey: ['products'] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
         toast.success('Product created successfully');
         setFormDrawerOpen(false);
       } catch (error: any) {
@@ -1307,7 +1333,7 @@ function AllProductsPage() {
             });
 
             // Refresh the product data to show current state
-            queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
             queryClient.invalidateQueries({ queryKey: ['product', selectedProduct.id] });
 
             // Keep drawer open so user can fix the issue
@@ -1325,7 +1351,7 @@ function AllProductsPage() {
           });
         }
 
-        queryClient.invalidateQueries({ queryKey: ['products'] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
         queryClient.invalidateQueries({ queryKey: ['product', selectedProduct.id] });
         toast.success('Product updated successfully');
         setFormDrawerOpen(false);
@@ -1363,7 +1389,7 @@ function AllProductsPage() {
               <p className="text-destructive font-medium">Error loading products</p>
               <p className="text-sm text-muted-foreground mt-2">{error.message}</p>
               <Button
-                onClick={() => queryClient.invalidateQueries({ queryKey: ['products'] })}
+                onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.products.all })}
                 className="mt-4"
               >
                 Retry
