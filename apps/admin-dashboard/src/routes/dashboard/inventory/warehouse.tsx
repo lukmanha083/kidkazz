@@ -68,6 +68,14 @@ export const Route = createFileRoute('/dashboard/inventory/warehouse')({
   component: WarehouseManagementPage,
 });
 
+/**
+ * Render the Warehouse Management page with listing, statistics, and full CRUD UI for warehouses.
+ *
+ * Provides warehouse list fetching, creation, update, and deletion flows, plus drawers for viewing
+ * and editing warehouse details, a confirmation dialog for delete, and error/loading states.
+ *
+ * @returns A JSX element that renders the warehouse management user interface.
+ */
 function WarehouseManagementPage() {
   const queryClient = useQueryClient();
   const [viewDrawerOpen, setViewDrawerOpen] = useState(false);
