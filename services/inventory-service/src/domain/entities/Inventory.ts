@@ -11,6 +11,7 @@ interface InventoryProps {
   quantityReserved: Quantity;
   quantityInTransit?: number;
   minimumStock: number;
+  version: number; // For optimistic locking
   lastRestockedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -47,6 +48,7 @@ export class Inventory extends AggregateRoot {
       quantityReserved: Quantity.zero(),
       quantityInTransit: 0,
       minimumStock: 0,
+      version: 1, // Initialize version to 1 on creation
       lastRestockedAt: undefined,
       createdAt: now,
       updatedAt: now,
@@ -76,6 +78,7 @@ export class Inventory extends AggregateRoot {
     quantityReserved: number;
     quantityInTransit?: number;
     minimumStock: number;
+    version: number;
     lastRestockedAt?: Date;
     createdAt: Date;
     updatedAt: Date;
@@ -88,6 +91,7 @@ export class Inventory extends AggregateRoot {
       quantityReserved: Quantity.create(data.quantityReserved),
       quantityInTransit: data.quantityInTransit,
       minimumStock: data.minimumStock,
+      version: data.version,
       lastRestockedAt: data.lastRestockedAt,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
@@ -300,6 +304,20 @@ export class Inventory extends AggregateRoot {
   }
 
   /**
+   * Get current version for optimistic locking
+   */
+  public getVersion(): number {
+    return this.props.version;
+  }
+
+  /**
+   * Increment version (called after successful persistence)
+   */
+  public incrementVersion(): void {
+    this.props.version += 1;
+  }
+
+  /**
    * Convert to data for persistence
    */
   public toData() {
@@ -311,6 +329,7 @@ export class Inventory extends AggregateRoot {
       quantityReserved: this.props.quantityReserved.getValue(),
       quantityInTransit: this.props.quantityInTransit,
       minimumStock: this.props.minimumStock,
+      version: this.props.version,
       lastRestockedAt: this.props.lastRestockedAt,
       createdAt: this.props.createdAt,
       updatedAt: this.props.updatedAt,

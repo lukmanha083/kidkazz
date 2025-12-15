@@ -1153,6 +1153,7 @@ export interface InventoryAdjustmentInput {
   uomId?: string;
   quantity: number;
   movementType: 'in' | 'out' | 'adjustment';
+  version: number; // Required for optimistic locking - must match current stored version
   reason?: string;
   performedBy?: string;
 }
