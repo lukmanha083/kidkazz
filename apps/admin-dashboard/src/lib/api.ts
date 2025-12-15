@@ -707,8 +707,20 @@ export interface CreateBundleInput {
 }
 
 export const bundleApi = {
-  getAll: async (): Promise<{ bundles: ProductBundle[]; total: number }> => {
-    return apiRequest('/api/bundles');
+  getAll: async (filters?: { status?: string }): Promise<{ bundles: ProductBundle[]; total: number }> => {
+    // Build query params, excluding undefined/null values
+    const params: Record<string, string> = {};
+    if (filters) {
+      for (const [key, value] of Object.entries(filters)) {
+        if (value !== undefined && value !== null) {
+          params[key] = String(value);
+        }
+      }
+    }
+    const queryString = Object.keys(params).length > 0
+      ? `?${new URLSearchParams(params).toString()}`
+      : '';
+    return apiRequest(`/api/bundles${queryString}`);
   },
 
   getById: async (id: string): Promise<{ bundle: ProductBundle; items: BundleItem[] }> => {
@@ -1351,6 +1363,143 @@ export const inventoryApi = {
     const params = limit ? '?limit=' + limit : '';
     const url = INVENTORY_SERVICE_URL + '/api/inventory/movements/' + productId + params;
     return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
+  },
+};
+
+// ============================================
+// INVENTORY BATCHES API (for expiration tracking - FEFO)
+// ============================================
+
+export interface BatchFilters {
+  productId?: string;
+  warehouseId?: string;
+  status?: 'active' | 'expired' | 'depleted' | 'quarantined';
+}
+
+export interface CreateBatchInput {
+  inventoryId: string;
+  productId: string;
+  warehouseId: string;
+  batchNumber: string;
+  lotNumber?: string;
+  expirationDate?: string;
+  alertDate?: string;
+  quantityAvailable: number;
+}
+
+export interface BatchAdjustInput {
+  quantity: number;
+  reason: string;
+  version: number; // Required for optimistic locking
+}
+
+export interface BatchStatusInput {
+  status: 'active' | 'expired' | 'depleted' | 'quarantined';
+  version: number; // Required for optimistic locking
+}
+
+export const batchApi = {
+  // Get all batches with optional filters
+  getAll: async (filters?: BatchFilters): Promise<{ batches: InventoryBatch[]; total: number }> => {
+    // Build query params, excluding undefined/null values
+    const params: Record<string, string> = {};
+    if (filters) {
+      for (const [key, value] of Object.entries(filters)) {
+        if (value !== undefined && value !== null) {
+          params[key] = String(value);
+        }
+      }
+    }
+    const queryString = Object.keys(params).length > 0
+      ? `?${new URLSearchParams(params).toString()}`
+      : '';
+    const url = INVENTORY_SERVICE_URL + '/api/batches' + queryString;
+    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
+  },
+
+  // Get a single batch by ID
+  getById: async (id: string): Promise<InventoryBatch> => {
+    const url = INVENTORY_SERVICE_URL + '/api/batches/' + id;
+    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
+  },
+
+  // Get batches expiring within N days
+  getExpiring: async (days: number = 30): Promise<{ batches: InventoryBatch[]; total: number }> => {
+    const url = INVENTORY_SERVICE_URL + '/api/batches/expiring?days=' + days;
+    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
+  },
+
+  // Get expired batches
+  getExpired: async (): Promise<{ batches: InventoryBatch[]; total: number }> => {
+    const url = INVENTORY_SERVICE_URL + '/api/batches/expired';
+    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
+  },
+
+  // Create a new batch
+  create: async (data: CreateBatchInput): Promise<InventoryBatch> => {
+    const url = INVENTORY_SERVICE_URL + '/api/batches';
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.message || `Failed to create batch: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  // Adjust batch quantity (with optimistic locking via version)
+  adjust: async (batchId: string, data: BatchAdjustInput): Promise<InventoryBatch> => {
+    const url = INVENTORY_SERVICE_URL + '/api/batches/' + batchId + '/adjust';
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      // Handle optimistic locking conflict (version mismatch)
+      if (response.status === 409) {
+        throw new Error('Conflict: The batch has been modified by another user. Please refresh and try again.');
+      }
+      throw new Error(errorData.message || `Failed to adjust batch: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  // Update batch status (with optimistic locking via version)
+  updateStatus: async (batchId: string, data: BatchStatusInput): Promise<InventoryBatch> => {
+    const url = INVENTORY_SERVICE_URL + '/api/batches/' + batchId + '/status';
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      // Handle optimistic locking conflict (version mismatch)
+      if (response.status === 409) {
+        throw new Error('Conflict: The batch has been modified by another user. Please refresh and try again.');
+      }
+      throw new Error(errorData.message || `Failed to update batch status: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  // Delete a batch
+  delete: async (id: string): Promise<{ message: string }> => {
+    const url = INVENTORY_SERVICE_URL + '/api/batches/' + id;
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.message || `Failed to delete batch: ${response.statusText}`);
+    }
+    return response.json();
   },
 };
 

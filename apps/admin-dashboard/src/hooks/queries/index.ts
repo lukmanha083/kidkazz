@@ -25,43 +25,6 @@ export {
   useSetMinimumStock,
 } from './useInventory';
 
-// Product hooks (with inventory integration)
-export {
-  useProducts,
-  useProductsWithInventory,
-  useProduct,
-  useProductWithInventory,
-  useProductStock,
-  useProductLowStockStatus,
-  useCreateProduct,
-  useUpdateProduct,
-  useUpdateProductPrice,
-  useDeleteProduct,
-  useProductBySKU,
-} from './useProducts';
-
-// Variant hooks
-export {
-  useVariants,
-  useVariantsWithInventory,
-  useVariant,
-  useCreateVariant,
-  useUpdateVariant,
-  useDeleteVariant,
-} from './useVariants';
-
-// Bundle hooks (with virtual stock calculation)
-export {
-  useBundles,
-  useBundle,
-  useBundleAvailableStock,
-  useBundleWithStock,
-  useCreateBundle,
-  useUpdateBundle,
-  useUpdateBundleItems,
-  useDeleteBundle,
-} from './useBundles';
-
 // Batch hooks (for expiration tracking - FEFO)
 export {
   useBatches,
@@ -71,14 +34,17 @@ export {
   useCreateBatch,
   useAdjustBatch,
   useUpdateBatchStatus,
+  useDeleteBatch,
 } from './useBatches';
 
-// Category hooks
+// Bundle hooks
 export {
-  useCategories,
-  useActiveCategories,
-  useCategory,
-  useCreateCategory,
-  useUpdateCategory,
-  useDeleteCategory,
-} from './useCategories';
+  useBundles,
+  useBundle,
+  useBundleAvailableStock,
+  useCreateBundle,
+  useUpdateBundle,
+  useUpdateBundleItems,
+  useUpdateBundleStock,
+  useDeleteBundle,
+} from './useBundles';

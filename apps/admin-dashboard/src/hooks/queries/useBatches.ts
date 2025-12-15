@@ -1,131 +1,26 @@
 /**
  * Batch Queries (React Query)
  *
- * Modern hooks using @tanstack/react-query for data fetching and caching.
- * Inventory Batches for FEFO (First Expired, First Out) tracking.
+ * Modern hooks using @tanstack/react-query for inventory batch management.
+ * Batches are used for expiration tracking (FEFO - First Expired First Out).
  *
  * Features:
- * - Expiration date tracking
- * - Alert date notifications
- * - Batch status management
+ * - Proper filter serialization (no 'undefined' strings in query params)
+ * - Optimistic locking via version field for mutations
+ * - Automatic cache invalidation
  * - Type-safe API calls
- *
- * Note: Batch API endpoints are planned for Phase 7-8.
- * These hooks are prepared for when the backend is ready.
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  batchApi,
+  type InventoryBatch,
+  type BatchFilters,
+  type CreateBatchInput,
+  type BatchAdjustInput,
+  type BatchStatusInput,
+} from '../../lib/api';
 import { queryKeys } from '../../lib/query-client';
-import type { InventoryBatch } from '../../lib/api';
-
-// Batch API endpoints - to be implemented when backend is ready
-const INVENTORY_SERVICE_URL =
-  import.meta.env.VITE_INVENTORY_SERVICE_URL || 'http://localhost:8792';
-
-const batchApi = {
-  getAll: async (filters?: {
-    productId?: string;
-    warehouseId?: string;
-    status?: string;
-  }): Promise<{ batches: InventoryBatch[]; total: number }> => {
-    const params = new URLSearchParams(filters as Record<string, string>).toString();
-    const url = `${INVENTORY_SERVICE_URL}/api/batches${params ? `?${params}` : ''}`;
-    const response = await fetch(url, {
-      headers: { 'Content-Type': 'application/json' },
-    });
-    if (!response.ok) {
-      throw new Error(`Failed to fetch batches: ${response.statusText}`);
-    }
-    return response.json();
-  },
-
-  getById: async (id: string): Promise<InventoryBatch> => {
-    const url = `${INVENTORY_SERVICE_URL}/api/batches/${id}`;
-    const response = await fetch(url, {
-      headers: { 'Content-Type': 'application/json' },
-    });
-    if (!response.ok) {
-      throw new Error(`Failed to fetch batch: ${response.statusText}`);
-    }
-    return response.json();
-  },
-
-  getExpiring: async (days: number): Promise<{ batches: InventoryBatch[]; total: number }> => {
-    const url = `${INVENTORY_SERVICE_URL}/api/batches/expiring?days=${days}`;
-    const response = await fetch(url, {
-      headers: { 'Content-Type': 'application/json' },
-    });
-    if (!response.ok) {
-      throw new Error(`Failed to fetch expiring batches: ${response.statusText}`);
-    }
-    return response.json();
-  },
-
-  getExpired: async (): Promise<{ batches: InventoryBatch[]; total: number }> => {
-    const url = `${INVENTORY_SERVICE_URL}/api/batches/expired`;
-    const response = await fetch(url, {
-      headers: { 'Content-Type': 'application/json' },
-    });
-    if (!response.ok) {
-      throw new Error(`Failed to fetch expired batches: ${response.statusText}`);
-    }
-    return response.json();
-  },
-
-  create: async (data: {
-    inventoryId: string;
-    productId: string;
-    warehouseId: string;
-    batchNumber: string;
-    lotNumber?: string;
-    expirationDate?: string;
-    alertDate?: string;
-    quantityAvailable: number;
-  }): Promise<InventoryBatch> => {
-    const url = `${INVENTORY_SERVICE_URL}/api/batches`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) {
-      throw new Error(`Failed to create batch: ${response.statusText}`);
-    }
-    return response.json();
-  },
-
-  adjust: async (
-    batchId: string,
-    data: { quantity: number; reason: string }
-  ): Promise<{ message: string }> => {
-    const url = `${INVENTORY_SERVICE_URL}/api/batches/${batchId}/adjust`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) {
-      throw new Error(`Failed to adjust batch: ${response.statusText}`);
-    }
-    return response.json();
-  },
-
-  updateStatus: async (
-    batchId: string,
-    status: 'active' | 'expired' | 'depleted' | 'quarantined'
-  ): Promise<{ message: string }> => {
-    const url = `${INVENTORY_SERVICE_URL}/api/batches/${batchId}/status`;
-    const response = await fetch(url, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    });
-    if (!response.ok) {
-      throw new Error(`Failed to update batch status: ${response.statusText}`);
-    }
-    return response.json();
-  },
-};
 
 /**
  * Hook to fetch batches with optional filters
@@ -136,7 +31,7 @@ const batchApi = {
  * @param options.enabled - Enable/disable query (default: true)
  */
 export function useBatches(
-  filters?: { productId?: string; warehouseId?: string; status?: string },
+  filters?: BatchFilters,
   options?: { enabled?: boolean }
 ) {
   const { enabled = true } = options || {};
@@ -150,9 +45,6 @@ export function useBatches(
 
 /**
  * Hook to fetch a single batch by ID
- *
- * @param id - Batch ID
- * @param options.enabled - Enable/disable query (default: true)
  */
 export function useBatch(id: string, options?: { enabled?: boolean }) {
   const { enabled = true } = options || {};
@@ -165,32 +57,20 @@ export function useBatch(id: string, options?: { enabled?: boolean }) {
 }
 
 /**
- * Hook to fetch batches expiring within specified days
- * Useful for expiration alerts and FEFO planning
- *
- * @param days - Number of days to look ahead (default: 30)
- * @param options.enabled - Enable/disable query (default: true)
+ * Hook to fetch batches expiring within N days
  */
-export function useExpiringBatches(
-  days: number = 30,
-  options?: { enabled?: boolean }
-) {
+export function useExpiringBatches(days: number = 30, options?: { enabled?: boolean }) {
   const { enabled = true } = options || {};
 
   return useQuery({
     queryKey: queryKeys.batches.expiring(days),
     queryFn: () => batchApi.getExpiring(days),
     enabled,
-    // Refresh frequently for accurate alerts
-    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
 /**
- * Hook to fetch already expired batches
- * Used for quarantine and disposal processes
- *
- * @param options.enabled - Enable/disable query (default: true)
+ * Hook to fetch expired batches
  */
 export function useExpiredBatches(options?: { enabled?: boolean }) {
   const { enabled = true } = options || {};
@@ -199,24 +79,21 @@ export function useExpiredBatches(options?: { enabled?: boolean }) {
     queryKey: queryKeys.batches.expired(),
     queryFn: () => batchApi.getExpired(),
     enabled,
-    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
 /**
- * Hook to create a new batch
- *
- * Features:
- * - Automatic cache invalidation on success
- * - Invalidates inventory cache since quantity is affected
+ * Hook to create a batch
  */
 export function useCreateBatch() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: batchApi.create,
+    mutationFn: (data: CreateBatchInput) => batchApi.create(data),
     onSuccess: () => {
+      // Invalidate all batch queries
       queryClient.invalidateQueries({ queryKey: queryKeys.batches.all });
+      // Also invalidate inventory queries since batch affects inventory
       queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
     },
   });
@@ -226,21 +103,86 @@ export function useCreateBatch() {
  * Hook to adjust batch quantity
  *
  * Features:
- * - Automatic cache invalidation on success
- * - Invalidates inventory cache since quantity is affected
+ * - Requires version property for optimistic locking
+ * - Handles version conflict errors (409)
+ * - Invalidates cache on success
+ *
+ * @example
+ * const adjustBatch = useAdjustBatch();
+ * adjustBatch.mutate({
+ *   batchId: 'batch-123',
+ *   data: {
+ *     quantity: 10,
+ *     reason: 'Damaged goods',
+ *     version: currentBatch.version // Required for optimistic locking
+ *   }
+ * });
  */
 export function useAdjustBatch() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      batchId,
-      data,
-    }: {
-      batchId: string;
-      data: { quantity: number; reason: string };
-    }) => batchApi.adjust(batchId, data),
+    mutationFn: ({ batchId, data }: { batchId: string; data: BatchAdjustInput }) =>
+      batchApi.adjust(batchId, data),
 
+    // Optimistic update
+    onMutate: async ({ batchId, data }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: queryKeys.batches.all });
+
+      // Snapshot the previous value
+      const previousBatches = queryClient.getQueryData(queryKeys.batches.lists());
+      const previousBatch = queryClient.getQueryData(queryKeys.batches.detail(batchId));
+
+      // Optimistically update batch detail
+      queryClient.setQueryData(
+        queryKeys.batches.detail(batchId),
+        (old: InventoryBatch | undefined) => {
+          if (!old) return old;
+          return {
+            ...old,
+            quantityAvailable: old.quantityAvailable + data.quantity,
+            version: old.version + 1,
+            updatedAt: new Date().toISOString(),
+          };
+        }
+      );
+
+      // Optimistically update batches list
+      queryClient.setQueriesData(
+        { queryKey: queryKeys.batches.lists() },
+        (old: { batches: InventoryBatch[]; total: number } | undefined) => {
+          if (!old) return old;
+          return {
+            ...old,
+            batches: old.batches.map((batch) =>
+              batch.id === batchId
+                ? {
+                    ...batch,
+                    quantityAvailable: batch.quantityAvailable + data.quantity,
+                    version: batch.version + 1,
+                    updatedAt: new Date().toISOString(),
+                  }
+                : batch
+            ),
+          };
+        }
+      );
+
+      return { previousBatches, previousBatch };
+    },
+
+    // Rollback on error
+    onError: (err, { batchId }, context) => {
+      if (context?.previousBatches) {
+        queryClient.setQueryData(queryKeys.batches.lists(), context.previousBatches);
+      }
+      if (context?.previousBatch) {
+        queryClient.setQueryData(queryKeys.batches.detail(batchId), context.previousBatch);
+      }
+    },
+
+    // Always refetch after success to ensure consistency
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.batches.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
@@ -252,25 +194,102 @@ export function useAdjustBatch() {
  * Hook to update batch status
  *
  * Features:
- * - Automatic cache invalidation on success
+ * - Requires version property for optimistic locking
+ * - Handles version conflict errors (409)
+ * - Invalidates cache on success
+ *
+ * @example
+ * const updateStatus = useUpdateBatchStatus();
+ * updateStatus.mutate({
+ *   batchId: 'batch-123',
+ *   status: 'quarantined',
+ *   version: currentBatch.version // Required for optimistic locking
+ * });
  */
 export function useUpdateBatchStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      batchId,
-      status,
-    }: {
-      batchId: string;
-      status: 'active' | 'expired' | 'depleted' | 'quarantined';
-    }) => batchApi.updateStatus(batchId, status),
+    mutationFn: ({ batchId, status, version }: { batchId: string; status: BatchStatusInput['status']; version: number }) =>
+      batchApi.updateStatus(batchId, { status, version }),
 
-    onSuccess: (_, { batchId }) => {
+    // Optimistic update
+    onMutate: async ({ batchId, status, version }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: queryKeys.batches.all });
+
+      // Snapshot the previous value
+      const previousBatches = queryClient.getQueryData(queryKeys.batches.lists());
+      const previousBatch = queryClient.getQueryData(queryKeys.batches.detail(batchId));
+
+      // Optimistically update batch detail
+      queryClient.setQueryData(
+        queryKeys.batches.detail(batchId),
+        (old: InventoryBatch | undefined) => {
+          if (!old) return old;
+          return {
+            ...old,
+            status,
+            version: old.version + 1,
+            updatedAt: new Date().toISOString(),
+          };
+        }
+      );
+
+      // Optimistically update batches list
+      queryClient.setQueriesData(
+        { queryKey: queryKeys.batches.lists() },
+        (old: { batches: InventoryBatch[]; total: number } | undefined) => {
+          if (!old) return old;
+          return {
+            ...old,
+            batches: old.batches.map((batch) =>
+              batch.id === batchId
+                ? {
+                    ...batch,
+                    status,
+                    version: batch.version + 1,
+                    updatedAt: new Date().toISOString(),
+                  }
+                : batch
+            ),
+          };
+        }
+      );
+
+      return { previousBatches, previousBatch };
+    },
+
+    // Rollback on error
+    onError: (err, { batchId }, context) => {
+      if (context?.previousBatches) {
+        queryClient.setQueryData(queryKeys.batches.lists(), context.previousBatches);
+      }
+      if (context?.previousBatch) {
+        queryClient.setQueryData(queryKeys.batches.detail(batchId), context.previousBatch);
+      }
+    },
+
+    // Always refetch after success
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.batches.all });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.batches.detail(batchId),
-      });
+      // Invalidate expiring/expired queries as status change may affect them
+      queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
+    },
+  });
+}
+
+/**
+ * Hook to delete a batch
+ */
+export function useDeleteBatch() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => batchApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.batches.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
     },
   });
 }
