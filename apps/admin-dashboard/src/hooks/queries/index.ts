@@ -23,3 +23,27 @@ export {
   useAdjustInventory,
   useSetMinimumStock,
 } from './useInventory';
+
+// Batch hooks (for expiration tracking - FEFO)
+export {
+  useBatches,
+  useBatch,
+  useExpiringBatches,
+  useExpiredBatches,
+  useCreateBatch,
+  useAdjustBatch,
+  useUpdateBatchStatus,
+  useDeleteBatch,
+} from './useBatches';
+
+// Bundle hooks
+export {
+  useBundles,
+  useBundle,
+  useBundleAvailableStock,
+  useCreateBundle,
+  useUpdateBundle,
+  useUpdateBundleItems,
+  useUpdateBundleStock,
+  useDeleteBundle,
+} from './useBundles';
