@@ -67,6 +67,13 @@ interface LowStockItem {
   price: number;
 }
 
+/**
+ * Render the Low Stock Report page, including summary cards, filters, and a sortable table of products that are below their minimum stock levels.
+ *
+ * Fetches inventory, warehouse, and product data, computes low-stock items (with resilient fallbacks for missing product/warehouse info), and provides warehouse filtering, text search, and multi-field sorting.
+ *
+ * @returns A React element representing the Low Stock Report page
+ */
 function LowStockPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedWarehouse, setSelectedWarehouse] = useState<string>('all');
