@@ -218,8 +218,7 @@ export const warehouseApi = {
 // Variant type options
 export type VariantType = 'Color' | 'Size' | 'Material' | 'Style';
 
-// ProductVariant type - DDD compliant
-// Stock data should be fetched from Inventory Service
+// ProductVariant type - DDD compliant (stock managed by Inventory Service)
 export interface ProductVariant {
   id: string;
   productId: string;
@@ -233,14 +232,9 @@ export interface ProductVariant {
   image?: string | null;
   createdAt: Date;
   updatedAt: Date;
-
-  // DEPRECATED - For backward compatibility during migration
-  /** @deprecated Use Inventory Service instead. Will be removed in next major version. */
-  stock?: number;
 }
 
-// ProductUOM type - DDD compliant
-// Stock data should be fetched from Inventory Service
+// ProductUOM type - DDD compliant (stock managed by Inventory Service)
 export interface ProductUOM {
   id: string;
   productId: string;
@@ -251,14 +245,9 @@ export interface ProductUOM {
   isDefault: boolean;
   createdAt: Date;
   updatedAt: Date;
-
-  // DEPRECATED - For backward compatibility during migration
-  /** @deprecated Use Inventory Service instead. Will be removed in next major version. */
-  stock?: number;
 }
 
-// ProductLocation type - DDD compliant
-// Location info only - quantity managed by Inventory Service
+// ProductLocation type - DDD compliant (quantity managed by Inventory Service)
 export interface ProductLocation {
   id: string;
   productId: string;
@@ -271,10 +260,6 @@ export interface ProductLocation {
   updatedAt: Date;
   createdBy?: string | null;
   updatedBy?: string | null;
-
-  // DEPRECATED - For backward compatibility during migration
-  /** @deprecated Use Inventory Service instead. Will be removed in next major version. */
-  quantity?: number;
 }
 
 export interface CreateProductLocationInput {
@@ -291,8 +276,7 @@ export interface CreateProductLocationInput {
 // PRODUCT UOM LOCATIONS
 // ============================================
 
-// ProductUOMLocation type - DDD compliant
-// Location info only - quantity managed by Inventory Service
+// ProductUOMLocation type - DDD compliant (quantity managed by Inventory Service)
 export interface ProductUOMLocation {
   id: string;
   productUOMId: string;
@@ -305,10 +289,6 @@ export interface ProductUOMLocation {
   updatedAt: Date;
   createdBy?: string | null;
   updatedBy?: string | null;
-
-  // DEPRECATED - For backward compatibility during migration
-  /** @deprecated Use Inventory Service instead. Will be removed in next major version. */
-  quantity?: number;
 }
 
 export interface CreateProductUOMLocationInput {
@@ -321,8 +301,7 @@ export interface CreateProductUOMLocationInput {
   // NO quantity - managed via Inventory Service
 }
 
-// Product type - DDD compliant
-// Stock data should be fetched from Inventory Service (single source of truth)
+// Product type - DDD compliant (stock managed by Inventory Service)
 export type ProductStatus = 'online sales' | 'offline sales' | 'omnichannel sales' | 'inactive' | 'discontinued';
 
 export interface Product {
@@ -357,21 +336,6 @@ export interface Product {
   variants?: ProductVariant[];
   productUOMs?: ProductUOM[];
   productLocations?: ProductLocation[];
-
-  // ============================================
-  // DEPRECATED FIELDS - For backward compatibility during migration
-  // These fields should NOT be used for new code.
-  // Use Inventory Service for stock data and InventoryBatch for expiration data.
-  // TODO: Remove these fields after Phase F2 migration is complete
-  // ============================================
-  /** @deprecated Use Inventory Service instead. Will be removed in next major version. */
-  stock?: number;
-  /** @deprecated Use Inventory.minimumStock from Inventory Service instead. */
-  minimumStock?: number | null;
-  /** @deprecated Use InventoryBatch.expirationDate from Inventory Service instead. */
-  expirationDate?: string | null;
-  /** @deprecated Use InventoryBatch.alertDate from Inventory Service instead. */
-  alertDate?: string | null;
 }
 
 // Phase 2 - DDD Compliant Stock Types
@@ -436,8 +400,7 @@ export interface VariantWithInventory extends ProductVariant {
   };
 }
 
-// CreateProductInput - DDD compliant
-// Stock data should be managed via Inventory Service
+// CreateProductInput - DDD compliant (stock managed via Inventory Service)
 export interface CreateProductInput {
   barcode: string;
   name: string;
@@ -461,16 +424,6 @@ export interface CreateProductInput {
   availableForWholesale?: boolean;
   status?: ProductStatus;
   isBundle?: boolean;
-
-  // DEPRECATED - For backward compatibility during migration
-  /** @deprecated Use Inventory Service instead. */
-  stock?: number;
-  /** @deprecated Use Inventory.minimumStock from Inventory Service instead. */
-  minimumStock?: number;
-  /** @deprecated Use InventoryBatch.expirationDate instead. */
-  expirationDate?: string;
-  /** @deprecated Use InventoryBatch.alertDate instead. */
-  alertDate?: string;
 }
 
 export const productApi = {
@@ -629,8 +582,7 @@ export const productApi = {
 // PRODUCT VARIANTS API
 // ============================================
 
-// CreateVariantInput - DDD compliant
-// Stock data should be managed via Inventory Service
+// CreateVariantInput - DDD compliant (stock managed via Inventory Service)
 export interface CreateVariantInput {
   productId: string;
   productName: string;
@@ -641,10 +593,6 @@ export interface CreateVariantInput {
   price: number;
   status?: 'active' | 'inactive';
   image?: string;
-
-  // DEPRECATED - For backward compatibility during migration
-  /** @deprecated Use Inventory Service instead. */
-  stock?: number;
 }
 
 export const variantApi = {
