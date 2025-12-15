@@ -31,6 +31,7 @@ const adjustStockSchema = z.object({
   uomId: z.string().optional(), // Phase 3: UOM support
   quantity: z.number(),
   movementType: z.enum(['in', 'out', 'adjustment']),
+  version: z.number().int().min(1), // Required for optimistic locking - must match stored version
   source: z.enum(['warehouse', 'pos']).optional(), // Operation source (defaults to 'warehouse')
   reason: z.string().optional(),
   notes: z.string().optional(),
@@ -117,6 +118,20 @@ app.post('/adjust', zValidator('json', adjustStockSchema), async (c) => {
         .get();
 
       if (!inventoryRecord) {
+        // For new inventory, client must send version: 1 (initial version)
+        if (data.version !== 1) {
+          return c.json(
+            {
+              error: 'Version mismatch: inventory record does not exist',
+              code: 'VERSION_MISMATCH',
+              expectedVersion: 1,
+              providedVersion: data.version,
+              message: 'For new inventory records, version must be 1',
+            },
+            409
+          );
+        }
+
         // Create new inventory record with optimistic locking
         const newInv = {
           id: generateId(),
@@ -181,7 +196,21 @@ app.post('/adjust', zValidator('json', adjustStockSchema), async (c) => {
       const currentVersion = inventoryRecord.version || 1;
       const previousQty = inventoryRecord.quantityAvailable;
 
-      // 3. Calculate new quantity
+      // 3. VALIDATE: Client version must match stored version (optimistic locking)
+      if (data.version !== currentVersion) {
+        return c.json(
+          {
+            error: 'Version mismatch: inventory has been modified by another operation',
+            code: 'VERSION_MISMATCH',
+            currentVersion: currentVersion,
+            providedVersion: data.version,
+            message: 'Please refresh the inventory data and try again',
+          },
+          409
+        );
+      }
+
+      // 4. Calculate new quantity
       const source = data.source || 'warehouse';
       let newQty: number;
 
