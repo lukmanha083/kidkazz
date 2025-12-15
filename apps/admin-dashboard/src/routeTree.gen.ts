@@ -20,7 +20,6 @@ import { Route as DashboardInventoryIndexRouteImport } from './routes/dashboard/
 import { Route as DashboardAccountingIndexRouteImport } from './routes/dashboard/accounting/index'
 import { Route as DashboardProductsVariantRouteImport } from './routes/dashboard/products/variant'
 import { Route as DashboardProductsUomRouteImport } from './routes/dashboard/products/uom'
-import { Route as DashboardProductsTestRouteImport } from './routes/dashboard/products/test'
 import { Route as DashboardProductsCategoryRouteImport } from './routes/dashboard/products/category'
 import { Route as DashboardProductsBundleRouteImport } from './routes/dashboard/products/bundle'
 import { Route as DashboardProductsAllRouteImport } from './routes/dashboard/products/all'
@@ -95,11 +94,6 @@ const DashboardProductsVariantRoute =
 const DashboardProductsUomRoute = DashboardProductsUomRouteImport.update({
   id: '/products/uom',
   path: '/products/uom',
-  getParentRoute: () => DashboardRoute,
-} as any)
-const DashboardProductsTestRoute = DashboardProductsTestRouteImport.update({
-  id: '/products/test',
-  path: '/products/test',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardProductsCategoryRoute =
@@ -232,7 +226,6 @@ export interface FileRoutesByFullPath {
   '/dashboard/products/all': typeof DashboardProductsAllRoute
   '/dashboard/products/bundle': typeof DashboardProductsBundleRoute
   '/dashboard/products/category': typeof DashboardProductsCategoryRoute
-  '/dashboard/products/test': typeof DashboardProductsTestRoute
   '/dashboard/products/uom': typeof DashboardProductsUomRoute
   '/dashboard/products/variant': typeof DashboardProductsVariantRoute
   '/dashboard/accounting': typeof DashboardAccountingIndexRoute
@@ -263,7 +256,6 @@ export interface FileRoutesByTo {
   '/dashboard/products/all': typeof DashboardProductsAllRoute
   '/dashboard/products/bundle': typeof DashboardProductsBundleRoute
   '/dashboard/products/category': typeof DashboardProductsCategoryRoute
-  '/dashboard/products/test': typeof DashboardProductsTestRoute
   '/dashboard/products/uom': typeof DashboardProductsUomRoute
   '/dashboard/products/variant': typeof DashboardProductsVariantRoute
   '/dashboard/accounting': typeof DashboardAccountingIndexRoute
@@ -296,7 +288,6 @@ export interface FileRoutesById {
   '/dashboard/products/all': typeof DashboardProductsAllRoute
   '/dashboard/products/bundle': typeof DashboardProductsBundleRoute
   '/dashboard/products/category': typeof DashboardProductsCategoryRoute
-  '/dashboard/products/test': typeof DashboardProductsTestRoute
   '/dashboard/products/uom': typeof DashboardProductsUomRoute
   '/dashboard/products/variant': typeof DashboardProductsVariantRoute
   '/dashboard/accounting/': typeof DashboardAccountingIndexRoute
@@ -330,7 +321,6 @@ export interface FileRouteTypes {
     | '/dashboard/products/all'
     | '/dashboard/products/bundle'
     | '/dashboard/products/category'
-    | '/dashboard/products/test'
     | '/dashboard/products/uom'
     | '/dashboard/products/variant'
     | '/dashboard/accounting'
@@ -361,7 +351,6 @@ export interface FileRouteTypes {
     | '/dashboard/products/all'
     | '/dashboard/products/bundle'
     | '/dashboard/products/category'
-    | '/dashboard/products/test'
     | '/dashboard/products/uom'
     | '/dashboard/products/variant'
     | '/dashboard/accounting'
@@ -393,7 +382,6 @@ export interface FileRouteTypes {
     | '/dashboard/products/all'
     | '/dashboard/products/bundle'
     | '/dashboard/products/category'
-    | '/dashboard/products/test'
     | '/dashboard/products/uom'
     | '/dashboard/products/variant'
     | '/dashboard/accounting/'
@@ -485,13 +473,6 @@ declare module '@tanstack/react-router' {
       path: '/products/uom'
       fullPath: '/dashboard/products/uom'
       preLoaderRoute: typeof DashboardProductsUomRouteImport
-      parentRoute: typeof DashboardRoute
-    }
-    '/dashboard/products/test': {
-      id: '/dashboard/products/test'
-      path: '/products/test'
-      fullPath: '/dashboard/products/test'
-      preLoaderRoute: typeof DashboardProductsTestRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/products/category': {
@@ -644,7 +625,6 @@ interface DashboardRouteChildren {
   DashboardProductsAllRoute: typeof DashboardProductsAllRoute
   DashboardProductsBundleRoute: typeof DashboardProductsBundleRoute
   DashboardProductsCategoryRoute: typeof DashboardProductsCategoryRoute
-  DashboardProductsTestRoute: typeof DashboardProductsTestRoute
   DashboardProductsUomRoute: typeof DashboardProductsUomRoute
   DashboardProductsVariantRoute: typeof DashboardProductsVariantRoute
   DashboardAccountingIndexRoute: typeof DashboardAccountingIndexRoute
@@ -678,7 +658,6 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardProductsAllRoute: DashboardProductsAllRoute,
   DashboardProductsBundleRoute: DashboardProductsBundleRoute,
   DashboardProductsCategoryRoute: DashboardProductsCategoryRoute,
-  DashboardProductsTestRoute: DashboardProductsTestRoute,
   DashboardProductsUomRoute: DashboardProductsUomRoute,
   DashboardProductsVariantRoute: DashboardProductsVariantRoute,
   DashboardAccountingIndexRoute: DashboardAccountingIndexRoute,

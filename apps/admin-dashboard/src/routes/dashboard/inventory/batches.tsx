@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useState, useMemo } from 'react';
@@ -46,109 +46,61 @@ import {
   Package,
   Search,
   Plus,
-  Calendar,
   AlertTriangle,
   Loader2,
   Edit,
   Trash2,
   Clock,
 } from 'lucide-react';
+import { batchListSearchSchema, type BatchListSearch } from '@/lib/route-search-schemas';
+import { queryKeys } from '@/lib/query-client';
+import { batchApi, type InventoryBatch } from '@/lib/api';
 
+/**
+ * Batch Management Route
+ *
+ * Features:
+ * - Zod-validated search params for filtering
+ * - Route loader for data prefetching
+ * - FEFO (First Expired, First Out) sorting
+ */
 export const Route = createFileRoute('/dashboard/inventory/batches')({
+  // Validate search params with Zod schema
+  validateSearch: batchListSearchSchema,
+
+  // Loader dependencies - changes to search params trigger refetch
+  loaderDeps: ({ search }) => ({
+    status: search.status,
+    expirationFilter: search.expirationFilter,
+    warehouseId: search.warehouseId,
+    productId: search.productId,
+  }),
+
+  // Prefetch data during route navigation
+  loader: async ({ context: { queryClient }, deps }) => {
+    const filters = {
+      status: deps.status,
+      warehouseId: deps.warehouseId,
+      productId: deps.productId,
+    };
+
+    // Ensure data is prefetched before route renders
+    await queryClient.ensureQueryData({
+      queryKey: queryKeys.batches.list(filters),
+      queryFn: () => batchApi.getAll(filters),
+    });
+  },
+
   component: BatchManagementPage,
 });
 
-// Type definitions
-interface InventoryBatch {
-  id: string;
-  inventoryId: string;
-  productId: string;
-  warehouseId: string;
-  batchNumber: string;
-  lotNumber?: string | null;
-  expirationDate: string | null;
-  manufactureDate?: string | null;
-  quantityAvailable: number;
-  quantityReserved: number;
-  status: 'active' | 'expired' | 'quarantined' | 'recalled';
-  supplier?: string | null;
-  notes?: string | null;
-  createdAt: string;
-  updatedAt: string;
-  createdBy?: string | null;
-  updatedBy?: string | null;
-}
-
-// Mock API (to be replaced with actual API)
-const batchApi = {
-  getAll: async (filters?: {
-    productId?: string;
-    warehouseId?: string;
-    status?: string;
-  }): Promise<{ batches: InventoryBatch[]; total: number }> => {
-    // TODO: Replace with actual API call
-    const INVENTORY_SERVICE_URL = import.meta.env.VITE_INVENTORY_SERVICE_URL || 'http://localhost:8792';
-    const params = new URLSearchParams(filters as any).toString();
-    const response = await fetch(`${INVENTORY_SERVICE_URL}/api/batches${params ? `?${params}` : ''}`);
-    return response.json();
-  },
-
-  getById: async (id: string): Promise<InventoryBatch> => {
-    const INVENTORY_SERVICE_URL = import.meta.env.VITE_INVENTORY_SERVICE_URL || 'http://localhost:8792';
-    const response = await fetch(`${INVENTORY_SERVICE_URL}/api/batches/${id}`);
-    return response.json();
-  },
-
-  getExpiring: async (days: number): Promise<{ batches: InventoryBatch[]; total: number }> => {
-    const INVENTORY_SERVICE_URL = import.meta.env.VITE_INVENTORY_SERVICE_URL || 'http://localhost:8792';
-    const response = await fetch(`${INVENTORY_SERVICE_URL}/api/batches/expiring?days=${days}`);
-    return response.json();
-  },
-
-  create: async (data: Partial<InventoryBatch>): Promise<InventoryBatch> => {
-    const INVENTORY_SERVICE_URL = import.meta.env.VITE_INVENTORY_SERVICE_URL || 'http://localhost:8792';
-    const response = await fetch(`${INVENTORY_SERVICE_URL}/api/batches`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return response.json();
-  },
-
-  updateStatus: async (id: string, status: string, reason: string): Promise<{ message: string }> => {
-    const INVENTORY_SERVICE_URL = import.meta.env.VITE_INVENTORY_SERVICE_URL || 'http://localhost:8792';
-    const response = await fetch(`${INVENTORY_SERVICE_URL}/api/batches/${id}/status`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status, reason }),
-    });
-    return response.json();
-  },
-
-  adjustQuantity: async (id: string, quantity: number, reason: string): Promise<{ message: string }> => {
-    const INVENTORY_SERVICE_URL = import.meta.env.VITE_INVENTORY_SERVICE_URL || 'http://localhost:8792';
-    const response = await fetch(`${INVENTORY_SERVICE_URL}/api/batches/${id}/adjust`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ quantity, reason }),
-    });
-    return response.json();
-  },
-
-  delete: async (id: string): Promise<{ message: string }> => {
-    const INVENTORY_SERVICE_URL = import.meta.env.VITE_INVENTORY_SERVICE_URL || 'http://localhost:8792';
-    const response = await fetch(`${INVENTORY_SERVICE_URL}/api/batches/${id}`, {
-      method: 'DELETE',
-    });
-    return response.json();
-  },
-};
-
 function BatchManagementPage() {
+  // Get search params from route - these are URL-synced
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
   const queryClient = useQueryClient();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [expirationFilter, setExpirationFilter] = useState<string>('all'); // all, expiring-30, expiring-7, expired
+
+  // Local UI state (not persisted in URL)
   const [formDrawerOpen, setFormDrawerOpen] = useState(false);
   const [adjustDrawerOpen, setAdjustDrawerOpen] = useState(false);
   const [statusDrawerOpen, setStatusDrawerOpen] = useState(false);
@@ -176,13 +128,27 @@ function BatchManagementPage() {
     reason: '',
   });
 
-  // Fetch batches
+  // Build filters from search params
+  const filters = useMemo(() => ({
+    status: search.status,
+    warehouseId: search.warehouseId,
+    productId: search.productId,
+  }), [search.status, search.warehouseId, search.productId]);
+
+  // Fetch batches using query keys from centralized config
   const { data: batchesData, isLoading } = useQuery({
-    queryKey: ['batches', statusFilter],
-    queryFn: () => batchApi.getAll({ status: statusFilter === 'all' ? undefined : statusFilter }),
+    queryKey: queryKeys.batches.list(filters),
+    queryFn: () => batchApi.getAll(filters),
   });
 
   const batches = batchesData?.batches || [];
+
+  // Helper to update search params in URL
+  const updateSearch = (updates: Partial<BatchListSearch>) => {
+    navigate({
+      search: (prev) => ({ ...prev, ...updates }),
+    });
+  };
 
   // Create batch mutation
   const createBatchMutation = useMutation({
@@ -299,25 +265,26 @@ function BatchManagementPage() {
     return <Badge variant="outline" className={styles[status]}>{status.toUpperCase()}</Badge>;
   };
 
-  // Filter batches
+  // Filter batches using URL search params
   const filteredBatches = useMemo(() => {
     let filtered = batches;
 
-    // Search filter
-    if (searchTerm) {
+    // Search filter (from URL params)
+    if (search.search) {
+      const searchLower = search.search.toLowerCase();
       filtered = filtered.filter(batch =>
-        batch.batchNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        batch.lotNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        batch.supplier?.toLowerCase().includes(searchTerm.toLowerCase())
+        batch.batchNumber.toLowerCase().includes(searchLower) ||
+        batch.lotNumber?.toLowerCase().includes(searchLower) ||
+        batch.supplier?.toLowerCase().includes(searchLower)
       );
     }
 
-    // Expiration filter
-    if (expirationFilter !== 'all') {
+    // Expiration filter (from URL params)
+    if (search.expirationFilter && search.expirationFilter !== 'all') {
       filtered = filtered.filter(batch => {
         const days = calculateDaysUntilExpiration(batch.expirationDate);
 
-        switch (expirationFilter) {
+        switch (search.expirationFilter) {
           case 'expired':
             return days < 0;
           case 'expiring-7':
@@ -340,7 +307,7 @@ function BatchManagementPage() {
       if (daysA >= 0 && daysB < 0) return 1;
       return daysA - daysB;
     });
-  }, [batches, searchTerm, expirationFilter]);
+  }, [batches, search.search, search.expirationFilter]);
 
   // Reset form
   const resetForm = () => {
@@ -469,7 +436,7 @@ function BatchManagementPage() {
         </Card>
       </div>
 
-      {/* Filters */}
+      {/* Filters - synced with URL search params */}
       <Card>
         <CardHeader>
           <CardTitle>Filters</CardTitle>
@@ -482,8 +449,8 @@ function BatchManagementPage() {
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Batch number, lot, supplier..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  value={search.search || ''}
+                  onChange={(e) => updateSearch({ search: e.target.value || undefined })}
                   className="pl-10"
                 />
               </div>
@@ -491,7 +458,12 @@ function BatchManagementPage() {
 
             <div className="space-y-2">
               <Label>Status</Label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select
+                value={search.status || 'all'}
+                onValueChange={(value) => updateSearch({
+                  status: value === 'all' ? undefined : value as BatchListSearch['status']
+                })}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -507,7 +479,12 @@ function BatchManagementPage() {
 
             <div className="space-y-2">
               <Label>Expiration</Label>
-              <Select value={expirationFilter} onValueChange={setExpirationFilter}>
+              <Select
+                value={search.expirationFilter}
+                onValueChange={(value) => updateSearch({
+                  expirationFilter: value as BatchListSearch['expirationFilter']
+                })}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

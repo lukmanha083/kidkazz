@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,8 +21,37 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { lowStockSearchSchema } from '@/lib/route-search-schemas';
+import { queryKeys } from '@/lib/query-client';
 
+/**
+ * Low Stock Report Route
+ *
+ * Features:
+ * - Zod-validated search params
+ * - Route loader for data prefetching
+ */
 export const Route = createFileRoute('/dashboard/inventory/low-stock')({
+  validateSearch: lowStockSearchSchema,
+
+  // Prefetch data for the low stock page
+  loader: async ({ context: { queryClient } }) => {
+    await Promise.all([
+      queryClient.ensureQueryData({
+        queryKey: queryKeys.inventory.all,
+        queryFn: () => inventoryApi.getAll(),
+      }),
+      queryClient.ensureQueryData({
+        queryKey: queryKeys.warehouses.all,
+        queryFn: () => warehouseApi.getAll(),
+      }),
+      queryClient.ensureQueryData({
+        queryKey: queryKeys.products.all,
+        queryFn: () => productApi.getAll(),
+      }),
+    ]);
+  },
+
   component: LowStockPage,
 });
 
@@ -54,21 +83,21 @@ function LowStockPage() {
     }).format(amount);
   };
 
-  // Fetch inventory data
+  // Fetch inventory data using centralized query keys
   const { data: inventoryData, isLoading: inventoryLoading } = useQuery({
-    queryKey: ['inventory'],
+    queryKey: queryKeys.inventory.all,
     queryFn: () => inventoryApi.getAll(),
   });
 
   // Fetch warehouses
   const { data: warehousesData, isLoading: warehousesLoading } = useQuery({
-    queryKey: ['warehouses'],
+    queryKey: queryKeys.warehouses.all,
     queryFn: () => warehouseApi.getAll(),
   });
 
   // Fetch products
   const { data: productsData, isLoading: productsLoading } = useQuery({
-    queryKey: ['products'],
+    queryKey: queryKeys.products.all,
     queryFn: () => productApi.getAll(),
   });
 

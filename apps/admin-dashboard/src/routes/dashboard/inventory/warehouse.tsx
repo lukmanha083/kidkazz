@@ -43,8 +43,28 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Warehouse as WarehouseIcon, Plus, Eye, Edit, Trash2, MapPin, Building2, Loader2 } from 'lucide-react';
 import { warehouseApi, type Warehouse, type CreateWarehouseInput } from '@/lib/api';
+import { warehouseListSearchSchema } from '@/lib/route-search-schemas';
+import { queryKeys } from '@/lib/query-client';
 
+/**
+ * Warehouse Management Route
+ *
+ * Features:
+ * - Zod-validated search params
+ * - Route loader for data prefetching
+ */
 export const Route = createFileRoute('/dashboard/inventory/warehouse')({
+  // Validate search params with Zod
+  validateSearch: warehouseListSearchSchema,
+
+  // Prefetch warehouse data
+  loader: async ({ context: { queryClient } }) => {
+    await queryClient.ensureQueryData({
+      queryKey: queryKeys.warehouses.all,
+      queryFn: () => warehouseApi.getAll(),
+    });
+  },
+
   component: WarehouseManagementPage,
 });
 
@@ -72,9 +92,9 @@ function WarehouseManagementPage() {
     status: 'active' as 'active' | 'inactive',
   });
 
-  // Fetch warehouses
+  // Fetch warehouses using centralized query keys
   const { data: warehousesData, isLoading, error } = useQuery({
-    queryKey: ['warehouses'],
+    queryKey: queryKeys.warehouses.all,
     queryFn: () => warehouseApi.getAll(),
   });
 
@@ -84,7 +104,7 @@ function WarehouseManagementPage() {
   const createWarehouseMutation = useMutation({
     mutationFn: (data: CreateWarehouseInput) => warehouseApi.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.warehouses.all });
       toast.success('Warehouse created successfully');
       setFormDrawerOpen(false);
     },
@@ -100,7 +120,7 @@ function WarehouseManagementPage() {
     mutationFn: ({ id, data }: { id: string; data: Partial<CreateWarehouseInput> }) =>
       warehouseApi.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.warehouses.all });
       toast.success('Warehouse updated successfully');
       setFormDrawerOpen(false);
     },
@@ -115,7 +135,7 @@ function WarehouseManagementPage() {
   const deleteWarehouseMutation = useMutation({
     mutationFn: (id: string) => warehouseApi.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.warehouses.all });
       toast.success('Warehouse deleted successfully');
       setDeleteDialogOpen(false);
       setWarehouseToDelete(null);
@@ -225,7 +245,7 @@ function WarehouseManagementPage() {
               <p className="text-destructive font-medium">Error loading warehouses</p>
               <p className="text-sm text-muted-foreground mt-2">{error.message}</p>
               <Button
-                onClick={() => queryClient.invalidateQueries({ queryKey: ['warehouses'] })}
+                onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.warehouses.all })}
                 className="mt-4"
               >
                 Retry

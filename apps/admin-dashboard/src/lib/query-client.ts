@@ -162,29 +162,4 @@ export const queryKeys = {
       [...queryKeys.uoms.all, 'product', productId] as const,
     detail: (code: string) => [...queryKeys.uoms.all, 'detail', code] as const,
   },
-
-  // Bundles
-  bundles: {
-    all: ['bundles'] as const,
-    lists: () => [...queryKeys.bundles.all, 'list'] as const,
-    list: (filters?: { status?: string }) =>
-      [...queryKeys.bundles.lists(), filters] as const,
-    details: () => [...queryKeys.bundles.all, 'detail'] as const,
-    detail: (id: string) => [...queryKeys.bundles.details(), id] as const,
-    availableStock: (id: string, warehouseId?: string) =>
-      [...queryKeys.bundles.all, 'available-stock', id, warehouseId] as const,
-  },
-
-  // Batches (Inventory Batches for expiration tracking - FEFO)
-  batches: {
-    all: ['batches'] as const,
-    lists: () => [...queryKeys.batches.all, 'list'] as const,
-    list: (filters?: { productId?: string; warehouseId?: string; status?: string }) =>
-      [...queryKeys.batches.lists(), filters] as const,
-    details: () => [...queryKeys.batches.all, 'detail'] as const,
-    detail: (id: string) => [...queryKeys.batches.details(), id] as const,
-    expiring: (days: number) =>
-      [...queryKeys.batches.all, 'expiring', days] as const,
-    expired: () => [...queryKeys.batches.all, 'expired'] as const,
-  },
 } as const;
