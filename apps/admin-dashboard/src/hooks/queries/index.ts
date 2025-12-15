@@ -1,7 +1,8 @@
 /**
  * React Query Hooks
  *
- * Centralized export for all query hooks
+ * Centralized export for all TanStack Query hooks.
+ * Phase F2 - TanStack Query Completion with Product-Inventory Integration
  */
 
 // Warehouse hooks
