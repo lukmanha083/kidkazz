@@ -1,6 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useProducts } from '@/hooks/useProducts';
-import { useCategories } from '@/hooks/useCategories';
+import {
+  useProducts,
+  useCategories,
+  useCreateProduct,
+  useDeleteProduct,
+} from '@/hooks/queries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,8 +18,14 @@ export const Route = createFileRoute('/dashboard/products/test')({
 });
 
 function ProductTestPage() {
-  const { products, loading: productsLoading, createProduct, deleteProduct, refetch } = useProducts();
-  const { categories, loading: categoriesLoading } = useCategories();
+  // TanStack Query hooks
+  const { data: productsData, isLoading: productsLoading } = useProducts();
+  const { data: categoriesData, isLoading: categoriesLoading } = useCategories();
+  const createProductMutation = useCreateProduct();
+  const deleteProductMutation = useDeleteProduct();
+
+  const products = productsData?.products || [];
+  const categories = categoriesData?.categories || [];
 
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -27,20 +37,19 @@ function ProductTestPage() {
     price: 0,
     retailPrice: 0,
     wholesalePrice: 0,
-    stock: 0,
     baseUnit: 'PCS',
     wholesaleThreshold: 100,
     minimumOrderQuantity: 1,
     availableForRetail: true,
     availableForWholesale: true,
-    status: 'active' as const,
+    status: 'omnichannel sales' as const,
     isBundle: false,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createProduct(formData);
+      await createProductMutation.mutateAsync(formData);
       toast.success('Product created successfully!');
       setShowForm(false);
       setFormData({
@@ -52,16 +61,15 @@ function ProductTestPage() {
         price: 0,
         retailPrice: 0,
         wholesalePrice: 0,
-        stock: 0,
         baseUnit: 'PCS',
         wholesaleThreshold: 100,
         minimumOrderQuantity: 1,
         availableForRetail: true,
         availableForWholesale: true,
-        status: 'active',
+        status: 'omnichannel sales',
         isBundle: false,
       });
-      refetch();
+      // No need to manually refetch - TanStack Query handles cache invalidation
     } catch (error) {
       toast.error('Failed to create product');
       console.error(error);
@@ -71,7 +79,7 @@ function ProductTestPage() {
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this product?')) {
       try {
-        await deleteProduct(id);
+        await deleteProductMutation.mutateAsync(id);
         toast.success('Product deleted successfully!');
       } catch (error) {
         toast.error('Failed to delete product');
@@ -94,7 +102,7 @@ function ProductTestPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Product Integration Test</h1>
           <p className="text-muted-foreground mt-1">
-            Testing real API integration with backend
+            Testing TanStack Query integration with backend (Phase F2)
           </p>
         </div>
         <Button onClick={() => setShowForm(!showForm)}>
@@ -107,7 +115,9 @@ function ProductTestPage() {
         <Card>
           <CardHeader>
             <CardTitle>Create New Product</CardTitle>
-            <CardDescription>Add a new product to the catalog</CardDescription>
+            <CardDescription>
+              Add a new product to the catalog (stock managed via Inventory Service - DDD compliant)
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -157,11 +167,10 @@ function ProductTestPage() {
                   </select>
                 </div>
                 <div>
-                  <Label>Stock</Label>
+                  <Label>Base Unit</Label>
                   <Input
-                    type="number"
-                    value={formData.stock}
-                    onChange={(e) => setFormData({ ...formData, stock: parseInt(e.target.value) })}
+                    value={formData.baseUnit}
+                    onChange={(e) => setFormData({ ...formData, baseUnit: e.target.value })}
                   />
                 </div>
                 <div>
@@ -193,8 +202,22 @@ function ProductTestPage() {
                   />
                 </div>
               </div>
+
+              {/* Note about stock management */}
+              <div className="p-3 bg-muted rounded-md">
+                <p className="text-sm text-muted-foreground">
+                  <strong>Note:</strong> Stock is managed separately via the Inventory Service.
+                  After creating this product, assign it to warehouses in the Inventory section.
+                </p>
+              </div>
+
               <div className="flex gap-2">
-                <Button type="submit">Create Product</Button>
+                <Button type="submit" disabled={createProductMutation.isPending}>
+                  {createProductMutation.isPending && (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  )}
+                  Create Product
+                </Button>
                 <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
                   Cancel
                 </Button>
@@ -207,7 +230,7 @@ function ProductTestPage() {
       <Card>
         <CardHeader>
           <CardTitle>Products ({products.length})</CardTitle>
-          <CardDescription>Products from real backend API</CardDescription>
+          <CardDescription>Products from real backend API (DDD-compliant - no stock field)</CardDescription>
         </CardHeader>
         <CardContent>
           {products.length === 0 ? (
@@ -224,7 +247,7 @@ function ProductTestPage() {
                   <div>
                     <h3 className="font-medium">{product.name}</h3>
                     <p className="text-sm text-muted-foreground">
-                      SKU: {product.sku} | Stock: {product.stock} | Price: ${product.price}
+                      SKU: {product.sku} | Price: Rp {product.price.toLocaleString('id-ID')} | Status: {product.status}
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -232,7 +255,11 @@ function ProductTestPage() {
                       variant="destructive"
                       size="sm"
                       onClick={() => handleDelete(product.id)}
+                      disabled={deleteProductMutation.isPending}
                     >
+                      {deleteProductMutation.isPending && (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      )}
                       Delete
                     </Button>
                   </div>
