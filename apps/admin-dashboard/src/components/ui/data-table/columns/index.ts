@@ -1,3 +1,6 @@
 export { getWarehouseColumns } from './warehouse-columns';
 export { getProductColumns, productStatusOptions, type ProductWithStock } from './product-columns';
 export { getLowStockColumns, lowStockStatusOptions, type LowStockItem } from './low-stock-columns';
+export { getCategoryColumns, categoryStatusOptions } from './category-columns';
+export { getUOMColumns, uomTypeOptions } from './uom-columns';
+export { getVariantColumns, variantTypeOptions, variantStatusOptions } from './variant-columns';
