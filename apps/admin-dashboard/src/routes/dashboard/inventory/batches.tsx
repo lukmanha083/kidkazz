@@ -94,6 +94,14 @@ export const Route = createFileRoute('/dashboard/inventory/batches')({
   component: BatchManagementPage,
 });
 
+/**
+ * Render the Batch Management page with URL-synced search filters and FEFO-based batch listing.
+ *
+ * The page provides UI for viewing, filtering, and managing inventory batches (create, update status,
+ * adjust quantity, delete). Filters are kept in the URL so list state is shareable and navigable.
+ *
+ * @returns A React element rendering the batch management user interface.
+ */
 function BatchManagementPage() {
   // Get search params from route - these are URL-synced
   const search = Route.useSearch();

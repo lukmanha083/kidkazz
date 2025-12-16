@@ -25,7 +25,6 @@ export default defineConfig({
         manualChunks: {
           // Vendor chunks for better caching
           'vendor-react': ['react', 'react-dom'],
-          'vendor-router': ['@tanstack/react-router', '@tanstack/react-query'],
           'vendor-ui': ['lucide-react', 'sonner', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
         },
       },

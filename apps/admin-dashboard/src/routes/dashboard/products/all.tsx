@@ -250,6 +250,13 @@ const availableColumns = [
   { id: 'rating', label: 'Rating', default: false },
 ];
 
+/**
+ * Render the All Products administration page including product list, search, pagination,
+ * column controls, product detail and edit drawers, UOM and warehouse allocation management,
+ * and create/update/delete workflows integrated with inventory and UOM services.
+ *
+ * @returns A JSX element representing the All Products page UI.
+ */
 function AllProductsPage() {
   const queryClient = useQueryClient();
 
