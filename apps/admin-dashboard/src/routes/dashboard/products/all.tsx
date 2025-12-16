@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -469,7 +469,7 @@ function AllProductsPage() {
       productApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
-      queryClient.invalidateQueries({ queryKey: ['product', selectedProduct?.id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.detail(selectedProduct?.id ?? '') });
       toast.success('Product updated successfully');
       setFormDrawerOpen(false);
     },
@@ -1341,7 +1341,7 @@ function AllProductsPage() {
 
             // Refresh the product data to show current state
             queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
-            queryClient.invalidateQueries({ queryKey: ['product', selectedProduct.id] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.products.detail(selectedProduct.id) });
 
             // Keep drawer open so user can fix the issue
             return;
