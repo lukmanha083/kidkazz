@@ -31,20 +31,19 @@ interface VirtualTableProps<TData> {
 }
 
 /**
- * VirtualTable - High-performance table component for large datasets (1,000-10,000+ rows)
+ * Render a virtualized table optimized for large datasets with optional sticky header and row interactions.
  *
- * Features:
- * - Virtualized scrolling (only renders visible rows)
- * - Sticky header support
- * - Custom row height
- * - Row click handlers
- * - Optimized for large datasets
- *
- * Use Cases (from roadmap):
- * - Inventory List (1,000-10,000 items) - Recommended
- * - Movement History (10,000+) - Required
- * - Stock Opname Count (1,000-5,000) - Recommended
- * - Batch Lists (expiring, all batches)
+ * @param columns - Column definitions including header text, accessor (key or function), and optional cell/header classes
+ * @param data - Array of row objects to render
+ * @param rowHeight - Height in pixels for each row (default 52)
+ * @param overscan - Number of extra rows to render above and below the viewport for smoother scrolling (default 5)
+ * @param maxHeight - CSS height for the scroll container (default "600px")
+ * @param onRowClick - Optional callback invoked with (row, index) when a row is clicked
+ * @param getRowId - Optional function to compute a stable row id given (row, index); falls back to `row-{index}`
+ * @param isLoading - When true, renders a centered loading state instead of the table (default false)
+ * @param emptyMessage - Message to show when `data` is empty (default "No results found.")
+ * @param stickyHeader - When true, keeps the header row fixed at the top of the scroll viewport (default true)
+ * @returns A JSX element containing the virtualized table (or loading/empty state)
  */
 export function VirtualTable<TData>({
 	columns,
