@@ -41,6 +41,15 @@ export const Route = createFileRoute('/dashboard/products/uom')({
   component: UOMPage,
 });
 
+/**
+ * Page component for managing units of measure (UOM), providing list, view, create, and delete workflows.
+ *
+ * Fetches UOMs, displays summary statistics and a searchable/filterable table, and exposes UI for viewing
+ * details in a drawer, adding new units via a form drawer (including base-unit binding and conversion preview),
+ * and confirming deletions with a dialog. Mutations update the cached list and show user feedback on success or error.
+ *
+ * @returns A React element rendering the UOM management user interface.
+ */
 function UOMPage() {
   const queryClient = useQueryClient();
 

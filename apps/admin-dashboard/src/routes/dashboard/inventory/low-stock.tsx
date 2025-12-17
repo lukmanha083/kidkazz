@@ -136,6 +136,15 @@ const lowStockColumns: ColumnDef<LowStockItem>[] = [
   },
 ];
 
+/**
+ * Renders the Low Stock Report page showing products that are below their minimum stock levels.
+ *
+ * Displays a loading state while inventory, product, and warehouse data are being fetched. Once loaded,
+ * shows summary metrics (total low stock items, total deficit, affected warehouses) and a table of low-stock
+ * items with search and warehouse filtering. If no items are low, displays an empty-state message.
+ *
+ * @returns The page's JSX element containing the report UI.
+ */
 function LowStockPage() {
   // Fetch inventory data using centralized query keys
   const { data: inventoryData, isLoading: inventoryLoading } = useQuery({
