@@ -156,7 +156,7 @@ export function VirtualizedDataTable<TData, TValue>({
 						{isLoading ? (
 							<TableRow>
 								<TableCell
-									colSpan={columns.length}
+									colSpan={table.getVisibleLeafColumns().length}
 									className="h-24 text-center"
 								>
 									<div className="flex items-center justify-center gap-2">
@@ -168,7 +168,7 @@ export function VirtualizedDataTable<TData, TValue>({
 						) : rows.length === 0 ? (
 							<TableRow>
 								<TableCell
-									colSpan={columns.length}
+									colSpan={table.getVisibleLeafColumns().length}
 									className="h-24 text-center"
 								>
 									<span className="text-muted-foreground">
@@ -182,7 +182,7 @@ export function VirtualizedDataTable<TData, TValue>({
 								{paddingTop > 0 && (
 									<tr key="padding-top">
 										<td
-											colSpan={columns.length}
+											colSpan={table.getVisibleLeafColumns().length}
 											style={{ height: `${paddingTop}px` }}
 										/>
 									</tr>
@@ -219,7 +219,7 @@ export function VirtualizedDataTable<TData, TValue>({
 								{paddingBottom > 0 && (
 									<tr key="padding-bottom">
 										<td
-											colSpan={columns.length}
+											colSpan={table.getVisibleLeafColumns().length}
 											style={{ height: `${paddingBottom}px` }}
 										/>
 									</tr>

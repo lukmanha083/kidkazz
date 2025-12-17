@@ -236,26 +236,31 @@ npm install @tanstack/react-virtual
 
 | Dataset Size | Regular DataTable | VirtualizedDataTable |
 |--------------|------------------|---------------------|
-| 100 rows | ~100ms | ~50ms |
-| 1,000 rows | ~1s | ~100ms |
-| 10,000 rows | ~10s | ~150ms |
-| 100,000 rows | ❌ Browser freeze | ~200ms |
+| Small (< 100 rows) | Fast | Fast |
+| Medium (100-1,000 rows) | Slower with increasing size | Consistently fast |
+| Large (1,000-10,000 rows) | Significantly slower | Consistently fast |
+| Very Large (10,000+ rows) | May cause browser slowdown | Consistently fast |
 
 ### DOM Nodes
 
 | Dataset Size | Regular DataTable | VirtualizedDataTable |
 |--------------|------------------|---------------------|
-| 100 rows | 100 rows | 10-20 rows (visible only) |
-| 1,000 rows | 1,000 rows | 10-20 rows (visible only) |
-| 10,000 rows | 10,000 rows | 10-20 rows (visible only) |
+| Small (< 100 rows) | All rows rendered | Only visible rows rendered |
+| Medium (100-1,000 rows) | All rows rendered | Only visible rows rendered |
+| Large (1,000+ rows) | All rows rendered | Only visible rows rendered |
+
+**Key Benefit**: VirtualizedDataTable renders only visible rows regardless of dataset size, keeping DOM node count low and consistent.
 
 ### Memory Usage
 
 | Dataset Size | Regular DataTable | VirtualizedDataTable |
 |--------------|------------------|---------------------|
-| 1,000 rows | ~10 MB | ~2 MB |
-| 10,000 rows | ~100 MB | ~5 MB |
-| 100,000 rows | ~1 GB | ~20 MB |
+| Small (< 100 rows) | Low | Low |
+| Medium (100-1,000 rows) | Moderate | Low |
+| Large (1,000+ rows) | High | Moderate |
+| Very Large (10,000+ rows) | Very high | Moderate |
+
+**Key Benefit**: VirtualizedDataTable uses significantly less memory for large datasets by keeping fewer DOM nodes in memory.
 
 ---
 
