@@ -163,7 +163,7 @@ function OrdersPage() {
 						columns={columns}
 						data={orders}
 						searchKey="id"
-						searchPlaceholder="Search by order ID, customer, or product..."
+						searchPlaceholder="Search by order ID..."
 						filterableColumns={[
 							{
 								id: "status",

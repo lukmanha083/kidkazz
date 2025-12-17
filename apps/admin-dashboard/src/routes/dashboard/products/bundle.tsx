@@ -184,13 +184,25 @@ function ProductBundlePage() {
 
 	// Update bundle mutation
 	const updateBundleMutation = useMutation({
-		mutationFn: ({
+		mutationFn: async ({
 			id,
 			data,
+			items,
 		}: {
 			id: string;
 			data: Partial<CreateBundleInput>;
-		}) => bundleApi.update(id, data),
+			items?: BundleItem[];
+		}) => {
+			// Update bundle data first
+			const bundle = await bundleApi.update(id, data);
+
+			// Then update items if provided
+			if (items) {
+				await bundleApi.updateItems(id, items);
+			}
+
+			return bundle;
+		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["bundles"] });
 			toast.success("Bundle updated successfully");
@@ -268,10 +280,21 @@ function ProductBundlePage() {
 
 	const handleViewBundle = async (bundle: ProductBundle) => {
 		setSelectedBundle(bundle);
-		// Fetch bundle items
-		const { items } = await bundleApi.getById(bundle.id);
-		setSelectedBundleItems(items);
-		setViewDrawerOpen(true);
+
+		// Fetch bundle items with error handling
+		try {
+			const { items } = await bundleApi.getById(bundle.id);
+			setSelectedBundleItems(items);
+			setViewDrawerOpen(true);
+		} catch (error) {
+			console.error("Failed to fetch bundle items:", error);
+			toast.error("Failed to load bundle details", {
+				description:
+					error instanceof Error ? error.message : "Unknown error",
+			});
+			// Clear bundle items on error
+			setSelectedBundleItems([]);
+		}
 	};
 
 	const handleAddBundle = () => {
@@ -304,11 +327,22 @@ function ProductBundlePage() {
 			status: bundle.status,
 			warehouseId: (bundle as any).warehouseId || "",
 		});
-		// Fetch bundle items
-		const { items } = await bundleApi.getById(bundle.id);
-		setSelectedProducts(items);
-		setViewDrawerOpen(false);
-		setFormDrawerOpen(true);
+
+		// Fetch bundle items with error handling
+		try {
+			const { items } = await bundleApi.getById(bundle.id);
+			setSelectedProducts(items);
+			setViewDrawerOpen(false);
+			setFormDrawerOpen(true);
+		} catch (error) {
+			console.error("Failed to fetch bundle items:", error);
+			toast.error("Failed to load bundle details", {
+				description:
+					error instanceof Error ? error.message : "Unknown error",
+			});
+			// Keep drawer state consistent on error
+			setSelectedProducts([]);
+		}
 	};
 
 	const handleAddProductToBundle = () => {
@@ -386,9 +420,11 @@ function ProductBundlePage() {
 			createBundleMutation.mutate(bundleData);
 		} else if (formMode === "edit" && selectedBundle) {
 			const { items, ...updateData } = bundleData;
-			updateBundleMutation.mutate({ id: selectedBundle.id, data: updateData });
-			// Also update items
-			bundleApi.updateItems(selectedBundle.id, items);
+			updateBundleMutation.mutate({
+				id: selectedBundle.id,
+				data: updateData,
+				items: items,
+			});
 		}
 	};
 
@@ -1118,10 +1154,16 @@ function ProductBundlePage() {
 											Upload and manage bundle images. Supports multiple images
 											with automatic optimization.
 										</p>
-										<ImageGallery
-											productId={selectedBundle?.id || ""}
-											readOnly={false}
-										/>
+										{selectedBundle?.id ? (
+											<ImageGallery
+												productId={selectedBundle.id}
+												readOnly={false}
+											/>
+										) : (
+											<p className="text-sm text-muted-foreground text-center py-8">
+												Save the bundle first to upload images
+											</p>
+										)}
 									</div>
 								</TabsContent>
 								<TabsContent value="videos" className="mt-4">
@@ -1130,10 +1172,16 @@ function ProductBundlePage() {
 											Upload and manage bundle videos. Choose between R2 storage
 											or Cloudflare Stream.
 										</p>
-										<VideoGallery
-											productId={selectedBundle?.id || ""}
-											readOnly={false}
-										/>
+										{selectedBundle?.id ? (
+											<VideoGallery
+												productId={selectedBundle.id}
+												readOnly={false}
+											/>
+										) : (
+											<p className="text-sm text-muted-foreground text-center py-8">
+												Save the bundle first to upload videos
+											</p>
+										)}
 									</div>
 								</TabsContent>
 							</Tabs>

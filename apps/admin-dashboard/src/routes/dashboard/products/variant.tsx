@@ -8,6 +8,7 @@ import {
 	warehouseApi,
 	productLocationApi,
 	variantLocationApi,
+	inventoryApi,
 	type ProductVariant,
 	type CreateVariantInput,
 } from "@/lib/api";
@@ -63,142 +64,6 @@ export const Route = createFileRoute("/dashboard/products/variant")({
 	component: ProductVariantPage,
 });
 
-// Remove mock data - using API now
-const legacyMockForFallback: ProductVariant[] = [
-	{
-		id: "1",
-		productName: "Baby Bottle Set",
-		productSKU: "BB-001",
-		variantName: "Pink",
-		variantSKU: "BB-001-PNK",
-		variantType: "Color",
-		price: 29.99,
-		stock: 50,
-		status: "Active",
-	},
-	{
-		id: "2",
-		productName: "Baby Bottle Set",
-		productSKU: "BB-001",
-		variantName: "Blue",
-		variantSKU: "BB-001-BLU",
-		variantType: "Color",
-		price: 29.99,
-		stock: 95,
-		status: "Active",
-	},
-	{
-		id: "3",
-		productName: "Kids Backpack",
-		productSKU: "BP-002",
-		variantName: "Red",
-		variantSKU: "BP-002-RED",
-		variantType: "Color",
-		price: 45.0,
-		stock: 30,
-		status: "Active",
-	},
-	{
-		id: "4",
-		productName: "Kids Backpack",
-		productSKU: "BP-002",
-		variantName: "Blue",
-		variantSKU: "BP-002-BLU",
-		variantType: "Color",
-		price: 45.0,
-		stock: 34,
-		status: "Active",
-	},
-	{
-		id: "5",
-		productName: "Kids Backpack",
-		productSKU: "BP-002",
-		variantName: "Green",
-		variantSKU: "BP-002-GRN",
-		variantType: "Color",
-		price: 45.0,
-		stock: 25,
-		status: "Active",
-	},
-	{
-		id: "6",
-		productName: "Toddler Shoes",
-		productSKU: "SH-006",
-		variantName: "Size 3",
-		variantSKU: "SH-006-S3",
-		variantType: "Size",
-		price: 35.5,
-		stock: 20,
-		status: "Active",
-	},
-	{
-		id: "7",
-		productName: "Toddler Shoes",
-		productSKU: "SH-006",
-		variantName: "Size 4",
-		variantSKU: "SH-006-S4",
-		variantType: "Size",
-		price: 35.5,
-		stock: 28,
-		status: "Active",
-	},
-	{
-		id: "8",
-		productName: "Toddler Shoes",
-		productSKU: "SH-006",
-		variantName: "Size 5",
-		variantSKU: "SH-006-S5",
-		variantType: "Size",
-		price: 35.5,
-		stock: 30,
-		status: "Active",
-	},
-	{
-		id: "9",
-		productName: "Baby Crib",
-		productSKU: "CR-005",
-		variantName: "White Oak",
-		variantSKU: "CR-005-WOK",
-		variantType: "Material",
-		price: 299.99,
-		stock: 7,
-		status: "Active",
-	},
-	{
-		id: "10",
-		productName: "Baby Crib",
-		productSKU: "CR-005",
-		variantName: "Walnut",
-		variantSKU: "CR-005-WNT",
-		variantType: "Material",
-		price: 319.99,
-		stock: 5,
-		status: "Inactive",
-	},
-	{
-		id: "11",
-		productName: "Diaper Bag",
-		productSKU: "DB-009",
-		variantName: "Black",
-		variantSKU: "DB-009-BLK",
-		variantType: "Color",
-		price: 49.99,
-		stock: 45,
-		status: "Active",
-	},
-	{
-		id: "12",
-		productName: "Diaper Bag",
-		productSKU: "DB-009",
-		variantName: "Gray",
-		variantSKU: "DB-009-GRY",
-		variantType: "Color",
-		price: 49.99,
-		stock: 47,
-		status: "Active",
-	},
-];
-
 function ProductVariantPage() {
 	const queryClient = useQueryClient();
 
@@ -240,6 +105,31 @@ function ProductVariantPage() {
 
 	const warehouses = warehousesData?.warehouses || [];
 
+	// Fetch inventory data (Using Inventory Service as single source of truth)
+	const { data: inventoryData } = useQuery({
+		queryKey: ["inventory"],
+		queryFn: () => inventoryApi.getAll(),
+	});
+
+	const inventory = inventoryData?.inventory || [];
+
+	// Aggregate stock by product ID from Inventory Service
+	const productStockMap = inventory.reduce(
+		(acc, inv) => {
+			if (!acc[inv.productId]) {
+				acc[inv.productId] = 0;
+			}
+			acc[inv.productId] += inv.quantityAvailable || 0;
+			return acc;
+		},
+		{} as Record<string, number>,
+	);
+
+	// Helper function to get stock for a product
+	const getProductStock = (productId: string): number => {
+		return productStockMap[productId] || 0;
+	};
+
 	// Drawer states
 	const [viewDrawerOpen, setViewDrawerOpen] = useState(false);
 	const [formDrawerOpen, setFormDrawerOpen] = useState(false);
@@ -258,7 +148,7 @@ function ProductVariantPage() {
 		variantType: "Color" as "Color" | "Size" | "Material" | "Style",
 		price: "",
 		stock: "",
-		status: "Active" as "Active" | "Inactive",
+		status: "active" as "active" | "inactive",
 	});
 
 	// Warehouse allocations state
@@ -303,19 +193,31 @@ function ProductVariantPage() {
 			// Create the variant first
 			const variant = await variantApi.create(data);
 
-			// Then save warehouse allocations if any
+			// Then save warehouse allocations if any (with compensating rollback)
 			if (warehouseAllocations.length > 0) {
-				await Promise.all(
-					warehouseAllocations.map((allocation) =>
-						variantLocationApi.create({
-							variantId: variant.id,
-							warehouseId: allocation.warehouseId,
-							quantity: allocation.quantity,
-							rack: allocation.rack || null,
-							bin: allocation.bin || null,
-						}),
-					),
-				);
+				try {
+					await Promise.all(
+						warehouseAllocations.map((allocation) =>
+							variantLocationApi.create({
+								variantId: variant.id,
+								warehouseId: allocation.warehouseId,
+								quantity: allocation.quantity,
+								rack: allocation.rack || null,
+								bin: allocation.bin || null,
+							}),
+						),
+					);
+				} catch (allocationError) {
+					// Compensating rollback: delete the variant if allocation fails
+					try {
+						await variantApi.delete(variant.id);
+						console.error("Variant deleted due to allocation failure:", allocationError);
+					} catch (cleanupError) {
+						console.error("Failed to cleanup variant after allocation failure:", cleanupError);
+					}
+					// Re-throw the original allocation error
+					throw allocationError;
+				}
 			}
 
 			return variant;
@@ -414,16 +316,16 @@ function ProductVariantPage() {
 		},
 	});
 
-	// Get available products from API
+	// Get available products from API (Using Inventory Service for stock)
 	const availableProducts = useMemo(() => {
 		return products
 			.map((product) => ({
 				name: product.name,
 				sku: product.sku,
-				totalStock: product.stock,
+				totalStock: getProductStock(product.id),
 			}))
 			.sort((a, b) => a.name.localeCompare(b.name));
-	}, [products]);
+	}, [products, productStockMap]);
 
 	// Convert products to combobox options
 	const productOptions: ComboboxOption[] = useMemo(() => {
@@ -580,7 +482,7 @@ function ProductVariantPage() {
 			variantType: "Color",
 			price: "",
 			stock: "",
-			status: "Active",
+			status: "active",
 		});
 		setWarehouseAllocations([]); // Reset warehouse allocations
 		setParentProductLocations([]); // Reset parent product locations
@@ -599,7 +501,7 @@ function ProductVariantPage() {
 			variantType: variant.variantType,
 			price: variant.price.toString(),
 			stock: variant.stock.toString(),
-			status: variant.status === "active" ? "Active" : "Inactive",
+			status: variant.status,
 		});
 
 		// Load existing warehouse allocations for this variant
@@ -692,7 +594,7 @@ function ProductVariantPage() {
 			variantType: formData.variantType,
 			price: parseFloat(formData.price),
 			stock: parseInt(formData.stock) || 0,
-			status: formData.status.toLowerCase() as "active" | "inactive",
+			status: formData.status,
 		};
 
 		if (formMode === "add") {
@@ -854,12 +756,12 @@ function ProductVariantPage() {
 									<div className="mt-1">
 										<Badge
 											variant={
-												selectedVariant.status === "Active"
+												selectedVariant.status === "active"
 													? "default"
 													: "secondary"
 											}
 											className={
-												selectedVariant.status === "Active"
+												selectedVariant.status === "active"
 													? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-500"
 													: ""
 											}
@@ -1189,14 +1091,14 @@ function ProductVariantPage() {
 								onChange={(e) =>
 									setFormData({
 										...formData,
-										status: e.target.value as "Active" | "Inactive",
+										status: e.target.value as "active" | "inactive",
 									})
 								}
 								className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
 								required
 							>
-								<option value="Active">Active</option>
-								<option value="Inactive">Inactive</option>
+								<option value="active">Active</option>
+								<option value="inactive">Inactive</option>
 							</select>
 							<p className="text-xs text-muted-foreground">
 								Inactive variants won't be visible to customers
@@ -1255,7 +1157,7 @@ function ProductVariantPage() {
 							Cancel
 						</AlertDialogCancel>
 						<AlertDialogAction
-							onClick={confirmDelete}
+							onClick={handleDeleteVariant}
 							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 						>
 							Delete

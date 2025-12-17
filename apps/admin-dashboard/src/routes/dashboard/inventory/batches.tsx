@@ -366,6 +366,16 @@ function BatchManagementPage() {
 			return;
 		}
 
+		// Validate that new quantity is non-negative
+		const newQuantity =
+			(selectedBatch?.quantityAvailable || 0) + adjustmentData.quantity;
+		if (newQuantity < 0) {
+			toast.error("Invalid adjustment", {
+				description: "Adjustment would result in negative quantity",
+			});
+			return;
+		}
+
 		adjustQuantityMutation.mutate({
 			id: selectedBatch.id,
 			quantity: adjustmentData.quantity,
@@ -750,11 +760,27 @@ function BatchManagementPage() {
 								}
 								placeholder="Positive to add, negative to remove"
 							/>
-							<p className="text-sm text-muted-foreground">
-								New quantity:{" "}
-								{(selectedBatch?.quantityAvailable || 0) +
-									adjustmentData.quantity}
-							</p>
+							{(() => {
+								const newQuantity =
+									(selectedBatch?.quantityAvailable || 0) +
+									adjustmentData.quantity;
+								const isNegative = newQuantity < 0;
+								return (
+									<div>
+										<p
+											className={`text-sm ${isNegative ? "text-destructive font-semibold" : "text-muted-foreground"}`}
+										>
+											New quantity: {newQuantity}
+										</p>
+										{isNegative && (
+											<p className="text-sm text-destructive flex items-center gap-1 mt-1">
+												<AlertTriangle className="h-3 w-3" />
+												Cannot adjust to negative quantity
+											</p>
+										)}
+									</div>
+								);
+							})()}
 						</div>
 
 						<div className="space-y-2">
@@ -774,7 +800,11 @@ function BatchManagementPage() {
 					<DrawerFooter>
 						<Button
 							onClick={handleQuantityAdjust}
-							disabled={adjustQuantityMutation.isPending}
+							disabled={
+								adjustQuantityMutation.isPending ||
+								(selectedBatch?.quantityAvailable || 0) + adjustmentData.quantity <
+									0
+							}
 						>
 							{adjustQuantityMutation.isPending && (
 								<Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -799,14 +829,26 @@ function BatchManagementPage() {
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
-						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogCancel disabled={deleteBatchMutation.isPending}>
+							Cancel
+						</AlertDialogCancel>
 						<AlertDialogAction
-							onClick={() =>
-								selectedBatch && deleteBatchMutation.mutate(selectedBatch.id)
-							}
+							onClick={() => {
+								if (!deleteBatchMutation.isPending && selectedBatch) {
+									deleteBatchMutation.mutate(selectedBatch.id);
+								}
+							}}
+							disabled={deleteBatchMutation.isPending || !selectedBatch}
 							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 						>
-							Delete
+							{deleteBatchMutation.isPending ? (
+								<>
+									<Loader2 className="h-4 w-4 mr-2 animate-spin" />
+									Deleting...
+								</>
+							) : (
+								"Delete"
+							)}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
