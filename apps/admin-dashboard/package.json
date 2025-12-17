@@ -26,6 +26,7 @@
     "@tanstack/react-query-devtools": "^5.91.1",
     "@tanstack/react-router": "^1.136.4",
     "@tanstack/react-table": "^8.11.0",
+    "@tanstack/react-virtual": "^3.13.13",
     "@tanstack/router-vite-plugin": "^1.136.4",
     "@tanstack/zod-adapter": "^1.141.2",
     "class-variance-authority": "^0.7.0",
