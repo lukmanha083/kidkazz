@@ -32,6 +32,18 @@ interface VariantColumnOptions {
   onDelete?: (variant: ProductVariant) => void;
 }
 
+/**
+ * Create column definitions for rendering a product variants table.
+ *
+ * The returned columns include product/variant identifiers, type and status badges,
+ * price formatted as Indonesian Rupiah, stock with conditional styling, and row actions.
+ *
+ * @param options - Optional callbacks for row actions.
+ * @param options.onView - Called with the variant when the view action is triggered.
+ * @param options.onEdit - Called with the variant when the edit action is triggered.
+ * @param options.onDelete - Called with the variant when the delete action is triggered.
+ * @returns An array of ColumnDef<ProductVariant> describing columns for the variants table.
+ */
 export function getVariantColumns(options: VariantColumnOptions = {}): ColumnDef<ProductVariant>[] {
   const { onView, onEdit, onDelete } = options;
 

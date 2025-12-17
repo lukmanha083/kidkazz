@@ -26,6 +26,16 @@ interface DataTableFacetedFilterProps<TData, TValue> {
   }[];
 }
 
+/**
+ * Renders a faceted filter control for a table column that lets users select multiple options and updates the column's filter.
+ *
+ * The control displays a trigger button showing the title and a summary of current selections, and opens a popover with a searchable list of options. Selecting or deselecting options updates the column's filter value to the array of selected option values, or to `undefined` when no options are selected.
+ *
+ * @param column - Optional TanStack Table column whose filter and faceted counts are read and updated.
+ * @param title - Optional label displayed on the trigger and used as the command input placeholder.
+ * @param options - List of selectable options; each item provides a `label`, `value`, and optional `icon`.
+ * @returns The faceted filter UI as a React element.
+ */
 export function DataTableFacetedFilter<TData, TValue>({
   column,
   title,

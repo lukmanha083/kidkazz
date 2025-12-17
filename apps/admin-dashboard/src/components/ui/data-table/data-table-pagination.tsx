@@ -14,6 +14,16 @@ interface DataTablePaginationProps<TData> {
   pageSizeOptions?: number[];
 }
 
+/**
+ * Render pagination controls, current-range status, and a rows-per-page selector for a TanStack Table instance.
+ *
+ * Renders a status area showing either selected-row count or the visible range and total entries, a configurable
+ * "rows per page" Select, a page indicator, and first/previous/next/last navigation buttons wired to the provided table.
+ *
+ * @param table - The TanStack Table instance to control and reflect pagination state for.
+ * @param pageSizeOptions - Optional list of numeric page-size options shown in the rows-per-page selector (default: [10, 20, 30, 50, 100]).
+ * @returns A React element containing pagination UI connected to the supplied table instance.
+ */
 export function DataTablePagination<TData>({
   table,
   pageSizeOptions = [10, 20, 30, 50, 100],
