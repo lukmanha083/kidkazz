@@ -7,14 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
   Drawer,
   DrawerClose,
   DrawerContent,
@@ -23,8 +15,6 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
-import { Pagination } from '@/components/ui/pagination';
-import { Badge } from '@/components/ui/badge';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,15 +27,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   Plus,
-  Search,
-  Edit,
-  Trash2,
   X,
   FolderTree,
   Loader2,
-  Package,
 } from 'lucide-react';
 import { Category, categoryApi, CreateCategoryInput } from '@/lib/api';
+import { DataTable } from '@/components/ui/data-table';
+import { getCategoryColumns, categoryStatusOptions } from '@/components/ui/data-table/columns';
 
 export const Route = createFileRoute('/dashboard/products/category')({
   component: CategoryPage,
@@ -53,10 +41,6 @@ export const Route = createFileRoute('/dashboard/products/category')({
 
 function CategoryPage() {
   const queryClient = useQueryClient();
-
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Drawer states
   const [formDrawerOpen, setFormDrawerOpen] = useState(false);
@@ -132,21 +116,6 @@ function CategoryPage() {
     },
   });
 
-  // Filter categories based on search
-  const filteredCategories = useMemo(() => {
-    return categories.filter((category) =>
-      category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (category.description && category.description.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-  }, [categories, searchTerm]);
-
-  // Calculate pagination
-  const totalPages = Math.ceil(filteredCategories.length / itemsPerPage);
-  const paginatedCategories = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredCategories.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredCategories, currentPage, itemsPerPage]);
-
   const handleDelete = (category: Category) => {
     setCategoryToDelete(category);
     setDeleteDialogOpen(true);
@@ -156,15 +125,6 @@ function CategoryPage() {
     if (categoryToDelete) {
       deleteCategoryMutation.mutate(categoryToDelete.id);
     }
-  };
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  const handleSearchChange = (value: string) => {
-    setSearchTerm(value);
-    setCurrentPage(1);
   };
 
   const handleAddCategory = () => {
@@ -212,6 +172,16 @@ function CategoryPage() {
       updateCategoryMutation.mutate({ id: selectedCategory.id, data: categoryData });
     }
   };
+
+  // Memoize columns with callbacks
+  const columns = useMemo(
+    () =>
+      getCategoryColumns({
+        onEdit: handleEditCategory,
+        onDelete: handleDelete,
+      }),
+    []
+  );
 
   if (error) {
     return (
@@ -261,34 +231,13 @@ function CategoryPage() {
       {/* Categories Table */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>All Categories</CardTitle>
-              <CardDescription>
-                {filteredCategories.length} of {categories.length} categories
-              </CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              {/* Search */}
-              <div className="relative w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search categories..."
-                  value={searchTerm}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  className="pl-10 h-9"
-                />
-              </div>
-            </div>
-          </div>
+          <CardTitle>All Categories</CardTitle>
+          <CardDescription>
+            {categories.length} categories total
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              <span className="ml-3 text-muted-foreground">Loading categories...</span>
-            </div>
-          ) : categories.length === 0 ? (
+          {categories.length === 0 && !isLoading ? (
             <div className="text-center py-12">
               <FolderTree className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-lg font-medium">No categories yet</p>
@@ -301,100 +250,20 @@ function CategoryPage() {
               </Button>
             </div>
           ) : (
-            <>
-              {/* Table */}
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Parent Category</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead className="w-[100px]">Status</TableHead>
-                      <TableHead className="w-[140px] text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedCategories.map((category) => (
-                      <TableRow key={category.id}>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            {category.parentId && <span className="text-muted-foreground">└─</span>}
-                            {category.name}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {category.parentCategoryName || '-'}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {category.description || 'No description'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={category.status === 'active' ? 'default' : 'secondary'}
-                            className={
-                              category.status === 'active'
-                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-500'
-                                : ''
-                            }
-                          >
-                            {category.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => handleEditCategory(category)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                              onClick={() => handleDelete(category)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {/* Pagination Controls */}
-              <div className="mt-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Items per page:</span>
-                  <select
-                    value={itemsPerPage}
-                    onChange={(e) => {
-                      setItemsPerPage(Number(e.target.value));
-                      setCurrentPage(1);
-                    }}
-                    className="h-8 rounded-md border border-input bg-background px-3 text-sm"
-                  >
-                    <option value={5}>5</option>
-                    <option value={10}>10</option>
-                    <option value={15}>15</option>
-                    <option value={20}>20</option>
-                  </select>
-                </div>
-
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={handlePageChange}
-                  itemsPerPage={itemsPerPage}
-                  totalItems={filteredCategories.length}
-                />
-              </div>
-            </>
+            <DataTable
+              columns={columns}
+              data={categories}
+              searchKey="name"
+              searchPlaceholder="Search categories..."
+              isLoading={isLoading}
+              filterableColumns={[
+                {
+                  id: 'status',
+                  title: 'Status',
+                  options: categoryStatusOptions,
+                },
+              ]}
+            />
           )}
         </CardContent>
       </Card>
@@ -463,7 +332,6 @@ function CategoryPage() {
                       return false;
                     }
                     // Only show top-level categories (categories without parents) as selectable parents
-                    // This ensures we only have 2 levels: category and subcategory
                     return !cat.parentId;
                   })
                   .map(cat => (

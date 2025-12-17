@@ -7,14 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
   Drawer,
   DrawerClose,
   DrawerContent,
@@ -23,7 +15,6 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
-import { Pagination } from '@/components/ui/pagination';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -38,15 +29,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import {
   Plus,
-  Search,
-  Edit,
-  Trash2,
-  Eye,
   X,
   Package,
   Loader2,
 } from 'lucide-react';
 import { uomApi, type UOM, type CreateUOMInput } from '@/lib/api';
+import { DataTable } from '@/components/ui/data-table';
+import { getUOMColumns, uomTypeOptions } from '@/components/ui/data-table/columns';
 
 export const Route = createFileRoute('/dashboard/products/uom')({
   component: UOMPage,
@@ -54,9 +43,6 @@ export const Route = createFileRoute('/dashboard/products/uom')({
 
 function UOMPage() {
   const queryClient = useQueryClient();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Drawer states
   const [viewDrawerOpen, setViewDrawerOpen] = useState(false);
@@ -116,21 +102,6 @@ function UOMPage() {
     },
   });
 
-  // Filter UOMs based on search
-  const filteredUOMs = useMemo(() => {
-    return uoms.filter((uom) =>
-      uom.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      uom.code.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [uoms, searchTerm]);
-
-  // Calculate pagination
-  const totalPages = Math.ceil(filteredUOMs.length / itemsPerPage);
-  const paginatedUOMs = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredUOMs.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredUOMs, currentPage, itemsPerPage]);
-
   const handleDelete = (uom: UOM) => {
     if (uom.isBaseUnit) {
       toast.error('Cannot delete base unit', {
@@ -146,15 +117,6 @@ function UOMPage() {
     if (uomToDelete) {
       deleteUOMMutation.mutate(uomToDelete.id);
     }
-  };
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  const handleSearchChange = (value: string) => {
-    setSearchTerm(value);
-    setCurrentPage(1);
   };
 
   const handleViewUOM = (uom: UOM) => {
@@ -205,6 +167,16 @@ function UOMPage() {
     }
   };
 
+  // Memoize columns with callbacks
+  const columns = useMemo(
+    () =>
+      getUOMColumns({
+        onView: handleViewUOM,
+        onDelete: handleDelete,
+      }),
+    []
+  );
+
   if (error) {
     return (
       <div className="space-y-6">
@@ -250,187 +222,72 @@ function UOMPage() {
         </Button>
       </div>
 
-      {isLoading ? (
+      {/* Summary Stats */}
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex justify-center items-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total UOMs</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{uoms.length}</div>
+            <p className="text-xs text-muted-foreground">All units</p>
           </CardContent>
         </Card>
-      ) : (
-        <>
-          {/* Summary Stats */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total UOMs</CardTitle>
-                <Package className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{uoms.length}</div>
-                <p className="text-xs text-muted-foreground">All units</p>
-              </CardContent>
-            </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Base Units</CardTitle>
-                <Package className="h-4 w-4 text-blue-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-blue-600">
-                  {uoms.filter(u => u.isBaseUnit).length}
-                </div>
-                <p className="text-xs text-muted-foreground">Standard units</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Custom Units</CardTitle>
-                <Package className="h-4 w-4 text-purple-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-purple-600">
-                  {uoms.filter(u => !u.isBaseUnit).length}
-                </div>
-                <p className="text-xs text-muted-foreground">User-defined</p>
-              </CardContent>
-            </Card>
-          </div>
-          {/* UOM Table */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>All Units of Measure</CardTitle>
-                  <CardDescription>
-                    {filteredUOMs.length} of {uoms.length} units
-                  </CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  {/* Search */}
-                  <div className="relative w-64">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search UOMs..."
-                      value={searchTerm}
-                      onChange={(e) => handleSearchChange(e.target.value)}
-                      className="pl-10 h-9"
-                    />
-                  </div>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[120px]">Code</TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead className="w-[150px] text-right">Conversion Factor</TableHead>
-                      <TableHead className="w-[120px]">Type</TableHead>
-                      <TableHead className="w-[140px] text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedUOMs.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                          No UOMs found. Add your first UOM to get started.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      paginatedUOMs.map((uom) => (
-                        <TableRow
-                          key={uom.id}
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => handleViewUOM(uom)}
-                        >
-                          <TableCell className="font-mono text-sm font-medium">
-                            {uom.code}
-                          </TableCell>
-                          <TableCell className="font-medium">{uom.name}</TableCell>
-                          <TableCell className="text-right font-medium">
-                              {uom.isBaseUnit ? (
-                                <span className="text-muted-foreground">1 (Base)</span>
-                              ) : (
-                                <span>{uom.conversionFactor}</span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                variant={uom.isBaseUnit ? 'default' : 'secondary'}
-                                className={
-                                  uom.isBaseUnit
-                                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-500'
-                                    : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-500'
-                                }
-                              >
-                                {uom.isBaseUnit ? 'Base' : 'Custom'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                              <div className="flex items-center justify-end gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => handleViewUOM(uom)}
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-destructive hover:text-destructive"
-                                  onClick={() => handleDelete(uom)}
-                                  disabled={uom.isBaseUnit}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                    )}
-                  </TableBody>
-            </Table>
-          </div>
-
-          {/* Pagination Controls */}
-          <div className="mt-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Items per page:</span>
-              <select
-                value={itemsPerPage}
-                onChange={(e) => {
-                  setItemsPerPage(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="h-8 rounded-md border border-input bg-background px-3 text-sm"
-              >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={15}>15</option>
-                <option value={20}>20</option>
-              </select>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Base Units</CardTitle>
+            <Package className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">
+              {uoms.filter(u => u.isBaseUnit).length}
             </div>
+            <p className="text-xs text-muted-foreground">Standard units</p>
+          </CardContent>
+        </Card>
 
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-              itemsPerPage={itemsPerPage}
-              totalItems={filteredUOMs.length}
-            />
-          </div>
-            </CardContent>
-          </Card>
-        </>
-      )}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Custom Units</CardTitle>
+            <Package className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">
+              {uoms.filter(u => !u.isBaseUnit).length}
+            </div>
+            <p className="text-xs text-muted-foreground">User-defined</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* UOM Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>All Units of Measure</CardTitle>
+          <CardDescription>
+            {uoms.length} units total
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DataTable
+            columns={columns}
+            data={uoms}
+            searchKey="name"
+            searchPlaceholder="Search UOMs..."
+            isLoading={isLoading}
+            onRowClick={handleViewUOM}
+            filterableColumns={[
+              {
+                id: 'type',
+                title: 'Type',
+                options: uomTypeOptions,
+              },
+            ]}
+          />
+        </CardContent>
+      </Card>
 
       {/* View UOM Drawer (Right Side) */}
       <Drawer open={viewDrawerOpen} onOpenChange={setViewDrawerOpen}>
@@ -714,8 +571,8 @@ function UOMPage() {
               disabled={deleteUOMMutation.isPending}
               onClick={() => {
                 setDeleteDialogOpen(false);
-              setUomToDelete(null);
-            }}>
+                setUomToDelete(null);
+              }}>
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction

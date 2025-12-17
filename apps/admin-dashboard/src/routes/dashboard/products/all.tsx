@@ -1359,7 +1359,7 @@ function AllProductsPage() {
         }
 
         queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
-        queryClient.invalidateQueries({ queryKeys.products.detail(selectedProduct.id) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.products.detail(selectedProduct.id) });
         toast.success('Product updated successfully');
         setFormDrawerOpen(false);
       } catch (error: any) {

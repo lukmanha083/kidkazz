@@ -1,28 +1,15 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
+import { ColumnDef } from '@tanstack/react-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { AlertCircle, Search, Loader2, Package, Warehouse } from 'lucide-react';
+import { AlertCircle, Loader2, Package, Warehouse } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { inventoryApi, warehouseApi, productApi } from '@/lib/api';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { lowStockSearchSchema } from '@/lib/route-search-schemas';
 import { queryKeys } from '@/lib/query-client';
+import { DataTable } from '@/components/ui/data-table';
+import { DataTableColumnHeader } from '@/components/ui/data-table/data-table-column-header';
 
 /**
  * Low Stock Report Route
@@ -30,11 +17,11 @@ import { queryKeys } from '@/lib/query-client';
  * Features:
  * - Zod-validated search params
  * - Route loader for data prefetching
+ * - TanStack Table integration
  */
 export const Route = createFileRoute('/dashboard/inventory/low-stock')({
   validateSearch: lowStockSearchSchema,
 
-  // Prefetch data for the low stock page
   loader: async ({ context: { queryClient } }) => {
     await Promise.all([
       queryClient.ensureQueryData({
@@ -67,29 +54,89 @@ interface LowStockItem {
   price: number;
 }
 
-/**
- * Render the Low Stock Report page, including summary cards, filters, and a sortable table of products that are below their minimum stock levels.
- *
- * Fetches inventory, warehouse, and product data, computes low-stock items (with resilient fallbacks for missing product/warehouse info), and provides warehouse filtering, text search, and multi-field sorting.
- *
- * @returns A React element representing the Low Stock Report page
- */
+// Rupiah currency formatter
+const formatRupiah = (amount: number): string => {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+};
+
+// Column definitions for the low stock table
+const lowStockColumns: ColumnDef<LowStockItem>[] = [
+  {
+    accessorKey: 'productName',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Product" />
+    ),
+    cell: ({ row }) => (
+      <span className="font-medium">{row.getValue('productName')}</span>
+    ),
+  },
+  {
+    accessorKey: 'productSKU',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="SKU" />
+    ),
+    cell: ({ row }) => (
+      <span className="font-mono text-sm">{row.getValue('productSKU')}</span>
+    ),
+  },
+  {
+    accessorKey: 'warehouseName',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Warehouse" />
+    ),
+    cell: ({ row }) => row.getValue('warehouseName'),
+    filterFn: (row, id, value) => {
+      return value.includes(row.getValue(id));
+    },
+  },
+  {
+    accessorKey: 'currentStock',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Current Stock" />
+    ),
+    cell: ({ row }) => (
+      <Badge variant="destructive" className="font-mono">
+        {row.getValue('currentStock')}
+      </Badge>
+    ),
+  },
+  {
+    accessorKey: 'minimumStock',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Min Stock" />
+    ),
+    cell: ({ row }) => (
+      <span className="font-mono text-muted-foreground">
+        {row.getValue('minimumStock')}
+      </span>
+    ),
+  },
+  {
+    accessorKey: 'deficit',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Deficit" />
+    ),
+    cell: ({ row }) => (
+      <Badge variant="outline" className="font-mono text-orange-600 border-orange-300">
+        -{row.getValue('deficit')}
+      </Badge>
+    ),
+  },
+  {
+    accessorKey: 'price',
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Unit Price" />
+    ),
+    cell: ({ row }) => formatRupiah(row.getValue('price')),
+  },
+];
+
 function LowStockPage() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedWarehouse, setSelectedWarehouse] = useState<string>('all');
-  const [sortField, setSortField] = useState<'deficit' | 'productName' | 'warehouseName'>('deficit');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-
-  // Rupiah currency formatter
-  const formatRupiah = (amount: number): string => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
   // Fetch inventory data using centralized query keys
   const { data: inventoryData, isLoading: inventoryLoading } = useQuery({
     queryKey: queryKeys.inventory.all,
@@ -136,58 +183,19 @@ function LowStockPage() {
       });
   }, [inventory, products, warehouses]);
 
-  // Filter and sort
-  const filteredAndSortedItems = useMemo(() => {
-    let filtered = lowStockItems;
-
-    // Filter by warehouse
-    if (selectedWarehouse !== 'all') {
-      filtered = filtered.filter(item => item.warehouseId === selectedWarehouse);
-    }
-
-    // Filter by search term
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
-      filtered = filtered.filter(item =>
-        item.productName.toLowerCase().includes(search) ||
-        item.productSKU.toLowerCase().includes(search) ||
-        item.warehouseName.toLowerCase().includes(search)
-      );
-    }
-
-    // Sort
-    filtered.sort((a, b) => {
-      let compareA: any = a[sortField];
-      let compareB: any = b[sortField];
-
-      if (typeof compareA === 'string') {
-        compareA = compareA.toLowerCase();
-        compareB = compareB.toLowerCase();
-      }
-
-      if (sortOrder === 'asc') {
-        return compareA > compareB ? 1 : -1;
-      } else {
-        return compareA < compareB ? 1 : -1;
-      }
-    });
-
-    return filtered;
-  }, [lowStockItems, selectedWarehouse, searchTerm, sortField, sortOrder]);
-
   // Calculate summary stats
   const totalLowStockItems = lowStockItems.length;
   const totalDeficit = lowStockItems.reduce((sum, item) => sum + item.deficit, 0);
   const affectedWarehouses = new Set(lowStockItems.map(item => item.warehouseId)).size;
 
-  const handleSort = (field: typeof sortField) => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortOrder('desc');
-    }
-  };
+  // Warehouse filter options
+  const warehouseFilterOptions = useMemo(() => {
+    const uniqueWarehouses = Array.from(new Set(lowStockItems.map(item => item.warehouseName)));
+    return uniqueWarehouses.map(name => ({
+      label: name,
+      value: name,
+    }));
+  }, [lowStockItems]);
 
   if (isLoading) {
     return (
@@ -264,7 +272,7 @@ function LowStockPage() {
         </Card>
       </div>
 
-      {/* Filters and Table */}
+      {/* Low Stock Items Table */}
       <Card>
         <CardHeader>
           <CardTitle>Low Stock Items</CardTitle>
@@ -273,99 +281,28 @@ function LowStockPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-4 mb-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by product name, SKU, or warehouse..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8"
-              />
-            </div>
-            <Select value={selectedWarehouse} onValueChange={setSelectedWarehouse}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="All Warehouses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Warehouses</SelectItem>
-                {warehouses.map(warehouse => (
-                  <SelectItem key={warehouse.id} value={warehouse.id}>
-                    {warehouse.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {filteredAndSortedItems.length === 0 ? (
+          {lowStockItems.length === 0 ? (
             <div className="text-center py-12">
               <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground" />
-              <p className="mt-4 text-lg font-medium">No low stock items found</p>
+              <p className="mt-4 text-lg font-medium">No low stock items</p>
               <p className="text-sm text-muted-foreground mt-2">
-                {searchTerm || selectedWarehouse !== 'all'
-                  ? 'Try adjusting your filters'
-                  : 'All products are above minimum stock levels'}
+                All products are above minimum stock levels
               </p>
             </div>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => handleSort('productName')}
-                    >
-                      Product {sortField === 'productName' && (sortOrder === 'asc' ? '↑' : '↓')}
-                    </TableHead>
-                    <TableHead>SKU</TableHead>
-                    <TableHead
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => handleSort('warehouseName')}
-                    >
-                      Warehouse {sortField === 'warehouseName' && (sortOrder === 'asc' ? '↑' : '↓')}
-                    </TableHead>
-                    <TableHead className="text-right">Current Stock</TableHead>
-                    <TableHead className="text-right">Minimum Stock</TableHead>
-                    <TableHead
-                      className="text-right cursor-pointer hover:bg-muted/50"
-                      onClick={() => handleSort('deficit')}
-                    >
-                      Deficit {sortField === 'deficit' && (sortOrder === 'asc' ? '↑' : '↓')}
-                    </TableHead>
-                    <TableHead className="text-right">Unit Price</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredAndSortedItems.map((item, index) => (
-                    <TableRow key={`${item.productId}-${item.warehouseId}-${index}`}>
-                      <TableCell className="font-medium">{item.productName}</TableCell>
-                      <TableCell className="font-mono text-sm">{item.productSKU}</TableCell>
-                      <TableCell>{item.warehouseName}</TableCell>
-                      <TableCell className="text-right">
-                        <Badge variant="destructive" className="font-mono">
-                          {item.currentStock}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-mono">{item.minimumStock}</TableCell>
-                      <TableCell className="text-right">
-                        <Badge variant="outline" className="font-mono text-orange-600">
-                          -{item.deficit}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">{formatRupiah(item.price)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-
-          {filteredAndSortedItems.length > 0 && (
-            <div className="mt-4 text-sm text-muted-foreground">
-              Showing {filteredAndSortedItems.length} of {totalLowStockItems} low stock items
-            </div>
+            <DataTable
+              columns={lowStockColumns}
+              data={lowStockItems}
+              searchKey="productName"
+              searchPlaceholder="Search by product name..."
+              filterableColumns={[
+                {
+                  id: 'warehouseName',
+                  title: 'Warehouse',
+                  options: warehouseFilterOptions,
+                },
+              ]}
+            />
           )}
         </CardContent>
       </Card>
