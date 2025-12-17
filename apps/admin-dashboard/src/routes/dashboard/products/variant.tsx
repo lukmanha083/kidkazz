@@ -199,6 +199,13 @@ const legacyMockForFallback: ProductVariant[] = [
 	},
 ];
 
+/**
+ * Render the product variants management page with listing, detail view, add/edit form, and warehouse allocation controls.
+ *
+ * This component fetches variants, products, and warehouses from APIs; provides create, update, and delete mutations for variants (including synchronizing per-warehouse allocations); validates stock and allocation constraints; and exposes UI controls (data table, left/right drawers, modal, and delete confirmation) for managing variant lifecycle and warehouse stock allocation.
+ *
+ * @returns The React element for the Product Variants management page.
+ */
 function ProductVariantPage() {
 	const queryClient = useQueryClient();
 

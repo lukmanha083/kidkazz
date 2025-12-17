@@ -71,6 +71,14 @@ const mockOrders: Order[] = [
 	},
 ];
 
+/**
+ * Renders the Orders management page with summary statistics and a searchable, filterable orders table.
+ *
+ * The page displays total, pending, processing, shipped, and delivered counts and a DataTable for viewing,
+ * searching, filtering, and performing actions (view, edit, delete) on individual orders.
+ *
+ * @returns The page's JSX element containing the statistics cards and the orders DataTable.
+ */
 function OrdersPage() {
 	const [orders] = useState<Order[]>(mockOrders);
 

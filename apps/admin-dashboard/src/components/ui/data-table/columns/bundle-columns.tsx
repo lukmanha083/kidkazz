@@ -21,6 +21,19 @@ interface BundleColumnOptions {
 	onDelete?: (bundle: ProductBundle) => void;
 }
 
+/**
+ * Builds column definitions for displaying ProductBundle data in a data table.
+ *
+ * Generates columns for bundle name and description, SKU, a static "Products" badge,
+ * price formatted as Indonesian Rupiah, discount percentage, status with badge styling,
+ * and row actions wired to optional callbacks.
+ *
+ * @param options - Optional callbacks for row actions.
+ *   - onView: Called with the ProductBundle when the row's view action is triggered.
+ *   - onEdit: Called with the ProductBundle when the row's edit action is triggered.
+ *   - onDelete: Called with the ProductBundle when the row's delete action is triggered.
+ * @returns An array of ColumnDef<ProductBundle> representing the table columns.
+ */
 export function getBundleColumns(
 	options: BundleColumnOptions = {},
 ): ColumnDef<ProductBundle>[] {
