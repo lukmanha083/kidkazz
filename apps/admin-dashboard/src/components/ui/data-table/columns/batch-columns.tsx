@@ -92,6 +92,19 @@ interface BatchColumnOptions {
 	onDelete?: (batch: InventoryBatch) => void;
 }
 
+/**
+ * Create column definitions for an inventory batches data table.
+ *
+ * Generates columns for: `batchNumber`, `lotNumber`, `expiration`, `quantity`,
+ * `status`, `supplier`, and `actions`. The `actions` column will wire provided
+ * callbacks to row actions (edit, adjust, delete).
+ *
+ * @param options - Optional callbacks used by the actions column.
+ * @param options.onEdit - Called with the batch when the row's Edit action is triggered.
+ * @param options.onAdjust - Called with the batch when the "Adjust Quantity" custom action is triggered.
+ * @param options.onDelete - Called with the batch when the row's Delete action is triggered.
+ * @returns An array of `ColumnDef<InventoryBatch>` objects for rendering the table.
+ */
 export function getBatchColumns(
 	options: BatchColumnOptions = {},
 ): ColumnDef<InventoryBatch>[] {

@@ -9,6 +9,14 @@ interface CategoryColumnOptions {
   onDelete?: (category: Category) => void;
 }
 
+/**
+ * Builds the column definitions used to render a categories data table.
+ *
+ * @param options - Optional callbacks to handle row actions:
+ *   - `onEdit`: invoked with the category when the row's edit action is triggered
+ *   - `onDelete`: invoked with the category when the row's delete action is triggered
+ * @returns An array of column definitions for `Category` rows (Name, Parent Category, Description, Status, and Actions)
+ */
 export function getCategoryColumns(options: CategoryColumnOptions = {}): ColumnDef<Category>[] {
   const { onEdit, onDelete } = options;
 

@@ -62,15 +62,13 @@ export const Route = createFileRoute("/dashboard/products/bundle")({
 });
 
 /**
- * Renders the Product Bundles management page with UI for listing, creating,
- * editing, viewing, and deleting product bundles, including product selection,
- * price/discount calculations, virtual stock computation from inventory, and
- * media management.
+ * Page component for managing product bundles: list, view details, create, edit, and delete.
  *
- * The page includes a searchable table of bundles, a form drawer for create/edit
- * flows, a details drawer, and a delete confirmation dialog.
+ * Fetches bundles, products, warehouses, product locations, and inventory; derives product stock and available products,
+ * exposes create/update/delete mutations for bundles, and provides UI controls including a DataTable, detail drawer,
+ * create/edit form drawer, virtual-stock calculations, media galleries, and delete confirmation dialog.
  *
- * @returns The React element for the Product Bundles management page.
+ * @returns The rendered Product Bundles page element
  */
 function ProductBundlePage() {
 	const queryClient = useQueryClient();

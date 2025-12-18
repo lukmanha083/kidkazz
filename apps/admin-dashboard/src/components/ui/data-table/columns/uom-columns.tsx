@@ -11,17 +11,15 @@ interface UOMColumnOptions {
 }
 
 /**
- * Build column definitions for displaying unit-of-measure (UOM) rows in a data table.
+ * Build column definitions for a units-of-measure (UOM) data table.
  *
- * The returned columns include: Code, Name, Conversion Factor (shows "1 (Base)" for base units),
- * Type (badge indicating "Base" or "Custom"), and Actions. Action callbacks provided via
- * `options` are wired into the Actions column; `onEdit` and `onDelete` are not forwarded for base units.
+ * Accepts optional callbacks to wire row actions and returns columns for:
+ * code, name, conversion factor, type (base vs custom), and row actions.
  *
  * @param options - Optional callbacks for row actions.
- *   - `onView` is called with the UOM when a view action is triggered.
- *   - `onEdit` is called with the UOM when an edit action is triggered (not forwarded for base units).
- *   - `onDelete` is called with the UOM when a delete action is triggered (not forwarded for base units).
- * @returns An array of `ColumnDef<UOM>` suitable for rendering a UOM data table.
+ * @param options.onView - Callback invoked with a `UOM` when a row's view action is triggered.
+ * @param options.onDelete - Callback invoked with a `UOM` when a row's delete action is triggered; delete is not provided for base units.
+ * @returns An array of `ColumnDef<UOM>` describing the table columns for UOM display and interaction.
  */
 export function getUOMColumns(options: UOMColumnOptions = {}): ColumnDef<UOM>[] {
   const { onView, onEdit, onDelete } = options;
