@@ -16,20 +16,19 @@ interface VirtualListProps<TData> {
 }
 
 /**
- * VirtualList - High-performance list component for large datasets
+ * Render a virtualized scrollable list that only mounts visible items for high-performance rendering of large collections.
  *
- * Features:
- * - Virtualized scrolling (only renders visible items)
- * - Flexible item rendering
- * - Variable or fixed item heights
- * - Efficient for non-tabular data
- *
- * Use Cases:
- * - Movement history timeline
- * - Notification lists
- * - Activity feeds
- * - Long dropdown lists
- * - Chat messages
+ * @param items - Array of data items to render.
+ * @param renderItem - Function that renders a single item: `(item, index) => JSX.Element`.
+ * @param itemHeight - Estimated height in pixels for each item; used by the virtualizer to estimate scroll size.
+ * @param overscan - Number of additional items to render before and after the visible range to reduce pop-in.
+ * @param maxHeight - CSS height for the scrollable container (e.g., `"600px"` or `"50vh"`).
+ * @param getItemKey - Optional function to derive a stable key for an item: `(item, index) => string`.
+ * @param isLoading - When true, shows a centered loading state instead of the list.
+ * @param emptyMessage - Message to display when `items` is empty.
+ * @param className - Optional additional container class names.
+ * @param gap - Optional vertical gap (in pixels) added to the estimated item height.
+ * @returns A JSX element containing the virtualized list, loading state, or empty-state message.
  */
 export function VirtualList<TData>({
 	items,
@@ -136,6 +135,17 @@ interface VirtualListItemProps {
 	onClick?: () => void;
 }
 
+/**
+ * Styled list item wrapper that provides optional click handling and keyboard activation.
+ *
+ * Renders its children inside a styled container that becomes interactive when `onClick` is provided:
+ * the element receives `role="button"`, `tabIndex=0`, and activates `onClick` on mouse click or when
+ * the user presses Enter or Space.
+ *
+ * @param children - Content to render inside the list item.
+ * @param className - Additional class names to merge with the component's base styles.
+ * @param onClick - Optional click handler; invoked on mouse click or keyboard activation (Enter/Space).
+ */
 export function VirtualListItem({
 	children,
 	className,

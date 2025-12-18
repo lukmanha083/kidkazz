@@ -44,19 +44,13 @@ interface VirtualizedDataTableProps<TData, TValue> {
 }
 
 /**
- * VirtualizedDataTable - TanStack Table + TanStack Virtual integration
+ * Renders a virtualized data table that combines TanStack Table features (sorting, filtering, column visibility, optional row selection)
+ * with TanStack Virtual for performant scrolling of large datasets.
  *
- * Best for large datasets (1,000-10,000+ rows) where pagination isn't desired.
- * Combines TanStack Table's features (sorting, filtering, column visibility)
- * with TanStack Virtual's performance optimization (virtual scrolling).
+ * Designed for large lists where rendering all rows is undesirable; provides a sticky header, toolbar with search/filter controls, loading and empty states,
+ * and optional row click handling. Inserts top and bottom padding rows to preserve scroll space while only mounting visible rows.
  *
- * Use Cases (from roadmap):
- * - Inventory List (1,000-10,000 items) - Recommended
- * - Movement History (10,000+) - Required
- * - Stock Opname Count (1,000-5,000) - Recommended
- * - Batch Lists when count > 1,000 - Recommended
- *
- * For smaller datasets (< 1,000 rows), use regular DataTable with pagination instead.
+ * @returns A React element that displays the virtualized data table UI. 
  */
 export function VirtualizedDataTable<TData, TValue>({
 	columns,
