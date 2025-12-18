@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useForm } from '@tanstack/react-form';
+import { zodValidator } from '@tanstack/zod-form-adapter';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,7 +35,8 @@ import {
   Package,
   Loader2,
 } from 'lucide-react';
-import { uomApi, type UOM, type CreateUOMInput } from '@/lib/api';
+import { uomApi, type UOM } from '@/lib/api';
+import { uomFormSchema, type UOMFormData } from '@/lib/form-schemas';
 import { DataTable } from '@/components/ui/data-table';
 import { getUOMColumns, uomTypeOptions } from '@/components/ui/data-table/columns';
 
@@ -41,6 +44,15 @@ export const Route = createFileRoute('/dashboard/products/uom')({
   component: UOMPage,
 });
 
+/**
+ * Page component for managing units of measure (UOM), providing list, view, create, and delete workflows.
+ *
+ * Fetches UOMs, displays summary statistics and a searchable/filterable table, and exposes UI for viewing
+ * details in a drawer, adding new units via a form drawer (including base-unit binding and conversion preview),
+ * and confirming deletions with a dialog. Mutations update the cached list and show user feedback on success or error.
+ *
+ * @returns A React element rendering the UOM management user interface.
+ */
 function UOMPage() {
   const queryClient = useQueryClient();
 
@@ -50,18 +62,32 @@ function UOMPage() {
   const [selectedUOM, setSelectedUOM] = useState<UOM | null>(null);
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
 
-  // Form data
-  const [formData, setFormData] = useState({
-    code: '',
-    name: '',
-    conversionFactor: '',
-    isBaseUnit: false,
-    baseUnitCode: '',
-  });
-
   // Delete confirmation states
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [uomToDelete, setUomToDelete] = useState<UOM | null>(null);
+
+  // TanStack Form
+  const form = useForm({
+    defaultValues: {
+      code: '',
+      name: '',
+      isBaseUnit: false,
+      baseUnitCode: null as string | null,
+      conversionFactor: 1,
+      status: 'active' as const,
+    },
+    validatorAdapter: zodValidator(),
+    validators: {
+      onChange: uomFormSchema,
+    },
+    onSubmit: async ({ value }) => {
+      if (formMode === 'add') {
+        await createUOMMutation.mutateAsync(value);
+      } else if (formMode === 'edit' && selectedUOM) {
+        await updateUOMMutation.mutateAsync({ id: selectedUOM.id, data: value });
+      }
+    },
+  });
 
   // Fetch UOMs
   const { data: uomsData, isLoading, error } = useQuery({
@@ -73,14 +99,32 @@ function UOMPage() {
 
   // Create UOM mutation
   const createUOMMutation = useMutation({
-    mutationFn: (data: CreateUOMInput) => uomApi.create(data),
+    mutationFn: (data: UOMFormData) => uomApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['uoms'] });
       toast.success('UOM created successfully');
       setFormDrawerOpen(false);
+      form.reset();
     },
     onError: (error: Error) => {
       toast.error('Failed to create UOM', {
+        description: error.message,
+      });
+    },
+  });
+
+  // Update UOM mutation
+  const updateUOMMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UOMFormData }) =>
+      uomApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['uoms'] });
+      toast.success('UOM updated successfully');
+      setFormDrawerOpen(false);
+      form.reset();
+    },
+    onError: (error: Error) => {
+      toast.error('Failed to update UOM', {
         description: error.message,
       });
     },
@@ -126,45 +170,21 @@ function UOMPage() {
 
   const handleAddUOM = () => {
     setFormMode('add');
-    setFormData({
-      code: '',
-      name: '',
-      conversionFactor: '',
-      isBaseUnit: false,
-      baseUnitCode: '',
-    });
+    form.reset();
     setFormDrawerOpen(true);
   };
 
-  const handleSubmitForm = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const conversionFactor = parseFloat(formData.conversionFactor);
-    if (conversionFactor <= 0) {
-      toast.error('Invalid conversion factor', {
-        description: 'Conversion factor must be greater than 0'
-      });
-      return;
-    }
-
-    // Validate base unit selection for custom UOMs
-    if (!formData.isBaseUnit && !formData.baseUnitCode) {
-      toast.error('Base unit required', {
-        description: 'Please select which base unit this custom UOM is bound to'
-      });
-      return;
-    }
-
-    if (formMode === 'add') {
-      const uomData: CreateUOMInput = {
-        code: formData.code.toUpperCase(),
-        name: formData.name,
-        conversionFactor: conversionFactor,
-        isBaseUnit: formData.isBaseUnit,
-        baseUnitCode: formData.isBaseUnit ? undefined : formData.baseUnitCode,
-      };
-      createUOMMutation.mutate(uomData);
-    }
+  const handleEditUOM = (uom: UOM) => {
+    setFormMode('edit');
+    setSelectedUOM(uom);
+    form.setFieldValue('code', uom.code);
+    form.setFieldValue('name', uom.name);
+    form.setFieldValue('conversionFactor', uom.conversionFactor);
+    form.setFieldValue('isBaseUnit', uom.isBaseUnit);
+    form.setFieldValue('baseUnitCode', uom.baseUnitCode || null);
+    form.setFieldValue('status', 'active');
+    setViewDrawerOpen(false);
+    setFormDrawerOpen(true);
   };
 
   // Memoize columns with callbacks
@@ -172,6 +192,7 @@ function UOMPage() {
     () =>
       getUOMColumns({
         onView: handleViewUOM,
+        onEdit: handleEditUOM,
         onDelete: handleDelete,
       }),
     []
@@ -413,116 +434,160 @@ function UOMPage() {
             </div>
           </DrawerHeader>
 
-          <form onSubmit={handleSubmitForm} className="flex-1 overflow-y-auto p-4 space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="code">UOM Code *</Label>
-              <Input
-                id="code"
-                placeholder="CARTON18"
-                value={formData.code}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                required
-              />
-              <p className="text-xs text-muted-foreground">
-                Unique code for this unit (e.g., CARTON18, BOX24)
-              </p>
-            </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              form.handleSubmit();
+            }}
+            className="flex-1 overflow-y-auto p-4 space-y-4"
+          >
+            <form.Field name="code">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor="code">UOM Code *</Label>
+                  <Input
+                    id="code"
+                    placeholder="CARTON18"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value.toUpperCase())}
+                    onBlur={field.handleBlur}
+                    required
+                  />
+                  {field.state.meta.errors.length > 0 && (
+                    <p className="text-xs text-destructive">{field.state.meta.errors[0]}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Unique code for this unit (e.g., CARTON18, BOX24)
+                  </p>
+                </div>
+              )}
+            </form.Field>
 
-            <div className="space-y-2">
-              <Label htmlFor="name">Unit Name *</Label>
-              <Input
-                id="name"
-                placeholder="Carton (18 units)"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-              />
-              <p className="text-xs text-muted-foreground">
-                Descriptive name for this unit
-              </p>
-            </div>
+            <form.Field name="name">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor="name">Unit Name *</Label>
+                  <Input
+                    id="name"
+                    placeholder="Carton (18 units)"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                    required
+                  />
+                  {field.state.meta.errors.length > 0 && (
+                    <p className="text-xs text-destructive">{field.state.meta.errors[0]}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Descriptive name for this unit
+                  </p>
+                </div>
+              )}
+            </form.Field>
 
             <Separator />
 
-            <div className="space-y-2">
-              <Label htmlFor="conversionFactor">Conversion Factor *</Label>
-              <Input
-                id="conversionFactor"
-                type="number"
-                min="0.01"
-                step="0.01"
-                placeholder="18"
-                value={formData.conversionFactor}
-                onChange={(e) => setFormData({ ...formData, conversionFactor: e.target.value })}
-                required
-                disabled={formData.isBaseUnit}
-              />
-              <p className="text-xs text-muted-foreground">
-                How many base units equals 1 of this unit (base unit depends on product: PCS, KG, L, etc.)
-              </p>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="isBaseUnit"
-                checked={formData.isBaseUnit}
-                onChange={(e) => {
-                  const isBase = e.target.checked;
-                  setFormData({
-                    ...formData,
-                    isBaseUnit: isBase,
-                    conversionFactor: isBase ? '1' : formData.conversionFactor,
-                    baseUnitCode: isBase ? '' : formData.baseUnitCode
-                  });
-                }}
-                className="h-4 w-4 rounded border-gray-300"
-              />
-              <Label htmlFor="isBaseUnit" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                This is a base unit
-              </Label>
-            </div>
-            <p className="text-xs text-muted-foreground ml-6">
-              Check this if creating a new base unit (conversion factor will be set to 1)
-            </p>
-
-            {!formData.isBaseUnit && (
-              <>
-                <Separator />
+            <form.Field name="conversionFactor">
+              {(field) => (
                 <div className="space-y-2">
-                  <Label htmlFor="baseUnitCode">Bound to Base Unit *</Label>
-                  <select
-                    id="baseUnitCode"
-                    value={formData.baseUnitCode}
-                    onChange={(e) => setFormData({ ...formData, baseUnitCode: e.target.value })}
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                  <Label htmlFor="conversionFactor">Conversion Factor *</Label>
+                  <Input
+                    id="conversionFactor"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    placeholder="18"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(parseFloat(e.target.value) || 0)}
+                    onBlur={field.handleBlur}
                     required
-                  >
-                    <option value="">Select base unit...</option>
-                    {uoms.filter(uom => uom.isBaseUnit).map(baseUom => (
-                      <option key={baseUom.id} value={baseUom.code}>
-                        {baseUom.code} - {baseUom.name}
-                      </option>
-                    ))}
-                  </select>
+                    disabled={form.getFieldValue('isBaseUnit')}
+                  />
+                  {field.state.meta.errors.length > 0 && (
+                    <p className="text-xs text-destructive">{field.state.meta.errors[0]}</p>
+                  )}
                   <p className="text-xs text-muted-foreground">
-                    Select which base unit this custom UOM is bound to (e.g., PCS, KG, L, etc.)
+                    How many base units equals 1 of this unit (base unit depends on product: PCS, KG, L, etc.)
                   </p>
                 </div>
+              )}
+            </form.Field>
+
+            <form.Field name="isBaseUnit">
+              {(field) => (
+                <>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="isBaseUnit"
+                      checked={field.state.value}
+                      onChange={(e) => {
+                        const isBase = e.target.checked;
+                        field.handleChange(isBase);
+                        if (isBase) {
+                          form.setFieldValue('conversionFactor', 1);
+                          form.setFieldValue('baseUnitCode', null);
+                        }
+                      }}
+                      className="h-4 w-4 rounded border-gray-300"
+                    />
+                    <Label htmlFor="isBaseUnit" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      This is a base unit
+                    </Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground ml-6">
+                    Check this if creating a new base unit (conversion factor will be set to 1)
+                  </p>
+                </>
+              )}
+            </form.Field>
+
+            {!form.getFieldValue('isBaseUnit') && (
+              <>
+                <Separator />
+                <form.Field name="baseUnitCode">
+                  {(field) => (
+                    <div className="space-y-2">
+                      <Label htmlFor="baseUnitCode">Bound to Base Unit *</Label>
+                      <select
+                        id="baseUnitCode"
+                        value={field.state.value || ''}
+                        onChange={(e) => field.handleChange(e.target.value || null)}
+                        onBlur={field.handleBlur}
+                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                        required
+                      >
+                        <option value="">Select base unit...</option>
+                        {uoms.filter(uom => uom.isBaseUnit).map(baseUom => (
+                          <option key={baseUom.id} value={baseUom.code}>
+                            {baseUom.code} - {baseUom.name}
+                          </option>
+                        ))}
+                      </select>
+                      {field.state.meta.errors.length > 0 && (
+                        <p className="text-xs text-destructive">{field.state.meta.errors[0]}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Select which base unit this custom UOM is bound to (e.g., PCS, KG, L, etc.)
+                      </p>
+                    </div>
+                  )}
+                </form.Field>
               </>
             )}
 
-            {formData.conversionFactor && parseFloat(formData.conversionFactor) > 0 && !formData.isBaseUnit && formData.baseUnitCode && (
+            {form.getFieldValue('conversionFactor') > 0 && !form.getFieldValue('isBaseUnit') && form.getFieldValue('baseUnitCode') && (
               <div className="rounded-md bg-muted p-3">
                 <p className="text-sm font-medium mb-2">Conversion Preview</p>
                 <p className="text-sm">
-                  1 {formData.code || 'UNIT'} = {formData.conversionFactor} {formData.baseUnitCode}
+                  1 {form.getFieldValue('code') || 'UNIT'} = {form.getFieldValue('conversionFactor')} {form.getFieldValue('baseUnitCode')}
                 </p>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Example: 5 {formData.code || 'UNIT'} = {parseFloat(formData.conversionFactor) * 5} {formData.baseUnitCode}
+                  Example: 5 {form.getFieldValue('code') || 'UNIT'} = {form.getFieldValue('conversionFactor') * 5} {form.getFieldValue('baseUnitCode')}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1 italic">
-                  This custom UOM is bound to {formData.baseUnitCode} base unit
+                  This custom UOM is bound to {form.getFieldValue('baseUnitCode')} base unit
                 </p>
               </div>
             )}
@@ -531,15 +596,15 @@ function UOMPage() {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={createUOMMutation.isPending}
+                disabled={createUOMMutation.isPending || updateUOMMutation.isPending || form.state.isSubmitting}
               >
-                {createUOMMutation.isPending ? (
+                {createUOMMutation.isPending || updateUOMMutation.isPending || form.state.isSubmitting ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Creating...
+                    {formMode === 'add' ? 'Creating...' : 'Updating...'}
                   </>
                 ) : (
-                  'Create UOM'
+                  formMode === 'add' ? 'Create UOM' : 'Update UOM'
                 )}
               </Button>
               <DrawerClose asChild>

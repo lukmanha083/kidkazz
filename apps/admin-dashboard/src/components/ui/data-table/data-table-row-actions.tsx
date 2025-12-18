@@ -22,6 +22,16 @@ interface DataTableRowActionsProps<TData> {
   }>;
 }
 
+/**
+ * Render a contextual dropdown menu of row-specific actions for a data table.
+ *
+ * @param row - The table row whose `original` data is passed to action callbacks.
+ * @param onView - Optional callback invoked with `row.original` when the "View" item is selected.
+ * @param onEdit - Optional callback invoked with `row.original` when the "Edit" item is selected.
+ * @param onDelete - Optional callback invoked with `row.original` when the "Delete" item is selected.
+ * @param customActions - Optional array of additional actions. Each action's `onClick` is invoked with `row.original`; if `action.icon` is provided it is rendered, and `action.variant === 'destructive'` applies destructive styling.
+ * @returns The JSX element that renders the actions dropdown menu for the provided row.
+ */
 export function DataTableRowActions<TData>({
   row,
   onView,

@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from '@tanstack/react-form';
+import { zodValidator } from '@tanstack/zod-form-adapter';
 import { toast } from "sonner";
 import {
 	bundleApi,
@@ -10,9 +12,9 @@ import {
 	inventoryApi,
 	type ProductBundle,
 	type BundleItem,
-	type CreateBundleInput,
 	type Product,
 } from "@/lib/api";
+import { bundleFormSchema, type BundleFormData } from '@/lib/form-schemas';
 import {
 	Card,
 	CardContent,
@@ -152,19 +154,7 @@ function ProductBundlePage() {
 	);
 	const [formMode, setFormMode] = useState<"add" | "edit">("add");
 
-	// Form data (Phase 2B: Removed availableStock - bundles now use virtual stock)
-	const [formData, setFormData] = useState({
-		bundleName: "",
-		bundleSKU: "",
-		barcode: "",
-		bundleDescription: "",
-		bundlePrice: "",
-		discountPercentage: "",
-		status: "active" as "active" | "inactive",
-		warehouseId: "", // Warehouse where bundle is assembled
-	});
-
-	// Selected products for the bundle
+	// Selected products for the bundle (separate from form data)
 	const [selectedProducts, setSelectedProducts] = useState<BundleItem[]>([]);
 	const [selectedProductSKU, setSelectedProductSKU] = useState("");
 	const [productQuantity, setProductQuantity] = useState("1");
@@ -175,6 +165,47 @@ function ProductBundlePage() {
 		null,
 	);
 
+	// TanStack Form (Phase 2B: Removed availableStock - bundles now use virtual stock)
+	const form = useForm({
+		defaultValues: {
+			bundleName: "",
+			bundleSKU: "",
+			barcode: "",
+			bundleDescription: "",
+			bundlePrice: 0,
+			discountPercentage: 0,
+			status: "active" as const,
+			warehouseId: null as string | null,
+		},
+		validatorAdapter: zodValidator(),
+		validators: {
+			onChange: bundleFormSchema,
+		},
+		onSubmit: async ({ value }) => {
+			if (selectedProducts.length === 0) {
+				toast.error("Please add at least one product to the bundle");
+				return;
+			}
+
+			const bundleData: CreateBundleInput = {
+				...value,
+				bundlePrice: calculatedBundlePrice,
+				items: selectedProducts,
+			} as any;
+
+			if (formMode === "add") {
+				await createBundleMutation.mutateAsync(bundleData);
+			} else if (formMode === "edit" && selectedBundle) {
+				const { items, ...updateData } = bundleData;
+				await updateBundleMutation.mutateAsync({
+					id: selectedBundle.id,
+					data: updateData,
+					items: items,
+				});
+			}
+		},
+	});
+
 	// Create bundle mutation
 	const createBundleMutation = useMutation({
 		mutationFn: (data: CreateBundleInput) => bundleApi.create(data),
@@ -183,6 +214,7 @@ function ProductBundlePage() {
 			toast.success("Bundle created successfully");
 			setFormDrawerOpen(false);
 			setSelectedProducts([]);
+			form.reset();
 		},
 		onError: (error: Error) => {
 			toast.error("Failed to create bundle", {
@@ -193,18 +225,31 @@ function ProductBundlePage() {
 
 	// Update bundle mutation
 	const updateBundleMutation = useMutation({
-		mutationFn: ({
+		mutationFn: async ({
 			id,
 			data,
+			items,
 		}: {
 			id: string;
 			data: Partial<CreateBundleInput>;
-		}) => bundleApi.update(id, data),
+			items?: BundleItem[];
+		}) => {
+			// Update bundle data first
+			const bundle = await bundleApi.update(id, data);
+
+			// Then update items if provided
+			if (items) {
+				await bundleApi.updateItems(id, items);
+			}
+
+			return bundle;
+		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["bundles"] });
 			toast.success("Bundle updated successfully");
 			setFormDrawerOpen(false);
 			setViewDrawerOpen(false);
+			form.reset();
 		},
 		onError: (error: Error) => {
 			toast.error("Failed to update bundle", {
@@ -231,7 +276,7 @@ function ProductBundlePage() {
 
 	// Available products for combobox - only show products with base UOM (PCS) and allocated in selected warehouse
 	const availableProducts = useMemo(() => {
-		const selectedWarehouse = formData.warehouseId;
+		const selectedWarehouse = form.getFieldValue('warehouseId');
 
 		return products
 			.filter((p) => {
@@ -273,29 +318,32 @@ function ProductBundlePage() {
 					baseUnit: p.baseUnit,
 				};
 			});
-	}, [products, productLocations, formData.warehouseId]);
+	}, [products, productLocations, form.getFieldValue('warehouseId')]);
 
 	const handleViewBundle = async (bundle: ProductBundle) => {
 		setSelectedBundle(bundle);
-		// Fetch bundle items
-		const { items } = await bundleApi.getById(bundle.id);
-		setSelectedBundleItems(items);
-		setViewDrawerOpen(true);
+
+		// Fetch bundle items with error handling
+		try {
+			const { items } = await bundleApi.getById(bundle.id);
+			setSelectedBundleItems(items);
+			setViewDrawerOpen(true);
+		} catch (error) {
+			console.error("Failed to fetch bundle items:", error);
+			toast.error("Failed to load bundle details", {
+				description:
+					error instanceof Error ? error.message : "Unknown error",
+			});
+			// Clear bundle items on error
+			setSelectedBundleItems([]);
+		}
 	};
 
 	const handleAddBundle = () => {
 		setFormMode("add");
 		const newBarcode = generateBarcode();
-		setFormData({
-			bundleName: "",
-			bundleSKU: "",
-			barcode: newBarcode,
-			bundleDescription: "",
-			bundlePrice: "",
-			discountPercentage: "0",
-			status: "active",
-			warehouseId: "",
-		});
+		form.reset();
+		form.setFieldValue('barcode', newBarcode);
 		setSelectedProducts([]);
 		setFormDrawerOpen(true);
 	};
@@ -303,21 +351,30 @@ function ProductBundlePage() {
 	const handleEditBundle = async (bundle: ProductBundle) => {
 		setFormMode("edit");
 		setSelectedBundle(bundle);
-		setFormData({
-			bundleName: bundle.bundleName,
-			bundleSKU: bundle.bundleSKU,
-			barcode: (bundle as any).barcode || "",
-			bundleDescription: bundle.bundleDescription || "",
-			bundlePrice: bundle.bundlePrice.toString(),
-			discountPercentage: bundle.discountPercentage.toString(),
-			status: bundle.status,
-			warehouseId: (bundle as any).warehouseId || "",
-		});
-		// Fetch bundle items
-		const { items } = await bundleApi.getById(bundle.id);
-		setSelectedProducts(items);
-		setViewDrawerOpen(false);
-		setFormDrawerOpen(true);
+		form.setFieldValue('bundleName', bundle.bundleName);
+		form.setFieldValue('bundleSKU', bundle.bundleSKU);
+		form.setFieldValue('barcode', (bundle as any).barcode || "");
+		form.setFieldValue('bundleDescription', bundle.bundleDescription || "");
+		form.setFieldValue('bundlePrice', bundle.bundlePrice);
+		form.setFieldValue('discountPercentage', bundle.discountPercentage);
+		form.setFieldValue('status', bundle.status);
+		form.setFieldValue('warehouseId', (bundle as any).warehouseId || null);
+
+		// Fetch bundle items with error handling
+		try {
+			const { items } = await bundleApi.getById(bundle.id);
+			setSelectedProducts(items);
+			setViewDrawerOpen(false);
+			setFormDrawerOpen(true);
+		} catch (error) {
+			console.error("Failed to fetch bundle items:", error);
+			toast.error("Failed to load bundle details", {
+				description:
+					error instanceof Error ? error.message : "Unknown error",
+			});
+			// Keep drawer state consistent on error
+			setSelectedProducts([]);
+		}
 	};
 
 	const handleAddProductToBundle = () => {
@@ -367,39 +424,6 @@ function ProductBundlePage() {
 		setSelectedProducts(selectedProducts.filter((_, i) => i !== index));
 	};
 
-	const handleSubmitForm = (e: React.FormEvent) => {
-		e.preventDefault();
-
-		if (selectedProducts.length === 0) {
-			toast.error("Please add at least one product to the bundle");
-			return;
-		}
-
-		// Phase 2B: No stock validation - bundles use virtual stock calculation
-		// Virtual stock is calculated real-time from component availability
-
-		// Use the calculated bundle price
-		const bundleData: CreateBundleInput = {
-			bundleName: formData.bundleName,
-			bundleSKU: formData.bundleSKU,
-			barcode: formData.barcode || null,
-			bundleDescription: formData.bundleDescription || null,
-			bundlePrice: calculatedBundlePrice,
-			discountPercentage: parseFloat(formData.discountPercentage) || 0,
-			status: formData.status,
-			items: selectedProducts,
-			warehouseId: formData.warehouseId, // Warehouse where bundle is assembled
-		} as any;
-
-		if (formMode === "add") {
-			createBundleMutation.mutate(bundleData);
-		} else if (formMode === "edit" && selectedBundle) {
-			const { items, ...updateData } = bundleData;
-			updateBundleMutation.mutate({ id: selectedBundle.id, data: updateData });
-			// Also update items
-			bundleApi.updateItems(selectedBundle.id, items);
-		}
-	};
 
 	const handleDeleteBundle = () => {
 		if (bundleToDelete) {
@@ -480,13 +504,22 @@ function ProductBundlePage() {
 		return quantityPerBundle * bundleStock;
 	};
 
+	// Subscribe to discountPercentage field value for reactive updates
+	const [discountPercentage, setDiscountPercentage] = useState(0);
+
+	// Update discount percentage when form field changes
+	form.subscribe(
+		(state) => state.values.discountPercentage,
+		(discountValue) => setDiscountPercentage(discountValue || 0),
+	);
+
 	// Auto-calculate bundle price based on selected products and discount
 	const calculatedBundlePrice = useMemo(() => {
 		const originalPrice = calculateOriginalPrice(selectedProducts);
-		const discountPercent = parseFloat(formData.discountPercentage) || 0;
+		const discountPercent = discountPercentage || 0;
 		const finalPrice = originalPrice * (1 - discountPercent / 100);
 		return Math.round(finalPrice); // Round to nearest integer
-	}, [selectedProducts, formData.discountPercentage]);
+	}, [selectedProducts, discountPercentage]);
 
 	// Configure columns with callbacks
 	const columns = useMemo(
@@ -777,136 +810,160 @@ function ProductBundlePage() {
 					</DrawerHeader>
 
 					<form
-						onSubmit={handleSubmitForm}
+						onSubmit={(e) => {
+							e.preventDefault();
+							e.stopPropagation();
+							form.handleSubmit();
+						}}
 						className="px-4 space-y-4 max-h-[70vh] overflow-y-auto"
 					>
-						<div className="space-y-2">
-							<Label htmlFor="bundleName">Bundle Name *</Label>
-							<Input
-								id="bundleName"
-								placeholder="Back to School Bundle"
-								value={formData.bundleName}
-								onChange={(e) => {
-									const bundleName = e.target.value;
-									setFormData({ ...formData, bundleName });
-									// Auto-generate SKU only when adding new bundle (not editing)
-									if (formMode === "add" && bundleName) {
-										const generatedSKU = generateBundleSKU(bundleName);
-										setFormData((prev) => ({
-											...prev,
-											bundleSKU: generatedSKU,
-										}));
-									}
-								}}
-								required
-							/>
-						</div>
-
-						<div className="space-y-2">
-							<Label htmlFor="bundleSKU">Bundle SKU *</Label>
-							<div className="flex gap-2">
-								<Input
-									id="bundleSKU"
-									placeholder="BA-001"
-									value={formData.bundleSKU}
-									onChange={(e) =>
-										setFormData({ ...formData, bundleSKU: e.target.value })
-									}
-									required
-									className="flex-1"
-								/>
-								{formMode === "add" && (
-									<Button
-										type="button"
-										variant="outline"
-										onClick={() => {
-											const generatedSKU = generateBundleSKU(
-												formData.bundleName,
-											);
-											setFormData({ ...formData, bundleSKU: generatedSKU });
-											toast.success("SKU generated");
+						<form.Field name="bundleName">
+							{(field) => (
+								<div className="space-y-2">
+									<Label htmlFor="bundleName">Bundle Name *</Label>
+									<Input
+										id="bundleName"
+										placeholder="Back to School Bundle"
+										value={field.state.value}
+										onChange={(e) => {
+											const bundleName = e.target.value;
+											field.handleChange(bundleName);
+											// Auto-generate SKU only when adding new bundle (not editing)
+											if (formMode === "add" && bundleName) {
+												const generatedSKU = generateBundleSKU(bundleName);
+												form.setFieldValue('bundleSKU', generatedSKU);
+											}
 										}}
-										disabled={!formData.bundleName}
-									>
-										Generate
-									</Button>
-								)}
-							</div>
-							<p className="text-xs text-muted-foreground">
-								{formMode === "add"
-									? "SKU is auto-generated from bundle name. You can modify it if needed."
-									: "Bundle SKU cannot be changed after creation."}
-							</p>
-						</div>
+										onBlur={field.handleBlur}
+										required
+									/>
+									{field.state.meta.errors.length > 0 && (
+										<p className="text-xs text-destructive">{field.state.meta.errors[0]}</p>
+									)}
+								</div>
+							)}
+						</form.Field>
 
-						<div className="space-y-2">
-							<Label htmlFor="barcode">Barcode</Label>
-							<div className="flex gap-2">
-								<Input
-									id="barcode"
-									placeholder="8901234567890"
-									value={formData.barcode}
-									onChange={(e) =>
-										setFormData({ ...formData, barcode: e.target.value })
-									}
-									className="flex-1"
-								/>
-								<Button
-									type="button"
-									variant="outline"
-									onClick={() => {
-										const generatedBarcode = generateBarcode();
-										setFormData({ ...formData, barcode: generatedBarcode });
-										toast.success("Barcode generated");
-									}}
-								>
-									Generate
-								</Button>
-							</div>
-							<p className="text-xs text-muted-foreground">
-								Auto-generate a unique barcode or enter manually.
-							</p>
-						</div>
+						<form.Field name="bundleSKU">
+							{(field) => (
+								<div className="space-y-2">
+									<Label htmlFor="bundleSKU">Bundle SKU *</Label>
+									<div className="flex gap-2">
+										<Input
+											id="bundleSKU"
+											placeholder="BA-001"
+											value={field.state.value}
+											onChange={(e) => field.handleChange(e.target.value)}
+											onBlur={field.handleBlur}
+											required
+											className="flex-1"
+										/>
+										{formMode === "add" && (
+											<Button
+												type="button"
+												variant="outline"
+												onClick={() => {
+													const generatedSKU = generateBundleSKU(
+														form.getFieldValue('bundleName'),
+													);
+													field.handleChange(generatedSKU);
+													toast.success("SKU generated");
+												}}
+												disabled={!form.getFieldValue('bundleName')}
+											>
+												Generate
+											</Button>
+										)}
+									</div>
+									{field.state.meta.errors.length > 0 && (
+										<p className="text-xs text-destructive">{field.state.meta.errors[0]}</p>
+									)}
+									<p className="text-xs text-muted-foreground">
+										{formMode === "add"
+											? "SKU is auto-generated from bundle name. You can modify it if needed."
+											: "Bundle SKU cannot be changed after creation."}
+									</p>
+								</div>
+							)}
+						</form.Field>
 
-						<div className="space-y-2">
-							<Label htmlFor="bundleDescription">Description</Label>
-							<Input
-								id="bundleDescription"
-								placeholder="Bundle description"
-								value={formData.bundleDescription}
-								onChange={(e) =>
-									setFormData({
-										...formData,
-										bundleDescription: e.target.value,
-									})
-								}
-							/>
-						</div>
+						<form.Field name="barcode">
+							{(field) => (
+								<div className="space-y-2">
+									<Label htmlFor="barcode">Barcode</Label>
+									<div className="flex gap-2">
+										<Input
+											id="barcode"
+											placeholder="8901234567890"
+											value={field.state.value}
+											onChange={(e) => field.handleChange(e.target.value)}
+											onBlur={field.handleBlur}
+											className="flex-1"
+										/>
+										<Button
+											type="button"
+											variant="outline"
+											onClick={() => {
+												const generatedBarcode = generateBarcode();
+												field.handleChange(generatedBarcode);
+												toast.success("Barcode generated");
+											}}
+										>
+											Generate
+										</Button>
+									</div>
+									<p className="text-xs text-muted-foreground">
+										Auto-generate a unique barcode or enter manually.
+									</p>
+								</div>
+							)}
+						</form.Field>
+
+						<form.Field name="bundleDescription">
+							{(field) => (
+								<div className="space-y-2">
+									<Label htmlFor="bundleDescription">Description</Label>
+									<Input
+										id="bundleDescription"
+										placeholder="Bundle description"
+										value={field.state.value}
+										onChange={(e) => field.handleChange(e.target.value)}
+										onBlur={field.handleBlur}
+									/>
+								</div>
+							)}
+						</form.Field>
 
 						{/* Warehouse Selection */}
-						<div className="space-y-2 border rounded-lg p-3 bg-blue-50/50 dark:bg-blue-950/20">
-							<Label htmlFor="warehouseId">Assembly Warehouse *</Label>
-							<select
-								id="warehouseId"
-								value={formData.warehouseId}
-								onChange={(e) =>
-									setFormData({ ...formData, warehouseId: e.target.value })
-								}
-								className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-								required
-							>
-								<option value="">Select warehouse...</option>
-								{warehouses.map((warehouse) => (
-									<option key={warehouse.id} value={warehouse.id}>
-										{warehouse.name} - {warehouse.city}
-									</option>
-								))}
-							</select>
-							<p className="text-xs text-muted-foreground">
-								Select the warehouse where this bundle will be assembled. All
-								component products must be available in this warehouse.
-							</p>
-						</div>
+						<form.Field name="warehouseId">
+							{(field) => (
+								<div className="space-y-2 border rounded-lg p-3 bg-blue-50/50 dark:bg-blue-950/20">
+									<Label htmlFor="warehouseId">Assembly Warehouse *</Label>
+									<select
+										id="warehouseId"
+										value={field.state.value || ''}
+										onChange={(e) => field.handleChange(e.target.value || null)}
+										onBlur={field.handleBlur}
+										className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+										required
+									>
+										<option value="">Select warehouse...</option>
+										{warehouses.map((warehouse) => (
+											<option key={warehouse.id} value={warehouse.id}>
+												{warehouse.name} - {warehouse.city}
+											</option>
+										))}
+									</select>
+									{field.state.meta.errors.length > 0 && (
+										<p className="text-xs text-destructive">{field.state.meta.errors[0]}</p>
+									)}
+									<p className="text-xs text-muted-foreground">
+										Select the warehouse where this bundle will be assembled. All
+										component products must be available in this warehouse.
+									</p>
+								</div>
+							)}
+						</form.Field>
 
 						{/* Products Selection */}
 						<div className="space-y-2 border-t pt-4">
@@ -985,27 +1042,30 @@ function ProductBundlePage() {
 						</div>
 
 						<div className="space-y-4 border-t pt-4">
-							<div className="space-y-2">
-								<Label htmlFor="discountPercentage">Discount Percentage</Label>
-								<Input
-									id="discountPercentage"
-									type="number"
-									min="0"
-									max="100"
-									placeholder="0"
-									value={formData.discountPercentage}
-									onChange={(e) =>
-										setFormData({
-											...formData,
-											discountPercentage: e.target.value,
-										})
-									}
-								/>
-								<p className="text-xs text-muted-foreground">
-									Set discount percentage to calculate bundle price
-									automatically.
-								</p>
-							</div>
+							<form.Field name="discountPercentage">
+								{(field) => (
+									<div className="space-y-2">
+										<Label htmlFor="discountPercentage">Discount Percentage</Label>
+										<Input
+											id="discountPercentage"
+											type="number"
+											min="0"
+											max="100"
+											placeholder="0"
+											value={field.state.value}
+											onChange={(e) => field.handleChange(parseFloat(e.target.value) || 0)}
+											onBlur={field.handleBlur}
+										/>
+										{field.state.meta.errors.length > 0 && (
+											<p className="text-xs text-destructive">{field.state.meta.errors[0]}</p>
+										)}
+										<p className="text-xs text-muted-foreground">
+											Set discount percentage to calculate bundle price
+											automatically.
+										</p>
+									</div>
+								)}
+							</form.Field>
 
 							{/* Price Summary */}
 							<div className="p-4 bg-muted/50 border border-border rounded-lg space-y-2">
@@ -1017,13 +1077,13 @@ function ProductBundlePage() {
 								</div>
 								<div className="flex justify-between text-sm">
 									<span className="text-muted-foreground">
-										Discount ({formData.discountPercentage || 0}%):
+										Discount ({discountPercentage || 0}%):
 									</span>
 									<span className="font-medium text-destructive">
 										-
 										{formatRupiah(
 											(calculateOriginalPrice(selectedProducts) *
-												(parseFloat(formData.discountPercentage) || 0)) /
+												(discountPercentage || 0)) /
 												100,
 										)}
 									</span>
@@ -1127,10 +1187,16 @@ function ProductBundlePage() {
 											Upload and manage bundle images. Supports multiple images
 											with automatic optimization.
 										</p>
-										<ImageGallery
-											productId={selectedBundle?.id || ""}
-											readOnly={false}
-										/>
+										{selectedBundle?.id ? (
+											<ImageGallery
+												productId={selectedBundle.id}
+												readOnly={false}
+											/>
+										) : (
+											<p className="text-sm text-muted-foreground text-center py-8">
+												Save the bundle first to upload images
+											</p>
+										)}
 									</div>
 								</TabsContent>
 								<TabsContent value="videos" className="mt-4">
@@ -1139,10 +1205,16 @@ function ProductBundlePage() {
 											Upload and manage bundle videos. Choose between R2 storage
 											or Cloudflare Stream.
 										</p>
-										<VideoGallery
-											productId={selectedBundle?.id || ""}
-											readOnly={false}
-										/>
+										{selectedBundle?.id ? (
+											<VideoGallery
+												productId={selectedBundle.id}
+												readOnly={false}
+											/>
+										) : (
+											<p className="text-sm text-muted-foreground text-center py-8">
+												Save the bundle first to upload videos
+											</p>
+										)}
 									</div>
 								</TabsContent>
 							</Tabs>

@@ -11,6 +11,16 @@ interface WarehouseColumnOptions {
   onDelete?: (warehouse: Warehouse) => void;
 }
 
+/**
+ * Build column definitions for rendering a Warehouse data table.
+ *
+ * Generates an array of ColumnDef<Warehouse> that configures headers, cell renderers,
+ * and a dedicated actions column which wires optional row-level handlers.
+ *
+ * @param options - Optional callbacks to attach to the actions column:
+ *   `onView`, `onEdit`, and `onDelete` are invoked with the corresponding `Warehouse` row.
+ * @returns An array of `ColumnDef<Warehouse>` ready to be passed to a react-table instance.
+ */
 export function getWarehouseColumns(options: WarehouseColumnOptions = {}): ColumnDef<Warehouse>[] {
   const { onView, onEdit, onDelete } = options;
 

@@ -6,11 +6,23 @@ import type { UOM } from '@/lib/api';
 
 interface UOMColumnOptions {
   onView?: (uom: UOM) => void;
+  onEdit?: (uom: UOM) => void;
   onDelete?: (uom: UOM) => void;
 }
 
+/**
+ * Build column definitions for a units-of-measure (UOM) data table.
+ *
+ * Accepts optional callbacks to wire row actions and returns columns for:
+ * code, name, conversion factor, type (base vs custom), and row actions.
+ *
+ * @param options - Optional callbacks for row actions.
+ * @param options.onView - Callback invoked with a `UOM` when a row's view action is triggered.
+ * @param options.onDelete - Callback invoked with a `UOM` when a row's delete action is triggered; delete is not provided for base units.
+ * @returns An array of `ColumnDef<UOM>` describing the table columns for UOM display and interaction.
+ */
 export function getUOMColumns(options: UOMColumnOptions = {}): ColumnDef<UOM>[] {
-  const { onView, onDelete } = options;
+  const { onView, onEdit, onDelete } = options;
 
   return [
     {
@@ -81,6 +93,7 @@ export function getUOMColumns(options: UOMColumnOptions = {}): ColumnDef<UOM>[] 
         <DataTableRowActions
           row={row}
           onView={onView}
+          onEdit={row.original.isBaseUnit ? undefined : onEdit}
           onDelete={row.original.isBaseUnit ? undefined : onDelete}
         />
       ),

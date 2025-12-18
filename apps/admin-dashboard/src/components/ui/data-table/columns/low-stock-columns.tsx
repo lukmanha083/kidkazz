@@ -13,6 +13,15 @@ export interface LowStockItem {
   status: 'Critical' | 'Low';
 }
 
+/**
+ * Create column definitions for a low-stock items data table.
+ *
+ * The returned columns cover SKU, Product Name, Warehouse, Current Stock, Min Stock, and Status.
+ * Warehouse and Status columns include filter functions that match rows when the filter values include the row value.
+ * The Current Stock cell highlights values as critical when the current stock is less than or equal to floor(minStock * 0.4).
+ *
+ * @returns An array of ColumnDef<LowStockItem> describing the table columns
+ */
 export function getLowStockColumns(): ColumnDef<LowStockItem>[] {
   return [
     {

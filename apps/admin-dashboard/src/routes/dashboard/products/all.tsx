@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from '@tanstack/react-form';
+import { zodValidator } from '@tanstack/zod-form-adapter';
 import { toast } from "sonner";
 import {
 	Card,
@@ -64,6 +66,7 @@ import {
 	productUOMLocationApi,
 	variantLocationApi,
 } from "@/lib/api";
+import { productFormSchema, type ProductFormData } from '@/lib/form-schemas';
 import { ImageGallery } from "@/components/ImageGallery";
 import { VideoGallery } from "@/components/VideoGallery";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -264,32 +267,48 @@ function AllProductsPage() {
 	const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 	const [formMode, setFormMode] = useState<"add" | "edit">("add");
 
-	// Form data
+	// TanStack Form for product management (DDD compliant - NO stock fields)
+	const form = useForm({
+		defaultValues: {
+			barcode: '',
+			name: '',
+			sku: '',
+			description: '',
+			image: '',
+			categoryId: '',
+			price: 0,
+			retailPrice: null,
+			wholesalePrice: null,
+			baseUnit: 'PCS',
+			wholesaleThreshold: 10,
+			minimumOrderQuantity: 1,
+			weight: null,
+			length: null,
+			width: null,
+			height: null,
+			rating: 0,
+			reviews: 0,
+			availableForRetail: true,
+			availableForWholesale: false,
+			status: 'active' as const,
+			isBundle: false,
+		} as ProductFormData,
+		validatorAdapter: zodValidator(),
+		validators: {
+			onChange: productFormSchema,
+		},
+		onSubmit: async ({ value }) => {
+			// Form submission will be handled by handleSubmitForm
+			// This is just to validate the form structure
+		},
+	});
+
+	// Legacy form data state - keeping for backward compatibility with location/expiration fields
 	const [formData, setFormData] = useState({
-		barcode: "",
-		name: "",
-		description: "",
-		sku: "",
-		categoryId: "",
-		price: "",
-		baseUnit: "PCS",
-		wholesaleThreshold: "12",
-		minimumStock: "",
-		status: "omnichannel sales" as
-			| "online sales"
-			| "offline sales"
-			| "omnichannel sales"
-			| "inactive"
-			| "discontinued",
-		// Physical dimensions for shipping cost calculation
-		weight: "",
-		length: "",
-		width: "",
-		height: "",
-		// Product expiration and alert dates
+		// Product expiration and alert dates (not in schema yet)
 		expirationDate: "",
 		alertDate: "",
-		// Optional location fields
+		// Optional location fields (not in schema yet)
 		warehouseId: "",
 		rack: "",
 		bin: "",
@@ -561,6 +580,7 @@ function AllProductsPage() {
 			queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
 			toast.success("Product created successfully");
 			setFormDrawerOpen(false);
+			form.reset();
 		},
 		onError: (error: any) => {
 			const errorMessage = getErrorMessage(error);
@@ -586,6 +606,7 @@ function AllProductsPage() {
 			});
 			toast.success("Product updated successfully");
 			setFormDrawerOpen(false);
+			form.reset();
 		},
 		onError: (error: any) => {
 			const errorMessage = getErrorMessage(error);
@@ -692,18 +713,19 @@ function AllProductsPage() {
 		field: "categoryId" | "name",
 		value: string,
 	) => {
-		const updatedFormData = { ...formData, [field]: value };
+		// Update form field
+		form.setFieldValue(field, value);
 
-		if (formMode === "add" || !formData.sku) {
-			const categoryId = field === "categoryId" ? value : formData.categoryId;
-			const name = field === "name" ? value : formData.name;
+		// Auto-generate SKU when both category and name are available
+		if (formMode === "add" || !form.state.values.sku) {
+			const categoryId = field === "categoryId" ? value : form.state.values.categoryId;
+			const name = field === "name" ? value : form.state.values.name;
 
 			if (categoryId && name) {
-				updatedFormData.sku = generateSKU(categoryId, name);
+				const sku = generateSKU(categoryId, name);
+				form.setFieldValue('sku', sku);
 			}
 		}
-
-		setFormData(updatedFormData);
 	};
 
 	const confirmDeleteProduct = () => {
@@ -776,36 +798,19 @@ function AllProductsPage() {
 
 	const handleAddProduct = () => {
 		setFormMode("add");
+		// Reset TanStack Form
+		form.reset();
+		// Reset legacy form data (expiration/location fields)
 		setFormData({
-			barcode: "",
-			name: "",
-			description: "",
-			sku: "",
-			categoryId: "",
-			price: "",
-			baseUnit: "PCS",
-			wholesaleThreshold: "12",
-			minimumStock: "",
-			status: "omnichannel sales" as
-				| "online sales"
-				| "offline sales"
-				| "omnichannel sales"
-				| "inactive"
-				| "discontinued",
-			// Physical dimensions for shipping cost calculation
-			weight: "",
-			length: "",
-			width: "",
-			height: "",
+			// Product expiration and alert dates
+			expirationDate: "",
+			alertDate: "",
 			// Optional location fields
 			warehouseId: "",
 			rack: "",
 			bin: "",
 			zone: "",
 			aisle: "",
-			// Product expiration and alert dates
-			expirationDate: "",
-			alertDate: "",
 		});
 		setProductUOMs([]);
 		setSelectedUOM("");
@@ -825,22 +830,26 @@ function AllProductsPage() {
 		// Get first location if exists (for backward compatibility)
 		const firstLocation = fullProduct.productLocations?.[0];
 
+		// Update TanStack Form values
+		form.setFieldValue('barcode', fullProduct.barcode);
+		form.setFieldValue('name', fullProduct.name);
+		form.setFieldValue('sku', fullProduct.sku);
+		form.setFieldValue('description', fullProduct.description || '');
+		form.setFieldValue('categoryId', fullProduct.categoryId || '');
+		form.setFieldValue('price', fullProduct.price);
+		form.setFieldValue('baseUnit', fullProduct.baseUnit);
+		form.setFieldValue('wholesaleThreshold', fullProduct.wholesaleThreshold);
+		form.setFieldValue('status', fullProduct.status as 'active' | 'inactive' | 'omnichannel sales');
+		form.setFieldValue('weight', fullProduct.weight);
+		form.setFieldValue('length', fullProduct.length);
+		form.setFieldValue('width', fullProduct.width);
+		form.setFieldValue('height', fullProduct.height);
+		form.setFieldValue('availableForRetail', fullProduct.availableForRetail);
+		form.setFieldValue('availableForWholesale', fullProduct.availableForWholesale);
+		form.setFieldValue('minimumOrderQuantity', fullProduct.minimumOrderQuantity || 1);
+
+		// Update legacy form data (expiration/location fields)
 		setFormData({
-			barcode: fullProduct.barcode,
-			name: fullProduct.name,
-			description: fullProduct.description || "",
-			sku: fullProduct.sku,
-			categoryId: fullProduct.categoryId || "",
-			price: fullProduct.price.toString(),
-			baseUnit: fullProduct.baseUnit,
-			wholesaleThreshold: fullProduct.wholesaleThreshold.toString(),
-			minimumStock: fullProduct.minimumStock?.toString() || "",
-			status: fullProduct.status,
-			// Physical dimensions for shipping cost calculation
-			weight: fullProduct.weight?.toString() || "",
-			length: fullProduct.length?.toString() || "",
-			width: fullProduct.width?.toString() || "",
-			height: fullProduct.height?.toString() || "",
 			// Product expiration and alert dates
 			expirationDate: fullProduct.expirationDate || "",
 			alertDate: fullProduct.alertDate || "",
@@ -917,9 +926,9 @@ function AllProductsPage() {
 		}, 0);
 	};
 
-	// Get remaining PCS available for UOMs
+	// Get remaining PCS available for UOMs (Stock is now 0 as it's managed via Inventory Service)
 	const getRemainingPCS = () => {
-		const totalStock = parseInt(formData.stock) || 0;
+		const totalStock = 0; // Stock is now managed via Product Locations (Inventory Service)
 		const allocatedPCS = calculateAllocatedPCS(productUOMs);
 		return totalStock - allocatedPCS;
 	};
@@ -951,7 +960,7 @@ function AllProductsPage() {
 			return;
 		}
 
-		if (uomBarcode === formData.barcode && uom.code !== "PCS") {
+		if (uomBarcode === form.state.values.barcode && uom.code !== "PCS") {
 			toast.error("Duplicate barcode", {
 				description:
 					"This barcode is the same as the main product barcode. Please use a different barcode for additional UOMs.",
@@ -1054,8 +1063,11 @@ function AllProductsPage() {
 	const handleSubmitForm = async (e: React.FormEvent) => {
 		e.preventDefault();
 
+		// Get form values
+		const formValues = form.state.values;
+
 		const excludeId = formMode === "edit" ? selectedProduct?.id : undefined;
-		if (!isBarcodeUnique(formData.barcode, excludeId)) {
+		if (!isBarcodeUnique(formValues.barcode, excludeId)) {
 			toast.error("Barcode already exists", {
 				description:
 					"This barcode is already used by another product. Please use a different barcode or click refresh to generate a new one.",
@@ -1065,7 +1077,7 @@ function AllProductsPage() {
 
 		// Auto-create base unit UOM if not added manually
 		let finalProductUOMs = [...productUOMs];
-		const selectedBaseUnitCode = formData.baseUnit || "PCS";
+		const selectedBaseUnitCode = formValues.baseUnit || "PCS";
 		if (!finalProductUOMs.some((u) => u.uomCode === selectedBaseUnitCode)) {
 			const hasDefault = finalProductUOMs.some((u) => u.isDefault);
 
@@ -1074,9 +1086,8 @@ function AllProductsPage() {
 				return total + uom.stock * uom.conversionFactor;
 			}, 0);
 
-			// Calculate remaining stock for base unit UOM
-			const totalStock = parseInt(formData.stock) || 0;
-			const remainingStock = totalStock - allocatedStock;
+			// Stock is now 0 as it's managed via Inventory Service
+			const remainingStock = 0;
 
 			// Find the base unit details from available UOMs
 			const baseUnitInfo = availableUOMs.find(
@@ -1089,9 +1100,9 @@ function AllProductsPage() {
 				productId: selectedProduct?.id || "",
 				uomCode: selectedBaseUnitCode,
 				uomName: baseUnitName,
-				barcode: formData.barcode,
+				barcode: formValues.barcode,
 				conversionFactor: 1,
-				stock: remainingStock, // Use remaining stock, not total stock
+				stock: remainingStock,
 				isDefault: !hasDefault,
 				createdAt: new Date(),
 				updatedAt: new Date(),
@@ -1114,29 +1125,28 @@ function AllProductsPage() {
 			finalProductUOMs[0].isDefault = true;
 		}
 
+		// Build product data using form values (DDD compliant - NO minimumStock)
 		const productData: CreateProductInput = {
-			barcode: formData.barcode,
-			name: formData.name,
-			sku: formData.sku,
-			description: formData.description,
-			categoryId: formData.categoryId || undefined,
-			price: parseFloat(formData.price),
+			barcode: formValues.barcode,
+			name: formValues.name,
+			sku: formValues.sku,
+			description: formValues.description || undefined,
+			categoryId: formValues.categoryId || undefined,
+			price: formValues.price,
 			stock: 0, // Deprecated: Stock is now managed via Product Locations (Inventory Service)
-			baseUnit: formData.baseUnit,
-			wholesaleThreshold: parseInt(formData.wholesaleThreshold),
-			minimumStock: formData.minimumStock
-				? parseInt(formData.minimumStock)
-				: undefined,
-			status: formData.status,
-			availableForRetail: true,
-			availableForWholesale: true,
-			minimumOrderQuantity: 1,
+			baseUnit: formValues.baseUnit,
+			wholesaleThreshold: formValues.wholesaleThreshold,
+			// NOTE: minimumStock REMOVED - stock management is handled by Inventory Service (DDD)
+			status: formValues.status,
+			availableForRetail: formValues.availableForRetail,
+			availableForWholesale: formValues.availableForWholesale,
+			minimumOrderQuantity: formValues.minimumOrderQuantity,
 			// Physical dimensions for shipping cost calculation
-			weight: formData.weight ? parseFloat(formData.weight) : undefined,
-			length: formData.length ? parseFloat(formData.length) : undefined,
-			width: formData.width ? parseFloat(formData.width) : undefined,
-			height: formData.height ? parseFloat(formData.height) : undefined,
-			// Product expiration and alert dates
+			weight: formValues.weight || undefined,
+			length: formValues.length || undefined,
+			width: formValues.width || undefined,
+			height: formValues.height || undefined,
+			// Product expiration and alert dates (from legacy formData)
 			expirationDate: formData.expirationDate || undefined,
 			alertDate: formData.alertDate || undefined,
 		};
@@ -1231,29 +1241,8 @@ function AllProductsPage() {
 								quantity: allocation.quantity,
 							});
 
-							// Set minimum stock for the inventory record
-							// This ensures Low Stock Report works correctly
-							if (formData.minimumStock) {
-								try {
-									const inventoryRecord =
-										await inventoryApi.getByProductAndWarehouse(
-											createdProduct.id,
-											allocation.warehouseId,
-										);
-									if (inventoryRecord && inventoryRecord.id) {
-										await inventoryApi.setMinimumStock(
-											inventoryRecord.id,
-											parseInt(formData.minimumStock),
-										);
-									}
-								} catch (invError) {
-									console.error(
-										"Failed to set inventory minimum stock:",
-										invError,
-									);
-									// Don't fail the whole operation, just log it
-								}
-							}
+							// NOTE: minimumStock is now managed via Inventory Service (DDD pattern)
+							// Stock alerts and thresholds should be set through the Inventory Management interface
 						}
 					} catch (locationError) {
 						console.error("Failed to create product locations:", locationError);
@@ -1422,29 +1411,8 @@ function AllProductsPage() {
 							});
 						}
 
-						// Update minimum stock for the inventory record (both new and existing allocations)
-						// This ensures Low Stock Report works correctly
-						if (formData.minimumStock) {
-							try {
-								const inventoryRecord =
-									await inventoryApi.getByProductAndWarehouse(
-										selectedProduct.id,
-										allocation.warehouseId,
-									);
-								if (inventoryRecord && inventoryRecord.id) {
-									await inventoryApi.setMinimumStock(
-										inventoryRecord.id,
-										parseInt(formData.minimumStock),
-									);
-								}
-							} catch (invError) {
-								console.error(
-									"Failed to set inventory minimum stock:",
-									invError,
-								);
-								// Don't fail the whole operation, just log it
-							}
-						}
+						// NOTE: minimumStock is now managed via Inventory Service (DDD pattern)
+						// Stock alerts and thresholds should be set through the Inventory Management interface
 					}
 
 					// Delete removed locations
@@ -2375,76 +2343,104 @@ function AllProductsPage() {
 					</DrawerHeader>
 
 					<form
-						onSubmit={handleSubmitForm}
+						onSubmit={(e) => {
+							e.preventDefault();
+							e.stopPropagation();
+							handleSubmitForm(e);
+						}}
 						className="flex-1 overflow-y-auto p-4 space-y-4"
 					>
-						<div className="space-y-2">
-							<Label htmlFor="barcode">Barcode</Label>
-							<div className="flex gap-2">
-								<Input
-									id="barcode"
-									placeholder="8901234567890"
-									value={formData.barcode}
-									onChange={(e) =>
-										setFormData({ ...formData, barcode: e.target.value })
-									}
-									required
-									className="flex-1"
-								/>
-								<Button
-									type="button"
-									variant="outline"
-									size="icon"
-									onClick={() => {
-										const newBarcode = generateUniqueBarcode();
-										if (newBarcode) {
-											setFormData({ ...formData, barcode: newBarcode });
-											toast.success("Barcode generated");
-										}
-									}}
-									title="Generate unique barcode"
-								>
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										width="16"
-										height="16"
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										strokeWidth="2"
-										strokeLinecap="round"
-										strokeLinejoin="round"
-									>
-										<path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16" />
-									</svg>
-								</Button>
-							</div>
-						</div>
+						<form.Field name="barcode">
+							{(field) => (
+								<div className="space-y-2">
+									<Label htmlFor={field.name}>Barcode</Label>
+									<div className="flex gap-2">
+										<Input
+											id={field.name}
+											placeholder="8901234567890"
+											value={field.state.value}
+											onChange={(e) => field.handleChange(e.target.value)}
+											onBlur={field.handleBlur}
+											required
+											className="flex-1"
+										/>
+										<Button
+											type="button"
+											variant="outline"
+											size="icon"
+											onClick={() => {
+												const newBarcode = generateUniqueBarcode();
+												if (newBarcode) {
+													field.handleChange(newBarcode);
+													toast.success("Barcode generated");
+												}
+											}}
+											title="Generate unique barcode"
+										>
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												width="16"
+												height="16"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												strokeWidth="2"
+												strokeLinecap="round"
+												strokeLinejoin="round"
+											>
+												<path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16" />
+											</svg>
+										</Button>
+									</div>
+									{field.state.meta.errors.length > 0 && (
+										<p className="text-sm text-destructive">
+											{field.state.meta.errors.join(', ')}
+										</p>
+									)}
+								</div>
+							)}
+						</form.Field>
 
-						<div className="space-y-2">
-							<Label htmlFor="name">Product Name</Label>
-							<Input
-								id="name"
-								placeholder="Baby Bottle Set"
-								value={formData.name}
-								onChange={(e) =>
-									handleCategoryOrNameChange("name", e.target.value)
-								}
-								required
-							/>
-						</div>
+						<form.Field name="name">
+							{(field) => (
+								<div className="space-y-2">
+									<Label htmlFor={field.name}>Product Name</Label>
+									<Input
+										id={field.name}
+										placeholder="Baby Bottle Set"
+										value={field.state.value}
+										onChange={(e) => handleCategoryOrNameChange("name", e.target.value)}
+										onBlur={field.handleBlur}
+										required
+									/>
+									{field.state.meta.errors.length > 0 && (
+										<p className="text-sm text-destructive">
+											{field.state.meta.errors.join(', ')}
+										</p>
+									)}
+								</div>
+							)}
+						</form.Field>
 
-						<div className="space-y-2">
-							<Label htmlFor="description">Description</Label>
-							<Input
-								id="description"
-								placeholder="BPA-free baby bottles..."
-								value={formData.description}
-								onChange={(e) =>
-									setFormData({ ...formData, description: e.target.value })
-								}
-							/>
-						</div>
+						<form.Field name="description">
+							{(field) => (
+								<div className="space-y-2">
+									<Label htmlFor={field.name}>Description</Label>
+									<Input
+										id={field.name}
+										placeholder="BPA-free baby bottles..."
+										value={field.state.value || ''}
+										onChange={(e) => field.handleChange(e.target.value)}
+										onBlur={field.handleBlur}
+									/>
+									{field.state.meta.errors.length > 0 && (
+										<p className="text-sm text-destructive">
+											{field.state.meta.errors.join(', ')}
+										</p>
+									)}
+								</div>
+							)}
+						</form.Field>
 
 						{/* Product Media (Images & Videos) - Only available in edit mode */}
 						{formMode === "edit" && selectedProduct && (
@@ -2521,156 +2517,173 @@ function AllProductsPage() {
 						)}
 
 						<div className="grid grid-cols-2 gap-3">
-							<div className="space-y-2">
-								<Label htmlFor="sku">SKU (Auto-generated)</Label>
-								<Input
-									id="sku"
-									placeholder="TO-TA-01"
-									value={formData.sku}
-									onChange={(e) =>
-										setFormData({ ...formData, sku: e.target.value })
-									}
-									required
-									readOnly
-									className="bg-muted/30"
-								/>
-							</div>
-							<div className="space-y-2">
-								<Label htmlFor="categoryId">Category</Label>
-								<select
-									id="categoryId"
-									value={formData.categoryId}
-									onChange={(e) =>
-										handleCategoryOrNameChange("categoryId", e.target.value)
-									}
-									className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-								>
-									<option value="">Select category...</option>
-									{categories.map((cat) => (
-										<option key={cat.id} value={cat.id}>
-											{cat.name}
-										</option>
-									))}
-								</select>
-							</div>
+							<form.Field name="sku">
+								{(field) => (
+									<div className="space-y-2">
+										<Label htmlFor={field.name}>SKU (Auto-generated)</Label>
+										<Input
+											id={field.name}
+											placeholder="TO-TA-01"
+											value={field.state.value}
+											onChange={(e) => field.handleChange(e.target.value)}
+											onBlur={field.handleBlur}
+											required
+											readOnly
+											className="bg-muted/30"
+										/>
+										{field.state.meta.errors.length > 0 && (
+											<p className="text-sm text-destructive">
+												{field.state.meta.errors.join(', ')}
+											</p>
+										)}
+									</div>
+								)}
+							</form.Field>
+							<form.Field name="categoryId">
+								{(field) => (
+									<div className="space-y-2">
+										<Label htmlFor={field.name}>Category</Label>
+										<select
+											id={field.name}
+											value={field.state.value || ''}
+											onChange={(e) => handleCategoryOrNameChange("categoryId", e.target.value)}
+											onBlur={field.handleBlur}
+											className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+										>
+											<option value="">Select category...</option>
+											{categories.map((cat) => (
+												<option key={cat.id} value={cat.id}>
+													{cat.name}
+												</option>
+											))}
+										</select>
+										{field.state.meta.errors.length > 0 && (
+											<p className="text-sm text-destructive">
+												{field.state.meta.errors.join(', ')}
+											</p>
+										)}
+									</div>
+								)}
+							</form.Field>
 						</div>
 
 						<div className="grid grid-cols-2 gap-3">
-							<div className="space-y-2">
-								<Label htmlFor="price">Price (Rp)</Label>
-								<Input
-									id="price"
-									type="number"
-									step="1000"
-									placeholder="50000"
-									value={formData.price}
-									onChange={(e) =>
-										setFormData({ ...formData, price: e.target.value })
-									}
-									required
-								/>
-							</div>
+							<form.Field name="price">
+								{(field) => (
+									<div className="space-y-2">
+										<Label htmlFor={field.name}>Price (Rp)</Label>
+										<Input
+											id={field.name}
+											type="number"
+											step="1000"
+											placeholder="50000"
+											value={field.state.value || ''}
+											onChange={(e) => field.handleChange(parseFloat(e.target.value) || 0)}
+											onBlur={field.handleBlur}
+											required
+										/>
+										{field.state.meta.errors.length > 0 && (
+											<p className="text-sm text-destructive">
+												{field.state.meta.errors.join(', ')}
+											</p>
+										)}
+									</div>
+								)}
+							</form.Field>
 							{/* Stock field removed - stock is now managed via Product Locations (Inventory Service) */}
 						</div>
 
 						<div className="grid grid-cols-2 gap-3">
-							<div className="space-y-2">
-								<Label htmlFor="status">Status</Label>
-								<select
-									id="status"
-									value={formData.status}
-									onChange={(e) =>
-										setFormData({
-											...formData,
-											status: e.target.value as
-												| "online sales"
-												| "offline sales"
-												| "omnichannel sales"
-												| "inactive"
-												| "discontinued",
-										})
-									}
-									className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-									required
-								>
-									<option value="online sales">Online Sales</option>
-									<option value="offline sales">Offline Sales</option>
-									<option value="omnichannel sales">Omnichannel Sales</option>
-									<option value="inactive">Inactive</option>
-									<option value="discontinued">Discontinued</option>
-								</select>
-							</div>
-							<div className="space-y-2">
-								<Label htmlFor="minimumStock">
-									Minimum Stock Alert
-									<span className="text-xs text-muted-foreground ml-1">
-										(Optional)
-									</span>
-								</Label>
-								<Input
-									id="minimumStock"
-									type="number"
-									placeholder="50"
-									value={formData.minimumStock}
-									onChange={(e) =>
-										setFormData({ ...formData, minimumStock: e.target.value })
-									}
-								/>
-								<p className="text-xs text-muted-foreground">
-									Trigger alert when stock falls below this level
-								</p>
-							</div>
+							<form.Field name="status">
+								{(field) => (
+									<div className="space-y-2">
+										<Label htmlFor={field.name}>Status</Label>
+										<select
+											id={field.name}
+											value={field.state.value}
+											onChange={(e) => field.handleChange(e.target.value as 'active' | 'inactive' | 'omnichannel sales')}
+											onBlur={field.handleBlur}
+											className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+											required
+										>
+											<option value="active">Active</option>
+											<option value="inactive">Inactive</option>
+											<option value="omnichannel sales">Omnichannel Sales</option>
+										</select>
+										{field.state.meta.errors.length > 0 && (
+											<p className="text-sm text-destructive">
+												{field.state.meta.errors.join(', ')}
+											</p>
+										)}
+									</div>
+								)}
+							</form.Field>
+							{/* NOTE: minimumStock field REMOVED per DDD compliance */}
+							{/* Stock alerts are now managed via Inventory Service */}
 						</div>
 
 						<div className="grid grid-cols-2 gap-3">
-							<div className="space-y-2">
-								<Label htmlFor="baseUnit">Base Unit</Label>
-								<select
-									id="baseUnit"
-									value={formData.baseUnit}
-									onChange={(e) =>
-										setFormData({ ...formData, baseUnit: e.target.value })
-									}
-									required
-									className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-								>
-									{baseUnits.length === 0 ? (
-										<option value="PCS">PCS (Default)</option>
-									) : (
-										baseUnits.map((uom) => (
-											<option key={uom.id} value={uom.code}>
-												{uom.code} - {uom.name}
-											</option>
-										))
-									)}
-								</select>
-								<p className="text-xs text-muted-foreground">
-									Base unit for inventory tracking
-								</p>
-							</div>
-							<div className="space-y-2">
-								<Label htmlFor="wholesaleThreshold">
-									Wholesale Threshold
-									<span className="text-xs text-muted-foreground ml-1">
-										(Optional)
-									</span>
-								</Label>
-								<Input
-									id="wholesaleThreshold"
-									type="number"
-									placeholder="12"
-									value={formData.wholesaleThreshold}
-									onChange={(e) =>
-										setFormData({
-											...formData,
-											wholesaleThreshold: e.target.value,
-										})
-									}
-								/>
-								<p className="text-xs text-muted-foreground">
-									Minimum quantity for wholesale pricing
-								</p>
-							</div>
+							<form.Field name="baseUnit">
+								{(field) => (
+									<div className="space-y-2">
+										<Label htmlFor={field.name}>Base Unit</Label>
+										<select
+											id={field.name}
+											value={field.state.value}
+											onChange={(e) => field.handleChange(e.target.value)}
+											onBlur={field.handleBlur}
+											required
+											className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+										>
+											{baseUnits.length === 0 ? (
+												<option value="PCS">PCS (Default)</option>
+											) : (
+												baseUnits.map((uom) => (
+													<option key={uom.id} value={uom.code}>
+														{uom.code} - {uom.name}
+													</option>
+												))
+											)}
+										</select>
+										<p className="text-xs text-muted-foreground">
+											Base unit for inventory tracking
+										</p>
+										{field.state.meta.errors.length > 0 && (
+											<p className="text-sm text-destructive">
+												{field.state.meta.errors.join(', ')}
+											</p>
+										)}
+									</div>
+								)}
+							</form.Field>
+							<form.Field name="wholesaleThreshold">
+								{(field) => (
+									<div className="space-y-2">
+										<Label htmlFor={field.name}>
+											Wholesale Threshold
+											<span className="text-xs text-muted-foreground ml-1">
+												(Optional)
+											</span>
+										</Label>
+										<Input
+											id={field.name}
+											type="number"
+											placeholder="12"
+											value={field.state.value || ''}
+											onChange={(e) => field.handleChange(parseInt(e.target.value) || 10)}
+											onBlur={field.handleBlur}
+										/>
+										<p className="text-xs text-muted-foreground">
+											Minimum quantity for wholesale pricing
+										</p>
+										{field.state.meta.errors.length > 0 && (
+											<p className="text-sm text-destructive">
+												{field.state.meta.errors.join(', ')}
+											</p>
+										)}
+									</div>
+								)}
+							</form.Field>
 						</div>
 
 						<Separator className="my-4" />
@@ -2686,60 +2699,92 @@ function AllProductsPage() {
 								</p>
 							</div>
 
-							<div className="space-y-2">
-								<Label htmlFor="weight">Weight (kg)</Label>
-								<Input
-									id="weight"
-									type="number"
-									step="0.01"
-									placeholder="0.5"
-									value={formData.weight}
-									onChange={(e) =>
-										setFormData({ ...formData, weight: e.target.value })
-									}
-								/>
-							</div>
+							<form.Field name="weight">
+								{(field) => (
+									<div className="space-y-2">
+										<Label htmlFor={field.name}>Weight (kg)</Label>
+										<Input
+											id={field.name}
+											type="number"
+											step="0.01"
+											placeholder="0.5"
+											value={field.state.value || ''}
+											onChange={(e) => field.handleChange(parseFloat(e.target.value) || null)}
+											onBlur={field.handleBlur}
+										/>
+										{field.state.meta.errors.length > 0 && (
+											<p className="text-sm text-destructive">
+												{field.state.meta.errors.join(', ')}
+											</p>
+										)}
+									</div>
+								)}
+							</form.Field>
 
 							<div className="grid grid-cols-3 gap-3">
-								<div className="space-y-2">
-									<Label htmlFor="length">Length (cm)</Label>
-									<Input
-										id="length"
-										type="number"
-										step="0.1"
-										placeholder="10"
-										value={formData.length}
-										onChange={(e) =>
-											setFormData({ ...formData, length: e.target.value })
-										}
-									/>
-								</div>
-								<div className="space-y-2">
-									<Label htmlFor="width">Width (cm)</Label>
-									<Input
-										id="width"
-										type="number"
-										step="0.1"
-										placeholder="10"
-										value={formData.width}
-										onChange={(e) =>
-											setFormData({ ...formData, width: e.target.value })
-										}
-									/>
-								</div>
-								<div className="space-y-2">
-									<Label htmlFor="height">Height (cm)</Label>
-									<Input
-										id="height"
-										type="number"
-										step="0.1"
-										placeholder="10"
-										value={formData.height}
-										onChange={(e) =>
-											setFormData({ ...formData, height: e.target.value })
-										}
-									/>
-								</div>
+								<form.Field name="length">
+									{(field) => (
+										<div className="space-y-2">
+											<Label htmlFor={field.name}>Length (cm)</Label>
+											<Input
+												id={field.name}
+												type="number"
+												step="0.1"
+												placeholder="10"
+												value={field.state.value || ''}
+												onChange={(e) => field.handleChange(parseFloat(e.target.value) || null)}
+												onBlur={field.handleBlur}
+											/>
+											{field.state.meta.errors.length > 0 && (
+												<p className="text-sm text-destructive">
+													{field.state.meta.errors.join(', ')}
+												</p>
+											)}
+										</div>
+									)}
+								</form.Field>
+								<form.Field name="width">
+									{(field) => (
+										<div className="space-y-2">
+											<Label htmlFor={field.name}>Width (cm)</Label>
+											<Input
+												id={field.name}
+												type="number"
+												step="0.1"
+												placeholder="10"
+												value={field.state.value || ''}
+												onChange={(e) => field.handleChange(parseFloat(e.target.value) || null)}
+												onBlur={field.handleBlur}
+											/>
+											{field.state.meta.errors.length > 0 && (
+												<p className="text-sm text-destructive">
+													{field.state.meta.errors.join(', ')}
+												</p>
+											)}
+										</div>
+									)}
+								</form.Field>
+								<form.Field name="height">
+									{(field) => (
+										<div className="space-y-2">
+											<Label htmlFor={field.name}>Height (cm)</Label>
+											<Input
+												id={field.name}
+												type="number"
+												step="0.1"
+												placeholder="10"
+												value={field.state.value || ''}
+												onChange={(e) => field.handleChange(parseFloat(e.target.value) || null)}
+												onBlur={field.handleBlur}
+											/>
+											{field.state.meta.errors.length > 0 && (
+												<p className="text-sm text-destructive">
+													{field.state.meta.errors.join(', ')}
+												</p>
+											)}
+										</div>
+									)}
+								</form.Field>
 							</div>
 						</div>
 
@@ -2846,7 +2891,7 @@ function AllProductsPage() {
 										Total Stock:{" "}
 									</span>
 									<span className="text-muted-foreground">
-										{formData.stock || 0} {formData.baseUnit || "PCS"}
+										0 {form.state.values.baseUnit || "PCS"} (managed via Inventory)
 									</span>
 								</div>
 								<div className="text-sm">
@@ -2855,7 +2900,7 @@ function AllProductsPage() {
 									</span>
 									<span className="text-muted-foreground">
 										{calculateAllocatedPCS(productUOMs)}{" "}
-										{formData.baseUnit || "PCS"}
+										{form.state.values.baseUnit || "PCS"}
 									</span>
 								</div>
 								<div className="text-sm">
@@ -2863,7 +2908,7 @@ function AllProductsPage() {
 										Available:{" "}
 									</span>
 									<span className="text-primary font-bold">
-										{getRemainingPCS()} {formData.baseUnit || "PCS"}
+										{getRemainingPCS()} {form.state.values.baseUnit || "PCS"}
 									</span>
 								</div>
 							</div>
@@ -2902,7 +2947,7 @@ function AllProductsPage() {
 															</span>
 															<span className="whitespace-nowrap">
 																({uom.stock * uom.conversionFactor}{" "}
-																{formData.baseUnit || "PCS"})
+																{form.state.values.baseUnit || "PCS"})
 															</span>
 														</div>
 													</div>
@@ -2972,12 +3017,12 @@ function AllProductsPage() {
 												.filter(
 													(u) =>
 														!u.isBaseUnit &&
-														u.baseUnitCode === (formData.baseUnit || "PCS"),
+														u.baseUnitCode === (form.state.values.baseUnit || "PCS"),
 												)
 												.map((uom) => (
 													<option key={uom.id} value={uom.code}>
 														{uom.name} (1 = {uom.conversionFactor}{" "}
-														{formData.baseUnit || "PCS"})
+														{form.state.values.baseUnit || "PCS"})
 													</option>
 												))}
 										</select>
@@ -3060,7 +3105,7 @@ function AllProductsPage() {
 							warehouses={warehouses}
 							allocations={warehouseAllocations}
 							onAllocationsChange={setWarehouseAllocations}
-							totalStock={parseInt(formData.stock) || 0}
+							totalStock={0}
 							readOnly={false}
 						/>
 
