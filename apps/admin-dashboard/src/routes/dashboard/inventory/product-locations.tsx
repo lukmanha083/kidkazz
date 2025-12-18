@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useForm } from '@tanstack/react-form';
+import { zodValidator } from '@tanstack/zod-form-adapter';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -49,6 +51,10 @@ import {
   type ProductLocation,
   type CreateProductLocationInput,
 } from '@/lib/api';
+import {
+  productLocationFormSchema,
+  type ProductLocationFormData,
+} from '@/lib/form-schemas';
 
 export const Route = createFileRoute('/dashboard/inventory/product-locations')({
   component: ProductLocationsPage,
@@ -65,14 +71,55 @@ function ProductLocationsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [locationToDelete, setLocationToDelete] = useState<ProductLocation | null>(null);
 
-  const [formData, setFormData] = useState({
-    productId: '',
-    warehouseId: '',
-    rack: '',
-    bin: '',
-    zone: '',
-    aisle: '',
-    quantity: '',
+  // TanStack Form
+  const form = useForm({
+    defaultValues: {
+      productId: '',
+      warehouseId: '',
+      variantId: null as string | null,
+      uomId: null as string | null,
+      rack: '',
+      bin: '',
+      zone: '',
+      aisle: '',
+      quantity: 0,
+    } satisfies ProductLocationFormData,
+    validatorAdapter: zodValidator(),
+    validators: {
+      onChange: productLocationFormSchema,
+    },
+    onSubmit: async ({ value }) => {
+      const quantity = value.quantity;
+      if (quantity < 0) {
+        toast.error('Invalid quantity', {
+          description: 'Quantity cannot be negative'
+        });
+        return;
+      }
+
+      if (formMode === 'add') {
+        const locationData: CreateProductLocationInput = {
+          productId: value.productId,
+          warehouseId: value.warehouseId,
+          rack: value.rack || null,
+          bin: value.bin || null,
+          zone: value.zone || null,
+          aisle: value.aisle || null,
+          quantity: quantity,
+        };
+        await createLocationMutation.mutateAsync(locationData);
+      } else if (formMode === 'edit' && selectedLocation) {
+        const updateData = {
+          warehouseId: value.warehouseId,
+          rack: value.rack || null,
+          bin: value.bin || null,
+          zone: value.zone || null,
+          aisle: value.aisle || null,
+          quantity: quantity,
+        };
+        await updateLocationMutation.mutateAsync({ id: selectedLocation.id, data: updateData });
+      }
+    },
   });
 
   // Fetch product locations
@@ -107,6 +154,7 @@ function ProductLocationsPage() {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       toast.success('Location created successfully');
       setFormDrawerOpen(false);
+      form.reset();
     },
     onError: (error: Error) => {
       toast.error('Failed to create location', {
@@ -124,6 +172,7 @@ function ProductLocationsPage() {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       toast.success('Location updated successfully');
       setFormDrawerOpen(false);
+      form.reset();
     },
     onError: (error: Error) => {
       toast.error('Failed to update location', {
@@ -170,30 +219,20 @@ function ProductLocationsPage() {
 
   const handleAddLocation = () => {
     setFormMode('add');
-    setFormData({
-      productId: '',
-      warehouseId: '',
-      rack: '',
-      bin: '',
-      zone: '',
-      aisle: '',
-      quantity: '0',
-    });
+    form.reset();
     setFormDrawerOpen(true);
   };
 
   const handleEditLocation = (location: ProductLocation) => {
     setFormMode('edit');
     setSelectedLocation(location);
-    setFormData({
-      productId: location.productId,
-      warehouseId: location.warehouseId,
-      rack: location.rack || '',
-      bin: location.bin || '',
-      zone: location.zone || '',
-      aisle: location.aisle || '',
-      quantity: location.quantity.toString(),
-    });
+    form.setFieldValue('productId', location.productId);
+    form.setFieldValue('warehouseId', location.warehouseId);
+    form.setFieldValue('rack', location.rack || '');
+    form.setFieldValue('bin', location.bin || '');
+    form.setFieldValue('zone', location.zone || '');
+    form.setFieldValue('aisle', location.aisle || '');
+    form.setFieldValue('quantity', location.quantity);
     setFormDrawerOpen(true);
   };
 
@@ -205,41 +244,6 @@ function ProductLocationsPage() {
   const confirmDelete = () => {
     if (locationToDelete) {
       deleteLocationMutation.mutate(locationToDelete.id);
-    }
-  };
-
-  const handleSubmitForm = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const quantity = parseInt(formData.quantity);
-    if (quantity < 0) {
-      toast.error('Invalid quantity', {
-        description: 'Quantity cannot be negative'
-      });
-      return;
-    }
-
-    if (formMode === 'add') {
-      const locationData: CreateProductLocationInput = {
-        productId: formData.productId,
-        warehouseId: formData.warehouseId,
-        rack: formData.rack || null,
-        bin: formData.bin || null,
-        zone: formData.zone || null,
-        aisle: formData.aisle || null,
-        quantity: quantity,
-      };
-      createLocationMutation.mutate(locationData);
-    } else if (formMode === 'edit' && selectedLocation) {
-      const updateData = {
-        warehouseId: formData.warehouseId,
-        rack: formData.rack || null,
-        bin: formData.bin || null,
-        zone: formData.zone || null,
-        aisle: formData.aisle || null,
-        quantity: quantity,
-      };
-      updateLocationMutation.mutate({ id: selectedLocation.id, data: updateData });
     }
   };
 
@@ -497,108 +501,163 @@ function ProductLocationsPage() {
             </div>
           </DrawerHeader>
 
-          <form onSubmit={handleSubmitForm} className="flex-1 overflow-y-auto p-4 space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="productId">Product *</Label>
-              <Select
-                value={formData.productId}
-                onValueChange={(value) => setFormData({ ...formData, productId: value })}
-                disabled={formMode === 'edit'}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select product" />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.map(product => (
-                    <SelectItem key={product.id} value={product.id}>
-                      {product.name} ({product.sku})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {formMode === 'edit' && (
-                <p className="text-xs text-muted-foreground">
-                  Product cannot be changed after creation
-                </p>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              form.handleSubmit();
+            }}
+            className="flex-1 overflow-y-auto p-4 space-y-4"
+          >
+            <form.Field name="productId">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor="productId">Product *</Label>
+                  <Select
+                    value={field.state.value}
+                    onValueChange={(value) => field.handleChange(value)}
+                    disabled={formMode === 'edit'}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select product" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {products.map(product => (
+                        <SelectItem key={product.id} value={product.id}>
+                          {product.name} ({product.sku})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {formMode === 'edit' && (
+                    <p className="text-xs text-muted-foreground">
+                      Product cannot be changed after creation
+                    </p>
+                  )}
+                  {field.state.meta.errors.length > 0 && (
+                    <p className="text-sm text-destructive">
+                      {field.state.meta.errors.join(", ")}
+                    </p>
+                  )}
+                </div>
               )}
-            </div>
+            </form.Field>
 
-            <div className="space-y-2">
-              <Label htmlFor="warehouseId">Warehouse *</Label>
-              <Select
-                value={formData.warehouseId}
-                onValueChange={(value) => setFormData({ ...formData, warehouseId: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select warehouse" />
-                </SelectTrigger>
-                <SelectContent>
-                  {warehouses.map(warehouse => (
-                    <SelectItem key={warehouse.id} value={warehouse.id}>
-                      {warehouse.name} - {warehouse.city}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <form.Field name="warehouseId">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor="warehouseId">Warehouse *</Label>
+                  <Select
+                    value={field.state.value}
+                    onValueChange={(value) => field.handleChange(value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select warehouse" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {warehouses.map(warehouse => (
+                        <SelectItem key={warehouse.id} value={warehouse.id}>
+                          {warehouse.name} - {warehouse.city}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {field.state.meta.errors.length > 0 && (
+                    <p className="text-sm text-destructive">
+                      {field.state.meta.errors.join(", ")}
+                    </p>
+                  )}
+                </div>
+              )}
+            </form.Field>
+
+            <div className="grid grid-cols-2 gap-3">
+              <form.Field name="rack">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="rack">Rack</Label>
+                    <Input
+                      id="rack"
+                      placeholder="A1, B3, R-01"
+                      value={field.state.value || ''}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                    />
+                  </div>
+                )}
+              </form.Field>
+              <form.Field name="bin">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="bin">Bin</Label>
+                    <Input
+                      id="bin"
+                      placeholder="01, A, TOP"
+                      value={field.state.value || ''}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                    />
+                  </div>
+                )}
+              </form.Field>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="rack">Rack</Label>
-                <Input
-                  id="rack"
-                  placeholder="A1, B3, R-01"
-                  value={formData.rack}
-                  onChange={(e) => setFormData({ ...formData, rack: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="bin">Bin</Label>
-                <Input
-                  id="bin"
-                  placeholder="01, A, TOP"
-                  value={formData.bin}
-                  onChange={(e) => setFormData({ ...formData, bin: e.target.value })}
-                />
-              </div>
+              <form.Field name="zone">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="zone">Zone</Label>
+                    <Input
+                      id="zone"
+                      placeholder="Zone A, Cold Storage"
+                      value={field.state.value || ''}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                    />
+                  </div>
+                )}
+              </form.Field>
+              <form.Field name="aisle">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="aisle">Aisle</Label>
+                    <Input
+                      id="aisle"
+                      placeholder="1, 2A, Main"
+                      value={field.state.value || ''}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                    />
+                  </div>
+                )}
+              </form.Field>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="zone">Zone</Label>
-                <Input
-                  id="zone"
-                  placeholder="Zone A, Cold Storage"
-                  value={formData.zone}
-                  onChange={(e) => setFormData({ ...formData, zone: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="aisle">Aisle</Label>
-                <Input
-                  id="aisle"
-                  placeholder="1, 2A, Main"
-                  value={formData.aisle}
-                  onChange={(e) => setFormData({ ...formData, aisle: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="quantity">Quantity at Location *</Label>
-              <Input
-                id="quantity"
-                type="number"
-                min="0"
-                placeholder="100"
-                value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                required
-              />
-              <p className="text-xs text-muted-foreground">
-                How many units are stored at this location
-              </p>
-            </div>
+            <form.Field name="quantity">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor="quantity">Quantity at Location *</Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    min="0"
+                    placeholder="100"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(parseInt(e.target.value) || 0)}
+                    onBlur={field.handleBlur}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    How many units are stored at this location
+                  </p>
+                  {field.state.meta.errors.length > 0 && (
+                    <p className="text-sm text-destructive">
+                      {field.state.meta.errors.join(", ")}
+                    </p>
+                  )}
+                </div>
+              )}
+            </form.Field>
 
             <DrawerFooter className="px-0">
               <Button

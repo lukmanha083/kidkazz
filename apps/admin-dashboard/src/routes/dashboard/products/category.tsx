@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useForm } from '@tanstack/react-form';
+import { zodValidator } from '@tanstack/zod-form-adapter';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,7 +33,8 @@ import {
   FolderTree,
   Loader2,
 } from 'lucide-react';
-import { Category, categoryApi, CreateCategoryInput } from '@/lib/api';
+import { Category, categoryApi } from '@/lib/api';
+import { categoryFormSchema, type CategoryFormData } from '@/lib/form-schemas';
 import { DataTable } from '@/components/ui/data-table';
 import { getCategoryColumns, categoryStatusOptions } from '@/components/ui/data-table/columns';
 
@@ -56,16 +59,6 @@ function CategoryPage() {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
 
-  // Form data
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    icon: '',
-    color: '',
-    status: 'active' as 'active' | 'inactive',
-    parentId: '' as string | null,
-  });
-
   // Delete confirmation states
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
@@ -78,13 +71,37 @@ function CategoryPage() {
 
   const categories = categoriesData?.categories || [];
 
+  // TanStack Form
+  const form = useForm({
+    defaultValues: {
+      name: '',
+      description: '',
+      icon: '',
+      color: '',
+      status: 'active' as const,
+      parentId: null as string | null,
+    },
+    validatorAdapter: zodValidator(),
+    validators: {
+      onChange: categoryFormSchema,
+    },
+    onSubmit: async ({ value }) => {
+      if (formMode === 'add') {
+        await createCategoryMutation.mutateAsync(value);
+      } else if (formMode === 'edit' && selectedCategory) {
+        await updateCategoryMutation.mutateAsync({ id: selectedCategory.id, data: value });
+      }
+    },
+  });
+
   // Create category mutation
   const createCategoryMutation = useMutation({
-    mutationFn: (data: CreateCategoryInput) => categoryApi.create(data),
+    mutationFn: (data: CategoryFormData) => categoryApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       toast.success('Category created successfully');
       setFormDrawerOpen(false);
+      form.reset();
     },
     onError: (error: Error) => {
       toast.error('Failed to create category', {
@@ -95,12 +112,13 @@ function CategoryPage() {
 
   // Update category mutation
   const updateCategoryMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<CreateCategoryInput> }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<CategoryFormData> }) =>
       categoryApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       toast.success('Category updated successfully');
       setFormDrawerOpen(false);
+      form.reset();
     },
     onError: (error: Error) => {
       toast.error('Failed to update category', {
@@ -138,48 +156,20 @@ function CategoryPage() {
 
   const handleAddCategory = () => {
     setFormMode('add');
-    setFormData({
-      name: '',
-      description: '',
-      icon: '',
-      color: '',
-      status: 'active',
-      parentId: null,
-    });
+    form.reset();
     setFormDrawerOpen(true);
   };
 
   const handleEditCategory = (category: Category) => {
     setFormMode('edit');
     setSelectedCategory(category);
-    setFormData({
-      name: category.name,
-      description: category.description || '',
-      icon: category.icon || '',
-      color: category.color || '',
-      status: category.status,
-      parentId: category.parentId || null,
-    });
+    form.setFieldValue('name', category.name);
+    form.setFieldValue('description', category.description || '');
+    form.setFieldValue('icon', category.icon || '');
+    form.setFieldValue('color', category.color || '');
+    form.setFieldValue('status', category.status);
+    form.setFieldValue('parentId', category.parentId || null);
     setFormDrawerOpen(true);
-  };
-
-  const handleSubmitForm = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const categoryData: CreateCategoryInput = {
-      name: formData.name,
-      description: formData.description || undefined,
-      icon: formData.icon || undefined,
-      color: formData.color || undefined,
-      status: formData.status,
-      parentId: formData.parentId || null,
-    };
-
-    if (formMode === 'add') {
-      createCategoryMutation.mutate(categoryData);
-    } else if (formMode === 'edit' && selectedCategory) {
-      updateCategoryMutation.mutate({ id: selectedCategory.id, data: categoryData });
-    }
   };
 
   // Memoize columns with callbacks
@@ -300,81 +290,109 @@ function CategoryPage() {
             </div>
           </DrawerHeader>
 
-          <form onSubmit={handleSubmitForm} className="flex-1 overflow-y-auto p-4 space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Category Name</Label>
-              <Input
-                id="name"
-                placeholder="e.g., Toys, Feeding, Clothing"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-              />
-            </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              form.handleSubmit();
+            }}
+            className="flex-1 overflow-y-auto p-4 space-y-4"
+          >
+            <form.Field name="name">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor={field.name}>Category Name</Label>
+                  <Input
+                    id={field.name}
+                    placeholder="e.g., Toys, Feeding, Clothing"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                  {field.state.meta.errors.length > 0 && (
+                    <p className="text-sm text-destructive">
+                      {field.state.meta.errors.join(', ')}
+                    </p>
+                  )}
+                </div>
+              )}
+            </form.Field>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Input
-                id="description"
-                placeholder="Brief description of the category"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              />
-            </div>
+            <form.Field name="description">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor={field.name}>Description</Label>
+                  <Input
+                    id={field.name}
+                    placeholder="Brief description of the category"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                </div>
+              )}
+            </form.Field>
 
-            <div className="space-y-2">
-              <Label htmlFor="parentId">
-                Parent Category
-                <span className="text-xs text-muted-foreground ml-1">(Optional)</span>
-              </Label>
-              <select
-                id="parentId"
-                value={formData.parentId || ''}
-                onChange={(e) => setFormData({ ...formData, parentId: e.target.value || null })}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-              >
-                <option value="">None (Top-level category)</option>
-                {categories
-                  .filter(cat => {
-                    // Don't show the current category being edited as an option
-                    if (formMode === 'edit' && cat.id === selectedCategory?.id) {
-                      return false;
-                    }
-                    // Only show top-level categories (categories without parents) as selectable parents
-                    return !cat.parentId;
-                  })
-                  .map(cat => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </option>
-                  ))}
-              </select>
-              <p className="text-xs text-muted-foreground">
-                Only top-level categories can be selected as parents. We support 2 levels: category and subcategory.
-              </p>
-            </div>
+            <form.Field name="parentId">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor={field.name}>
+                    Parent Category
+                    <span className="text-xs text-muted-foreground ml-1">(Optional)</span>
+                  </Label>
+                  <select
+                    id={field.name}
+                    value={field.state.value || ''}
+                    onChange={(e) => field.handleChange(e.target.value || null)}
+                    onBlur={field.handleBlur}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                  >
+                    <option value="">None (Top-level category)</option>
+                    {categories
+                      .filter(cat => {
+                        if (formMode === 'edit' && cat.id === selectedCategory?.id) {
+                          return false;
+                        }
+                        return !cat.parentId;
+                      })
+                      .map(cat => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                  </select>
+                  <p className="text-xs text-muted-foreground">
+                    Only top-level categories can be selected as parents. We support 2 levels: category and subcategory.
+                  </p>
+                </div>
+              )}
+            </form.Field>
 
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <select
-                id="status"
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' })}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                required
-              >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </div>
+            <form.Field name="status">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor={field.name}>Status</Label>
+                  <select
+                    id={field.name}
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value as 'active' | 'inactive')}
+                    onBlur={field.handleBlur}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+              )}
+            </form.Field>
 
             <DrawerFooter className="px-0">
               <Button
                 type="submit"
                 className="w-full"
-                disabled={createCategoryMutation.isPending || updateCategoryMutation.isPending}
+                disabled={form.state.isSubmitting || !form.state.canSubmit}
               >
-                {createCategoryMutation.isPending || updateCategoryMutation.isPending ? (
+                {form.state.isSubmitting ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     {formMode === 'add' ? 'Creating...' : 'Updating...'}
