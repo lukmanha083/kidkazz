@@ -827,6 +827,13 @@ export const uomApi = {
     });
   },
 
+  update: async (id: string, data: Partial<CreateUOMInput>): Promise<UOM> => {
+    return apiRequest(`/api/uoms/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
   delete: async (id: string): Promise<{ message: string }> => {
     return apiRequest(`/api/uoms/${id}`, {
       method: 'DELETE',

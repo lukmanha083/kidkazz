@@ -6,11 +6,12 @@ import type { UOM } from '@/lib/api';
 
 interface UOMColumnOptions {
   onView?: (uom: UOM) => void;
+  onEdit?: (uom: UOM) => void;
   onDelete?: (uom: UOM) => void;
 }
 
 export function getUOMColumns(options: UOMColumnOptions = {}): ColumnDef<UOM>[] {
-  const { onView, onDelete } = options;
+  const { onView, onEdit, onDelete } = options;
 
   return [
     {
@@ -81,6 +82,7 @@ export function getUOMColumns(options: UOMColumnOptions = {}): ColumnDef<UOM>[] 
         <DataTableRowActions
           row={row}
           onView={onView}
+          onEdit={row.original.isBaseUnit ? undefined : onEdit}
           onDelete={row.original.isBaseUnit ? undefined : onDelete}
         />
       ),
