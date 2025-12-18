@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useForm } from '@tanstack/react-form';
+import { zodValidator } from '@tanstack/zod-form-adapter';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,8 +35,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Warehouse as WarehouseIcon, Plus, Edit, MapPin, Building2, Loader2 } from 'lucide-react';
-import { warehouseApi, type Warehouse, type CreateWarehouseInput } from '@/lib/api';
+import { Warehouse as WarehouseIcon, Plus, Edit, MapPin, Building2, Loader2, X } from 'lucide-react';
+import { warehouseApi, type Warehouse } from '@/lib/api';
+import { warehouseFormSchema, type WarehouseFormData } from '@/lib/form-schemas';
 import { warehouseListSearchSchema } from '@/lib/route-search-schemas';
 import { queryKeys } from '@/lib/query-client';
 import { DataTable } from '@/components/ui/data-table';
@@ -61,6 +64,13 @@ export const Route = createFileRoute('/dashboard/inventory/warehouse')({
   component: WarehouseManagementPage,
 });
 
+/**
+ * Warehouse management page component that provides a UI for listing, viewing, creating, editing, and deleting warehouse records.
+ *
+ * Renders a header, summary stats, a searchable/filterable table of warehouses, detail and form drawers for viewing and editing, and a delete confirmation dialog. Internally coordinates data fetching and mutations for warehouse CRUD operations.
+ *
+ * @returns The rendered warehouse management interface as a React element.
+ */
 function WarehouseManagementPage() {
   const queryClient = useQueryClient();
   const [viewDrawerOpen, setViewDrawerOpen] = useState(false);
@@ -70,19 +80,33 @@ function WarehouseManagementPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [warehouseToDelete, setWarehouseToDelete] = useState<Warehouse | null>(null);
 
-  const [formData, setFormData] = useState({
-    code: '',
-    name: '',
-    addressLine1: '',
-    addressLine2: '',
-    city: '',
-    province: '',
-    postalCode: '',
-    country: 'Indonesia',
-    contactName: '',
-    contactPhone: '',
-    contactEmail: '',
-    status: 'active' as 'active' | 'inactive',
+  // TanStack Form
+  const form = useForm({
+    defaultValues: {
+      code: '',
+      name: '',
+      addressLine1: '',
+      addressLine2: '',
+      city: '',
+      province: '',
+      postalCode: '',
+      country: 'Indonesia',
+      contactName: '',
+      contactPhone: '',
+      contactEmail: '',
+      status: 'active' as const,
+    },
+    validatorAdapter: zodValidator(),
+    validators: {
+      onChange: warehouseFormSchema,
+    },
+    onSubmit: async ({ value }) => {
+      if (formMode === 'add') {
+        await createWarehouseMutation.mutateAsync(value);
+      } else if (formMode === 'edit' && selectedWarehouse) {
+        await updateWarehouseMutation.mutateAsync({ id: selectedWarehouse.id, data: value });
+      }
+    },
   });
 
   // Fetch warehouses using centralized query keys
@@ -95,11 +119,12 @@ function WarehouseManagementPage() {
 
   // Create warehouse mutation
   const createWarehouseMutation = useMutation({
-    mutationFn: (data: CreateWarehouseInput) => warehouseApi.create(data),
+    mutationFn: (data: WarehouseFormData) => warehouseApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.warehouses.all });
       toast.success('Warehouse created successfully');
       setFormDrawerOpen(false);
+      form.reset();
     },
     onError: (error: Error) => {
       toast.error('Failed to create warehouse', {
@@ -110,12 +135,13 @@ function WarehouseManagementPage() {
 
   // Update warehouse mutation
   const updateWarehouseMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<CreateWarehouseInput> }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<WarehouseFormData> }) =>
       warehouseApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.warehouses.all });
       toast.success('Warehouse updated successfully');
       setFormDrawerOpen(false);
+      form.reset();
     },
     onError: (error: Error) => {
       toast.error('Failed to update warehouse', {
@@ -147,40 +173,25 @@ function WarehouseManagementPage() {
 
   const handleAddWarehouse = () => {
     setFormMode('add');
-    setFormData({
-      code: '',
-      name: '',
-      addressLine1: '',
-      addressLine2: '',
-      city: '',
-      province: '',
-      postalCode: '',
-      country: 'Indonesia',
-      contactName: '',
-      contactPhone: '',
-      contactEmail: '',
-      status: 'active',
-    });
+    form.reset();
     setFormDrawerOpen(true);
   };
 
   const handleEditWarehouse = (warehouse: Warehouse) => {
     setFormMode('edit');
     setSelectedWarehouse(warehouse);
-    setFormData({
-      code: warehouse.code,
-      name: warehouse.name,
-      addressLine1: warehouse.addressLine1,
-      addressLine2: warehouse.addressLine2 || '',
-      city: warehouse.city,
-      province: warehouse.province,
-      postalCode: warehouse.postalCode,
-      country: warehouse.country,
-      contactName: warehouse.contactName || '',
-      contactPhone: warehouse.contactPhone || '',
-      contactEmail: warehouse.contactEmail || '',
-      status: warehouse.status,
-    });
+    form.setFieldValue('code', warehouse.code);
+    form.setFieldValue('name', warehouse.name);
+    form.setFieldValue('addressLine1', warehouse.addressLine1);
+    form.setFieldValue('addressLine2', warehouse.addressLine2 || '');
+    form.setFieldValue('city', warehouse.city);
+    form.setFieldValue('province', warehouse.province);
+    form.setFieldValue('postalCode', warehouse.postalCode);
+    form.setFieldValue('country', warehouse.country);
+    form.setFieldValue('contactName', warehouse.contactName || '');
+    form.setFieldValue('contactPhone', warehouse.contactPhone || '');
+    form.setFieldValue('contactEmail', warehouse.contactEmail || '');
+    form.setFieldValue('status', warehouse.status);
     setViewDrawerOpen(false);
     setFormDrawerOpen(true);
   };
@@ -193,31 +204,6 @@ function WarehouseManagementPage() {
   const confirmDelete = () => {
     if (warehouseToDelete) {
       deleteWarehouseMutation.mutate(warehouseToDelete.id);
-    }
-  };
-
-  const handleSubmitForm = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const warehouseData: CreateWarehouseInput = {
-      code: formData.code,
-      name: formData.name,
-      addressLine1: formData.addressLine1,
-      addressLine2: formData.addressLine2 || undefined,
-      city: formData.city,
-      province: formData.province,
-      postalCode: formData.postalCode,
-      country: formData.country,
-      contactName: formData.contactName || undefined,
-      contactPhone: formData.contactPhone || undefined,
-      contactEmail: formData.contactEmail || undefined,
-      status: formData.status,
-    };
-
-    if (formMode === 'add') {
-      createWarehouseMutation.mutate(warehouseData);
-    } else if (formMode === 'edit' && selectedWarehouse) {
-      updateWarehouseMutation.mutate({ id: selectedWarehouse.id, data: warehouseData });
     }
   };
 
@@ -459,157 +445,253 @@ function WarehouseManagementPage() {
             </DrawerDescription>
           </DrawerHeader>
 
-          <form onSubmit={handleSubmitForm} className="flex-1 overflow-y-auto p-4 space-y-4">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              form.handleSubmit();
+            }}
+            className="flex-1 overflow-y-auto p-4 space-y-4"
+          >
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="code">Warehouse Code *</Label>
-                <Input
-                  id="code"
-                  placeholder="WH-JKT-01"
-                  value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                  required
-                />
-              </div>
+              <form.Field name="code">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>Warehouse Code</Label>
+                    <Input
+                      id={field.name}
+                      placeholder="WH-JKT-01"
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                    />
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-destructive">
+                        {field.state.meta.errors.join(', ')}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </form.Field>
 
-              <div className="space-y-2">
-                <Label htmlFor="name">Warehouse Name *</Label>
-                <Input
-                  id="name"
-                  placeholder="Main Warehouse Jakarta"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
-              </div>
+              <form.Field name="name">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>Warehouse Name</Label>
+                    <Input
+                      id={field.name}
+                      placeholder="Main Warehouse Jakarta"
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                    />
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-destructive">
+                        {field.state.meta.errors.join(', ')}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </form.Field>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="addressLine1">Address Line 1 *</Label>
-              <Input
-                id="addressLine1"
-                placeholder="Jl. Raya Industri No. 123"
-                value={formData.addressLine1}
-                onChange={(e) => setFormData({ ...formData, addressLine1: e.target.value })}
-                required
-              />
-            </div>
+            <form.Field name="addressLine1">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor={field.name}>Address Line 1</Label>
+                  <Input
+                    id={field.name}
+                    placeholder="Jl. Raya Industri No. 123"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                  {field.state.meta.errors.length > 0 && (
+                    <p className="text-sm text-destructive">
+                      {field.state.meta.errors.join(', ')}
+                    </p>
+                  )}
+                </div>
+              )}
+            </form.Field>
 
-            <div className="space-y-2">
-              <Label htmlFor="addressLine2">Address Line 2</Label>
-              <Input
-                id="addressLine2"
-                placeholder="Kelurahan Sunter, Kecamatan Tanjung Priok"
-                value={formData.addressLine2}
-                onChange={(e) => setFormData({ ...formData, addressLine2: e.target.value })}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="city">City *</Label>
-                <Input
-                  id="city"
-                  placeholder="Jakarta"
-                  value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="province">Province *</Label>
-                <Input
-                  id="province"
-                  placeholder="DKI Jakarta"
-                  value={formData.province}
-                  onChange={(e) => setFormData({ ...formData, province: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="postalCode">Postal Code *</Label>
-                <Input
-                  id="postalCode"
-                  placeholder="12345"
-                  value={formData.postalCode}
-                  onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="country">Country *</Label>
-                <Input
-                  id="country"
-                  placeholder="Indonesia"
-                  value={formData.country}
-                  onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
+            <form.Field name="addressLine2">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor={field.name}>Address Line 2</Label>
+                  <Input
+                    id={field.name}
+                    placeholder="Kelurahan Sunter, Kecamatan Tanjung Priok"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                </div>
+              )}
+            </form.Field>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="contactName">Contact Name</Label>
-                <Input
-                  id="contactName"
-                  placeholder="Budi Santoso"
-                  value={formData.contactName}
-                  onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
-                />
-              </div>
+              <form.Field name="city">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>City</Label>
+                    <Input
+                      id={field.name}
+                      placeholder="Jakarta"
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                    />
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-destructive">
+                        {field.state.meta.errors.join(', ')}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </form.Field>
 
-              <div className="space-y-2">
-                <Label htmlFor="contactPhone">Contact Phone</Label>
-                <Input
-                  id="contactPhone"
-                  placeholder="+62 21 1234 5678"
-                  value={formData.contactPhone}
-                  onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
-                />
-              </div>
+              <form.Field name="province">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>Province</Label>
+                    <Input
+                      id={field.name}
+                      placeholder="DKI Jakarta"
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                    />
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-destructive">
+                        {field.state.meta.errors.join(', ')}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </form.Field>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="contactEmail">Contact Email</Label>
-              <Input
-                id="contactEmail"
-                type="email"
-                placeholder="budi@warehouse.com"
-                value={formData.contactEmail}
-                onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <form.Field name="postalCode">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>Postal Code</Label>
+                    <Input
+                      id={field.name}
+                      placeholder="12345"
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                    />
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-destructive">
+                        {field.state.meta.errors.join(', ')}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </form.Field>
+
+              <form.Field name="country">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>Country</Label>
+                    <Input
+                      id={field.name}
+                      placeholder="Indonesia"
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                    />
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-destructive">
+                        {field.state.meta.errors.join(', ')}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </form.Field>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="status">Status *</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value: 'active' | 'inactive') =>
-                  setFormData({ ...formData, status: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <form.Field name="contactName">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>Contact Name</Label>
+                    <Input
+                      id={field.name}
+                      placeholder="Budi Santoso"
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                    />
+                  </div>
+                )}
+              </form.Field>
+
+              <form.Field name="contactPhone">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>Contact Phone</Label>
+                    <Input
+                      id={field.name}
+                      placeholder="+62 21 1234 5678"
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                    />
+                  </div>
+                )}
+              </form.Field>
             </div>
+
+            <form.Field name="contactEmail">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor={field.name}>Contact Email</Label>
+                  <Input
+                    id={field.name}
+                    type="email"
+                    placeholder="budi@warehouse.com"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                  {field.state.meta.errors.length > 0 && (
+                    <p className="text-sm text-destructive">
+                      {field.state.meta.errors.join(', ')}
+                    </p>
+                  )}
+                </div>
+              )}
+            </form.Field>
+
+            <form.Field name="status">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor={field.name}>Status</Label>
+                  <select
+                    id={field.name}
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value as 'active' | 'inactive')}
+                    onBlur={field.handleBlur}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+              )}
+            </form.Field>
 
             <DrawerFooter className="px-0">
               <Button
                 type="submit"
-                disabled={createWarehouseMutation.isPending || updateWarehouseMutation.isPending}
+                className="w-full"
+                disabled={form.state.isSubmitting || !form.state.canSubmit}
               >
-                {createWarehouseMutation.isPending || updateWarehouseMutation.isPending ? (
+                {form.state.isSubmitting ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     {formMode === 'add' ? 'Creating...' : 'Updating...'}
@@ -619,7 +701,9 @@ function WarehouseManagementPage() {
                 )}
               </Button>
               <DrawerClose asChild>
-                <Button variant="outline">Cancel</Button>
+                <Button type="button" variant="outline" className="w-full">
+                  Cancel
+                </Button>
               </DrawerClose>
             </DrawerFooter>
           </form>

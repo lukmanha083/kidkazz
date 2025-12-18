@@ -24,6 +24,25 @@ interface DataTableToolbarProps<TData> {
   enableColumnVisibility?: boolean;
 }
 
+/**
+ * Render a data-table toolbar with optional search, faceted column filters, a reset action, and a column visibility menu.
+ *
+ * Renders:
+ * - A search input bound to the column identified by `searchKey` (when provided).
+ * - One DataTableFacetedFilter per entry in `filterableColumns` for the matching table column.
+ * - A "Reset" button when any column filters are active.
+ * - A "View" dropdown that lists hideable columns with checkboxes when `enableColumnVisibility` is true.
+ *
+ * @param table - TanStack Table instance used to read state and manipulate column filters and visibility.
+ * @param searchKey - Optional column id whose filter value is bound to the search input.
+ * @param searchPlaceholder - Placeholder text for the search input.
+ * @param filterableColumns - Array of faceted filter descriptors. Each item should contain:
+ *   - id: the column id
+ *   - title: displayed title for the facet
+ *   - options: array of { label: string; value: string } used by the faceted filter
+ * @param enableColumnVisibility - When true, shows the column visibility dropdown; otherwise hides it.
+ * @returns The rendered toolbar React element.
+ */
 export function DataTableToolbar<TData>({
   table,
   searchKey,

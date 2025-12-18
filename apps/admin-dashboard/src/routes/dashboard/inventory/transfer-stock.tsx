@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useForm } from '@tanstack/react-form';
+import { zodValidator } from '@tanstack/zod-form-adapter';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,6 +41,10 @@ import {
   Loader2,
 } from 'lucide-react';
 import { warehouseApi, productApi, inventoryApi } from '@/lib/api';
+import {
+  transferStockFormSchema,
+  type TransferStockFormData,
+} from '@/lib/form-schemas';
 
 export const Route = createFileRoute('/dashboard/inventory/transfer-stock')({
   component: TransferStockPage,
@@ -101,11 +107,76 @@ function TransferStockPage() {
   const [formDrawerOpen, setFormDrawerOpen] = useState(false);
   const [selectedTransfer, setSelectedTransfer] = useState<StockTransfer | null>(null);
 
-  // Form data
-  const [formData, setFormData] = useState({
-    sourceWarehouseId: '',
-    destinationWarehouseId: '',
-    notes: '',
+  // TanStack Form
+  const form = useForm({
+    defaultValues: {
+      sourceWarehouseId: '',
+      destinationWarehouseId: '',
+      notes: '',
+    } satisfies TransferStockFormData,
+    validatorAdapter: zodValidator(),
+    validators: {
+      onChange: transferStockFormSchema,
+    },
+    onSubmit: async ({ value }) => {
+      if (transferItems.length === 0) {
+        toast.error('No items to transfer', {
+          description: 'Please add at least one product to transfer'
+        });
+        return;
+      }
+
+      if (value.sourceWarehouseId === value.destinationWarehouseId) {
+        toast.error('Invalid warehouses', {
+          description: 'Source and destination warehouses must be different'
+        });
+        return;
+      }
+
+      const sourceWarehouse = activeWarehouses.find(w => w.id === value.sourceWarehouseId);
+      const destinationWarehouse = activeWarehouses.find(w => w.id === value.destinationWarehouseId);
+
+      if (!sourceWarehouse || !destinationWarehouse) {
+        toast.error('Invalid warehouse selection');
+        return;
+      }
+
+      const totalItems = transferItems.reduce((sum, item) => sum + item.quantity, 0);
+
+      // Create transfer record for history
+      const newTransfer: StockTransfer = {
+        id: `TRF-${String(transfers.length + 1).padStart(3, '0')}`,
+        transferNumber: `TRF-2024-${String(transfers.length + 1).padStart(3, '0')}`,
+        sourceWarehouseId: value.sourceWarehouseId,
+        sourceWarehouseName: sourceWarehouse.name,
+        destinationWarehouseId: value.destinationWarehouseId,
+        destinationWarehouseName: destinationWarehouse.name,
+        items: transferItems,
+        totalItems: totalItems,
+        status: 'Completed',
+        transferredBy: 'Admin User',
+        transferDate: new Date().toISOString().split('T')[0],
+        notes: value.notes,
+      };
+
+      // Execute the transfer via API
+      try {
+        await transferMutation.mutateAsync({
+          items: transferItems,
+          sourceWarehouseId: value.sourceWarehouseId,
+          destinationWarehouseId: value.destinationWarehouseId,
+        });
+
+        // Add to local transfer history
+        setTransfers([newTransfer, ...transfers]);
+        setFormDrawerOpen(false);
+        setTransferItems([]);
+        form.reset();
+      } catch (error) {
+        // Error is already handled by mutation onError
+        console.error('Transfer failed:', error);
+      }
+    },
   });
 
   // Transfer items
@@ -132,27 +203,29 @@ function TransferStockPage() {
 
   // Get available products for selected source warehouse
   const availableProducts = useMemo(() => {
-    if (!formData.sourceWarehouseId) return [];
+    const sourceWarehouseId = form.state.values.sourceWarehouseId;
+    if (!sourceWarehouseId) return [];
 
     // Filter products that have inventory in the selected warehouse
     return products
       .filter(p => {
-        const inventory = productInventories[`${p.id}-${formData.sourceWarehouseId}`];
+        const inventory = productInventories[`${p.id}-${sourceWarehouseId}`];
         return inventory && inventory.quantityAvailable > 0;
       })
       .filter(p => !transferItems.some(item => item.productId === p.id))
       .map(p => {
-        const inventory = productInventories[`${p.id}-${formData.sourceWarehouseId}`];
+        const inventory = productInventories[`${p.id}-${sourceWarehouseId}`];
         return {
           value: p.id,
           label: `${p.name} (${p.sku}) - ${inventory?.quantityAvailable || 0} available`,
         };
       });
-  }, [formData.sourceWarehouseId, transferItems, products, productInventories]);
+  }, [form.state.values.sourceWarehouseId, transferItems, products, productInventories]);
 
   // Fetch inventory when source warehouse changes
   React.useEffect(() => {
-    if (formData.sourceWarehouseId && products.length > 0) {
+    const sourceWarehouseId = form.state.values.sourceWarehouseId;
+    if (sourceWarehouseId && products.length > 0) {
       // Fetch inventory for all products in the selected warehouse
       const fetchInventory = async () => {
         setLoadingInventory(true);
@@ -161,9 +234,9 @@ function TransferStockPage() {
             try {
               const inv = await inventoryApi.getByProductAndWarehouse(
                 product.id,
-                formData.sourceWarehouseId
+                sourceWarehouseId
               );
-              return { key: `${product.id}-${formData.sourceWarehouseId}`, data: inv };
+              return { key: `${product.id}-${sourceWarehouseId}`, data: inv };
             } catch (error) {
               // Product doesn't have inventory in this warehouse
               return null;
@@ -187,7 +260,7 @@ function TransferStockPage() {
     } else {
       setProductInventories({});
     }
-  }, [formData.sourceWarehouseId, products]);
+  }, [form.state.values.sourceWarehouseId, products]);
 
   // Create transfer mutation
   const transferMutation = useMutation({
@@ -276,7 +349,7 @@ function TransferStockPage() {
     }
 
     // Check available inventory
-    const inventory = productInventories[`${product.id}-${formData.sourceWarehouseId}`];
+    const inventory = productInventories[`${product.id}-${form.state.values.sourceWarehouseId}`];
     const availableStock = inventory?.quantityAvailable || 0;
 
     if (quantity > availableStock) {
@@ -301,72 +374,6 @@ function TransferStockPage() {
 
   const handleRemoveItem = (productId: string) => {
     setTransferItems(transferItems.filter(item => item.productId !== productId));
-  };
-
-  const handleSubmitForm = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (transferItems.length === 0) {
-      toast.error('No items to transfer', {
-        description: 'Please add at least one product to transfer'
-      });
-      return;
-    }
-
-    if (formData.sourceWarehouseId === formData.destinationWarehouseId) {
-      toast.error('Invalid warehouses', {
-        description: 'Source and destination warehouses must be different'
-      });
-      return;
-    }
-
-    const sourceWarehouse = activeWarehouses.find(w => w.id === formData.sourceWarehouseId);
-    const destinationWarehouse = activeWarehouses.find(w => w.id === formData.destinationWarehouseId);
-
-    if (!sourceWarehouse || !destinationWarehouse) {
-      toast.error('Invalid warehouse selection');
-      return;
-    }
-
-    const totalItems = transferItems.reduce((sum, item) => sum + item.quantity, 0);
-
-    // Create transfer record for history
-    const newTransfer: StockTransfer = {
-      id: `TRF-${String(transfers.length + 1).padStart(3, '0')}`,
-      transferNumber: `TRF-2024-${String(transfers.length + 1).padStart(3, '0')}`,
-      sourceWarehouseId: formData.sourceWarehouseId,
-      sourceWarehouseName: sourceWarehouse.name,
-      destinationWarehouseId: formData.destinationWarehouseId,
-      destinationWarehouseName: destinationWarehouse.name,
-      items: transferItems,
-      totalItems: totalItems,
-      status: 'Completed',
-      transferredBy: 'Admin User',
-      transferDate: new Date().toISOString().split('T')[0],
-      notes: formData.notes,
-    };
-
-    // Execute the transfer via API
-    try {
-      await transferMutation.mutateAsync({
-        items: transferItems,
-        sourceWarehouseId: formData.sourceWarehouseId,
-        destinationWarehouseId: formData.destinationWarehouseId,
-      });
-
-      // Add to local transfer history
-      setTransfers([newTransfer, ...transfers]);
-      setFormDrawerOpen(false);
-      setTransferItems([]);
-      setFormData({
-        sourceWarehouseId: '',
-        destinationWarehouseId: '',
-        notes: '',
-      });
-    } catch (error) {
-      // Error is already handled by mutation onError
-      console.error('Transfer failed:', error);
-    }
   };
 
   // Show loading state while data is being fetched
@@ -733,56 +740,81 @@ function TransferStockPage() {
             </div>
           </DrawerHeader>
 
-          <form onSubmit={handleSubmitForm} className="flex-1 overflow-y-auto p-4 space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="sourceWarehouse">Source Warehouse</Label>
-              <select
-                id="sourceWarehouse"
-                value={formData.sourceWarehouseId}
-                onChange={(e) => {
-                  setFormData({ ...formData, sourceWarehouseId: e.target.value });
-                  setTransferItems([]);
-                  setSelectedProduct('');
-                }}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                required
-              >
-                <option value="">Select source warehouse...</option>
-                {activeWarehouses.map(warehouse => (
-                  <option key={warehouse.id} value={warehouse.id}>
-                    {warehouse.name}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-muted-foreground">
-                Warehouse to transfer items from
-              </p>
-            </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              form.handleSubmit();
+            }}
+            className="flex-1 overflow-y-auto p-4 space-y-4"
+          >
+            <form.Field name="sourceWarehouseId">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor="sourceWarehouse">Source Warehouse</Label>
+                  <select
+                    id="sourceWarehouse"
+                    value={field.state.value}
+                    onChange={(e) => {
+                      field.handleChange(e.target.value);
+                      setTransferItems([]);
+                      setSelectedProduct('');
+                    }}
+                    onBlur={field.handleBlur}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                    required
+                  >
+                    <option value="">Select source warehouse...</option>
+                    {activeWarehouses.map(warehouse => (
+                      <option key={warehouse.id} value={warehouse.id}>
+                        {warehouse.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-muted-foreground">
+                    Warehouse to transfer items from
+                  </p>
+                  {field.state.meta.errors.length > 0 && (
+                    <p className="text-sm text-destructive">
+                      {field.state.meta.errors.join(", ")}
+                    </p>
+                  )}
+                </div>
+              )}
+            </form.Field>
 
-            <div className="space-y-2">
-              <Label htmlFor="destinationWarehouse">Destination Warehouse</Label>
-              <select
-                id="destinationWarehouse"
-                value={formData.destinationWarehouseId}
-                onChange={(e) => {
-                  setFormData({ ...formData, destinationWarehouseId: e.target.value });
-                }}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                required
-              >
-                <option value="">Select destination warehouse...</option>
-                {activeWarehouses
-                  .filter(w => w.id !== formData.sourceWarehouseId)
-                  .map(warehouse => (
-                    <option key={warehouse.id} value={warehouse.id}>
-                      {warehouse.name}
-                    </option>
-                  ))}
-              </select>
-              <p className="text-xs text-muted-foreground">
-                Warehouse to transfer items to
-              </p>
-            </div>
+            <form.Field name="destinationWarehouseId">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor="destinationWarehouse">Destination Warehouse</Label>
+                  <select
+                    id="destinationWarehouse"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+                    required
+                  >
+                    <option value="">Select destination warehouse...</option>
+                    {activeWarehouses
+                      .filter(w => w.id !== form.state.values.sourceWarehouseId)
+                      .map(warehouse => (
+                        <option key={warehouse.id} value={warehouse.id}>
+                          {warehouse.name}
+                        </option>
+                      ))}
+                  </select>
+                  <p className="text-xs text-muted-foreground">
+                    Warehouse to transfer items to
+                  </p>
+                  {field.state.meta.errors.length > 0 && (
+                    <p className="text-sm text-destructive">
+                      {field.state.meta.errors.join(", ")}
+                    </p>
+                  )}
+                </div>
+              )}
+            </form.Field>
 
             <Separator />
 
@@ -796,20 +828,20 @@ function TransferStockPage() {
                   onValueChange={setSelectedProduct}
                   placeholder={loadingInventory ? "Loading products..." : "Search products..."}
                   emptyText={loadingInventory ? "Loading..." : "No products with stock in this warehouse"}
-                  disabled={!formData.sourceWarehouseId || loadingInventory}
+                  disabled={!form.state.values.sourceWarehouseId || loadingInventory}
                 />
-                {!formData.sourceWarehouseId && (
+                {!form.state.values.sourceWarehouseId && (
                   <p className="text-xs text-muted-foreground">
                     Select source warehouse first
                   </p>
                 )}
-                {formData.sourceWarehouseId && loadingInventory && (
+                {form.state.values.sourceWarehouseId && loadingInventory && (
                   <p className="text-xs text-muted-foreground flex items-center gap-2">
                     <Loader2 className="h-3 w-3 animate-spin" />
                     Fetching products from warehouse...
                   </p>
                 )}
-                {formData.sourceWarehouseId && !loadingInventory && availableProducts.length === 0 && (
+                {form.state.values.sourceWarehouseId && !loadingInventory && availableProducts.length === 0 && (
                   <p className="text-xs text-amber-600 dark:text-amber-500">
                     No products with available stock in selected warehouse
                   </p>
@@ -884,15 +916,20 @@ function TransferStockPage() {
 
             <Separator />
 
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes (Optional)</Label>
-              <Input
-                id="notes"
-                placeholder="Add notes about this transfer..."
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              />
-            </div>
+            <form.Field name="notes">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Notes (Optional)</Label>
+                  <Input
+                    id="notes"
+                    placeholder="Add notes about this transfer..."
+                    value={field.state.value || ''}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                </div>
+              )}
+            </form.Field>
 
             <DrawerFooter className="px-0">
               <Button type="submit" className="w-full" disabled={transferItems.length === 0}>
