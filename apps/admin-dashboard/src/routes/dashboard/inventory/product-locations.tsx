@@ -60,6 +60,13 @@ export const Route = createFileRoute('/dashboard/inventory/product-locations')({
   component: ProductLocationsPage,
 });
 
+/**
+ * Renders the Product Locations page, providing a UI to view, filter, create, update, and delete product locations across warehouses.
+ *
+ * The page includes summary statistics, a searchable and filterable table of locations, a side drawer form for adding/editing locations with validation, and a confirmation dialog for deletions. It coordinates data fetching and mutations for product locations, products, and warehouses.
+ *
+ * @returns The React element for the Product Locations page.
+ */
 function ProductLocationsPage() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
