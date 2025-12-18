@@ -42,6 +42,15 @@ export const Route = createFileRoute('/dashboard/products/category')({
   component: CategoryPage,
 });
 
+/**
+ * Render the Categories management page for viewing, creating, editing, and deleting product categories.
+ *
+ * Displays a searchable, filterable table of categories, provides a drawer-based form for adding or editing a category
+ * (including parent selection and status), and presents a confirmation dialog for deletions. Handles data fetching
+ * and mutation side effects such as query invalidation and success/error toasts.
+ *
+ * @returns The Categories management page UI as a React element.
+ */
 function CategoryPage() {
   const queryClient = useQueryClient();
 

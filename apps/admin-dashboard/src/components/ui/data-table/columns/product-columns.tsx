@@ -80,6 +80,14 @@ interface ProductColumnOptions {
   onDelete?: (product: ProductWithStock) => void;
 }
 
+/**
+ * Build table column definitions for rendering product rows with badges, formatting, stock logic, and row actions.
+ *
+ * @param options - Configuration for columns:
+ *   - categories: list used to resolve category name and color for the Category column
+ *   - onView/onEdit/onDelete: optional callbacks invoked by the Actions column when the corresponding action is triggered
+ * @returns An array of ColumnDef<ProductWithStock> describing columns for barcode, name, SKU, category (with badge), price, stock (with loading state and threshold styling), status (with badge), rating, and row actions.
+ */
 export function getProductColumns(options: ProductColumnOptions): ColumnDef<ProductWithStock>[] {
   const { categories, onView, onEdit, onDelete } = options;
 
