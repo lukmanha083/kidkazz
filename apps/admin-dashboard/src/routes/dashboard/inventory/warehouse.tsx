@@ -64,6 +64,17 @@ export const Route = createFileRoute('/dashboard/inventory/warehouse')({
   component: WarehouseManagementPage,
 });
 
+/**
+ * Displays the Warehouse Management page with a table of warehouses, summary statistics,
+ * and UI for creating, editing, viewing, and deleting warehouses.
+ *
+ * The component handles data fetching and mutations (create, update, delete),
+ * integrates a validated TanStack form for add/edit, and manages drawer/dialog state
+ * for details, forms, and delete confirmation.
+ *
+ * @returns The page JSX containing warehouse stats, a searchable/filterable table,
+ * an add/edit form drawer, a details view drawer, and a delete confirmation dialog.
+ */
 function WarehouseManagementPage() {
   const queryClient = useQueryClient();
   const [viewDrawerOpen, setViewDrawerOpen] = useState(false);

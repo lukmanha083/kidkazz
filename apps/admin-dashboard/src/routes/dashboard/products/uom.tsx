@@ -44,6 +44,14 @@ export const Route = createFileRoute('/dashboard/products/uom')({
   component: UOMPage,
 });
 
+/**
+ * Render the Unit of Measure (UOM) management page with listing, create/edit drawers, detail view, and delete confirmation.
+ *
+ * This component provides fetching and mutation logic for UOMs, form handling with validation, summary statistics,
+ * a searchable/filterable data table, drawers for viewing and adding/editing UOMs, and a protected delete flow.
+ *
+ * @returns The page's JSX element containing the UOM management UI.
+ */
 function UOMPage() {
   const queryClient = useQueryClient();
 

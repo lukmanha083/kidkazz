@@ -61,6 +61,17 @@ export const Route = createFileRoute("/dashboard/products/bundle")({
 	component: ProductBundlePage,
 });
 
+/**
+ * Renders the Product Bundles management page with UI for listing, creating,
+ * editing, viewing, and deleting product bundles, including product selection,
+ * price/discount calculations, virtual stock computation from inventory, and
+ * media management.
+ *
+ * The page includes a searchable table of bundles, a form drawer for create/edit
+ * flows, a details drawer, and a delete confirmation dialog.
+ *
+ * @returns The React element for the Product Bundles management page.
+ */
 function ProductBundlePage() {
 	const queryClient = useQueryClient();
 
