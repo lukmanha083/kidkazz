@@ -1,5 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "@tanstack/react-form";
+import { zodValidator } from "@tanstack/zod-form-adapter";
 import { toast } from "sonner";
 import { useState, useMemo } from "react";
 import {
@@ -52,6 +54,14 @@ import {
 } from "@/lib/route-search-schemas";
 import { queryKeys } from "@/lib/query-client";
 import { batchApi, type InventoryBatch } from "@/lib/api";
+import {
+	batchCreationFormSchema,
+	batchStatusUpdateFormSchema,
+	batchQuantityAdjustmentFormSchema,
+	type BatchCreationFormData,
+	type BatchStatusUpdateFormData,
+	type BatchQuantityAdjustmentFormData,
+} from "@/lib/form-schemas";
 
 /**
  * Batch Management Route
@@ -114,25 +124,77 @@ function BatchManagementPage() {
 		null,
 	);
 
-	// Form state
-	const [formData, setFormData] = useState({
-		batchNumber: "",
-		lotNumber: "",
-		expirationDate: null as Date | null,
-		manufactureDate: null as Date | null,
-		quantityAvailable: 0,
-		supplier: "",
-		notes: "",
+	// TanStack Forms
+	const batchForm = useForm({
+		defaultValues: {
+			batchNumber: "",
+			lotNumber: "",
+			expirationDate: null as Date | null,
+			manufactureDate: null as Date | null,
+			quantityAvailable: 0,
+			supplier: "",
+			notes: "",
+		} satisfies BatchCreationFormData,
+		validatorAdapter: zodValidator(),
+		validators: {
+			onChange: batchCreationFormSchema,
+		},
+		onSubmit: async ({ value }) => {
+			await createBatchMutation.mutateAsync({
+				...value,
+				expirationDate: value.expirationDate?.toISOString() || null,
+				manufactureDate: value.manufactureDate?.toISOString() || null,
+			});
+		},
 	});
 
-	const [adjustmentData, setAdjustmentData] = useState({
-		quantity: 0,
-		reason: "",
+	const statusForm = useForm({
+		defaultValues: {
+			status: "active" as InventoryBatch["status"],
+			reason: "",
+		} satisfies BatchStatusUpdateFormData,
+		validatorAdapter: zodValidator(),
+		validators: {
+			onChange: batchStatusUpdateFormSchema,
+		},
+		onSubmit: async ({ value }) => {
+			if (!selectedBatch) return;
+			await updateStatusMutation.mutateAsync({
+				id: selectedBatch.id,
+				status: value.status,
+				reason: value.reason,
+			});
+		},
 	});
 
-	const [statusData, setStatusData] = useState({
-		status: "active" as InventoryBatch["status"],
-		reason: "",
+	const adjustmentForm = useForm({
+		defaultValues: {
+			quantity: 0,
+			reason: "",
+		} satisfies BatchQuantityAdjustmentFormData,
+		validatorAdapter: zodValidator(),
+		validators: {
+			onChange: batchQuantityAdjustmentFormSchema,
+		},
+		onSubmit: async ({ value }) => {
+			if (!selectedBatch) return;
+
+			// Validate that new quantity is non-negative
+			const newQuantity =
+				(selectedBatch?.quantityAvailable || 0) + value.quantity;
+			if (newQuantity < 0) {
+				toast.error("Invalid adjustment", {
+					description: "Adjustment would result in negative quantity",
+				});
+				return;
+			}
+
+			await adjustQuantityMutation.mutateAsync({
+				id: selectedBatch.id,
+				quantity: value.quantity,
+				reason: value.reason,
+			});
+		},
 	});
 
 	// Build filters from search params
@@ -167,7 +229,7 @@ function BatchManagementPage() {
 			queryClient.invalidateQueries({ queryKey: ["batches"] });
 			toast.success("Batch created successfully");
 			setFormDrawerOpen(false);
-			resetForm();
+			batchForm.reset();
 		},
 		onError: (error: any) => {
 			toast.error("Failed to create batch", {
@@ -191,6 +253,7 @@ function BatchManagementPage() {
 			queryClient.invalidateQueries({ queryKey: ["batches"] });
 			toast.success("Batch status updated");
 			setStatusDrawerOpen(false);
+			statusForm.reset();
 		},
 		onError: (error: any) => {
 			toast.error("Failed to update status", {
@@ -214,6 +277,7 @@ function BatchManagementPage() {
 			queryClient.invalidateQueries({ queryKey: ["batches"] });
 			toast.success("Batch quantity adjusted");
 			setAdjustDrawerOpen(false);
+			adjustmentForm.reset();
 		},
 		onError: (error: any) => {
 			toast.error("Failed to adjust quantity", {
@@ -257,12 +321,14 @@ function BatchManagementPage() {
 			getBatchColumns({
 				onEdit: (batch) => {
 					setSelectedBatch(batch);
-					setStatusData({ status: batch.status, reason: "" });
+					statusForm.setFieldValue("status", batch.status);
+					statusForm.setFieldValue("reason", "");
 					setStatusDrawerOpen(true);
 				},
 				onAdjust: (batch) => {
 					setSelectedBatch(batch);
-					setAdjustmentData({ quantity: 0, reason: "" });
+					adjustmentForm.setFieldValue("quantity", 0);
+					adjustmentForm.setFieldValue("reason", "");
 					setAdjustDrawerOpen(true);
 				},
 				onDelete: (batch) => {
@@ -318,70 +384,6 @@ function BatchManagementPage() {
 		});
 	}, [batches, search.search, search.expirationFilter]);
 
-	// Reset form
-	const resetForm = () => {
-		setFormData({
-			batchNumber: "",
-			lotNumber: "",
-			expirationDate: null,
-			manufactureDate: null,
-			quantityAvailable: 0,
-			supplier: "",
-			notes: "",
-		});
-	};
-
-	// Handle form submit
-	const handleSubmit = () => {
-		if (!formData.batchNumber) {
-			toast.error("Batch number is required");
-			return;
-		}
-
-		createBatchMutation.mutate({
-			...formData,
-			expirationDate: formData.expirationDate?.toISOString() || null,
-			manufactureDate: formData.manufactureDate?.toISOString() || null,
-		});
-	};
-
-	// Handle status update
-	const handleStatusUpdate = () => {
-		if (!selectedBatch || !statusData.reason) {
-			toast.error("Reason is required");
-			return;
-		}
-
-		updateStatusMutation.mutate({
-			id: selectedBatch.id,
-			status: statusData.status,
-			reason: statusData.reason,
-		});
-	};
-
-	// Handle quantity adjustment
-	const handleQuantityAdjust = () => {
-		if (!selectedBatch || !adjustmentData.reason) {
-			toast.error("Reason is required");
-			return;
-		}
-
-		// Validate that new quantity is non-negative
-		const newQuantity =
-			(selectedBatch?.quantityAvailable || 0) + adjustmentData.quantity;
-		if (newQuantity < 0) {
-			toast.error("Invalid adjustment", {
-				description: "Adjustment would result in negative quantity",
-			});
-			return;
-		}
-
-		adjustQuantityMutation.mutate({
-			id: selectedBatch.id,
-			quantity: adjustmentData.quantity,
-			reason: adjustmentData.reason,
-		});
-	};
 
 	return (
 		<div className="p-6 space-y-6">
@@ -574,91 +576,126 @@ function BatchManagementPage() {
 							Add a new inventory batch with expiration tracking
 						</DrawerDescription>
 					</DrawerHeader>
-					<div className="p-4 space-y-4">
+					<form
+						onSubmit={(e) => {
+							e.preventDefault();
+							e.stopPropagation();
+							batchForm.handleSubmit();
+						}}
+						className="p-4 space-y-4"
+					>
 						<div className="grid grid-cols-2 gap-4">
-							<div className="space-y-2">
-								<Label>Batch Number *</Label>
-								<Input
-									value={formData.batchNumber}
-									onChange={(e) =>
-										setFormData({ ...formData, batchNumber: e.target.value })
-									}
-									placeholder="e.g., BATCH-2024-001"
-								/>
-							</div>
-							<div className="space-y-2">
-								<Label>Lot Number</Label>
-								<Input
-									value={formData.lotNumber}
-									onChange={(e) =>
-										setFormData({ ...formData, lotNumber: e.target.value })
-									}
-									placeholder="e.g., LOT-12345"
-								/>
-							</div>
+							<batchForm.Field name="batchNumber">
+								{(field) => (
+									<div className="space-y-2">
+										<Label>Batch Number *</Label>
+										<Input
+											value={field.state.value}
+											onChange={(e) => field.handleChange(e.target.value)}
+											onBlur={field.handleBlur}
+											placeholder="e.g., BATCH-2024-001"
+										/>
+										{field.state.meta.errors.length > 0 && (
+											<p className="text-sm text-destructive">
+												{field.state.meta.errors.join(", ")}
+											</p>
+										)}
+									</div>
+								)}
+							</batchForm.Field>
+							<batchForm.Field name="lotNumber">
+								{(field) => (
+									<div className="space-y-2">
+										<Label>Lot Number</Label>
+										<Input
+											value={field.state.value}
+											onChange={(e) => field.handleChange(e.target.value)}
+											onBlur={field.handleBlur}
+											placeholder="e.g., LOT-12345"
+										/>
+									</div>
+								)}
+							</batchForm.Field>
 						</div>
 
 						<div className="grid grid-cols-2 gap-4">
-							<div className="space-y-2">
-								<Label>Expiration Date</Label>
-								<DatePicker
-									date={formData.expirationDate}
-									onDateChange={(date) =>
-										setFormData({ ...formData, expirationDate: date })
-									}
-								/>
-							</div>
-							<div className="space-y-2">
-								<Label>Manufacture Date</Label>
-								<DatePicker
-									date={formData.manufactureDate}
-									onDateChange={(date) =>
-										setFormData({ ...formData, manufactureDate: date })
-									}
-								/>
-							</div>
+							<batchForm.Field name="expirationDate">
+								{(field) => (
+									<div className="space-y-2">
+										<Label>Expiration Date</Label>
+										<DatePicker
+											date={field.state.value}
+											onDateChange={(date) => field.handleChange(date)}
+										/>
+									</div>
+								)}
+							</batchForm.Field>
+							<batchForm.Field name="manufactureDate">
+								{(field) => (
+									<div className="space-y-2">
+										<Label>Manufacture Date</Label>
+										<DatePicker
+											date={field.state.value}
+											onDateChange={(date) => field.handleChange(date)}
+										/>
+									</div>
+								)}
+							</batchForm.Field>
 						</div>
 
 						<div className="grid grid-cols-2 gap-4">
-							<div className="space-y-2">
-								<Label>Quantity</Label>
-								<Input
-									type="number"
-									value={formData.quantityAvailable}
-									onChange={(e) =>
-										setFormData({
-											...formData,
-											quantityAvailable: parseInt(e.target.value) || 0,
-										})
-									}
-								/>
-							</div>
-							<div className="space-y-2">
-								<Label>Supplier</Label>
-								<Input
-									value={formData.supplier}
-									onChange={(e) =>
-										setFormData({ ...formData, supplier: e.target.value })
-									}
-									placeholder="Supplier name"
-								/>
-							</div>
+							<batchForm.Field name="quantityAvailable">
+								{(field) => (
+									<div className="space-y-2">
+										<Label>Quantity</Label>
+										<Input
+											type="number"
+											value={field.state.value}
+											onChange={(e) =>
+												field.handleChange(parseInt(e.target.value) || 0)
+											}
+											onBlur={field.handleBlur}
+										/>
+										{field.state.meta.errors.length > 0 && (
+											<p className="text-sm text-destructive">
+												{field.state.meta.errors.join(", ")}
+											</p>
+										)}
+									</div>
+								)}
+							</batchForm.Field>
+							<batchForm.Field name="supplier">
+								{(field) => (
+									<div className="space-y-2">
+										<Label>Supplier</Label>
+										<Input
+											value={field.state.value}
+											onChange={(e) => field.handleChange(e.target.value)}
+											onBlur={field.handleBlur}
+											placeholder="Supplier name"
+										/>
+									</div>
+								)}
+							</batchForm.Field>
 						</div>
 
-						<div className="space-y-2">
-							<Label>Notes</Label>
-							<Input
-								value={formData.notes}
-								onChange={(e) =>
-									setFormData({ ...formData, notes: e.target.value })
-								}
-								placeholder="Additional notes..."
-							/>
-						</div>
-					</div>
+						<batchForm.Field name="notes">
+							{(field) => (
+								<div className="space-y-2">
+									<Label>Notes</Label>
+									<Input
+										value={field.state.value}
+										onChange={(e) => field.handleChange(e.target.value)}
+										onBlur={field.handleBlur}
+										placeholder="Additional notes..."
+									/>
+								</div>
+							)}
+						</batchForm.Field>
+					</form>
 					<DrawerFooter>
 						<Button
-							onClick={handleSubmit}
+							onClick={() => batchForm.handleSubmit()}
 							disabled={createBatchMutation.isPending}
 						>
 							{createBatchMutation.isPending && (
@@ -682,44 +719,60 @@ function BatchManagementPage() {
 							Change the status of batch: {selectedBatch?.batchNumber}
 						</DrawerDescription>
 					</DrawerHeader>
-					<div className="p-4 space-y-4">
-						<div className="space-y-2">
-							<Label>Status</Label>
-							<Select
-								value={statusData.status}
-								onValueChange={(value) =>
-									setStatusData({
-										...statusData,
-										status: value as InventoryBatch["status"],
-									})
-								}
-							>
-								<SelectTrigger>
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="active">Active</SelectItem>
-									<SelectItem value="expired">Expired</SelectItem>
-									<SelectItem value="quarantined">Quarantined</SelectItem>
-									<SelectItem value="recalled">Recalled</SelectItem>
-								</SelectContent>
-							</Select>
-						</div>
+					<form
+						onSubmit={(e) => {
+							e.preventDefault();
+							e.stopPropagation();
+							statusForm.handleSubmit();
+						}}
+						className="p-4 space-y-4"
+					>
+						<statusForm.Field name="status">
+							{(field) => (
+								<div className="space-y-2">
+									<Label>Status</Label>
+									<Select
+										value={field.state.value}
+										onValueChange={(value) =>
+											field.handleChange(value as InventoryBatch["status"])
+										}
+									>
+										<SelectTrigger>
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="active">Active</SelectItem>
+											<SelectItem value="expired">Expired</SelectItem>
+											<SelectItem value="quarantined">Quarantined</SelectItem>
+											<SelectItem value="recalled">Recalled</SelectItem>
+										</SelectContent>
+									</Select>
+								</div>
+							)}
+						</statusForm.Field>
 
-						<div className="space-y-2">
-							<Label>Reason *</Label>
-							<Input
-								value={statusData.reason}
-								onChange={(e) =>
-									setStatusData({ ...statusData, reason: e.target.value })
-								}
-								placeholder="e.g., Quality control failed, Reached expiration date..."
-							/>
-						</div>
-					</div>
+						<statusForm.Field name="reason">
+							{(field) => (
+								<div className="space-y-2">
+									<Label>Reason *</Label>
+									<Input
+										value={field.state.value}
+										onChange={(e) => field.handleChange(e.target.value)}
+										onBlur={field.handleBlur}
+										placeholder="e.g., Quality control failed, Reached expiration date..."
+									/>
+									{field.state.meta.errors.length > 0 && (
+										<p className="text-sm text-destructive">
+											{field.state.meta.errors.join(", ")}
+										</p>
+									)}
+								</div>
+							)}
+						</statusForm.Field>
+					</form>
 					<DrawerFooter>
 						<Button
-							onClick={handleStatusUpdate}
+							onClick={() => statusForm.handleSubmit()}
 							disabled={updateStatusMutation.isPending}
 						>
 							{updateStatusMutation.isPending && (
@@ -746,63 +799,82 @@ function BatchManagementPage() {
 							</div>
 						</DrawerDescription>
 					</DrawerHeader>
-					<div className="p-4 space-y-4">
-						<div className="space-y-2">
-							<Label>Quantity Change</Label>
-							<Input
-								type="number"
-								value={adjustmentData.quantity}
-								onChange={(e) =>
-									setAdjustmentData({
-										...adjustmentData,
-										quantity: parseInt(e.target.value) || 0,
-									})
-								}
-								placeholder="Positive to add, negative to remove"
-							/>
-							{(() => {
-								const newQuantity =
-									(selectedBatch?.quantityAvailable || 0) +
-									adjustmentData.quantity;
-								const isNegative = newQuantity < 0;
-								return (
-									<div>
-										<p
-											className={`text-sm ${isNegative ? "text-destructive font-semibold" : "text-muted-foreground"}`}
-										>
-											New quantity: {newQuantity}
+					<form
+						onSubmit={(e) => {
+							e.preventDefault();
+							e.stopPropagation();
+							adjustmentForm.handleSubmit();
+						}}
+						className="p-4 space-y-4"
+					>
+						<adjustmentForm.Field name="quantity">
+							{(field) => (
+								<div className="space-y-2">
+									<Label>Quantity Change</Label>
+									<Input
+										type="number"
+										value={field.state.value}
+										onChange={(e) =>
+											field.handleChange(parseInt(e.target.value) || 0)
+										}
+										onBlur={field.handleBlur}
+										placeholder="Positive to add, negative to remove"
+									/>
+									{(() => {
+										const newQuantity =
+											(selectedBatch?.quantityAvailable || 0) + field.state.value;
+										const isNegative = newQuantity < 0;
+										return (
+											<div>
+												<p
+													className={`text-sm ${isNegative ? "text-destructive font-semibold" : "text-muted-foreground"}`}
+												>
+													New quantity: {newQuantity}
+												</p>
+												{isNegative && (
+													<p className="text-sm text-destructive flex items-center gap-1 mt-1">
+														<AlertTriangle className="h-3 w-3" />
+														Cannot adjust to negative quantity
+													</p>
+												)}
+											</div>
+										);
+									})()}
+									{field.state.meta.errors.length > 0 && (
+										<p className="text-sm text-destructive">
+											{field.state.meta.errors.join(", ")}
 										</p>
-										{isNegative && (
-											<p className="text-sm text-destructive flex items-center gap-1 mt-1">
-												<AlertTriangle className="h-3 w-3" />
-												Cannot adjust to negative quantity
-											</p>
-										)}
-									</div>
-								);
-							})()}
-						</div>
+									)}
+								</div>
+							)}
+						</adjustmentForm.Field>
 
-						<div className="space-y-2">
-							<Label>Reason *</Label>
-							<Input
-								value={adjustmentData.reason}
-								onChange={(e) =>
-									setAdjustmentData({
-										...adjustmentData,
-										reason: e.target.value,
-									})
-								}
-								placeholder="e.g., Damage, spoilage, stock adjustment..."
-							/>
-						</div>
-					</div>
+						<adjustmentForm.Field name="reason">
+							{(field) => (
+								<div className="space-y-2">
+									<Label>Reason *</Label>
+									<Input
+										value={field.state.value}
+										onChange={(e) => field.handleChange(e.target.value)}
+										onBlur={field.handleBlur}
+										placeholder="e.g., Damage, spoilage, stock adjustment..."
+									/>
+									{field.state.meta.errors.length > 0 && (
+										<p className="text-sm text-destructive">
+											{field.state.meta.errors.join(", ")}
+										</p>
+									)}
+								</div>
+							)}
+						</adjustmentForm.Field>
+					</form>
 					<DrawerFooter>
 						<Button
-							onClick={handleQuantityAdjust}
+							onClick={() => adjustmentForm.handleSubmit()}
 							disabled={
 								adjustQuantityMutation.isPending ||
-								(selectedBatch?.quantityAvailable || 0) + adjustmentData.quantity <
+								(selectedBatch?.quantityAvailable || 0) +
+									(adjustmentForm.state.values.quantity || 0) <
 									0
 							}
 						>
