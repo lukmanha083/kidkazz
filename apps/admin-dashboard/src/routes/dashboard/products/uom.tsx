@@ -74,7 +74,6 @@ function UOMPage() {
       isBaseUnit: false,
       baseUnitCode: null as string | null,
       conversionFactor: 1,
-      status: 'active' as const,
     },
     validatorAdapter: zodValidator(),
     validators: {
@@ -182,7 +181,6 @@ function UOMPage() {
     form.setFieldValue('conversionFactor', uom.conversionFactor);
     form.setFieldValue('isBaseUnit', uom.isBaseUnit);
     form.setFieldValue('baseUnitCode', uom.baseUnitCode || null);
-    form.setFieldValue('status', 'active');
     setViewDrawerOpen(false);
     setFormDrawerOpen(true);
   };

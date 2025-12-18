@@ -307,8 +307,8 @@ function ProductVariantPage() {
 		}));
 	}, [availableProducts]);
 
-	// Get product stock
-	const getProductStock = (productSKU: string) => {
+	// Get product stock by SKU
+	const getProductStockBySKU = (productSKU: string) => {
 		const product = availableProducts.find((p) => p.sku === productSKU);
 		if (!product) return 0;
 		return product.totalStock;
@@ -326,7 +326,7 @@ function ProductVariantPage() {
 
 	// Get remaining stock available for allocation
 	const getRemainingStock = (productSKU: string, excludeVariantId?: string) => {
-		const totalStock = getProductStock(productSKU);
+		const totalStock = getProductStockBySKU(productSKU);
 		const allocatedStock = getAllocatedStockForProduct(
 			productSKU,
 			excludeVariantId,
@@ -768,7 +768,7 @@ function ProductVariantPage() {
 										Total Product Stock:
 									</span>
 									<span className="font-medium">
-										{getProductStock(formData.productSKU)} units
+										{getProductStockBySKU(formData.productSKU)} units
 									</span>
 								</div>
 								<div className="flex justify-between text-sm">

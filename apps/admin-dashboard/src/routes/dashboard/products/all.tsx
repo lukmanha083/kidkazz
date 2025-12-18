@@ -919,20 +919,6 @@ function AllProductsPage() {
 		setFormDrawerOpen(true);
 	};
 
-	// Calculate total PCS allocated to UOMs
-	const calculateAllocatedPCS = (uoms: ProductUOM[]) => {
-		return uoms.reduce((total, uom) => {
-			return total + uom.stock * uom.conversionFactor;
-		}, 0);
-	};
-
-	// Get remaining PCS available for UOMs (Stock is now 0 as it's managed via Inventory Service)
-	const getRemainingPCS = () => {
-		const totalStock = 0; // Stock is now managed via Product Locations (Inventory Service)
-		const allocatedPCS = calculateAllocatedPCS(productUOMs);
-		return totalStock - allocatedPCS;
-	};
-
 	const handleAddUOM = () => {
 		if (!selectedUOM || !uomBarcode || !uomStock) {
 			toast.error("Missing UOM information", {
@@ -964,16 +950,6 @@ function AllProductsPage() {
 			toast.error("Duplicate barcode", {
 				description:
 					"This barcode is the same as the main product barcode. Please use a different barcode for additional UOMs.",
-			});
-			return;
-		}
-
-		const uomStockInPCS = parseInt(uomStock) * uom.conversionFactor;
-		const remainingPCS = getRemainingPCS();
-
-		if (uomStockInPCS > remainingPCS) {
-			toast.error("Insufficient stock", {
-				description: `Cannot allocate ${uomStockInPCS} PCS to this UOM. Only ${remainingPCS} PCS available. Reduce UOM quantity or increase product stock.`,
 			});
 			return;
 		}

@@ -112,7 +112,6 @@ function ProductLocationsPage() {
           bin: value.bin || null,
           zone: value.zone || null,
           aisle: value.aisle || null,
-          quantity: quantity,
         };
         await createLocationMutation.mutateAsync(locationData);
       } else if (formMode === 'edit' && selectedLocation) {
@@ -122,7 +121,6 @@ function ProductLocationsPage() {
           bin: value.bin || null,
           zone: value.zone || null,
           aisle: value.aisle || null,
-          quantity: quantity,
         };
         await updateLocationMutation.mutateAsync({ id: selectedLocation.id, data: updateData });
       }

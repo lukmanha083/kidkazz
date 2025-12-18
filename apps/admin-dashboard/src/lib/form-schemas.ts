@@ -104,7 +104,6 @@ export const uomFormSchema = z.object({
   isBaseUnit: z.boolean().default(false),
   baseUnitCode: z.string().optional().nullable(),
   conversionFactor: z.coerce.number().positive('Conversion factor must be positive').default(1),
-  status: z.enum(['active', 'inactive']).default('active'),
 });
 
 export type UOMFormData = z.infer<typeof uomFormSchema>;
@@ -244,7 +243,7 @@ export type BatchStatusUpdateFormData = z.infer<typeof batchStatusUpdateFormSche
 // ============================================================================
 
 export const batchQuantityAdjustmentFormSchema = z.object({
-  quantity: z.coerce.number().int('Quantity must be an integer'),
+  quantity: z.coerce.number().int('Quantity must be an integer').nonnegative('Quantity cannot be negative'),
   reason: z.string().min(1, 'Reason is required'),
 });
 

@@ -13,6 +13,7 @@ import {
 	type ProductBundle,
 	type BundleItem,
 	type Product,
+	type CreateBundleInput,
 } from "@/lib/api";
 import { bundleFormSchema, type BundleFormData } from '@/lib/form-schemas';
 import {
@@ -191,7 +192,7 @@ function ProductBundlePage() {
 				...value,
 				bundlePrice: calculatedBundlePrice,
 				items: selectedProducts,
-			} as any;
+			};
 
 			if (formMode === "add") {
 				await createBundleMutation.mutateAsync(bundleData);
