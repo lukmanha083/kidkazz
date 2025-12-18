@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from '@tanstack/react-form';
+import { zodValidator } from '@tanstack/zod-form-adapter';
 import { toast } from "sonner";
 import {
 	variantApi,
@@ -12,6 +14,7 @@ import {
 	type ProductVariant,
 	type CreateVariantInput,
 } from "@/lib/api";
+import { variantFormSchema, type VariantFormData } from '@/lib/form-schemas';
 import {
 	ProductWarehouseAllocation,
 	type WarehouseAllocation,
@@ -138,23 +141,41 @@ function ProductVariantPage() {
 	);
 	const [formMode, setFormMode] = useState<"add" | "edit">("add");
 
-	// Form data
-	const [formData, setFormData] = useState({
-		productId: "",
-		productName: "",
-		productSKU: "",
-		variantName: "",
-		variantSKU: "",
-		variantType: "Color" as "Color" | "Size" | "Material" | "Style",
-		price: "",
-		stock: "",
-		status: "active" as "active" | "inactive",
-	});
-
-	// Warehouse allocations state
+	// Warehouse allocations state (managed separately)
 	const [warehouseAllocations, setWarehouseAllocations] = useState<
 		WarehouseAllocation[]
 	>([]);
+
+	// TanStack Form (DDD Compliant - NO stock field, managed by Inventory Service)
+	const form = useForm({
+		defaultValues: {
+			productId: "",
+			productName: "",
+			productSKU: "",
+			variantName: "",
+			variantSKU: "",
+			variantType: "color" as const,
+			price: 0,
+			status: "active" as const,
+			image: null as string | null,
+		},
+		validatorAdapter: zodValidator(),
+		validators: {
+			onChange: variantFormSchema,
+		},
+		onSubmit: async ({ value }) => {
+			const variantData: CreateVariantInput = value as any;
+
+			if (formMode === "add") {
+				await createVariantMutation.mutateAsync(variantData);
+			} else if (formMode === "edit" && selectedVariant) {
+				await updateVariantMutation.mutateAsync({
+					id: selectedVariant.id,
+					data: variantData,
+				});
+			}
+		},
+	});
 
 	// Parent product warehouse locations state (for reference in variant form)
 	const [parentProductLocations, setParentProductLocations] = useState<
@@ -193,32 +214,8 @@ function ProductVariantPage() {
 			// Create the variant first
 			const variant = await variantApi.create(data);
 
-			// Then save warehouse allocations if any (with compensating rollback)
-			if (warehouseAllocations.length > 0) {
-				try {
-					await Promise.all(
-						warehouseAllocations.map((allocation) =>
-							variantLocationApi.create({
-								variantId: variant.id,
-								warehouseId: allocation.warehouseId,
-								quantity: allocation.quantity,
-								rack: allocation.rack || null,
-								bin: allocation.bin || null,
-							}),
-						),
-					);
-				} catch (allocationError) {
-					// Compensating rollback: delete the variant if allocation fails
-					try {
-						await variantApi.delete(variant.id);
-						console.error("Variant deleted due to allocation failure:", allocationError);
-					} catch (cleanupError) {
-						console.error("Failed to cleanup variant after allocation failure:", cleanupError);
-					}
-					// Re-throw the original allocation error
-					throw allocationError;
-				}
-			}
+			// NOTE: Warehouse allocations removed per DDD - stock managed by Inventory Service
+			// If warehouse allocation is needed, it should be handled via Inventory Service API
 
 			return variant;
 		},
@@ -226,6 +223,7 @@ function ProductVariantPage() {
 			queryClient.invalidateQueries({ queryKey: ["variants"] });
 			toast.success("Variant created successfully");
 			setFormDrawerOpen(false);
+			form.reset();
 		},
 		onError: (error: Error) => {
 			toast.error("Failed to create variant", {
@@ -243,47 +241,11 @@ function ProductVariantPage() {
 			id: string;
 			data: Partial<CreateVariantInput>;
 		}) => {
-			// Update the variant first
+			// Update the variant
 			const variant = await variantApi.update(id, data);
 
-			// Get existing variant locations
-			const existingLocations = await variantLocationApi.getByVariant(id);
-			const existingLocs = existingLocations.variantLocations || [];
-
-			// Create or update allocations
-			for (const allocation of warehouseAllocations) {
-				const existing = existingLocs.find(
-					(loc) => loc.warehouseId === allocation.warehouseId,
-				);
-
-				if (existing) {
-					// Update existing location
-					await variantLocationApi.update(existing.id, {
-						quantity: allocation.quantity,
-						rack: allocation.rack || null,
-						bin: allocation.bin || null,
-					});
-				} else {
-					// Create new location
-					await variantLocationApi.create({
-						variantId: id,
-						warehouseId: allocation.warehouseId,
-						quantity: allocation.quantity,
-						rack: allocation.rack || null,
-						bin: allocation.bin || null,
-					});
-				}
-			}
-
-			// Delete removed allocations
-			for (const existingLoc of existingLocs) {
-				const stillExists = warehouseAllocations.find(
-					(alloc) => alloc.warehouseId === existingLoc.warehouseId,
-				);
-				if (!stillExists) {
-					await variantLocationApi.delete(existingLoc.id);
-				}
-			}
+			// NOTE: Warehouse allocations removed per DDD - stock managed by Inventory Service
+			// If warehouse allocation is needed, it should be handled via Inventory Service API
 
 			return variant;
 		},
@@ -292,6 +254,7 @@ function ProductVariantPage() {
 			toast.success("Variant updated successfully");
 			setFormDrawerOpen(false);
 			setViewDrawerOpen(false);
+			form.reset();
 		},
 		onError: (error: Error) => {
 			toast.error("Failed to update variant", {
@@ -473,17 +436,7 @@ function ProductVariantPage() {
 
 	const handleAddVariant = () => {
 		setFormMode("add");
-		setFormData({
-			productId: "",
-			productName: "",
-			productSKU: "",
-			variantName: "",
-			variantSKU: "",
-			variantType: "Color",
-			price: "",
-			stock: "",
-			status: "active",
-		});
+		form.reset();
 		setWarehouseAllocations([]); // Reset warehouse allocations
 		setParentProductLocations([]); // Reset parent product locations
 		setFormDrawerOpen(true);
@@ -492,17 +445,15 @@ function ProductVariantPage() {
 	const handleEditVariant = async (variant: ProductVariant) => {
 		setFormMode("edit");
 		setSelectedVariant(variant);
-		setFormData({
-			productId: variant.productId,
-			productName: variant.productName,
-			productSKU: variant.productSKU,
-			variantName: variant.variantName,
-			variantSKU: variant.variantSKU,
-			variantType: variant.variantType,
-			price: variant.price.toString(),
-			stock: variant.stock.toString(),
-			status: variant.status,
-		});
+		form.setFieldValue('productId', variant.productId);
+		form.setFieldValue('productName', variant.productName);
+		form.setFieldValue('productSKU', variant.productSKU);
+		form.setFieldValue('variantName', variant.variantName);
+		form.setFieldValue('variantSKU', variant.variantSKU);
+		form.setFieldValue('variantType', variant.variantType);
+		form.setFieldValue('price', variant.price);
+		form.setFieldValue('status', variant.status);
+		form.setFieldValue('image', (variant as any).image || null);
 
 		// Load existing warehouse allocations for this variant
 		try {
@@ -557,55 +508,8 @@ function ProductVariantPage() {
 		setFormDrawerOpen(true);
 	};
 
-	const handleSubmitForm = (e: React.FormEvent) => {
-		e.preventDefault();
-
-		// Validate stock allocation
-		const requestedStock = parseInt(formData.stock) || 0;
-		const maxAllowedStock =
-			getRemainingStock(formData.productSKU, selectedVariant?.id) +
-			(formMode === "edit" && selectedVariant ? selectedVariant.stock : 0);
-
-		if (requestedStock > maxAllowedStock) {
-			toast.error("Insufficient stock available", {
-				description: `Only ${maxAllowedStock} units available. Reduce the stock or increase the product's total stock.`,
-			});
-			return;
-		}
-
-		// Validate warehouse allocations match total stock
-		const totalAllocated = warehouseAllocations.reduce(
-			(sum, alloc) => sum + alloc.quantity,
-			0,
-		);
-		if (warehouseAllocations.length > 0 && totalAllocated !== requestedStock) {
-			toast.error("Warehouse allocation mismatch", {
-				description: `Total warehouse allocation (${totalAllocated}) must equal variant stock (${requestedStock})`,
-			});
-			return;
-		}
-
-		const variantData: CreateVariantInput = {
-			productId: formData.productId || selectedVariant?.productId || "",
-			productName: formData.productName,
-			productSKU: formData.productSKU,
-			variantName: formData.variantName,
-			variantSKU: formData.variantSKU,
-			variantType: formData.variantType,
-			price: parseFloat(formData.price),
-			stock: parseInt(formData.stock) || 0,
-			status: formData.status,
-		};
-
-		if (formMode === "add") {
-			createVariantMutation.mutate(variantData);
-		} else if (formMode === "edit" && selectedVariant) {
-			updateVariantMutation.mutate({
-				id: selectedVariant.id,
-				data: variantData,
-			});
-		}
-	};
+	// NOTE: handleSubmitForm removed - using TanStack Form's onSubmit handler
+	// Stock validation removed per DDD - stock managed by Inventory Service
 
 	const handleDeleteVariant = () => {
 		if (variantToDelete) {
