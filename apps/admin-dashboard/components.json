@@ -13,5 +13,8 @@
   "aliases": {
     "components": "@/components",
     "utils": "@/lib/utils"
+  },
+  "registries": {
+    "@basecn": "https://basecn.dev/r/{name}.json"
   }
 }
