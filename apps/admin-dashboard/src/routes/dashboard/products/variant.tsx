@@ -67,6 +67,13 @@ export const Route = createFileRoute("/dashboard/products/variant")({
 	component: ProductVariantPage,
 });
 
+/**
+ * Renders the Product Variants management page with listing, view, add, edit and delete flows.
+ *
+ * Provides UI and state for fetching variants, products, warehouses and inventory; displays a data table of variants; and exposes drawers and dialogs to view details, create or update variants, manage warehouse allocation references, and confirm deletions.
+ *
+ * @returns The JSX element for the Product Variants page.
+ */
 function ProductVariantPage() {
 	const queryClient = useQueryClient();
 

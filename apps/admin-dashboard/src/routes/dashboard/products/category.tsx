@@ -42,6 +42,15 @@ export const Route = createFileRoute('/dashboard/products/category')({
   component: CategoryPage,
 });
 
+/**
+ * Render the Categories management page with list, search/filter, add/edit drawer, and delete confirmation.
+ *
+ * The page fetches and displays all categories, provides controls to create or edit a category via a drawer form
+ * (shared for add and edit modes), and shows a confirmation dialog for deletions. Mutations invalidate the
+ * categories query and display toast notifications on success or error.
+ *
+ * @returns The JSX element for the Categories management page.
+ */
 function CategoryPage() {
   const queryClient = useQueryClient();
 

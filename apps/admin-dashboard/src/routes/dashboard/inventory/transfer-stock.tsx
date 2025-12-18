@@ -73,7 +73,17 @@ interface StockTransfer {
 }
 
 // Transfer history is now stored in component state
-// In a production app, this would be fetched from an API endpoint
+/**
+ * Render the Stock Transfer page and manage the UI, state, data fetching, and mutations
+ * required to create and view inventory transfers between warehouses.
+ *
+ * This component:
+ * - Fetches warehouses and products, derives active warehouses, and loads per-product inventory for a selected source warehouse.
+ * - Maintains local transfer history, pagination, search/filtering, and transient form/drawer state for creating transfers.
+ * - Provides UI for building transfer line items, validating stock and warehouse selections, executing an inventory transfer via API, and viewing transfer details.
+ *
+ * @returns The React element that renders the stock transfer interface and related drawers, tables, and controls.
+ */
 
 function TransferStockPage() {
   const queryClient = useQueryClient();
