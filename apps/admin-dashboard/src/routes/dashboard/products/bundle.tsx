@@ -61,6 +61,15 @@ export const Route = createFileRoute("/dashboard/products/bundle")({
 	component: ProductBundlePage,
 });
 
+/**
+ * Page component for managing product bundles: list, view details, create, edit, and delete.
+ *
+ * Fetches bundles, products, warehouses, product locations, and inventory; derives product stock and available products,
+ * exposes create/update/delete mutations for bundles, and provides UI controls including a DataTable, detail drawer,
+ * create/edit form drawer, virtual-stock calculations, media galleries, and delete confirmation dialog.
+ *
+ * @returns The rendered Product Bundles page element
+ */
 function ProductBundlePage() {
 	const queryClient = useQueryClient();
 

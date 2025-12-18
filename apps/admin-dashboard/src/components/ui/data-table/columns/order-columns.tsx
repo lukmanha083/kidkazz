@@ -45,6 +45,15 @@ interface OrderColumnOptions {
 	onDelete?: (order: Order) => void;
 }
 
+/**
+ * Build column definitions for an orders data table, including display and action cells.
+ *
+ * @param options - Optional callbacks to wire row actions:
+ *   - `onView(order)` invoked when a row's view action is triggered.
+ *   - `onEdit(order)` invoked when a row's edit action is triggered.
+ *   - `onDelete(order)` invoked when a row's delete action is triggered.
+ * @returns An array of `ColumnDef<Order>` describing columns for Order ID, customer, product, quantity, amount, date, status (with colored badge and icon), and row actions.
+ */
 export function getOrderColumns(
 	options: OrderColumnOptions = {},
 ): ColumnDef<Order>[] {

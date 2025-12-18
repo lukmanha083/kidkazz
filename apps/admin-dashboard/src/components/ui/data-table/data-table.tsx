@@ -91,6 +91,27 @@ type DataTableProps<TData, TValue> =
 	| ManualPaginationProps<TData, TValue>
 	| ClientPaginationProps<TData, TValue>;
 
+/**
+ * Render a configurable data table with sorting, filtering, optional server/client pagination, column visibility, and row selection.
+ *
+ * @param columns - Column definitions for the table.
+ * @param data - Row data displayed in the table.
+ * @param searchKey - Optional data key used by the toolbar search input to filter rows.
+ * @param searchPlaceholder - Placeholder text for the toolbar search input.
+ * @param isLoading - When true, shows a loading row instead of data rows.
+ * @param enableRowSelection - When true, enables row selection UI/state.
+ * @param enableColumnVisibility - When true, allows toggling column visibility via the toolbar.
+ * @param enablePagination - When true, renders the pagination controls.
+ * @param pageSize - Initial page size for pagination.
+ * @param onRowClick - Optional callback invoked with a row's original data when that row is clicked.
+ * @param filterableColumns - Array of column keys that the toolbar search can filter against.
+ * @param pageCount - Required when `manualPagination` is true; total number of pages for server-side pagination.
+ * @param manualPagination - When true, the table expects pagination to be controlled externally (server-side).
+ * @param pagination - Optional controlled pagination state (pageIndex and pageSize).
+ * @param onPaginationChange - Optional change handler to receive pagination state updates when pagination is controlled.
+ *
+ * @returns A React element rendering the data table.
+ */
 export function DataTable<TData, TValue>({
 	columns,
 	data,
