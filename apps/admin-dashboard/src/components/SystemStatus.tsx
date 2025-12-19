@@ -35,6 +35,13 @@ const DEFAULT_SERVICES: Service[] = [
 // API Gateway URL - configure this based on your environment
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787';
 
+/**
+ * Displays current system health and per-service statuses in a dropdown with manual and automatic refresh.
+ *
+ * The component performs health checks against the configured API, shows an overall status indicator, a list of services with individual statuses, an optional error block when checks fail, and a "last checked" timestamp. A refresh button triggers an immediate health check; the component also auto-refreshes periodically.
+ *
+ * @returns A React element that renders a status dropdown showing overall service health, per-service statuses, error messages, and the last-checked time.
+ */
 export function SystemStatus() {
   const [services, setServices] = useState<Service[]>(DEFAULT_SERVICES);
   const [isRefreshing, setIsRefreshing] = useState(false);

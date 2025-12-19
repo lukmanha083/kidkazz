@@ -146,6 +146,16 @@ const navItems: NavItem[] = [
   },
 ];
 
+/**
+ * Layout component that renders the dashboard shell: sidebar navigation, top bar, and page content outlet.
+ *
+ * Renders a responsive left sidebar with navigation and optional nested submenus, a mobile drawer, and a top bar
+ * containing breadcrumb, system status, notifications, and a dark-mode toggle. Manages internal state for
+ * mobile menu visibility, the active menu item, and dark mode; when dark mode changes it adds or removes the
+ * "dark" class on document.documentElement.
+ *
+ * @returns A JSX element containing the dashboard layout
+ */
 function DashboardLayout() {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);

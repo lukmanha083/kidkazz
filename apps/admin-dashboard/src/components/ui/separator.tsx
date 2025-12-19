@@ -3,6 +3,13 @@ import { Separator as SeparatorPrimitive } from "@base-ui/react/separator";
 
 import { cn } from "@/lib/utils";
 
+/**
+ * Renders a styled separator element that adapts sizing for horizontal or vertical orientation.
+ *
+ * @param className - Additional CSS classes to apply to the separator.
+ * @param props - Remaining props forwarded to the underlying SeparatorPrimitive.
+ * @returns A React element for a separator with orientation-aware sizing and the provided classes.
+ */
 function Separator({ className, ...props }: SeparatorPrimitive.Props) {
   return (
     <SeparatorPrimitive

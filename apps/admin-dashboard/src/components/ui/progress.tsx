@@ -5,6 +5,13 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
+/**
+ * Render a styled Progress root that provides a default track and indicator when no children are supplied.
+ *
+ * @param className - Additional CSS classes merged with the default "relative w-full"
+ * @param children - Custom children to render inside the progress root; if omitted, a default Track containing an Indicator is rendered
+ * @returns The Progress root element with merged classes and all passed props
+ */
 function Progress({
   className,
   children,
@@ -27,6 +34,12 @@ function Progress({
   );
 }
 
+/**
+ * Render a progress track element with default styling and optional additional classes.
+ *
+ * @param className - Additional CSS class names to merge with the default track classes
+ * @returns The rendered ProgressPrimitive.Track element
+ */
 function ProgressTrack({ className, ...props }: ProgressPrimitive.Track.Props) {
   return (
     <ProgressPrimitive.Track
@@ -40,6 +53,12 @@ function ProgressTrack({ className, ...props }: ProgressPrimitive.Track.Props) {
   );
 }
 
+/**
+ * Renders a progress indicator element with default styling and a `data-slot="progress-indicator"` attribute.
+ *
+ * @param className - Additional CSS classes to merge with the default indicator classes
+ * @returns The rendered progress indicator element
+ */
 function ProgressIndicator({
   className,
   ...props
@@ -56,6 +75,11 @@ function ProgressIndicator({
   );
 }
 
+/**
+ * Renders a progress label element with default typography and optional additional classes and props.
+ *
+ * @returns The rendered progress label element
+ */
 function ProgressLabel({ className, ...props }: ProgressPrimitive.Label.Props) {
   return (
     <ProgressPrimitive.Label
@@ -66,6 +90,12 @@ function ProgressLabel({ className, ...props }: ProgressPrimitive.Label.Props) {
   );
 }
 
+/**
+ * Wrapper component that renders a progress value element with default styling.
+ *
+ * @param className - Additional CSS class names to merge with the component's defaults
+ * @returns The rendered progress value element
+ */
 function ProgressValue({ className, ...props }: ProgressPrimitive.Value.Props) {
   return (
     <ProgressPrimitive.Value

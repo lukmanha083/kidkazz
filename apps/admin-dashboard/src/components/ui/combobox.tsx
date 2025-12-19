@@ -28,6 +28,23 @@ interface ComboboxProps {
   className?: string
 }
 
+/**
+ * Render a searchable combobox UI for picking an option from a list.
+ *
+ * The combobox shows the currently selected option label or a placeholder, opens a popover
+ * with a search input and matching options, and updates selection via `onValueChange`.
+ * Typing filters options case-insensitively by `label`, `barcode`, `sku`, or `name`.
+ * Selecting the currently selected option clears the selection.
+ *
+ * @param options - Array of option objects (each with `value` and `label`, optional `barcode`, `name`, `sku`)
+ * @param value - Currently selected option `value`, if any
+ * @param onValueChange - Callback invoked with the new selected value (or `""` when selection is cleared)
+ * @param placeholder - Text shown when no option is selected
+ * @param searchPlaceholder - Placeholder text for the search input inside the popover
+ * @param emptyText - Message displayed when no options match the search
+ * @param className - Additional CSS classes applied to the trigger button
+ * @returns A JSX element representing the combobox component
+ */
 export function Combobox({
   options,
   value,
