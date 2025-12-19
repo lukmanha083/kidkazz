@@ -19,6 +19,19 @@ export interface DatePickerProps {
   disabled?: boolean
 }
 
+/**
+ * Render a date selection UI consisting of a popover trigger and an inline calendar.
+ *
+ * The selected date is displayed in the trigger using a localized long date format. When the user selects
+ * a date the component normalizes it to local time (year, month, day with time set to noon) before invoking
+ * the change callback; if the selection is cleared the callback is invoked with `undefined`.
+ *
+ * @param date - The currently selected date, or `undefined` when no date is selected.
+ * @param onDateChange - Optional callback invoked when the selection changes. Receives the normalized `Date` (time set to noon in local time) or `undefined`.
+ * @param placeholder - Text shown in the trigger when no date is selected. Defaults to `"Pick a date"`.
+ * @param disabled - If `true`, disables the trigger button and prevents opening the popover. Defaults to `false`.
+ * @returns The rendered DatePicker React element.
+ */
 export function DatePicker({
   date,
   onDateChange,

@@ -17,17 +17,16 @@ interface DataTableColumnHeaderProps<TData, TValue>
 }
 
 /**
- * Render a table column header with optional sorting and visibility controls.
+ * Renders a table column header with optional sorting and visibility controls.
  *
- * Renders a simple label when sorting is not supported by the column. When sorting
- * is supported, renders a header containing a button that indicates the current
- * sort direction and a dropdown menu with actions to sort ascending, sort descending,
- * and — if supported by the column — hide the column.
+ * When the column cannot be sorted, renders a plain label. When sorting is supported,
+ * renders a trigger button showing the current sort direction and a dropdown with
+ * actions to sort ascending, sort descending, and—if supported—hide the column.
  *
- * @param column - The TanStack Table column instance used to read and update sort and visibility state.
- * @param title - The text label to display in the header.
- * @param className - Additional CSS classes to apply to the header container.
- * @returns The rendered header element for the given column.
+ * @param column - TanStack Table column instance used to read and update sort and visibility state.
+ * @param title - Text label displayed in the header.
+ * @param className - Additional CSS classes applied to the header container.
+ * @returns The header element for the specified column.
  */
 export function DataTableColumnHeader<TData, TValue>({
   column,

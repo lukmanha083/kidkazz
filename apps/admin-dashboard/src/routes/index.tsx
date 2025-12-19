@@ -10,6 +10,15 @@ export const Route = createFileRoute('/')({
   component: LoginPage,
 });
 
+/**
+ * Renders the Kidkazz login page UI with branding and an email/password sign-in form.
+ *
+ * The form includes an email input, a password input with a visibility toggle, a submit button
+ * that shows a loading state while submitting, and a "Reset" control for password recovery.
+ * Submitting the form triggers a brief simulated delay and then navigates to the '/dashboard' route.
+ *
+ * @returns The React element for the login page.
+ */
 function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
