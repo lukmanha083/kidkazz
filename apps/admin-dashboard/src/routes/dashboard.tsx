@@ -251,18 +251,20 @@ function DashboardLayout() {
 
           {/* User Profile */}
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="w-full justify-start gap-2 h-auto p-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-cyan-500 text-white text-sm">
-                    A
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0 text-left">
-                  <p className="text-sm font-medium truncate">admin@kidkazz.com</p>
-                </div>
-                <Menu className="h-3.5 w-3.5" />
-              </Button>
+            <DropdownMenuTrigger
+              render={
+                <Button variant="ghost" className="w-full justify-start gap-2 h-auto p-2" />
+              }
+            >
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-cyan-500 text-white text-sm">
+                  A
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0 text-left">
+                <p className="text-sm font-medium truncate">admin@kidkazz.com</p>
+              </div>
+              <Menu className="h-3.5 w-3.5" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuItem>Profile</DropdownMenuItem>

@@ -127,13 +127,13 @@ export function SystemStatus() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="gap-2">
-          <Circle
-            className={cn('h-2 w-2 fill-current', overallStatus.color)}
-          />
-          <span className="hidden sm:inline text-xs">System Status</span>
-        </Button>
+      <DropdownMenuTrigger
+        render={<Button variant="ghost" size="sm" className="gap-2" />}
+      >
+        <Circle
+          className={cn('h-2 w-2 fill-current', overallStatus.color)}
+        />
+        <span className="hidden sm:inline text-xs">System Status</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-72 p-4">
         <div className="space-y-4">
