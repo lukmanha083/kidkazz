@@ -164,7 +164,7 @@ apps/backend/src/
 - D1 Database (SQLite)
 - R2 Storage (files/images)
 - KV Cache (key-value)
-- External APIs (Xendit, email, SMS)
+- External APIs (midtrans, email, SMS)
 
 ---
 
