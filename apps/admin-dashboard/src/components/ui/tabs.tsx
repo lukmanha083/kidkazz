@@ -3,6 +3,11 @@ import { Tabs as TabsPrimitive } from "@base-ui/react/tabs";
 
 import { cn } from "@/lib/utils";
 
+/**
+ * Renders a Tabs root element with a preset vertical layout and slot attribute.
+ *
+ * @returns The Tabs root element with `data-slot="tabs"` and a `className` that combines `"flex flex-col gap-2"` with the provided `className`
+ */
 function Tabs({ className, ...props }: TabsPrimitive.Root.Props) {
   return (
     <TabsPrimitive.Root
@@ -13,6 +18,12 @@ function Tabs({ className, ...props }: TabsPrimitive.Root.Props) {
   );
 }
 
+/**
+ * Render a tabs list container with preset styling and forwarding of props.
+ *
+ * @param className - Additional CSS classes to merge with the default styles
+ * @returns The rendered tabs list element
+ */
 function TabsList({ className, ...props }: TabsPrimitive.List.Props) {
   return (
     <TabsPrimitive.List
@@ -26,6 +37,13 @@ function TabsList({ className, ...props }: TabsPrimitive.List.Props) {
   );
 }
 
+/**
+ * Render a tab trigger element with preset styling and a "tabs-trigger" data-slot.
+ *
+ * @param className - Additional CSS class names appended to the default styling
+ * @param props - Remaining props forwarded to the underlying TabsPrimitive.Tab
+ * @returns A tab trigger React element configured for use within the Tabs component
+ */
 function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
   return (
     <TabsPrimitive.Tab
@@ -39,6 +57,11 @@ function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
   );
 }
 
+/**
+ * Renders a tab panel for use inside a Tabs group.
+ *
+ * @returns A React element representing the tabs panel.
+ */
 function TabsContent({ className, ...props }: TabsPrimitive.Panel.Props) {
   return (
     <TabsPrimitive.Panel

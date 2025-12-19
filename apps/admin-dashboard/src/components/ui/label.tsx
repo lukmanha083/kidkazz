@@ -2,6 +2,13 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
+/**
+ * Renders a styled HTML label element for form controls.
+ *
+ * @param className - Additional CSS class names to merge with the component's default classes
+ * @param props - Remaining label element props are forwarded to the underlying `<label>` element
+ * @returns A JSX label element with a `data-slot="label"` attribute and the composed `className`
+ */
 function Label({ className, ...props }: React.ComponentProps<"label">) {
   return (
     <label
