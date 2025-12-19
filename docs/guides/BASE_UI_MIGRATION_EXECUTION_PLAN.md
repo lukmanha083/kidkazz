@@ -1,6 +1,6 @@
 # Base UI Migration Execution Plan
 
-> **Phased migration from Radix UI to Base UI for KidKazz Admin Dashboard**
+> **Phased migration from Radix UI to Base UI for Kidkazz Admin Dashboard**
 >
 > Status: Planning Complete | Execution: Pending
 > Last Updated: December 2025

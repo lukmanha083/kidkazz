@@ -1,10 +1,14 @@
-# KidKazz UI Design Guideline
+# Kidkazz UI Design Guideline
 
-> **Omnichannel Baby & Children's Products Platform**
+> Real-Time Omnichannel ERP
 >
-> Design System for Dual-Market E-Commerce (Retail B2C + Wholesale B2B)
+> Omnichannel through E-Commerce, POS and Mobile App
 
 ---
+
+## Brand and Tagline
+Kidkazz
+Best Price Excellent Service
 
 ## 🎯 Design Philosophy
 
@@ -844,6 +848,157 @@ className="animate-in slide-in-from-bottom duration-500"
 
 ---
 
-**Document Version:** 1.0.0
-**Last Updated:** November 15, 2025
+## 🎨 shadcn Preset Configuration
+
+### Overview
+
+Kidkazz leverages shadcn/ui with Base UI components, configured via preset URLs for consistent setup across all frontend applications. This approach ensures standardized design systems across our omnichannel platform while allowing customization for different app types and target audiences.
+
+### Admin Dashboard Configuration
+
+**Migration Status**: ✅ **COMPLETE** (2025-12-19)
+- **Coverage**: 88.2% (15/17 components migrated to Base UI/Sonner)
+- **See**: [Base UI Migration Complete](./BASE_UI_MIGRATION_COMPLETE.md)
+
+**Current Setup**:
+- **Component Library**: Base UI (`@base-ui/react` v1.0.0)
+- **Toast Library**: Sonner (`sonner` v2.0.7)
+- **Drawer Library**: vaul (temporary, until Base UI Drawer released)
+- **Style**: `default` (professional black & white theme)
+- **Base Color**: `slate` (neutral blue-gray)
+- **Theme**: `slate` (monochrome for data focus)
+- **Icon Library**: `lucide-react` (minimal, consistent)
+- **Font**: Inter (primary), Nunito (secondary), Fredoka (accent)
+- **Border Radius**: 0.5rem (small - compact for data density)
+- **Framework**: Vite (fast SPA development), Tanstack ecosystem
+
+**Equivalent Preset URL**:
+```
+https://ui.shadcn.com/init?base=base&style=default&baseColor=slate&theme=slate&iconLibrary=lucide&font=inter&menuAccent=subtle&menuColor=default&radius=small&template=vite
+```
+
+**Rationale**:
+- **Monochrome Theme** (slate/slate): Black & white for professional admin interface, maximum focus on data
+- **Small Radius** (0.5rem): Compact layouts for dense data tables and dashboards
+- **Subtle Menu Accent**: Professional, non-distracting navigation
+- **Default Style**: Traditional, reliable design language for internal tools
+- **Vite Template**: Fast hot-module replacement, optimized for development
+
+---
+
+### For New Frontend Projects
+
+See [SHADCN_PRESET_SETUP_GUIDE.md](./SHADCN_PRESET_SETUP_GUIDE.md) for complete preset templates for all Kidkazz applications:
+
+#### 1. Point of Sale (POS)
+- **Style**: `mira` (compact, dense for efficiency)
+- **Radius**: `medium` (touch-friendly targets)
+- **Theme**: `zinc` (neutral, non-distracting)
+- **Use Case**: Store cashiers, fast checkout, offline-capable
+- **Template**: `vite`, Tanstack Ecosystem (Router, Table, Virtual Table etc.)
+
+#### 2. Retail E-Commerce (B2C) (Website & Mobile App)
+- **Style**: `nova` (spacious, modern for browsing)
+- **Radius**: `large` (soft, playful, approachable)
+- **Theme**: `purple` (Kidkazz brand color - trust, imagination)
+- **Font**: `nunito` (friendly, rounded, approachable)
+- **Use Case**: Parents browsing kids products, SEO-optimized
+- **Template** (website): vite, Tanstack Ecosystem (Router, Table, Virtual Table, Form, etc.)
+- **Template** (Mobile App): expo
+
+#### 3. Wholesale E-Commerce (B2B)
+- **Style**: `default` (professional, traditional)
+- **Radius**: `small` (compact for data tables, pricing grids)
+- **Theme**: `blue` (business-oriented, trustworthy)
+- **Use Case**: Business buyers, bulk orders, data-heavy, Supplier portal to view report on their item stock and sales
+- **Template**: vite, Tanstack Ecosystem (Router, Table, Virtual Table, Form, etc.)
+
+#### 4. Mobile Admin App
+- **Style**: `mira` (compact for small screens)
+- **Radius**: `medium` (touch-optimized)
+- **Theme**: `slate` (matches admin dashboard)
+- **Menu Accent**: `bold` (clear touch targets)
+- **Use Case**: Managers on-the-go, real-time updates
+- **Template**: `expo`
+
+---
+
+### Preset Configuration Benefits
+
+**Consistency Across Apps**:
+- All Kidkazz frontends use standardized shadcn/ui components
+- Unified design language (spacing, colors, typography)
+- Shared component library (easier maintenance)
+
+**Rapid Development**:
+- New project setup in minutes (single preset command)
+- Pre-configured Tailwind CSS with brand colors
+- Base UI components ready to install
+
+**Design Flexibility**:
+- Customize style, colors, fonts per app type
+- Target audience-specific configurations (B2C vs B2B vs admin)
+- Maintain brand consistency while allowing variation
+
+**Base UI Migration**:
+- Modern React patterns (render props instead of asChild)
+- Smaller bundle sizes (20-30% reduction vs Radix UI)
+- Headless components (maximum customization)
+
+---
+
+### Migration Status
+
+The admin dashboard is currently migrating from Radix UI to Base UI:
+
+**Completed (Phase 1-4)**:
+- ✅ Progress, Avatar, Separator, Label, Checkbox
+- ✅ Button, Breadcrumb
+- ✅ Tabs
+- ✅ Dialog, AlertDialog
+
+**Pending (Phase 5-10)**:
+- ⏳ Select, Popover, Dropdown Menu
+- ⏳ Command, Combobox
+- ⏳ Data Table ecosystem (faceted filters, column headers, row actions)
+- ⏳ Toast notifications
+- ⏳ Final cleanup (remove 13 Radix UI packages)
+
+**Documentation**:
+- [BASE_UI_MIGRATION_GUIDE.md](./BASE_UI_MIGRATION_GUIDE.md) - Complete migration reference
+- [BASE_UI_MIGRATION_EXECUTION_PLAN.md](./BASE_UI_MIGRATION_EXECUTION_PLAN.md) - Phase-by-phase plan
+- [BASE_UI_MIGRATION_SESSION_1_SUMMARY.md](./BASE_UI_MIGRATION_SESSION_1_SUMMARY.md) - Progress tracking
+
+**Action Required**: 47 files use `asChild` pattern that needs updating to Base UI render props or buttonVariants.
+
+---
+
+### Quick Start Commands
+
+**Create New Project from Preset**:
+```bash
+# Example: New POS system
+pnpm dlx shadcn@latest create --preset "https://ui.shadcn.com/init?base=base&style=mira&baseColor=zinc&theme=zinc&iconLibrary=lucide&font=inter&menuAccent=bold&menuColor=default&radius=medium&template=vite" kidkazz-pos
+```
+
+**Install Base UI Components**:
+```bash
+cd kidkazz-pos
+pnpm dlx shadcn@latest add @basecn/button @basecn/card @basecn/dialog @basecn/select @basecn/input @basecn/label
+```
+
+**Note**: As of December 2025, the `shadcn create --preset` command has known bugs (GitHub #9043, #9064, #9081). Always have [manual setup fallback](./SHADCN_PRESET_SETUP_GUIDE.md#cli-command-examples) ready.
+
+---
+
+### Related Documentation
+
+- [SHADCN_PRESET_SETUP_GUIDE.md](./SHADCN_PRESET_SETUP_GUIDE.md) - Complete preset reference (parameter explanations, CLI examples, troubleshooting)
+- [BASE_UI_MIGRATION_GUIDE.md](./BASE_UI_MIGRATION_GUIDE.md) - Migration from Radix UI to Base UI
+- [SHADCN_UI_REFACTORING_GUIDE.md](./SHADCN_UI_REFACTORING_GUIDE.md) - Component refactoring examples
+
+---
+
+**Document Version:** 1.1.0
+**Last Updated:** December 19, 2025
 **Maintained by:** KidKazz Design Team

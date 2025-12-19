@@ -2,7 +2,27 @@
 
 > **Comprehensive guide for migrating from Radix UI to Base UI across all KidKazz applications**
 >
-> Version: 1.0.0 | Last Updated: December 2025
+> Version: 2.0.0 | Last Updated: 2025-12-19
+>
+> **Status**: ✅ **COMPLETE** - Admin Dashboard migrated successfully (88.2% coverage)
+
+---
+
+## 🎉 Migration Status
+
+**Admin Dashboard**: ✅ **COMPLETE** (2025-12-19)
+- **Coverage**: 15/17 components (88.2%)
+- **Migrated to Base UI**: 14 components
+- **Migrated to Sonner**: 1 component (Toast)
+- **Keeping**: 2 components (Drawer, Slot - waiting for Base UI support)
+
+**Other Apps**: ⏸️ Pending
+- Point of Sale (POS)
+- E-Commerce Retail
+- E-Commerce Wholesale
+- Mobile Admin App
+
+📋 **See**: [Migration Complete Report](./BASE_UI_MIGRATION_COMPLETE.md)
 
 ---
 
@@ -313,6 +333,237 @@ npx shadcn@latest add @basecn/avatar
 npx shadcn@latest add @basecn/progress
 npx shadcn@latest add @basecn/separator
 ```
+
+---
+
+### 🚀 Preset Approach for New Projects
+
+For **NEW projects** starting with Base UI (not migrations), use the shadcn preset URL approach. This section provides guidance for creating future KidKazz frontend applications (POS, E-Commerce, Mobile Apps) with pre-configured Base UI setups.
+
+**Important**: This section is for **new project creation only**. For migrating existing projects like admin-dashboard, continue with the manual migration approach documented in this guide.
+
+---
+
+#### Option 1: Create with Preset (Try First)
+
+Use the `shadcn create --preset` command with a pre-configured URL:
+
+**Example: New POS System**
+```bash
+pnpm dlx shadcn@latest create --preset "https://ui.shadcn.com/init?base=base&style=mira&baseColor=zinc&theme=zinc&iconLibrary=lucide&font=inter&menuAccent=bold&menuColor=default&radius=medium&template=vite" kidkazz-pos
+```
+
+**What This Does**:
+1. Creates a new Vite project in `kidkazz-pos/` directory
+2. Installs Base UI dependencies (`@base-ui/react`, `tailwindcss-animate`, etc.)
+3. Generates `components.json` with basecn registry pre-configured
+4. Sets up Tailwind CSS with specified colors and fonts
+5. Configures preset styles (mira = compact, touch-friendly)
+
+**⚠️ Known Issues (December 2025)**:
+
+The `shadcn create --preset` command has active bugs (GitHub Issues #9043, #9064, #9081):
+- **Registry 400 errors** with pnpm (use npm or yarn as workaround)
+- **Windows EPERM errors** (run from C:\temp or use WSL)
+- **--src-dir flag failures** (avoid using --src-dir with presets)
+
+**Recommendation**: Always have **Option 2 (Manual Setup)** ready as fallback. See complete troubleshooting in [SHADCN_PRESET_SETUP_GUIDE.md](./SHADCN_PRESET_SETUP_GUIDE.md#troubleshooting).
+
+---
+
+#### Option 2: Manual Setup (Recommended Fallback)
+
+If the preset command fails (or for guaranteed success), use manual setup:
+
+**Step 1: Create Project**
+```bash
+# Create Vite project
+pnpm create vite kidkazz-pos --template react-ts
+cd kidkazz-pos
+```
+
+**Step 2: Install Dependencies**
+```bash
+# Install Base UI and utilities
+pnpm add @base-ui/react tailwindcss-animate class-variance-authority clsx tailwind-merge lucide-react
+
+# Install dev dependencies
+pnpm add -D tailwindcss postcss autoprefixer
+```
+
+**Step 3: Initialize Tailwind CSS**
+```bash
+npx tailwindcss init -p
+```
+
+**Step 4: Create components.json**
+
+Create `components.json` at project root (copy from preset template or use admin-dashboard as reference):
+
+```json
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "default",
+  "rsc": false,
+  "tsx": true,
+  "tailwind": {
+    "config": "tailwind.config.js",
+    "css": "src/index.css",
+    "baseColor": "slate",
+    "cssVariables": true
+  },
+  "aliases": {
+    "components": "@/components",
+    "utils": "@/lib/utils"
+  },
+  "registries": {
+    "@basecn": "https://basecn.dev/r/{name}.json"
+  }
+}
+```
+
+**Step 5: Configure Tailwind CSS**
+
+Update `tailwind.config.js` (see [SHADCN_PRESET_SETUP_GUIDE.md](./SHADCN_PRESET_SETUP_GUIDE.md#cli-command-examples) for complete configuration).
+
+**Step 6: Add Global CSS**
+
+Create `src/index.css` with Tailwind directives and CSS variables (see complete example in preset guide).
+
+**Step 7: Install Base UI Components**
+```bash
+pnpm dlx shadcn@latest add @basecn/button @basecn/card @basecn/input @basecn/label @basecn/dialog @basecn/select
+```
+
+**Manual Setup Time**: 10-15 minutes (reliable, no dependency on buggy preset command)
+
+---
+
+#### Preset Templates by App Type
+
+For complete preset URLs and configurations, see **[SHADCN_PRESET_SETUP_GUIDE.md](./SHADCN_PRESET_SETUP_GUIDE.md)**:
+
+| App Type | Style | Base Color | Theme | Font | Radius | Template | Use Case |
+|----------|-------|------------|-------|------|--------|----------|----------|
+| **Admin Dashboard** | default | slate | slate | inter | small | vite | Internal staff, data-focused |
+| **POS System** | mira | zinc | zinc | inter | medium | vite | Store cashiers, touch-friendly |
+| **Retail E-Commerce** | nova | slate | purple | nunito | large | next | Parents (B2C), SEO-optimized |
+| **Wholesale E-Commerce** | default | slate | blue | inter | small | next | Business buyers (B2B) |
+| **Mobile Admin** | mira | slate | slate | inter | medium | expo | Managers on-the-go |
+
+**Style Descriptions**:
+- **default**: Classic shadcn, professional, traditional
+- **mira**: **Compact, dense** - ideal for data-heavy interfaces and small screens
+- **nova**: **Spacious, modern** - ideal for browsing and consumer-facing apps
+
+**Radius Mapping**:
+- **small** (0.5rem): Compact, data-focused layouts
+- **medium** (1rem): Balanced, touch-friendly
+- **large** (1.5rem): Soft, playful, approachable
+
+---
+
+#### Workflow for New Project Creation
+
+**1. Choose Preset Template**
+
+Select appropriate preset from [SHADCN_PRESET_SETUP_GUIDE.md](./SHADCN_PRESET_SETUP_GUIDE.md#kidkazz-preset-templates) based on:
+- Target audience (internal staff, parents, business buyers)
+- Design priority (professional, playful, efficient)
+- Framework needs (SEO with Next.js, SPA with Vite, native with Expo)
+
+**2. Attempt Preset Command**
+```bash
+pnpm dlx shadcn@latest create --preset "<PRESET_URL>" project-name
+```
+
+**3. If Preset Fails → Manual Setup**
+
+Use Option 2 fallback (10-15 minutes, guaranteed success).
+
+**4. Configure basecn Registry**
+
+Ensure `components.json` has basecn registry:
+```json
+{
+  "registries": {
+    "@basecn": "https://basecn.dev/r/{name}.json"
+  }
+}
+```
+
+**5. Install Base UI Components**
+```bash
+pnpm dlx shadcn@latest add @basecn/button @basecn/card @basecn/dialog @basecn/select @basecn/input @basecn/label @basecn/tabs @basecn/popover
+```
+
+**6. Apply KidKazz Brand Customization**
+
+Add custom colors to `src/index.css` (per [UI_DESIGN_GUIDELINE.md](./UI_DESIGN_GUIDELINE.md)):
+```css
+:root {
+  /* KidKazz Brand Colors */
+  --primary: 262.1 83.3% 57.8%;        /* #8B5CF6 - Purple */
+  --secondary: 199 89% 48%;             /* #0EA5E9 - Sky Blue */
+  --accent-pink: 330 81% 60%;          /* #F472B6 */
+  --accent-yellow: 48 96% 53%;         /* #FACC15 */
+  --accent-green: 142 71% 45%;         /* #22C55E */
+}
+```
+
+**7. Follow UI Design Guidelines**
+
+Implement typography, spacing, and component patterns per UI_DESIGN_GUIDELINE.md.
+
+**8. Test & Validate**
+- [ ] Components render correctly
+- [ ] Accessibility (keyboard navigation, ARIA attributes)
+- [ ] Responsive design (mobile, tablet, desktop)
+- [ ] Brand colors applied
+- [ ] No console errors
+
+---
+
+#### Quick Reference: Preset Parameters
+
+| Parameter | Options | Purpose | KidKazz Standard |
+|-----------|---------|---------|------------------|
+| `base` | radix \| **base** | Component library | **base** (always) |
+| `style` | default \| **mira** \| nova \| vega \| lyra \| maia | Visual style | default or mira |
+| `baseColor` | **slate** \| gray \| zinc \| neutral \| stone | Neutral palette | slate or zinc |
+| `theme` | slate \| **purple** \| blue \| zinc \| (any) | Brand color | Varies by app |
+| `iconLibrary` | **lucide** \| tabler \| hugeicons | Icon set | **lucide** (always) |
+| `font` | **inter** \| nunito \| figtree \| (many) | Typography | inter or nunito |
+| `menuAccent` | **subtle** \| bold | Menu emphasis | subtle or bold |
+| `radius` | **small** \| medium \| large \| default \| none | Border radius | Varies by app |
+| `template` | **vite** \| next \| remix \| expo | Framework | vite or next |
+
+---
+
+#### Example: Creating POS System
+
+**Full Command**:
+```bash
+pnpm dlx shadcn@latest create --preset "https://ui.shadcn.com/init?base=base&style=mira&baseColor=zinc&theme=zinc&iconLibrary=lucide&font=inter&menuAccent=bold&menuColor=default&radius=medium&template=vite" kidkazz-pos
+```
+
+**If Command Fails → Manual Setup**:
+```bash
+pnpm create vite kidkazz-pos --template react-ts
+cd kidkazz-pos
+pnpm add @base-ui/react tailwindcss-animate class-variance-authority clsx tailwind-merge lucide-react
+# Configure components.json, tailwind.config.js, src/index.css (see preset guide)
+pnpm dlx shadcn@latest add @basecn/button @basecn/card
+```
+
+**Rationale**:
+- **mira style**: Compact layouts for efficient POS interface
+- **zinc theme**: Neutral, non-distracting for fast transactions
+- **medium radius**: Touch-friendly targets for touchscreen
+- **bold menu accent**: Quick visual scanning
+- **vite template**: Fast dev, offline PWA capability
+
+---
 
 ### Component-by-Component Mapping
 
@@ -824,11 +1075,44 @@ describe('Dialog (Base UI)', () => {
 | tabs.tsx | [ ] Pending | |
 | command.tsx | [ ] Pending | Uses Dialog type |
 
-#### Future Apps (POS, E-Commerce, Mobile)
+#### ✨ New Projects (POS, E-Commerce, Mobile Apps)
 
-- Use Base UI from the start
-- Configure basecn registry in components.json
-- Follow the same component patterns
+For new projects starting with Base UI, follow this comprehensive setup checklist:
+
+**Before Starting**:
+- [ ] Review [SHADCN_PRESET_SETUP_GUIDE.md](./SHADCN_PRESET_SETUP_GUIDE.md) for complete preset templates
+- [ ] Select appropriate preset URL for app type (POS, Retail, Wholesale, Mobile)
+- [ ] Verify Base UI compatibility requirements
+- [ ] Check for latest shadcn CLI known issues (GitHub)
+
+**Setup Process**:
+- [ ] Attempt `shadcn create --preset` command with chosen preset URL
+- [ ] If create command fails (400 errors, EPERM), use manual setup fallback
+- [ ] Configure basecn registry in components.json: `"@basecn": "https://basecn.dev/r/{name}.json"`
+- [ ] Install @base-ui/react package
+- [ ] Install Base UI components from @basecn registry
+- [ ] Apply KidKazz brand colors (purple, sky blue, accent colors) to CSS variables
+- [ ] Configure fonts (Inter for admin/B2B, Nunito for retail/B2C)
+- [ ] Follow UI_DESIGN_GUIDELINE.md for typography, spacing, and component patterns
+- [ ] Test component rendering and functionality
+- [ ] Set up Tailwind CSS with correct content paths
+- [ ] Verify CSS variables are defined in globals.css
+- [ ] Test responsive design (mobile, tablet, desktop)
+- [ ] Validate accessibility (keyboard nav, screen readers, ARIA)
+- [ ] Configure ESLint + Prettier for code quality
+
+**Post-Setup Validation**:
+- [ ] Dev server runs without errors
+- [ ] All installed components render correctly
+- [ ] No console errors/warnings
+- [ ] Brand colors match UI_DESIGN_GUIDELINE.md
+- [ ] Typography hierarchy correct
+- [ ] Accessibility audit passing (WCAG 2.1 AA)
+
+**Recommended First Components**:
+```bash
+pnpm dlx shadcn@latest add @basecn/button @basecn/card @basecn/input @basecn/label @basecn/dialog @basecn/select @basecn/tabs @basecn/popover
+```
 
 ### Post-Migration
 
