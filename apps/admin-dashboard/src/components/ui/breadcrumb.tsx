@@ -64,9 +64,7 @@ function BreadcrumbLink({
   className,
   render = <a />,
   ...props
-}: React.ComponentProps<"a"> & {
-  render?: useRender.RenderProp;
-}) {
+}: useRender.ComponentProps<"a">) {
   return useRender({
     render,
     props: {

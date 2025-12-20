@@ -47,7 +47,7 @@ Successfully completed the Base UI migration for admin-dashboard, achieving **88
 - API updates:
   - Content → Popup
   - Added Positioner wrapper for proper positioning
-  - SelectItem uses ItemIndicator instead of ItemIndicator
+  - SelectItem uses ItemIndicator component to wrap selection check icon
 - Data attributes: `data-[state=open]` → `data-[popup-open]`
 
 **Component Structure**:

@@ -1060,20 +1060,21 @@ describe('Dialog (Base UI)', () => {
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| alert-dialog.tsx | [ ] Pending | |
-| avatar.tsx | [ ] Pending | |
-| button.tsx | [ ] Pending | Uses Slot for asChild |
-| breadcrumb.tsx | [ ] Pending | Uses Slot for asChild |
-| checkbox.tsx | [ ] Pending | |
-| dialog.tsx | [ ] Pending | |
-| dropdown-menu.tsx | [ ] Pending | |
-| label.tsx | [ ] Pending | |
-| popover.tsx | [ ] Pending | |
-| progress.tsx | [ ] Pending | |
-| select.tsx | [ ] Pending | |
-| separator.tsx | [ ] Pending | |
-| tabs.tsx | [ ] Pending | |
-| command.tsx | [ ] Pending | Uses Dialog type |
+| alert-dialog.tsx | [x] Complete | Migrated to Base UI |
+| avatar.tsx | [x] Complete | Migrated to Base UI |
+| button.tsx | [x] Complete | Migrated to Base UI |
+| breadcrumb.tsx | [x] Complete | Uses Base UI useRender hook |
+| checkbox.tsx | [x] Complete | Migrated to Base UI |
+| dialog.tsx | [x] Complete | Migrated to Base UI |
+| dropdown-menu.tsx | [x] Complete | Migrated to Base UI Menu |
+| label.tsx | [x] Complete | Native HTML implementation |
+| popover.tsx | [x] Complete | Migrated to Base UI |
+| progress.tsx | [x] Complete | Migrated to Base UI |
+| select.tsx | [x] Complete | Migrated to Base UI |
+| separator.tsx | [x] Complete | Migrated to Base UI |
+| tabs.tsx | [x] Complete | Migrated to Base UI |
+| command.tsx | [x] Complete | Updated to use Base UI Dialog types |
+| toast.tsx | [x] Complete | Using Sonner (shadcn recommended) |
 
 #### ✨ New Projects (POS, E-Commerce, Mobile Apps)
 

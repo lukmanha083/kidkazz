@@ -1,5 +1,5 @@
 import * as React from "react"
-import * as SelectPrimitive from "@base-ui/react/select"
+import { Select as SelectPrimitive } from "@base-ui/react/select"
 import { Check, ChevronDown } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -88,10 +88,8 @@ SelectPopup.displayName = "SelectPopup"
 // Wrapper component for easier usage (similar to old API)
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Popup>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Popup> & {
-    position?: "popper" | "item-aligned"
-  }
->(({ children, position = "popper", ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Popup>
+>(({ children, ...props }, ref) => (
   <SelectPrimitive.Portal>
     <SelectPositioner sideOffset={5}>
       <SelectPopup ref={ref} {...props}>

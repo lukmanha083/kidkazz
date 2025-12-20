@@ -5,13 +5,13 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [
-    react(),
     TanStackRouterVite({
       routesDirectory: './src/routes',
       generatedRouteTree: './src/routeTree.gen.ts',
       // Enable code splitting for routes
       autoCodeSplitting: true,
     }),
+    react(),
   ],
   resolve: {
     alias: {
