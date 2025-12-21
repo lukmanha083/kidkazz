@@ -208,7 +208,9 @@ app.delete('/:id', async (c) => {
 
   // 2. Get inventory report to check if warehouse can be deleted
   try {
-    const reportResponse = await fetch(`http://localhost:8792/api/inventory/warehouse/${id}/report`);
+    // Use relative URL for internal service call
+    const baseUrl = new URL(c.req.url).origin;
+    const reportResponse = await fetch(`${baseUrl}/api/inventory/warehouse/${id}/report`);
 
     if (reportResponse.ok) {
       const report = await reportResponse.json() as {
@@ -233,7 +235,7 @@ app.delete('/:id', async (c) => {
       }
 
       // 3. Cascade delete: Clean up inventory records (all at zero)
-      const inventoryDeleteResponse = await fetch(`http://localhost:8792/api/inventory/warehouse/${id}`, {
+      const inventoryDeleteResponse = await fetch(`${baseUrl}/api/inventory/warehouse/${id}`, {
         method: 'DELETE',
       });
 

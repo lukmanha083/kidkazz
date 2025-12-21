@@ -285,6 +285,11 @@ export class VideoService {
     const result = await response.json() as {
       result?: any;
     };
+
+    if (!result.result) {
+      throw new Error('Invalid response from Cloudflare Stream: missing result field');
+    }
+
     return result.result;
   }
 
@@ -370,6 +375,11 @@ export class VideoService {
     const result = await response.json() as {
       result?: any;
     };
+
+    if (!result.result) {
+      throw new Error('Invalid response from Cloudflare Stream: missing result field');
+    }
+
     return result.result;
   }
 }
