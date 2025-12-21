@@ -366,6 +366,9 @@ app.put('/products/:id', zValidator('json', updateProductUOMSchema), async (c) =
 });
 
 // PATCH /api/uoms/products/:id/stock - Update product UOM stock
+// NOTE: This route is deprecated after DDD Phase 4 refactoring
+// Stock is now managed by Inventory Service
+/* DEPRECATED - Commented out during DDD refactoring
 app.patch('/products/:id/stock', zValidator('json', z.object({
   stock: z.number(),
 })), async (c) => {
@@ -405,6 +408,7 @@ app.patch('/products/:id/stock', zValidator('json', z.object({
 
   return c.json({ message: 'Stock updated successfully' });
 });
+*/
 
 // DELETE /api/uoms/products/:id - Remove UOM from product
 app.delete('/products/:id', async (c) => {
@@ -622,6 +626,9 @@ app.put('/locations/:id', zValidator('json', updateProductUOMLocationSchema), as
 });
 
 // PATCH /api/uoms/locations/:id/quantity - Update product UOM location quantity
+// NOTE: This route is deprecated after DDD Phase 4 refactoring
+// Stock/quantity is now managed by Inventory Service
+/* DEPRECATED - Commented out during DDD refactoring
 app.patch('/locations/:id/quantity', zValidator('json', z.object({ quantity: z.number().int().min(0) })), async (c) => {
   const id = c.req.param('id');
   const { quantity } = c.req.valid('json');
@@ -675,6 +682,7 @@ app.patch('/locations/:id/quantity', zValidator('json', z.object({ quantity: z.n
 
   return c.json({ message: 'Quantity updated successfully' });
 });
+*/
 
 // DELETE /api/uoms/locations/:id - Delete product UOM location
 app.delete('/locations/:id', async (c) => {
