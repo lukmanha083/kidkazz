@@ -39,14 +39,20 @@ const app = new Hono<{ Bindings: Bindings }>();
 app.post('/upload', async (c) => {
   try {
     const formData = await c.req.formData();
-    const file = formData.get('file') as File;
+    const fileField = formData.get('file');
+
+    if (!fileField || typeof fileField === 'string') {
+      return c.json({ error: 'Invalid file upload' }, 400);
+    }
+
+    const file = fileField as File;
     const productId = formData.get('productId') as string;
     const mode = formData.get('mode') as 'stream' | 'r2' | null;
     const isPrimaryStr = formData.get('isPrimary') as string | null;
     const sortOrderStr = formData.get('sortOrder') as string | null;
 
     // Validation
-    if (!file) {
+    if (!productId) {
       return c.json({ error: 'No video file provided' }, 400);
     }
 

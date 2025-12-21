@@ -208,33 +208,42 @@ app.delete('/:id', async (c) => {
 
   // 2. Get inventory report to check if warehouse can be deleted
   try {
-    const reportResponse = await fetch(`http://localhost:${c.env.PORT || 8792}/api/inventory/warehouse/${id}/report`);
+    // Use relative URL for internal service call
+    const baseUrl = new URL(c.req.url).origin;
+    const reportResponse = await fetch(`${baseUrl}/api/inventory/warehouse/${id}/report`);
 
     if (reportResponse.ok) {
-      const report = await reportResponse.json();
+      const report = await reportResponse.json() as {
+        canDelete?: boolean;
+        totalStock?: number;
+        productCount?: number;
+        products?: any[];
+      };
 
       // Validate that all stock is zero
-      if (!report.canDelete || report.totalStock > 0) {
+      if (!report.canDelete || (report.totalStock && report.totalStock > 0)) {
         return c.json({
           error: `Cannot delete warehouse "${warehouse.name}" (${warehouse.code})`,
           reason: 'Warehouse contains inventory',
           details: {
-            totalStock: report.totalStock,
-            productCount: report.productCount,
+            totalStock: report.totalStock || 0,
+            productCount: report.productCount || 0,
             suggestion: 'Transfer all inventory to another warehouse before deletion',
           },
-          products: report.products,
+          products: report.products || [],
         }, 400);
       }
 
       // 3. Cascade delete: Clean up inventory records (all at zero)
-      const inventoryDeleteResponse = await fetch(`http://localhost:${c.env.PORT || 8792}/api/inventory/warehouse/${id}`, {
+      const inventoryDeleteResponse = await fetch(`${baseUrl}/api/inventory/warehouse/${id}`, {
         method: 'DELETE',
       });
 
       let deletedInventoryRecords = 0;
       if (inventoryDeleteResponse.ok) {
-        const inventoryResult = await inventoryDeleteResponse.json();
+        const inventoryResult = await inventoryDeleteResponse.json() as {
+          deletedInventoryRecords?: number;
+        };
         deletedInventoryRecords = inventoryResult.deletedInventoryRecords || 0;
         console.log(`✅ Deleted ${deletedInventoryRecords} inventory records for warehouse ${id}`);
       }
@@ -249,7 +258,9 @@ app.delete('/:id', async (c) => {
         );
 
         if (productLocationsResponse.ok) {
-          const locationResult = await productLocationsResponse.json();
+          const locationResult = await productLocationsResponse.json() as {
+            deletedLocations?: number;
+          };
           deletedProductLocations = locationResult.deletedLocations || 0;
           console.log(`✅ Deleted ${deletedProductLocations} product locations for warehouse ${id}`);
         }

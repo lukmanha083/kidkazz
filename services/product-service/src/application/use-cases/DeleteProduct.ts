@@ -193,6 +193,9 @@ export class DeleteProductUseCase {
 
     // In a real implementation, these would be actual queries
     // For now, returning structure for demonstration
+    const customPricingRecords: any[] = []; // TODO: Implement actual query
+    const activeBundlesWithProduct: any[] = []; // TODO: Implement actual query
+
     return {
       productName: product.name,
       productSKU: product.sku,

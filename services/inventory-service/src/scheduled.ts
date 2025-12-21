@@ -123,8 +123,11 @@ export async function scheduledHealthReport(env: Bindings): Promise<void> {
     // Get inventory stats
     const inventoryResponse = await fetch('http://localhost:8792/api/cleanup/orphaned-inventory/check');
     if (inventoryResponse.ok) {
-      const data = await inventoryResponse.json();
-      report.checks.orphanedInventory = data.totalOrphaned;
+      const data = await inventoryResponse.json() as {
+        totalOrphaned?: number;
+        summary?: { totalInventoryRecords?: number };
+      };
+      report.checks.orphanedInventory = data.totalOrphaned || 0;
       report.checks.totalInventoryRecords = data.summary?.totalInventoryRecords || 0;
     }
 
@@ -134,8 +137,10 @@ export async function scheduledHealthReport(env: Bindings): Promise<void> {
         new Request('http://product-service/api/cleanup/orphaned-locations/check')
       );
       if (locationResponse.ok) {
-        const data = await locationResponse.json();
-        report.checks.orphanedLocations = data.totalOrphaned;
+        const data = await locationResponse.json() as {
+          totalOrphaned?: number;
+        };
+        report.checks.orphanedLocations = data.totalOrphaned || 0;
       }
     } catch (error) {
       console.error('Failed to get location stats:', error);

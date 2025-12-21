@@ -282,7 +282,14 @@ export class VideoService {
       throw new Error('Failed to upload to Cloudflare Stream');
     }
 
-    const result = await response.json();
+    const result = await response.json() as {
+      result?: any;
+    };
+
+    if (!result.result) {
+      throw new Error('Invalid response from Cloudflare Stream: missing result field');
+    }
+
     return result.result;
   }
 
@@ -365,7 +372,14 @@ export class VideoService {
       throw new Error('Failed to get Stream metadata');
     }
 
-    const result = await response.json();
+    const result = await response.json() as {
+      result?: any;
+    };
+
+    if (!result.result) {
+      throw new Error('Invalid response from Cloudflare Stream: missing result field');
+    }
+
     return result.result;
   }
 }

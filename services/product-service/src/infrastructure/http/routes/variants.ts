@@ -113,6 +113,9 @@ app.put('/:id', zValidator('json', updateVariantSchema), async (c) => {
 });
 
 // PATCH /api/variants/:id/stock - Update variant stock
+// NOTE: This route is deprecated after DDD Phase 4 refactoring
+// Stock is now managed by Inventory Service
+/* DEPRECATED - Commented out during DDD refactoring
 app.patch('/:id/stock', zValidator('json', z.object({
   stock: z.number(),
 })), async (c) => {
@@ -128,6 +131,7 @@ app.patch('/:id/stock', zValidator('json', z.object({
 
   return c.json({ message: 'Stock updated successfully' });
 });
+*/
 
 // DELETE /api/variants/:id - Delete variant
 app.delete('/:id', async (c) => {

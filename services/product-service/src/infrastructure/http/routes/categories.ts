@@ -29,11 +29,13 @@ async function getCategoriesWithParentNames(db: any) {
   // Get all categories
   const allCategories = await db.select().from(categories).all();
 
+  type Category = typeof categories.$inferSelect;
+
   // Create a map for quick parent lookup
-  const categoryMap = new Map(allCategories.map(cat => [cat.id, cat]));
+  const categoryMap = new Map<string, Category>(allCategories.map((cat: Category) => [cat.id, cat]));
 
   // Add parentCategoryName to each category
-  return allCategories.map(cat => ({
+  return allCategories.map((cat: Category) => ({
     ...cat,
     parentCategoryName: cat.parentId ? categoryMap.get(cat.parentId)?.name || null : null,
   }));
@@ -61,8 +63,8 @@ async function wouldCreateCircularReference(db: any, categoryId: string, newPare
   // This prevents circular references in 2-level hierarchy
   const allCategories = await db.select().from(categories).all();
   const childrenIds = allCategories
-    .filter(cat => cat.parentId === categoryId)
-    .map(cat => cat.id);
+    .filter((cat: typeof categories.$inferSelect) => cat.parentId === categoryId)
+    .map((cat: typeof categories.$inferSelect) => cat.id);
 
   return childrenIds.includes(newParentId);
 }

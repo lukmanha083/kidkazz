@@ -135,7 +135,11 @@ app.get('/:id/available-stock', async (c) => {
       const invResponse = await c.env.INVENTORY_SERVICE.fetch(new Request(stockUrl));
 
       if (invResponse.ok) {
-        const invData = await invResponse.json();
+        const invData = await invResponse.json() as {
+          quantityAvailable?: number;
+          totalAvailable?: number;
+          totalStock?: number;
+        };
 
         // Extract available quantity based on response type
         const availableQty = warehouseId
@@ -354,6 +358,10 @@ app.put('/:id/items', zValidator('json', z.object({
 });
 
 // PATCH /api/bundles/:id/stock - Update bundle stock
+// NOTE: This route is deprecated after DDD Phase 4 refactoring
+// Virtual bundles no longer have their own stock - stock is calculated from components
+// Physical bundles (Phase 8) will have stock in Inventory Service
+/* DEPRECATED - Commented out during DDD refactoring
 app.patch('/:id/stock', zValidator('json', z.object({
   availableStock: z.number().int().min(0),
 })), async (c) => {
@@ -369,6 +377,7 @@ app.patch('/:id/stock', zValidator('json', z.object({
 
   return c.json({ message: 'Stock updated successfully' });
 });
+*/
 
 // DELETE /api/bundles/:id - Delete bundle
 app.delete('/:id', async (c) => {
