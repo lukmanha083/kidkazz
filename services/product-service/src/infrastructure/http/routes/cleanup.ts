@@ -38,8 +38,10 @@ app.post('/orphaned-locations', async (c) => {
       );
     }
 
-    const warehouseData = await warehouseResponse.json();
-    const activeWarehouseIds = warehouseData.warehouses.map((w: any) => w.id);
+    const warehouseData = await warehouseResponse.json() as {
+      warehouses: Array<{ id: string; [key: string]: any }>;
+    };
+    const activeWarehouseIds = warehouseData.warehouses.map((w) => w.id);
 
     if (activeWarehouseIds.length === 0) {
       return c.json({
@@ -173,8 +175,10 @@ app.get('/orphaned-locations/check', async (c) => {
       );
     }
 
-    const warehouseData = await warehouseResponse.json();
-    const activeWarehouseIds = warehouseData.warehouses.map((w: any) => w.id);
+    const warehouseData = await warehouseResponse.json() as {
+      warehouses: Array<{ id: string; [key: string]: any }>;
+    };
+    const activeWarehouseIds = warehouseData.warehouses.map((w) => w.id);
 
     // Check productLocations
     const allProductLocations = await db
@@ -188,7 +192,7 @@ app.get('/orphaned-locations/check', async (c) => {
           id: location.id,
           productId: location.productId,
           warehouseId: location.warehouseId,
-          quantity: location.quantity,
+          // Note: quantity field removed in DDD Phase 4 - stock now in Inventory Service
         });
       }
     }
@@ -205,7 +209,7 @@ app.get('/orphaned-locations/check', async (c) => {
           id: location.id,
           productUOMId: location.productUOMId,
           warehouseId: location.warehouseId,
-          quantity: location.quantity,
+          // Note: quantity field removed in DDD Phase 4 - stock now in Inventory Service
         });
       }
     }
@@ -222,7 +226,7 @@ app.get('/orphaned-locations/check', async (c) => {
           id: location.id,
           variantId: location.variantId,
           warehouseId: location.warehouseId,
-          quantity: location.quantity,
+          // Note: quantity field removed in DDD Phase 4 - stock now in Inventory Service
         });
       }
     }

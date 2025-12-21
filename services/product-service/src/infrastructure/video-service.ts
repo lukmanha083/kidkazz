@@ -282,7 +282,9 @@ export class VideoService {
       throw new Error('Failed to upload to Cloudflare Stream');
     }
 
-    const result = await response.json();
+    const result = await response.json() as {
+      result?: any;
+    };
     return result.result;
   }
 
@@ -365,7 +367,9 @@ export class VideoService {
       throw new Error('Failed to get Stream metadata');
     }
 
-    const result = await response.json();
+    const result = await response.json() as {
+      result?: any;
+    };
     return result.result;
   }
 }

@@ -380,6 +380,9 @@ app.patch('/:id/price', zValidator('json', z.object({
 });
 
 // PATCH /api/products/:id/stock - Update product stock
+// NOTE: This route is deprecated after DDD Phase 4 refactoring
+// Stock is now managed by Inventory Service - use /api/inventory endpoints instead
+/* DEPRECATED - Commented out during DDD refactoring
 app.patch('/:id/stock', zValidator('json', z.object({
   stock: z.number(),
 })), async (c) => {
@@ -405,8 +408,12 @@ app.patch('/:id/stock', zValidator('json', z.object({
 
   return c.json({ message: 'Stock updated successfully' });
 });
+*/
 
 // POST /api/products/:id/deduct-sale - Deduct stock for sales order
+// NOTE: This route is deprecated after DDD Phase 4 refactoring
+// Stock deduction is now handled by Inventory Service - use /api/inventory/adjust instead
+/* DEPRECATED - Commented out during DDD refactoring
 // This endpoint handles UOM-based sales and updates all related tables atomically
 app.post('/:id/deduct-sale', zValidator('json', z.object({
   uomCode: z.string(), // e.g., 'PCS', 'BOX6', 'CARTON18'
@@ -583,8 +590,12 @@ app.post('/:id/deduct-sale', zValidator('json', z.object({
     }, 500);
   }
 });
+*/
 
 // GET /api/products/:id/uom-warehouse-stock - Get UOM stock breakdown by warehouse
+// NOTE: This route is deprecated after DDD Phase 4 refactoring
+// Stock information is now in Inventory Service - use /api/inventory endpoints instead
+/* DEPRECATED - Commented out during DDD refactoring
 app.get('/:id/uom-warehouse-stock', async (c) => {
   const productId = c.req.param('id');
   const db = drizzle(c.env.DB);
@@ -656,8 +667,12 @@ app.get('/:id/uom-warehouse-stock', async (c) => {
     })),
   });
 });
+*/
 
 // POST /api/products/:id/validate-stock-consistency - Validate stock consistency per warehouse
+// NOTE: This route is deprecated after DDD Phase 4 refactoring
+// Stock validation is now handled by Inventory Service
+/* DEPRECATED - Commented out during DDD refactoring
 // Validates that for EACH warehouse, product_locations stock matches product_uom_locations stock (in base units)
 // This is the new per-warehouse validation approach (not global validation)
 app.post('/:id/validate-stock-consistency', async (c) => {
@@ -786,6 +801,7 @@ app.post('/:id/validate-stock-consistency', async (c) => {
     }
   });
 });
+*/
 
 // DELETE /api/products/:id - Delete product with validation
 app.delete('/:id', async (c) => {
@@ -811,9 +827,11 @@ app.delete('/:id', async (c) => {
     );
 
     if (inventoryResponse.ok) {
-      const inventoryData = await inventoryResponse.json();
+      const inventoryData = await inventoryResponse.json() as {
+        inventory?: Array<{ quantityAvailable?: number; [key: string]: any }>;
+      };
       const totalStock = inventoryData.inventory?.reduce(
-        (sum: number, inv: any) => sum + (inv.quantityAvailable || 0),
+        (sum: number, inv) => sum + (inv.quantityAvailable || 0),
         0
       ) || 0;
 
@@ -845,6 +863,9 @@ app.delete('/:id', async (c) => {
   }
 
   // 2. Check product locations for non-zero quantities
+  // NOTE: After DDD Phase 4, quantity field removed from productLocations
+  // Stock validation is now done via Inventory Service (see check above)
+  /* DEPRECATED - Commented out during DDD refactoring
   // CRITICAL: Even if inventory records don't exist (due to sync failures),
   // we must prevent deletion if product locations have stock allocated
   const locations = await db
@@ -876,6 +897,7 @@ app.delete('/:id', async (c) => {
       400
     );
   }
+  */
 
   // 3. Delete product (CASCADE will handle dependent data)
   // This will cascade to:
@@ -901,7 +923,9 @@ app.delete('/:id', async (c) => {
     );
 
     if (deleteResponse.ok) {
-      const deleteResult = await deleteResponse.json();
+      const deleteResult = await deleteResponse.json() as {
+        deletedInventoryRecords?: number;
+      };
       inventoryDeleted = true;
       inventoryDeletedCount = deleteResult.deletedInventoryRecords || 0;
       console.log(`Deleted ${inventoryDeletedCount} inventory records for product ${id}`);
@@ -915,7 +939,7 @@ app.delete('/:id', async (c) => {
 
   return c.json({
     message: 'Product deleted successfully',
-    deletedLocations: locations.length,
+    // deletedLocations removed - was part of deprecated stock validation
     deletedInventoryRecords: inventoryDeletedCount,
     inventoryCleaned: inventoryDeleted,
   });

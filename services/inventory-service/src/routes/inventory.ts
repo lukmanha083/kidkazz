@@ -530,7 +530,10 @@ app.get('/warehouse/:warehouseId/report', async (c) => {
         );
 
         if (productResponse.ok) {
-          const product = await productResponse.json();
+          const product = await productResponse.json() as {
+            name?: string;
+            sku?: string;
+          };
           return {
             productId: inv.productId,
             productName: product.name || 'Unknown',
