@@ -80,7 +80,7 @@ export function ProductUOMManagementSection({
 			uomName: uom.name,
 			barcode: uomManagement.uomBarcode,
 			conversionFactor: uom.conversionFactor,
-			stock: parseInt(uomManagement.uomStock),
+			stock: parseInt(uomManagement.uomStock, 10),
 			isDefault: false,
 			createdAt: new Date(),
 			updatedAt: new Date(),

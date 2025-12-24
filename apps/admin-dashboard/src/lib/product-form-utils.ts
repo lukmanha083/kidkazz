@@ -89,7 +89,7 @@ export function buildProductPayload(formValues: ProductFormData): CreateProductI
 		description: formValues.description || undefined,
 		categoryId: formValues.categoryId || undefined,
 		price: formValues.price,
-		stock: 0, // Deprecated: Stock is now managed via Product Locations (Inventory Service)
+		// NOTE: stock REMOVED - managed via Product Locations (Inventory Service - DDD)
 		baseUnit: formValues.baseUnit,
 		wholesaleThreshold: formValues.wholesaleThreshold,
 		// NOTE: minimumStock REMOVED - stock management is handled by Inventory Service (DDD)
@@ -190,6 +190,11 @@ export async function syncProductUOMsEdit(
 
 /**
  * Create UOM warehouse locations for new product
+ *
+ * DDD COMPLIANCE: Product Locations are quantity-less
+ * - Product Service manages physical locations (rack, bin, zone, aisle) ONLY
+ * - Inventory Service manages stock quantities (single source of truth)
+ * - Quantities from UI should be sent to Inventory API separately
  */
 export async function createUOMWarehouseLocations(
 	uomCodeMap: Map<string, string>,
@@ -203,6 +208,7 @@ export async function createUOMWarehouseLocations(
 			const allocations = uomWarehouseAllocations[tempId];
 			for (const allocation of allocations) {
 				try {
+					// DDD: Product Location API only manages physical location (no quantity)
 					await productUOMLocationApi.create({
 						productUOMId: createdUOM.id,
 						warehouseId: allocation.warehouseId,
@@ -210,8 +216,18 @@ export async function createUOMWarehouseLocations(
 						bin: allocation.bin || null,
 						zone: allocation.zone || null,
 						aisle: allocation.aisle || null,
-						quantity: allocation.quantity,
+						// NOTE: quantity removed - managed by Inventory Service
 					});
+
+					// TODO: Send allocation.quantity to Inventory Service
+					// await inventoryApi.adjustStock({
+					//   productId: createdUOM.productId,
+					//   productUOMId: createdUOM.id,
+					//   warehouseId: allocation.warehouseId,
+					//   quantity: allocation.quantity,
+					//   source: 'warehouse',
+					//   reason: 'Initial stock allocation'
+					// });
 				} catch (locationError) {
 					console.error(
 						"Failed to create UOM warehouse location:",
@@ -225,6 +241,10 @@ export async function createUOMWarehouseLocations(
 
 /**
  * Sync UOM warehouse locations for existing product
+ *
+ * DDD COMPLIANCE: Product Locations are quantity-less
+ * - Only manages physical location attributes (rack, bin, zone, aisle)
+ * - Stock quantities should be synced via Inventory Service separately
  */
 export async function syncUOMWarehouseLocations(
 	productId: string,
@@ -265,9 +285,10 @@ export async function syncUOMWarehouseLocations(
 					}
 				}
 
-				// Create new locations
+				// Create new locations (physical location only)
 				for (const allocation of newAllocations) {
 					try {
+						// DDD: Product Location API only manages physical location (no quantity)
 						await productUOMLocationApi.create({
 							productUOMId: currentUOM.id,
 							warehouseId: allocation.warehouseId,
@@ -275,8 +296,18 @@ export async function syncUOMWarehouseLocations(
 							bin: allocation.bin || null,
 							zone: allocation.zone || null,
 							aisle: allocation.aisle || null,
-							quantity: allocation.quantity,
+							// NOTE: quantity removed - managed by Inventory Service
 						});
+
+						// TODO: Sync allocation.quantity to Inventory Service
+						// await inventoryApi.adjustStock({
+						//   productId,
+						//   productUOMId: currentUOM.id,
+						//   warehouseId: allocation.warehouseId,
+						//   quantity: allocation.quantity,
+						//   source: 'warehouse',
+						//   reason: 'Stock sync from location update'
+						// });
 					} catch (createError) {
 						console.error(
 							"Failed to create UOM location:",
@@ -291,6 +322,11 @@ export async function syncUOMWarehouseLocations(
 
 /**
  * Create product warehouse locations for new product
+ *
+ * DDD COMPLIANCE: Product Locations are quantity-less
+ * - Product Service manages physical locations (rack, bin, zone, aisle) ONLY
+ * - Inventory Service manages stock quantities (single source of truth)
+ * - Quantities from UI should be sent to Inventory API separately
  */
 export async function createProductWarehouseLocations(
 	productId: string,
@@ -298,6 +334,7 @@ export async function createProductWarehouseLocations(
 	productLocationApi: any,
 ): Promise<void> {
 	for (const allocation of warehouseAllocations) {
+		// DDD: Product Location API only manages physical location (no quantity)
 		await productLocationApi.create({
 			productId,
 			warehouseId: allocation.warehouseId,
@@ -305,13 +342,26 @@ export async function createProductWarehouseLocations(
 			bin: allocation.bin || null,
 			zone: allocation.zone || null,
 			aisle: allocation.aisle || null,
-			quantity: allocation.quantity,
+			// NOTE: quantity removed - managed by Inventory Service
 		});
+
+		// TODO: Send allocation.quantity to Inventory Service
+		// await inventoryApi.adjustStock({
+		//   productId,
+		//   warehouseId: allocation.warehouseId,
+		//   quantity: allocation.quantity,
+		//   source: 'warehouse',
+		//   reason: 'Initial stock allocation'
+		// });
 	}
 }
 
 /**
  * Sync product warehouse locations for existing product
+ *
+ * DDD COMPLIANCE: Product Locations are quantity-less
+ * - Only manages physical location attributes (rack, bin, zone, aisle)
+ * - Stock quantities should be synced via Inventory Service separately
  */
 export async function syncProductWarehouseLocations(
 	productId: string,
@@ -326,16 +376,16 @@ export async function syncProductWarehouseLocations(
 		);
 
 		if (existingLocation) {
-			// Update existing location
+			// DDD: Update physical location only (no quantity)
 			await productLocationApi.update(existingLocation.id, {
 				rack: allocation.rack || null,
 				bin: allocation.bin || null,
 				zone: allocation.zone || null,
 				aisle: allocation.aisle || null,
-				quantity: allocation.quantity,
+				// NOTE: quantity removed - managed by Inventory Service
 			});
 		} else {
-			// Create new location
+			// DDD: Create physical location only (no quantity)
 			await productLocationApi.create({
 				productId,
 				warehouseId: allocation.warehouseId,
@@ -343,9 +393,18 @@ export async function syncProductWarehouseLocations(
 				bin: allocation.bin || null,
 				zone: allocation.zone || null,
 				aisle: allocation.aisle || null,
-				quantity: allocation.quantity,
+				// NOTE: quantity removed - managed by Inventory Service
 			});
 		}
+
+		// TODO: Sync allocation.quantity to Inventory Service
+		// await inventoryApi.adjustStock({
+		//   productId,
+		//   warehouseId: allocation.warehouseId,
+		//   quantity: allocation.quantity,
+		//   source: 'warehouse',
+		//   reason: 'Stock sync from location update'
+		// });
 	}
 
 	// Delete removed locations
