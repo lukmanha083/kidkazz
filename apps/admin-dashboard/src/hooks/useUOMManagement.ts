@@ -12,15 +12,16 @@ export interface ProductUOMWithStock extends ProductUOM {
 }
 
 /**
- * Custom hook for managing Product UOM state
+ * Manage product UOMs, related form inputs, warehouse allocations, and stock calculations for a product.
  *
- * Handles:
- * - UOM list state
- * - UOM form input state (selected UOM, barcode, stock)
- * - UOM warehouse allocations (nested state)
- * - Stock calculations (allocated vs remaining)
+ * Exposes state for UOMs and form fields, setters for direct state updates, actions to add/remove/toggle/set defaults
+ * and update allocations, and utilities to compute allocated and remaining stock in PCS.
  *
- * NOTE: Uses ProductUOMWithStock temporarily - will be refactored in Phase 3
+ * @returns An object containing:
+ * - `productUOMs`, `selectedUOM`, `uomBarcode`, `uomStock`, `uomWarehouseAllocations` (state)
+ * - `setProductUOMs`, `setSelectedUOM`, `setUomBarcode`, `setUomStock`, `setUomWarehouseAllocations` (setters)
+ * - `addUOM`, `removeUOM`, `setDefaultUOM`, `toggleDefaultUOM`, `updateUOMAllocations`, `resetUOMInputs`, `resetAll` (actions)
+ * - `calculateAllocatedPCS`, `getRemainingPCS`, `hasUOM` (utility functions)
  */
 export function useUOMManagement() {
 	// UOM list state

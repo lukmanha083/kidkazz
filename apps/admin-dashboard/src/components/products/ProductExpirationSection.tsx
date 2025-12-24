@@ -7,6 +7,17 @@ interface ProductExpirationSectionProps {
 	form: SimpleFormApi<ProductFormData>;
 }
 
+/**
+ * Render the product expiration and alert configuration section.
+ *
+ * Renders a two-column UI with controlled date fields for `alertDate` and
+ * `expirationDate`. Selected dates are written to the provided form as ISO
+ * `YYYY-MM-DD` strings (or `null` when cleared) and field validation errors
+ * are shown inline.
+ *
+ * @param form - Form API used to bind and update `alertDate` and `expirationDate`
+ * @returns A React element containing the expiration and alert date fields
+ */
 export function ProductExpirationSection({ form }: ProductExpirationSectionProps) {
 	return (
 		<div className="space-y-4 border rounded-lg p-4 bg-muted/20">

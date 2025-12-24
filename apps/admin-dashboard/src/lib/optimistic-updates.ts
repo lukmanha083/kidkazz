@@ -16,11 +16,12 @@
 import { QueryClient } from '@tanstack/react-query';
 
 /**
- * Optimistically add a new item to the cache
- * @param queryClient - TanStack Query client instance
- * @param queryKey - Query key to update
- * @param newItem - New item to add
- * @returns Rollback function to restore previous state
+ * Adds a new item to the query cache optimistically.
+ *
+ * @param queryClient - TanStack Query client used to read and write cache data
+ * @param queryKey - Key identifying the cached array to update
+ * @param newItem - Item to append to the cached array
+ * @returns An object with a `rollback` method that restores the previous cached array if one was present
  */
 export function optimisticCreate<T extends { id: string }>(
 	queryClient: QueryClient,
@@ -43,12 +44,12 @@ export function optimisticCreate<T extends { id: string }>(
 }
 
 /**
- * Optimistically update an existing item in the cache
- * @param queryClient - TanStack Query client instance
- * @param queryKey - Query key to update
- * @param id - ID of the item to update
- * @param updates - Partial updates to apply
- * @returns Rollback function to restore previous state
+ * Apply a partial update to the cached item with the given id for the specified query key.
+ *
+ * @param queryKey - Query key identifying the cached array to update.
+ * @param id - The id of the item to update.
+ * @param updates - Fields to merge into the matched item.
+ * @returns An object with `rollback()` that restores the previous cached array if one was present.
  */
 export function optimisticUpdate<T extends { id: string }>(
 	queryClient: QueryClient,
@@ -74,11 +75,11 @@ export function optimisticUpdate<T extends { id: string }>(
 }
 
 /**
- * Optimistically delete an item from the cache
- * @param queryClient - TanStack Query client instance
- * @param queryKey - Query key to update
- * @param id - ID of the item to delete
- * @returns Rollback function to restore previous state
+ * Remove the item with the given `id` from the cached array at `queryKey`.
+ *
+ * @param queryKey - The query key identifying the cached array to update
+ * @param id - ID of the item to remove from the cache
+ * @returns An object with `rollback()` that restores the previous cached array if it existed
  */
 export function optimisticDelete<T extends { id: string }>(
 	queryClient: QueryClient,
@@ -101,11 +102,13 @@ export function optimisticDelete<T extends { id: string }>(
 }
 
 /**
- * Optimistically add multiple items to the cache
- * @param queryClient - TanStack Query client instance
- * @param queryKey - Query key to update
- * @param newItems - Array of new items to add
- * @returns Rollback function to restore previous state
+ * Add multiple items to the cached array for the specified query key and provide a rollback to restore the prior cache state.
+ *
+ * Captures the previous array stored under `queryKey`, appends `newItems` to the cache, and returns an object whose `rollback()` restores the captured previous array if it existed.
+ *
+ * @param queryKey - The query key identifying the cached array to update
+ * @param newItems - Items to append to the cached array
+ * @returns An object with a `rollback()` method that restores the previous cached array value if one was captured
  */
 export function optimisticBatchCreate<T extends { id: string }>(
 	queryClient: QueryClient,
@@ -129,11 +132,12 @@ export function optimisticBatchCreate<T extends { id: string }>(
 }
 
 /**
- * Optimistically update multiple items in the cache
- * @param queryClient - TanStack Query client instance
- * @param queryKey - Query key to update
- * @param updates - Map of item IDs to their updates
- * @returns Rollback function to restore previous state
+ * Apply multiple per-id partial updates to the array cached under the provided query key.
+ *
+ * Captures the current cached array, merges each provided partial update into the item with the matching `id`, and returns a rollback helper that restores the captured array if it existed.
+ *
+ * @param updates - Map from item `id` to the partial fields to merge into the matching item
+ * @returns An object with `rollback()` that restores the previous cached array if it was present
  */
 export function optimisticBatchUpdate<T extends { id: string }>(
 	queryClient: QueryClient,
@@ -158,11 +162,12 @@ export function optimisticBatchUpdate<T extends { id: string }>(
 }
 
 /**
- * Optimistically delete multiple items from the cache
- * @param queryClient - TanStack Query client instance
- * @param queryKey - Query key to update
- * @param ids - Array of item IDs to delete
- * @returns Rollback function to restore previous state
+ * Remove multiple items with the given IDs from the cached array for the specified query key, performing the change optimistically.
+ *
+ * @param queryClient - TanStack Query client whose cache will be modified
+ * @param queryKey - Query key identifying the cached array to update
+ * @param ids - IDs of items to remove from the cached array
+ * @returns An object with `rollback()` that restores the previous cached array if it was present
  */
 export function optimisticBatchDelete<T extends { id: string }>(
 	queryClient: QueryClient,

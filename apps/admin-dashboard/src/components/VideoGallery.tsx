@@ -90,6 +90,18 @@ interface VideoGalleryProps {
   readOnly?: boolean; // New: Read-only mode disables upload/delete actions
 }
 
+/**
+ * Renders a video management UI for a product, including upload, preview, and delete flows.
+ *
+ * Renders the gallery of existing videos for the given product and, unless `readOnly` is true,
+ * provides controls to upload new videos (R2 or Stream), drag-and-drop support, and delete videos.
+ *
+ * @param productId - The product identifier whose videos are shown and managed
+ * @param maxVideos - Maximum number of videos allowed for the product (default: 5)
+ * @param defaultMode - Initial upload/storage mode, either `'r2'` or `'stream'` (default: 'r2')
+ * @param readOnly - When true, disables upload and delete actions and renders a view-only gallery
+ * @returns The VideoGallery React element
+ */
 export function VideoGallery({
   productId,
   maxVideos = 5,

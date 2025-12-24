@@ -10,6 +10,17 @@ export const Route = createFileRoute('/dashboard/products/')({
   component: ProductsReportPage,
 });
 
+/**
+ * Render the Product Reports dashboard that summarizes products, aggregated inventory,
+ * stock alerts, expirations, top-performing products, and category breakdowns.
+ *
+ * The component fetches products, categories, and inventory, aggregates stock by product
+ * (inventory is treated as the single source of truth), and derives statistics and
+ * lists used throughout the UI (total/active/inactive counts, total inventory value,
+ * low/critical stock, expiring/expired products, top sellers, and per-category metrics).
+ *
+ * @returns The JSX element for the Product Reports dashboard.
+ */
 function ProductsReportPage() {
   // Rupiah currency formatter
   const formatRupiah = (amount: number): string => {

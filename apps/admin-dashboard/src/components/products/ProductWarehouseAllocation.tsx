@@ -42,6 +42,20 @@ interface ProductWarehouseAllocationProps {
   readOnly?: boolean;
 }
 
+/**
+ * Renders a UI for viewing and editing product stock allocations across warehouses.
+ *
+ * Displays a stock summary, a list (or empty state) of allocations, and an add/edit dialog that
+ * lets users allocate quantities to individual warehouses. In read-only mode the component
+ * shows allocation data without any controls for modification.
+ *
+ * @param warehouses - Available warehouses used to populate selection options and derive names
+ * @param allocations - Current list of warehouse allocations (each includes `warehouseId` and `quantity`; `warehouseName` may be present)
+ * @param onAllocationsChange - Callback invoked with the updated allocations array after add/edit/delete actions
+ * @param totalStock - Optional total stock value used to validate and display remaining/over- or under-allocation
+ * @param readOnly - When true, disables add/edit/delete actions and renders allocations as a non-editable view (default: false)
+ * @returns The component UI for managing warehouse allocations
+ */
 export function ProductWarehouseAllocation({
   warehouses,
   allocations,
