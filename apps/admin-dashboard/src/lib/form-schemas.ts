@@ -65,7 +65,61 @@ export const productFormSchema = z.object({
   zone: z.string().optional().default(''),
   aisle: z.string().optional().default(''),
   // NOTE: NO stock fields - stock is managed via Inventory Service
-});
+})
+// Phase 4: Business Rule 1 - Wholesale price required when available for wholesale
+.refine(
+  (data) => {
+    if (data.availableForWholesale && !data.wholesalePrice) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: 'Wholesale price is required when product is available for wholesale',
+    path: ['wholesalePrice'],
+  }
+)
+// Phase 4: Business Rule 2 - Wholesale price must be less than or equal to retail price
+.refine(
+  (data) => {
+    if (data.wholesalePrice && data.retailPrice && data.wholesalePrice > data.retailPrice) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: 'Wholesale price must be less than or equal to retail price',
+    path: ['wholesalePrice'],
+  }
+)
+// Phase 4: Business Rule 3 - Wholesale threshold must be greater than minimum order quantity
+.refine(
+  (data) => {
+    if (data.availableForWholesale && data.wholesaleThreshold <= data.minimumOrderQuantity) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: 'Wholesale threshold must be greater than minimum order quantity',
+    path: ['wholesaleThreshold'],
+  }
+)
+// Phase 4: Date Validation - Alert date must be before expiration date
+.refine(
+  (data) => {
+    if (data.alertDate && data.expirationDate) {
+      const alertDate = new Date(data.alertDate);
+      const expirationDate = new Date(data.expirationDate);
+      return alertDate < expirationDate;
+    }
+    return true;
+  },
+  {
+    message: 'Alert date must be before expiration date',
+    path: ['alertDate'],
+  }
+);
 
 export type ProductFormData = z.infer<typeof productFormSchema>;
 
