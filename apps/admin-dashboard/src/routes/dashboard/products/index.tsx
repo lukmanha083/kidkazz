@@ -76,7 +76,8 @@ function ProductsReportPage() {
   // Calculate statistics from real data (Phase 2B: Using Inventory Service data)
   const productStats = {
     totalProducts: products.length,
-    activeProducts: products.filter(p => p.status === 'active').length,
+    // Phase 3: Updated to match ProductStatus enum (online sales, offline sales, omnichannel sales are "active")
+    activeProducts: products.filter(p => ['online sales', 'offline sales', 'omnichannel sales'].includes(p.status)).length,
     inactiveProducts: products.filter(p => p.status === 'inactive').length + products.filter(p => p.status === 'discontinued').length,
     totalValue: products.reduce((sum, p) => sum + (p.price * getProductStock(p.id)), 0),
     // Use custom minimumStock if set, otherwise default to 50 for low stock and 20 for out of stock

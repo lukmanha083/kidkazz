@@ -287,7 +287,7 @@ export function ProductUOMWarehouseAllocation({
               <Combobox
                 options={warehouseOptions}
                 value={formData.warehouseId}
-                onValueChange={(value) => setFormData({ ...formData, warehouseId: value })}
+                onValueChange={(value: string) => setFormData({ ...formData, warehouseId: value })}
                 placeholder="Select warehouse..."
                 searchPlaceholder="Search warehouses..."
                 emptyText="No warehouses found"
@@ -306,7 +306,7 @@ export function ProductUOMWarehouseAllocation({
                 type="number"
                 min="0"
                 value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: Number(e.target.value) })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, quantity: Number(e.target.value) })}
                 placeholder={`Enter quantity in ${uomCode}`}
               />
             </div>
@@ -316,7 +316,7 @@ export function ProductUOMWarehouseAllocation({
                 <Label>Rack</Label>
                 <Input
                   value={formData.rack || ''}
-                  onChange={(e) => setFormData({ ...formData, rack: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, rack: e.target.value })}
                   placeholder="e.g., A1"
                 />
               </div>
@@ -324,7 +324,7 @@ export function ProductUOMWarehouseAllocation({
                 <Label>Bin</Label>
                 <Input
                   value={formData.bin || ''}
-                  onChange={(e) => setFormData({ ...formData, bin: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, bin: e.target.value })}
                   placeholder="e.g., B1"
                 />
               </div>
@@ -335,7 +335,7 @@ export function ProductUOMWarehouseAllocation({
                 <Label>Zone</Label>
                 <Input
                   value={formData.zone || ''}
-                  onChange={(e) => setFormData({ ...formData, zone: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, zone: e.target.value })}
                   placeholder="e.g., Zone A"
                 />
               </div>
@@ -343,7 +343,7 @@ export function ProductUOMWarehouseAllocation({
                 <Label>Aisle</Label>
                 <Input
                   value={formData.aisle || ''}
-                  onChange={(e) => setFormData({ ...formData, aisle: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, aisle: e.target.value })}
                   placeholder="e.g., A"
                 />
               </div>

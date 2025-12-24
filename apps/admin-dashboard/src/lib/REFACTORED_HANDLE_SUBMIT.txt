@@ -1,0 +1,184 @@
+	const handleSubmitForm = async (e: React.FormEvent) => {
+		e.preventDefault();
+
+		// Get form values
+		const formValues = form.state.values;
+
+		// 1. Validate barcode uniqueness
+		const excludeId = formMode === "edit" ? selectedProduct?.id : undefined;
+		if (!isBarcodeUnique(formValues.barcode, excludeId)) {
+			toast.error("Barcode already exists", {
+				description:
+					"This barcode is already used by another product. Please use a different barcode or click refresh to generate a new one.",
+			});
+			return;
+		}
+
+		// 2. Auto-create base unit UOM if not added manually
+		const finalProductUOMs = createBaseUnitUOM(
+			formValues,
+			uomManagement.productUOMs,
+			availableUOMs,
+			uomManagement.calculateAllocatedPCS,
+			selectedProduct?.id
+		);
+
+		// 3. Build product payload (DDD compliant)
+		const productData = buildProductPayload(formValues);
+
+		// 4. DDD VALIDATION: Products with expiration dates require warehouse allocation
+		if (formValues.expirationDate && warehouseAllocations.length === 0) {
+			toast.error("Expiration date requires warehouse allocation", {
+				description:
+					"Products with expiration dates must be allocated to at least one warehouse for inventory tracking",
+			});
+			return;
+		}
+
+		// 5. Handle ADD or EDIT mode
+		if (formMode === "add") {
+			try {
+				// Create product
+				const createdProduct = await productApi.create(productData);
+
+				// Create all product UOMs
+				if (finalProductUOMs.length > 0) {
+					try {
+						const uomCodeMap = await syncProductUOMsAdd(
+							createdProduct.id,
+							finalProductUOMs,
+							uomApi
+						);
+
+						// Fetch the created product to get the actual UOM IDs
+						const createdProductWithUOMs = await productApi.getById(
+							createdProduct.id,
+						);
+
+						// Create UOM warehouse locations
+						if (
+							createdProductWithUOMs.productUOMs &&
+							createdProductWithUOMs.productUOMs.length > 0
+						) {
+							await createUOMWarehouseLocations(
+								uomCodeMap,
+								createdProductWithUOMs.productUOMs,
+								uomManagement.uomWarehouseAllocations,
+								productUOMLocationApi
+							);
+						}
+					} catch (uomError: any) {
+						console.error("Failed to create product UOMs:", uomError);
+						const errorMessage = getErrorMessage(uomError);
+						toast.error("Failed to add UOMs", {
+							description: errorMessage,
+						});
+					}
+				}
+
+				// Create multiple warehouse locations if allocated
+				if (warehouseAllocations.length > 0) {
+					try {
+						await createProductWarehouseLocations(
+							createdProduct.id,
+							warehouseAllocations,
+							productLocationApi
+						);
+					} catch (locationError) {
+						console.error("Failed to create product locations:", locationError);
+						toast.info("Product created, but some locations could not be set", {
+							description: "You can add the locations later",
+						});
+					}
+				}
+
+				queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
+				toast.success("Product created successfully");
+				setFormDrawerOpen(false);
+			} catch (error: any) {
+				const errorMessage = getErrorMessage(error);
+				toast.error("Failed to create product", {
+					description: errorMessage,
+				});
+			}
+		} else if (formMode === "edit" && selectedProduct) {
+			try {
+				// Update product
+				await productApi.update(selectedProduct.id, productData);
+
+				// Sync Product UOMs
+				if (finalProductUOMs.length > 0) {
+					try {
+						const existingUOMs = selectedProduct.productUOMs || [];
+
+						await syncProductUOMsEdit(
+							selectedProduct.id,
+							finalProductUOMs,
+							existingUOMs,
+							uomApi
+						);
+
+						// Sync UOM warehouse locations
+						await syncUOMWarehouseLocations(
+							selectedProduct.id,
+							finalProductUOMs,
+							uomManagement.uomWarehouseAllocations,
+							productApi,
+							productUOMLocationApi
+						);
+					} catch (uomError: any) {
+						console.error("Failed to sync product UOMs:", uomError);
+						const errorMessage = getErrorMessage(uomError);
+						toast.error("Failed to sync UOMs", {
+							description: errorMessage,
+						});
+					}
+				}
+
+				// Sync warehouse locations
+				try {
+					const existingLocations = selectedProduct.productLocations || [];
+
+					await syncProductWarehouseLocations(
+						selectedProduct.id,
+						warehouseAllocations,
+						existingLocations,
+						productLocationApi
+					);
+				} catch (locationError) {
+					console.error("Failed to sync product locations:", locationError);
+					toast.info(
+						"Product updated, but some locations could not be synced",
+						{
+							description: "You can update the locations later",
+						},
+					);
+				}
+
+				// VALIDATE STOCK CONSISTENCY AFTER ALL UPDATES
+				const isValid = await validateStockConsistencyWithToast(
+					selectedProduct.id,
+					productApi,
+					queryClient,
+					queryKeys
+				);
+
+				if (!isValid) {
+					// Keep drawer open so user can fix the issue
+					return;
+				}
+
+				queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
+				queryClient.invalidateQueries({
+					queryKey: queryKeys.products.detail(selectedProduct.id),
+				});
+				toast.success("Product updated successfully");
+				setFormDrawerOpen(false);
+			} catch (error: any) {
+				const errorMessage = getErrorMessage(error);
+				toast.error("Failed to update product", {
+					description: errorMessage,
+				});
+			}
+		}
+	};

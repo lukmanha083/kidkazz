@@ -26,6 +26,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -39,7 +40,10 @@ import {
 import {
 	Plus,
 	Edit,
+	Trash2,
+	Eye,
 	Image as ImageIcon,
+	Package,
 	X,
 	Loader2,
 	Film,
@@ -76,11 +80,13 @@ import {
 } from '@/lib/product-form-utils';
 import { ImageGallery } from "@/components/ImageGallery";
 import { VideoGallery } from "@/components/VideoGallery";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
 	ProductWarehouseAllocation,
 	type WarehouseAllocation,
 } from "@/components/products/ProductWarehouseAllocation";
 import {
+	ProductUOMWarehouseAllocation,
 	type UOMWarehouseAllocation,
 } from "@/components/products/ProductUOMWarehouseAllocation";
 import {
@@ -299,8 +305,7 @@ function AllProductsPage() {
 			reviews: 0,
 			availableForRetail: true,
 			availableForWholesale: false,
-			// Phase 3: Updated to match ProductStatus enum
-			status: 'online sales' as const,
+			status: 'active' as const,
 			isBundle: false,
 			expirationDate: null,
 			alertDate: null,
@@ -542,8 +547,7 @@ function AllProductsPage() {
 					form.setFieldValue('price', product.price);
 					form.setFieldValue('baseUnit', product.baseUnit || 'PCS');
 					form.setFieldValue('wholesaleThreshold', product.wholesaleThreshold || 12);
-					// Phase 3: Updated type cast to match ProductStatus enum
-					form.setFieldValue('status', product.status);
+					form.setFieldValue('status', product.status as 'active' | 'inactive' | 'omnichannel sales');
 					form.setFieldValue('weight', product.weight);
 					form.setFieldValue('length', product.length);
 					form.setFieldValue('width', product.width);
@@ -941,7 +945,6 @@ function AllProductsPage() {
 		// Get form values
 		const formValues = form.state.values;
 
-		// 1. Validate barcode uniqueness
 		const excludeId = formMode === "edit" ? selectedProduct?.id : undefined;
 		if (!isBarcodeUnique(formValues.barcode, excludeId)) {
 			toast.error("Barcode already exists", {
@@ -951,19 +954,82 @@ function AllProductsPage() {
 			return;
 		}
 
-		// 2. Auto-create base unit UOM if not added manually
-		const finalProductUOMs = createBaseUnitUOM(
-			formValues,
-			uomManagement.productUOMs,
-			availableUOMs,
-			uomManagement.calculateAllocatedPCS,
-			selectedProduct?.id
-		);
+		// Auto-create base unit UOM if not added manually
+		let finalProductUOMs = [...uomManagement.productUOMs];
+		const selectedBaseUnitCode = formValues.baseUnit || "PCS";
+		if (!finalProductUOMs.some((u) => u.uomCode === selectedBaseUnitCode)) {
+			const hasDefault = finalProductUOMs.some((u) => u.isDefault);
 
-		// 3. Build product payload (DDD compliant)
-		const productData = buildProductPayload(formValues);
+			// Calculate allocated stock from other UOMs
+			const allocatedStock = uomManagement.calculateAllocatedPCS();
 
-		// 4. DDD VALIDATION: Products with expiration dates require warehouse allocation
+			// Stock is now 0 as it's managed via Inventory Service
+			const remainingStock = 0;
+
+			// Find the base unit details from available UOMs
+			const baseUnitInfo = availableUOMs.find(
+				(u) => u.code === selectedBaseUnitCode,
+			);
+			const baseUnitName = baseUnitInfo?.name || "Pieces";
+
+			const baseUOM: ProductUOM = {
+				id: `uom-${selectedBaseUnitCode.toLowerCase()}-${Date.now()}`,
+				productId: selectedProduct?.id || "",
+				uomCode: selectedBaseUnitCode,
+				uomName: baseUnitName,
+				barcode: formValues.barcode,
+				conversionFactor: 1,
+				stock: remainingStock,
+				isDefault: !hasDefault,
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			};
+
+			if (baseUOM.isDefault) {
+				finalProductUOMs = finalProductUOMs.map((u) => ({
+					...u,
+					isDefault: false,
+				}));
+			}
+
+			finalProductUOMs = [baseUOM, ...finalProductUOMs];
+		}
+
+		if (
+			!finalProductUOMs.some((u) => u.isDefault) &&
+			finalProductUOMs.length > 0
+		) {
+			finalProductUOMs[0].isDefault = true;
+		}
+
+		// Build product data using form values (DDD compliant - NO minimumStock)
+		const productData: CreateProductInput = {
+			barcode: formValues.barcode,
+			name: formValues.name,
+			sku: formValues.sku,
+			description: formValues.description || undefined,
+			categoryId: formValues.categoryId || undefined,
+			price: formValues.price,
+			stock: 0, // Deprecated: Stock is now managed via Product Locations (Inventory Service)
+			baseUnit: formValues.baseUnit,
+			wholesaleThreshold: formValues.wholesaleThreshold,
+			// NOTE: minimumStock REMOVED - stock management is handled by Inventory Service (DDD)
+			status: formValues.status,
+			availableForRetail: formValues.availableForRetail,
+			availableForWholesale: formValues.availableForWholesale,
+			minimumOrderQuantity: formValues.minimumOrderQuantity,
+			// Physical dimensions for shipping cost calculation
+			weight: formValues.weight || undefined,
+			length: formValues.length || undefined,
+			width: formValues.width || undefined,
+			height: formValues.height || undefined,
+			// Product expiration and alert dates (now in TanStack form)
+			expirationDate: formValues.expirationDate || undefined,
+			alertDate: formValues.alertDate || undefined,
+		};
+
+		// DDD VALIDATION: Products with expiration dates require warehouse allocation
+		// This ensures expiration tracking works correctly in Inventory Service
 		if (formValues.expirationDate && warehouseAllocations.length === 0) {
 			toast.error("Expiration date requires warehouse allocation", {
 				description:
@@ -972,20 +1038,27 @@ function AllProductsPage() {
 			return;
 		}
 
-		// 5. Handle ADD or EDIT mode
 		if (formMode === "add") {
 			try {
-				// Create product
+				// Create product first
 				const createdProduct = await productApi.create(productData);
 
 				// Create all product UOMs
 				if (finalProductUOMs.length > 0) {
 					try {
-						const uomCodeMap = await syncProductUOMsAdd(
-							createdProduct.id,
-							finalProductUOMs,
-							uomApi
-						);
+						const uomCodeMap = new Map<string, string>(); // Map UOM code to temp ID for lookup
+						for (const uom of finalProductUOMs) {
+							uomCodeMap.set(uom.uomCode, uom.id);
+							await uomApi.addProductUOM({
+								productId: createdProduct.id,
+								uomCode: uom.uomCode,
+								uomName: uom.uomName,
+								barcode: uom.barcode,
+								conversionFactor: uom.conversionFactor,
+								stock: uom.stock,
+								isDefault: uom.isDefault,
+							});
+						}
 
 						// Fetch the created product to get the actual UOM IDs
 						const createdProductWithUOMs = await productApi.getById(
@@ -997,12 +1070,30 @@ function AllProductsPage() {
 							createdProductWithUOMs.productUOMs &&
 							createdProductWithUOMs.productUOMs.length > 0
 						) {
-							await createUOMWarehouseLocations(
-								uomCodeMap,
-								createdProductWithUOMs.productUOMs,
-								uomManagement.uomWarehouseAllocations,
-								productUOMLocationApi
-							);
+							for (const createdUOM of createdProductWithUOMs.productUOMs) {
+								const tempId = uomCodeMap.get(createdUOM.uomCode);
+								if (tempId && uomManagement.uomWarehouseAllocations[tempId]) {
+									const allocations = uomManagement.uomWarehouseAllocations[tempId];
+									for (const allocation of allocations) {
+										try {
+											await productUOMLocationApi.create({
+												productUOMId: createdUOM.id,
+												warehouseId: allocation.warehouseId,
+												rack: allocation.rack || null,
+												bin: allocation.bin || null,
+												zone: allocation.zone || null,
+												aisle: allocation.aisle || null,
+												quantity: allocation.quantity,
+											});
+										} catch (locationError) {
+											console.error(
+												"Failed to create UOM warehouse location:",
+												locationError,
+											);
+										}
+									}
+								}
+							}
 						}
 					} catch (uomError: any) {
 						console.error("Failed to create product UOMs:", uomError);
@@ -1016,11 +1107,20 @@ function AllProductsPage() {
 				// Create multiple warehouse locations if allocated
 				if (warehouseAllocations.length > 0) {
 					try {
-						await createProductWarehouseLocations(
-							createdProduct.id,
-							warehouseAllocations,
-							productLocationApi
-						);
+						for (const allocation of warehouseAllocations) {
+							await productLocationApi.create({
+								productId: createdProduct.id,
+								warehouseId: allocation.warehouseId,
+								rack: allocation.rack || null,
+								bin: allocation.bin || null,
+								zone: allocation.zone || null,
+								aisle: allocation.aisle || null,
+								quantity: allocation.quantity,
+							});
+
+							// NOTE: minimumStock is now managed via Inventory Service (DDD pattern)
+							// Stock alerts and thresholds should be set through the Inventory Management interface
+						}
 					} catch (locationError) {
 						console.error("Failed to create product locations:", locationError);
 						toast.info("Product created, but some locations could not be set", {
@@ -1040,7 +1140,7 @@ function AllProductsPage() {
 			}
 		} else if (formMode === "edit" && selectedProduct) {
 			try {
-				// Update product
+				// Update product first
 				await productApi.update(selectedProduct.id, productData);
 
 				// Sync Product UOMs
@@ -1048,21 +1148,105 @@ function AllProductsPage() {
 					try {
 						const existingUOMs = selectedProduct.productUOMs || [];
 
-						await syncProductUOMsEdit(
-							selectedProduct.id,
-							finalProductUOMs,
-							existingUOMs,
-							uomApi
-						);
+						// Add or update UOMs
+						for (const uom of finalProductUOMs) {
+							const existingUOM = existingUOMs.find(
+								(e) => e.uomCode === uom.uomCode,
+							);
+
+							if (existingUOM) {
+								// Update existing UOM if there are changes
+								if (
+									existingUOM.barcode !== uom.barcode ||
+									existingUOM.stock !== uom.stock ||
+									existingUOM.isDefault !== uom.isDefault
+								) {
+									await uomApi.updateProductUOM(existingUOM.id, {
+										barcode: uom.barcode,
+										stock: uom.stock,
+										isDefault: uom.isDefault,
+									});
+								}
+							} else {
+								// Add new UOM
+								await uomApi.addProductUOM({
+									productId: selectedProduct.id,
+									uomCode: uom.uomCode,
+									uomName: uom.uomName,
+									barcode: uom.barcode,
+									conversionFactor: uom.conversionFactor,
+									stock: uom.stock,
+									isDefault: uom.isDefault,
+								});
+							}
+						}
+
+						// Delete removed UOMs
+						for (const existingUOM of existingUOMs) {
+							const stillExists = finalProductUOMs.find(
+								(u) => u.uomCode === existingUOM.uomCode,
+							);
+							if (!stillExists) {
+								await uomApi.deleteProductUOM(existingUOM.id);
+							}
+						}
 
 						// Sync UOM warehouse locations
-						await syncUOMWarehouseLocations(
-							selectedProduct.id,
-							finalProductUOMs,
-							uomManagement.uomWarehouseAllocations,
-							productApi,
-							productUOMLocationApi
-						);
+						// Refetch product to get updated UOM IDs
+						const updatedProduct = await productApi.getById(selectedProduct.id);
+						if (
+							updatedProduct.productUOMs &&
+							updatedProduct.productUOMs.length > 0
+						) {
+							for (const currentUOM of updatedProduct.productUOMs) {
+								// Find the UOM in finalProductUOMs to get the temp ID
+								const matchingUOM = finalProductUOMs.find(
+									(u) => u.uomCode === currentUOM.uomCode,
+								);
+								if (matchingUOM) {
+									const tempId = matchingUOM.id;
+									const newAllocations = uomManagement.uomWarehouseAllocations[tempId] || [];
+
+									// Get existing UOM locations
+									const existingLocationsResponse =
+										await productUOMLocationApi.getByProductUOM(currentUOM.id);
+									const existingLocations =
+										existingLocationsResponse.locations || [];
+
+									// Delete all existing locations and create new ones
+									for (const existingLocation of existingLocations) {
+										try {
+											await productUOMLocationApi.delete(existingLocation.id);
+										} catch (deleteError) {
+											console.error(
+												"Failed to delete UOM location:",
+												deleteError,
+											);
+										}
+									}
+
+									// Create new locations
+									for (const allocation of newAllocations) {
+										try {
+											await productUOMLocationApi.create({
+												productUOMId: currentUOM.id,
+												warehouseId: allocation.warehouseId,
+												rack: allocation.rack || null,
+												bin: allocation.bin || null,
+												zone: allocation.zone || null,
+												aisle: allocation.aisle || null,
+												quantity: allocation.quantity,
+											});
+										} catch (createError) {
+											console.error(
+												"Failed to create UOM location:",
+												createError,
+											);
+										}
+									}
+								}
+							}
+						}
 					} catch (uomError: any) {
 						console.error("Failed to sync product UOMs:", uomError);
 						const errorMessage = getErrorMessage(uomError);
@@ -1076,12 +1260,47 @@ function AllProductsPage() {
 				try {
 					const existingLocations = selectedProduct.productLocations || [];
 
-					await syncProductWarehouseLocations(
-						selectedProduct.id,
-						warehouseAllocations,
-						existingLocations,
-						productLocationApi
-					);
+					// Create or update allocations
+					for (const allocation of warehouseAllocations) {
+						const existingLocation = existingLocations.find(
+							(loc) => loc.warehouseId === allocation.warehouseId,
+						);
+
+						if (existingLocation) {
+							// Update existing location
+							await productLocationApi.update(existingLocation.id, {
+								rack: allocation.rack || null,
+								bin: allocation.bin || null,
+								zone: allocation.zone || null,
+								aisle: allocation.aisle || null,
+								quantity: allocation.quantity,
+							});
+						} else {
+							// Create new location
+							await productLocationApi.create({
+								productId: selectedProduct.id,
+								warehouseId: allocation.warehouseId,
+								rack: allocation.rack || null,
+								bin: allocation.bin || null,
+								zone: allocation.zone || null,
+								aisle: allocation.aisle || null,
+								quantity: allocation.quantity,
+							});
+						}
+
+						// NOTE: minimumStock is now managed via Inventory Service (DDD pattern)
+						// Stock alerts and thresholds should be set through the Inventory Management interface
+					}
+
+					// Delete removed locations
+					for (const existingLocation of existingLocations) {
+						const stillExists = warehouseAllocations.find(
+							(alloc) => alloc.warehouseId === existingLocation.warehouseId,
+						);
+						if (!stillExists) {
+							await productLocationApi.delete(existingLocation.id);
+						}
+					}
 				} catch (locationError) {
 					console.error("Failed to sync product locations:", locationError);
 					toast.info(
@@ -1092,17 +1311,65 @@ function AllProductsPage() {
 					);
 				}
 
-				// VALIDATE STOCK CONSISTENCY AFTER ALL UPDATES
-				const isValid = await validateStockConsistencyWithToast(
-					selectedProduct.id,
-					productApi,
-					queryClient,
-					queryKeys
-				);
+				// VALIDATE STOCK CONSISTENCY AFTER ALL UPDATES (PER WAREHOUSE)
+				// This ensures that for EACH warehouse, product locations and UOM locations have matching totals
+				try {
+					const validationResult = await productApi.validateStockConsistency(
+						selectedProduct.id,
+					);
 
-				if (!isValid) {
-					// Keep drawer open so user can fix the issue
-					return;
+					if (!validationResult.isValid) {
+						// Build detailed error message with per-warehouse breakdown
+						const invalidWarehouses =
+							validationResult.warehouseValidation.filter((w) => !w.isValid);
+
+						let warehouseDetails = "";
+						invalidWarehouses.forEach((warehouse) => {
+							warehouseDetails += `\n\n📦 Warehouse: ${warehouse.warehouseId}\n`;
+							warehouseDetails += `  Product Location: ${warehouse.locationStock} ${validationResult.globalSummary.baseUnit}\n`;
+							warehouseDetails += `  UOM Locations: ${warehouse.uomStock} ${validationResult.globalSummary.baseUnit}\n`;
+							warehouseDetails += `  Difference: ${Math.abs(warehouse.difference)} ${validationResult.globalSummary.baseUnit} (${warehouse.status})\n`;
+
+							// Show UOM breakdown for this warehouse
+							if (warehouse.uomBreakdown.length > 0) {
+								warehouseDetails += `  UOMs:\n`;
+								warehouse.uomBreakdown.forEach((uom) => {
+									warehouseDetails += `    - ${uom.quantity} × ${uom.uomCode} (${uom.conversionFactor}×) = ${uom.baseUnits} ${validationResult.globalSummary.baseUnit}\n`;
+								});
+							}
+						});
+
+						toast.error("Stock Validation Failed", {
+							description:
+								`${validationResult.message}\n` +
+								`\n📊 Global Summary:\n` +
+								`  Total Product Locations: ${validationResult.globalSummary.totalLocationStock} ${validationResult.globalSummary.baseUnit}\n` +
+								`  Total UOM Locations: ${validationResult.globalSummary.totalUOMStock} ${validationResult.globalSummary.baseUnit}\n` +
+								`  Global Difference: ${Math.abs(validationResult.globalSummary.globalDifference)} ${validationResult.globalSummary.baseUnit}\n` +
+								warehouseDetails +
+								`\n⚠️ Product was updated, but ${invalidWarehouses.length} warehouse(s) have inconsistent stock. Please fix the warehouse allocations.`,
+							duration: 15000,
+						});
+
+						// Refresh the product data to show current state
+						queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
+						queryClient.invalidateQueries({
+							queryKey: queryKeys.products.detail(selectedProduct.id),
+						});
+
+						// Keep drawer open so user can fix the issue
+						return;
+					} else {
+						// Validation passed - show brief success message
+						console.log("✅ Stock validation passed for all warehouses");
+					}
+				} catch (validationError) {
+					console.error("Stock validation check failed:", validationError);
+					const errorMessage = getErrorMessage(validationError);
+					toast.warning("Validation Warning", {
+						description: `Product updated successfully, but could not validate stock consistency: ${errorMessage}`,
+						duration: 6000,
+					});
 				}
 
 				queryClient.invalidateQueries({ queryKey: queryKeys.products.all });

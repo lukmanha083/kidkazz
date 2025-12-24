@@ -101,8 +101,8 @@ export function ImageCropper({
   /**
    * Resize crop area
    */
-  const handleResize = useCallback(
-    (corner: 'nw' | 'ne' | 'sw' | 'se', e: React.MouseEvent) => {
+  const _handleResize = useCallback(
+    (_corner: 'nw' | 'ne' | 'sw' | 'se', e: React.MouseEvent) => {
       e.stopPropagation();
       // Implement resize logic here if needed
       // For simplicity, using fixed size or slider

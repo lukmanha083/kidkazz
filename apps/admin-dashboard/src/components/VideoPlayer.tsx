@@ -118,7 +118,7 @@ export function VideoPlayer({
           }
         });
 
-        hlsInstance.on(Hls.Events.ERROR, (event: any, data: any) => {
+        hlsInstance.on(Hls.Events.ERROR, (_event: any, data: any) => {
           console.error('HLS error:', data);
 
           if (data.fatal) {
