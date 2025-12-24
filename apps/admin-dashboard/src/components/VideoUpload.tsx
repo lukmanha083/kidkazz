@@ -59,6 +59,19 @@ interface VideoUploadProps {
   enableCompression?: boolean;
 }
 
+/**
+ * Render a video upload UI with drag-and-drop or click-to-select support, local preview, file validation, upload progress and cancellation, and selectable upload modes (stream or R2).
+ *
+ * The component validates file type and size, extracts basic video metadata for display, optionally compresses the file before upload, uploads to the configured product service while reporting progress, and calls lifecycle callbacks for success or error outcomes.
+ *
+ * @param productId - Identifier for the product to associate the uploaded video with
+ * @param onUploadSuccess - Optional callback invoked with the uploaded video's result object on successful upload
+ * @param onUploadError - Optional callback invoked with an error message when validation or upload fails
+ * @param maxSizeMB - Maximum allowed file size in megabytes (default: 500)
+ * @param defaultMode - Initial upload mode, either `'stream'` or `'r2'` (default: `'stream'`)
+ * @param enableCompression - When true, attempt to compress the video before upload (no-op by default)
+ * @returns The video upload React element
+ */
 export function VideoUpload({
   productId,
   onUploadSuccess,

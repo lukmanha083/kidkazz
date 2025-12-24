@@ -25,6 +25,22 @@ interface ProductUOMManagementSectionProps {
 	selectedProductId?: string;
 }
 
+/**
+ * Render the UOM management section for a product, showing stock allocation, added UOMs with per-warehouse allocations, and a form to add new UOMs.
+ *
+ * @param form - Form API for the product used to read values like `baseUnit` and the main product `barcode`.
+ * @param uomManagement - State and helpers from `useUOMManagement` that track selected UOM, inputs, product UOM list, and warehouse allocations.
+ * @param warehouses - Available warehouses used when editing per-UOM allocations.
+ * @param availableUOMs - List of all UOM definitions available for selection when adding a new UOM.
+ * @param onRemoveUOM - Callback invoked with a UOM object when the user removes an existing UOM.
+ * @param onSetDefaultUOM - Callback invoked with a UOM `id` to mark that UOM as the product's default.
+ * @param onUOMAllocationsChange - Callback invoked with a UOM `id` and its updated allocations when allocations are edited.
+ * @param generateUniqueBarcode - Function that returns a generated unique barcode string for use with a new UOM.
+ * @param isBarcodeUnique - Function that checks barcode uniqueness; accepts a barcode and an optional exclude id.
+ * @param formMode - Current form mode, either `"add"` or `"edit"`, used to determine barcode uniqueness exclusions.
+ * @param selectedProductId - Optional id of the product being edited; used when constructing new UOM entries and uniqueness checks.
+ * @returns The rendered JSX element for the Product UOM management UI.
+ */
 export function ProductUOMManagementSection({
 	form,
 	uomManagement,

@@ -42,6 +42,21 @@ interface VideoPlayerProps {
   onError?: (error: string) => void;
 }
 
+/**
+ * Renders a customizable video player that supports basic R2 playback and HLS adaptive streaming.
+ *
+ * Supports autoplay, mute, native/custom controls, quality selection (stream mode), fullscreen, seeking,
+ * and exposes loading and error states via an optional error callback.
+ *
+ * @param urls - Object containing optional source URLs: `original` (R2), `hls` (HLS manifest), `dash`, `thumbnail`, and `download`.
+ * @param mode - Playback mode: `"r2"` for basic video via `urls.original` or `"stream"` for HLS adaptive playback via `urls.hls`.
+ * @param autoplay - Whether playback should start automatically.
+ * @param muted - Initial muted state for the player.
+ * @param controls - Whether to show the custom control UI (play/pause, volume, seek, quality, fullscreen).
+ * @param className - Optional additional CSS classes applied to the player container.
+ * @param onError - Optional callback invoked with a short error message when player initialization or playback fails.
+ * @returns The video player React element.
+ */
 export function VideoPlayer({
   urls,
   mode,

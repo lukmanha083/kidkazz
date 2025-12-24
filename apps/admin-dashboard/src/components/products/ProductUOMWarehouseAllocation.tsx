@@ -42,6 +42,21 @@ interface ProductUOMWarehouseAllocationProps {
   readOnly?: boolean;
 }
 
+/**
+ * Renders a UI for viewing and editing unit-of-measure warehouse allocations for a product.
+ *
+ * Provides an allocations table, stock summary (total, allocated, remaining), and an add/edit dialog
+ * for creating or modifying warehouse allocation entries.
+ *
+ * @param warehouses - List of available warehouses used to populate the warehouse selector.
+ * @param allocations - Current list of warehouse allocations for the UOM.
+ * @param onAllocationsChange - Callback invoked with the updated allocations array after add, edit, or delete actions.
+ * @param uomCode - Unit-of-measure code displayed alongside quantities and labels.
+ * @param uomName - Unit-of-measure display name used in headings and descriptions.
+ * @param totalStock - Optional total stock for this UOM; when provided the component validates and highlights allocation discrepancies.
+ * @param readOnly - When true, disables add/edit/delete actions and presents allocations as a read-only list (default false).
+ * @returns The rendered React element for managing product UOM warehouse allocations.
+ */
 export function ProductUOMWarehouseAllocation({
   warehouses,
   allocations,

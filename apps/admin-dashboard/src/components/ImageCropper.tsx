@@ -26,6 +26,15 @@ interface ImageCropperProps {
   aspectRatio?: number; // width / height (e.g., 1 for square, 16/9 for landscape)
 }
 
+/**
+ * Renders a modal UI that lets the user visually crop an image and apply the selection.
+ *
+ * @param imageUrl - Source URL of the image to crop.
+ * @param onCropComplete - Callback invoked with the final crop in pixels: `{ x, y, width, height }` relative to the original image.
+ * @param onCancel - Callback invoked when the user cancels the crop dialog.
+ * @param aspectRatio - Optional width/height ratio to constrain the crop box; if omitted the crop is unrestricted.
+ * @returns The ImageCropper React element (modal) that manages user interaction and emits the pixel-based crop on completion.
+ */
 export function ImageCropper({
   imageUrl,
   onCropComplete,
