@@ -12,7 +12,13 @@ const PRODUCT_SERVICE_URL = import.meta.env.VITE_PRODUCT_SERVICE_URL || 'http://
 const INVENTORY_SERVICE_URL = import.meta.env.VITE_INVENTORY_SERVICE_URL || 'http://localhost:8792';
 
 /**
- * Generic validation request function
+ * Send a validation GET request to the selected service and return the parsed uniqueness result.
+ *
+ * @param endpoint - Path to append to the service base URL (should start with `/`)
+ * @param params - Query parameters to include; falsy values are omitted
+ * @param service - Which service base URL to use: `'product'` or `'inventory'` (defaults to `'product'`)
+ * @returns An object with `isUnique: boolean` where `isUnique` is `true` if the value is unique, `false` otherwise
+ * @throws Error when the HTTP response is not OK; the error message includes the response status text
  */
 async function validationRequest(
 	endpoint: string,

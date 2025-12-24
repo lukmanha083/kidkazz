@@ -15,8 +15,15 @@ import type { WarehouseAllocation } from '@/components/products/ProductWarehouse
 import type { UOMWarehouseAllocation } from '@/components/products/ProductUOMWarehouseAllocation';
 
 /**
- * Create base unit UOM if not already added manually
- * Ensures every product has a base unit UOM for stock calculations
+ * Ensure a base-unit UOM exists for the product and insert it as the first UOM when missing.
+ *
+ * If no base-unit UOM is present, a new base UOM is created (using `formValues.baseUnit` or `"PCS"`),
+ * assigned a generated id, and placed at the front of the returned list. The created base UOM will be
+ * marked as the default if no other default exists. Stock for the created base UOM is set to 0 because
+ * stock is managed by the Inventory Service.
+ *
+ * @param calculateAllocatedPCS - Function returning the number of base-unit pieces allocated from other UOMs
+ * @returns The updated list of product UOMs with a base-unit UOM ensured and placed at index 0 if newly created
  */
 export function createBaseUnitUOM(
 	formValues: ProductFormData,
@@ -78,8 +85,10 @@ export function createBaseUnitUOM(
 }
 
 /**
- * Build product payload from form values
- * DDD compliant - NO minimumStock, stock managed via Inventory Service
+ * Constructs a CreateProductInput payload from ProductFormData, omitting stock fields managed by the Inventory Service.
+ *
+ * @param formValues - Form values used to populate the product payload
+ * @returns The product payload ready for product creation or update; does not include `stock` or `minimumStock`
  */
 export function buildProductPayload(formValues: ProductFormData): CreateProductInput {
 	return {
@@ -109,8 +118,9 @@ export function buildProductPayload(formValues: ProductFormData): CreateProductI
 }
 
 /**
- * Create UOMs for a new product
- * Returns map of UOM code to temp ID for later lookups
+ * Create product UOM records and return a lookup map from UOM code to the UOM's temporary ID.
+ *
+ * @returns A `Map` that maps each UOM code to its temporary ID (used for later lookups)
  */
 export async function syncProductUOMsAdd(
 	productId: string,
@@ -136,7 +146,15 @@ export async function syncProductUOMsAdd(
 }
 
 /**
- * Sync UOMs for an existing product (add, update, delete)
+ * Synchronizes product UOMs by adding new UOMs, updating changed ones, and deleting removed ones.
+ *
+ * Matches UOMs by `uomCode` and:
+ * - Adds UOMs present in `currentUOMs` but not in `existingUOMs`.
+ * - Updates barcode, stock, or default flag when those fields differ on an existing UOM.
+ * - Deletes UOMs present in `existingUOMs` but not in `currentUOMs`.
+ *
+ * @param currentUOMs - Desired UOMs (e.g., from the form) to apply to the product
+ * @param existingUOMs - Currently persisted UOMs associated with the product
  */
 export async function syncProductUOMsEdit(
 	productId: string,
@@ -189,12 +207,14 @@ export async function syncProductUOMsEdit(
 }
 
 /**
- * Create UOM warehouse locations for new product
+ * Create product UOM physical locations for newly created product UOMs.
  *
- * DDD COMPLIANCE: Product Locations are quantity-less
- * - Product Service manages physical locations (rack, bin, zone, aisle) ONLY
- * - Inventory Service manages stock quantities (single source of truth)
- * - Quantities from UI should be sent to Inventory API separately
+ * Maps temporary UOM identifiers to created product UOM records and creates physical location entries (rack/bin/zone/aisle) for each matching allocation; quantity is intentionally not recorded here.
+ *
+ * @param uomCodeMap - Map from UOM code to the temporary UOM id used in form state
+ * @param createdProductUOMs - Newly created product UOM records returned from the Product API
+ * @param uomWarehouseAllocations - Record keyed by temporary UOM id containing arrays of warehouse allocation objects
+ * @param productUOMLocationApi - API client used to create product UOM location records
  */
 export async function createUOMWarehouseLocations(
 	uomCodeMap: Map<string, string>,
@@ -240,11 +260,15 @@ export async function createUOMWarehouseLocations(
 }
 
 /**
- * Sync UOM warehouse locations for existing product
+ * Replace all UOM-specific physical warehouse locations for a product with the provided allocations.
  *
- * DDD COMPLIANCE: Product Locations are quantity-less
- * - Only manages physical location attributes (rack, bin, zone, aisle)
- * - Stock quantities should be synced via Inventory Service separately
+ * Refetches the product to obtain current productUOM IDs, deletes all existing locations for each UOM, and creates new physical-location records (rack/bin/zone/aisle) based on the provided allocations. Errors during per-location delete/create are logged and do not stop processing other items.
+ *
+ * @param productId - The ID of the product whose UOM locations will be synchronized
+ * @param currentUOMs - The current UOM definitions from the form; used to map temporary IDs to real productUOM entries
+ * @param uomWarehouseAllocations - A map from UOM temporary ID to an array of warehouse allocation objects describing physical locations
+ * @param productApi - API client with a `getById(productId)` method to retrieve the product and its productUOMs
+ * @param productUOMLocationApi - API client with `getByProductUOM(productUOMId)`, `create(location)`, and `delete(locationId)` methods for managing UOM locations
  */
 export async function syncUOMWarehouseLocations(
 	productId: string,
@@ -419,8 +443,13 @@ export async function syncProductWarehouseLocations(
 }
 
 /**
- * Validate stock consistency and show detailed error toast
- * Returns true if validation passed, false if failed
+ * Validate product stock consistency across warehouses and display a detailed error toast when inconsistencies are found.
+ *
+ * Calls the product API to validate per-warehouse stock. If validation fails, shows a detailed error toast with a per-warehouse
+ * breakdown, invalidates product queries to refresh UI state, and returns `false`. If validation passes, returns `true`.
+ * If the validation call itself throws an error, shows a warning toast and returns `true` to allow non-blocking continuation.
+ *
+ * @returns `true` if validation passed or could not be completed due to an error (non-blocking), `false` if validation ran and found inconsistencies.
  */
 export async function validateStockConsistencyWithToast(
 	productId: string,
@@ -490,7 +519,9 @@ export async function validateStockConsistencyWithToast(
 }
 
 /**
- * Get error message from various error types
+ * Extracts a human-readable message from an error-like value.
+ *
+ * @returns The error's message string if available; otherwise `'An unknown error occurred'`.
  */
 export function getErrorMessage(error: any): string {
 	if (error instanceof Error) {

@@ -225,11 +225,13 @@ export function useProductLowStockStatus(
 }
 
 /**
- * Hook to create a new product
+ * Create a product using a React Query mutation with optimistic UI updates.
  *
- * Features:
- * - Optimistic UI updates with automatic rollback on error (Phase 6)
- * - Automatic cache invalidation on success
+ * Performs an optimistic insertion into product list caches before the API call,
+ * provides an automatic rollback if the mutation fails, and invalidates product
+ * caches on success to refresh server state.
+ *
+ * @returns A React Query mutation configured to create products that applies an optimistic product to list caches, rolls back on error, and invalidates product caches on success.
  */
 export function useCreateProduct() {
   const queryClient = useQueryClient();

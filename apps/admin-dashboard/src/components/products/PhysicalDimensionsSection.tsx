@@ -7,6 +7,15 @@ interface PhysicalDimensionsSectionProps {
 	form: SimpleFormApi<ProductFormData>;
 }
 
+/**
+ * Render a form section for optional product physical dimensions used to calculate shipping costs.
+ *
+ * Binds inputs for weight (kg) and length/width/height (cm) to the provided form API, displays placeholders,
+ * step values, and validation errors for each field.
+ *
+ * @param form - The form API instance used to register and manage the `weight`, `length`, `width`, and `height` fields
+ * @returns The JSX element for the physical dimensions section
+ */
 export function PhysicalDimensionsSection({ form }: PhysicalDimensionsSectionProps) {
 	return (
 		<div className="space-y-4 border rounded-lg p-4 bg-muted/20">

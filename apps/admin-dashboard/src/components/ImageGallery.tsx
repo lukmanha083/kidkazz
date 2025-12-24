@@ -73,6 +73,18 @@ interface ImageGalleryProps {
   readOnly?: boolean; // New: Read-only mode disables upload/delete actions
 }
 
+/**
+ * Renders an image gallery for a product with upload, preview, delete, and primary-image support.
+ *
+ * Displays fetched product images in a responsive grid, provides a drag-and-drop / click-to-upload area
+ * (including client-side validation and compression), an image preview modal, informational badges, and
+ * a delete confirmation flow. Upload and delete actions refresh the gallery after success.
+ *
+ * @param productId - The product identifier whose images are displayed and managed
+ * @param maxImages - Maximum number of images allowed for the product (default: 10)
+ * @param readOnly - When true, hides upload controls and delete actions while still allowing image preview
+ * @returns The ImageGallery React element containing the UI and interaction handlers described above
+ */
 export function ImageGallery({ productId, maxImages = 10, readOnly = false }: ImageGalleryProps) {
   const queryClient = useQueryClient();
   const [isUploading, setIsUploading] = useState(false);

@@ -45,6 +45,16 @@ interface ImageUploadProps {
   maxSizeMB?: number;
 }
 
+/**
+ * Renders an image upload UI for a product with drag-and-drop, preview, client-side compression, validation, and upload handling.
+ *
+ * @param productId - The product identifier included with the upload request.
+ * @param currentImage - Optional initial image URL used as the preview.
+ * @param onUploadSuccess - Optional callback invoked with the uploaded image result on successful upload.
+ * @param onUploadError - Optional callback invoked with an error message when upload or validation fails.
+ * @param maxSizeMB - Maximum allowed file size in megabytes (default: 5).
+ * @returns The React element that provides the upload area, preview, status indicators, and error display.
+ */
 export function ImageUpload({
   productId,
   currentImage,

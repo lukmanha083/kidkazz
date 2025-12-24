@@ -22,6 +22,21 @@ interface AsyncValidationState {
 	error: string | null;
 }
 
+/**
+ * Hook that performs debounced, cancellable asynchronous validation for a value.
+ *
+ * Starts a debounced validation request via `validationFn`, cancels any in-flight request
+ * when a new validation is started or on unmount, and exposes validation state and controls.
+ *
+ * @param validationFn - Async function that determines whether the provided value is valid/unique. It receives the value and an optional `excludeId` and must resolve to `true` for valid or `false` for invalid.
+ * @param debounceMs - Delay in milliseconds to wait after the last call to `validate` before invoking `validationFn`. Defaults to 500.
+ * @returns An object containing:
+ *  - `isValidating`: `true` while a validation request is pending, otherwise `false`.
+ *  - `isValid`: `true` if the value is valid, `false` if invalid, or `null` when idle or on error.
+ *  - `error`: A string error message when validation failed, or `null`.
+ *  - `validate(value, excludeId?)`: Function to start debounced validation for `value`.
+ *  - `reset()`: Function to reset the validation state to idle.
+ */
 export function useAsyncValidation<T>(
 	validationFn: (value: T, excludeId?: string) => Promise<boolean>,
 	debounceMs = 500
