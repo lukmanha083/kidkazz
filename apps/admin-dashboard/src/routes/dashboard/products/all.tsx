@@ -43,6 +43,8 @@ import {
 	X,
 	Loader2,
 	Film,
+	CheckCircle2,
+	XCircle,
 } from "lucide-react";
 import { DataTable } from "@/components/ui/data-table/data-table";
 import {
@@ -91,6 +93,8 @@ import { PhysicalDimensionsSection } from "@/components/products/PhysicalDimensi
 import { ProductExpirationSection } from "@/components/products/ProductExpirationSection";
 import { ProductUOMManagementSection } from "@/components/products/ProductUOMManagementSection";
 import { useUOMManagement } from "@/hooks/useUOMManagement";
+import { useAsyncValidation } from "@/hooks/useAsyncValidation";
+import { validationApi } from "@/lib/validation-api";
 import { productListSearchSchema } from "@/lib/route-search-schemas";
 import { queryKeys } from "@/lib/query-client";
 
@@ -321,6 +325,10 @@ function AllProductsPage() {
 
 	// Product UOM management - using custom hook
 	const uomManagement = useUOMManagement();
+
+	// Phase 5: Async validation hooks with debouncing
+	const skuValidation = useAsyncValidation(validationApi.checkSKUUnique);
+	const barcodeValidation = useAsyncValidation(validationApi.checkBarcodeUnique);
 
 	// Warehouse allocations state
 	const [warehouseAllocations, setWarehouseAllocations] = useState<
@@ -1965,15 +1973,36 @@ function AllProductsPage() {
 								<div className="space-y-2">
 									<Label htmlFor={field.name}>Barcode</Label>
 									<div className="flex gap-2">
-										<Input
-											id={field.name}
-											placeholder="8901234567890"
-											value={field.state.value}
-											onChange={(e) => field.handleChange(e.target.value)}
-											onBlur={field.handleBlur}
-											required
-											className="flex-1"
-										/>
+										<div className="relative flex-1">
+											<Input
+												id={field.name}
+												placeholder="8901234567890"
+												value={field.state.value}
+												onChange={(e) => {
+													field.handleChange(e.target.value);
+													barcodeValidation.validate(e.target.value, selectedProduct?.id);
+												}}
+												onBlur={field.handleBlur}
+												required
+												className={
+													barcodeValidation.isValid === false
+														? 'border-destructive pr-9'
+														: barcodeValidation.isValid === true
+														? 'border-green-500 pr-9'
+														: ''
+												}
+											/>
+											{/* Phase 5: Async validation feedback icons */}
+											{barcodeValidation.isValidating && (
+												<Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-muted-foreground" />
+											)}
+											{barcodeValidation.isValid === true && (
+												<CheckCircle2 className="absolute right-3 top-3 h-4 w-4 text-green-500" />
+											)}
+											{barcodeValidation.isValid === false && (
+												<XCircle className="absolute right-3 top-3 h-4 w-4 text-destructive" />
+											)}
+										</div>
 										<Button
 											type="button"
 											variant="outline"
@@ -1982,6 +2011,7 @@ function AllProductsPage() {
 												const newBarcode = generateUniqueBarcode();
 												if (newBarcode) {
 													field.handleChange(newBarcode);
+													barcodeValidation.validate(newBarcode, selectedProduct?.id);
 													toast.success("Barcode generated");
 												}
 											}}
@@ -2006,6 +2036,9 @@ function AllProductsPage() {
 										<p className="text-sm text-destructive">
 											{field.state.meta.errors.join(', ')}
 										</p>
+									)}
+									{barcodeValidation.error && (
+										<p className="text-sm text-destructive">{barcodeValidation.error}</p>
 									)}
 								</div>
 							)}
@@ -2131,20 +2164,44 @@ function AllProductsPage() {
 								{(field) => (
 									<div className="space-y-2">
 										<Label htmlFor={field.name}>SKU (Auto-generated)</Label>
-										<Input
-											id={field.name}
-											placeholder="TO-TA-01"
-											value={field.state.value}
-											onChange={(e) => field.handleChange(e.target.value)}
-											onBlur={field.handleBlur}
-											required
-											readOnly
-											className="bg-muted/30"
-										/>
+										<div className="relative">
+											<Input
+												id={field.name}
+												placeholder="TO-TA-01"
+												value={field.state.value}
+												onChange={(e) => {
+													field.handleChange(e.target.value);
+													skuValidation.validate(e.target.value, selectedProduct?.id);
+												}}
+												onBlur={field.handleBlur}
+												required
+												readOnly
+												className={
+													skuValidation.isValid === false
+														? 'bg-muted/30 border-destructive pr-9'
+														: skuValidation.isValid === true
+														? 'bg-muted/30 border-green-500 pr-9'
+														: 'bg-muted/30 pr-9'
+												}
+											/>
+											{/* Phase 5: Async validation feedback icons */}
+											{skuValidation.isValidating && (
+												<Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-muted-foreground" />
+											)}
+											{skuValidation.isValid === true && (
+												<CheckCircle2 className="absolute right-3 top-3 h-4 w-4 text-green-500" />
+											)}
+											{skuValidation.isValid === false && (
+												<XCircle className="absolute right-3 top-3 h-4 w-4 text-destructive" />
+											)}
+										</div>
 										{field.state.meta.errors.length > 0 && (
 											<p className="text-sm text-destructive">
 												{field.state.meta.errors.join(', ')}
 											</p>
+										)}
+										{skuValidation.error && (
+											<p className="text-sm text-destructive">{skuValidation.error}</p>
 										)}
 									</div>
 								)}

@@ -23,6 +23,7 @@ import {
   type LowStockStatusResponse,
 } from '../../lib/api';
 import { queryKeys } from '../../lib/query-client';
+import { optimisticCreate } from '../../lib/optimistic-updates';
 
 /**
  * Hook to fetch all products with optional inventory data
@@ -227,6 +228,7 @@ export function useProductLowStockStatus(
  * Hook to create a new product
  *
  * Features:
+ * - Optimistic UI updates with automatic rollback on error (Phase 6)
  * - Automatic cache invalidation on success
  */
 export function useCreateProduct() {
@@ -234,6 +236,35 @@ export function useCreateProduct() {
 
   return useMutation({
     mutationFn: (data: CreateProductInput) => productApi.create(data),
+
+    // Phase 6: Optimistic update before API call
+    onMutate: async (newProduct) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.products.all });
+
+      // Create optimistic product with temporary ID
+      const optimisticProduct = {
+        ...newProduct,
+        id: `temp-${Date.now()}`,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as Product;
+
+      const { rollback } = optimisticCreate(
+        queryClient,
+        [...queryKeys.products.lists()],
+        optimisticProduct
+      );
+
+      return { rollback };
+    },
+
+    // Phase 6: Rollback on error
+    onError: (error, variables, context) => {
+      if (context?.rollback) {
+        context.rollback();
+      }
+    },
+
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
     },
