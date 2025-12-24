@@ -15,7 +15,6 @@ import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Upload,
-  X,
   Star,
   Trash2,
   Play,
@@ -451,7 +450,7 @@ export function VideoGallery({
                       variant="secondary"
                       size="icon"
                       className="rounded-full"
-                      onClick={(e) => {
+                      onClick={(e: React.MouseEvent) => {
                         e.stopPropagation();
                         handleViewVideo(video);
                       }}
@@ -465,7 +464,7 @@ export function VideoGallery({
                         variant="destructive"
                         size="icon"
                         className="rounded-full"
-                        onClick={(e) => {
+                        onClick={(e: React.MouseEvent) => {
                           e.stopPropagation();
                           handleDeleteVideo(video.id);
                         }}

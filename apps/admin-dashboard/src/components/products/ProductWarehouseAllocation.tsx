@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Combobox } from '@/components/ui/combobox';
 import {
   Table,
@@ -21,7 +20,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Plus, Edit, Trash2, Warehouse } from 'lucide-react';
-import type { Warehouse as WarehouseType, ProductLocation } from '@/lib/api';
+import type { Warehouse as WarehouseType } from '@/lib/api';
 
 export interface WarehouseAllocation {
   warehouseId: string;
@@ -263,7 +262,7 @@ export function ProductWarehouseAllocation({
               <Combobox
                 options={warehouseOptions}
                 value={formData.warehouseId}
-                onValueChange={(value) => setFormData({ ...formData, warehouseId: value })}
+                onValueChange={(value: string) => setFormData({ ...formData, warehouseId: value })}
                 placeholder="Select warehouse..."
                 searchPlaceholder="Search warehouses..."
                 emptyText="No warehouses found"
@@ -284,7 +283,7 @@ export function ProductWarehouseAllocation({
                 min="0"
                 placeholder="100"
                 value={formData.quantity || ''}
-                onChange={(e) => setFormData({ ...formData, quantity: Number(e.target.value) })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, quantity: Number(e.target.value) })}
               />
               <p className="text-xs text-muted-foreground mt-1">
                 💡 Use UOM Locations to assign detailed rack/bin/zone/aisle positions

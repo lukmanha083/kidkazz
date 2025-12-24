@@ -53,10 +53,73 @@ export const productFormSchema = z.object({
   reviews: z.coerce.number().int().nonnegative().default(0),
   availableForRetail: z.boolean().default(true),
   availableForWholesale: z.boolean().default(false),
-  status: z.enum(['active', 'inactive', 'omnichannel sales']).default('active'),
+  // Phase 3: Fixed to match ProductStatus type in api.ts:305
+  status: z.enum(['online sales', 'offline sales', 'omnichannel sales', 'inactive', 'discontinued']).default('online sales'),
   isBundle: z.boolean().default(false),
+  // Expiration & Alert dates
+  expirationDate: z.string().optional().nullable(),
+  alertDate: z.string().optional().nullable(),
+  // Location fields (warehouse physical location)
+  rack: z.string().optional().default(''),
+  bin: z.string().optional().default(''),
+  zone: z.string().optional().default(''),
+  aisle: z.string().optional().default(''),
   // NOTE: NO stock fields - stock is managed via Inventory Service
-});
+})
+// Phase 4: Business Rule 1 - Wholesale price required when available for wholesale
+.refine(
+  (data) => {
+    if (data.availableForWholesale && !data.wholesalePrice) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: 'Wholesale price is required when product is available for wholesale',
+    path: ['wholesalePrice'],
+  }
+)
+// Phase 4: Business Rule 2 - Wholesale price must be less than or equal to retail price
+.refine(
+  (data) => {
+    if (data.wholesalePrice && data.retailPrice && data.wholesalePrice > data.retailPrice) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: 'Wholesale price must be less than or equal to retail price',
+    path: ['wholesalePrice'],
+  }
+)
+// Phase 4: Business Rule 3 - Wholesale threshold must be greater than minimum order quantity
+.refine(
+  (data) => {
+    if (data.availableForWholesale && data.wholesaleThreshold <= data.minimumOrderQuantity) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: 'Wholesale threshold must be greater than minimum order quantity',
+    path: ['wholesaleThreshold'],
+  }
+)
+// Phase 4: Date Validation - Alert date must be before expiration date
+.refine(
+  (data) => {
+    if (data.alertDate && data.expirationDate) {
+      const alertDate = new Date(data.alertDate);
+      const expirationDate = new Date(data.expirationDate);
+      return alertDate < expirationDate;
+    }
+    return true;
+  },
+  {
+    message: 'Alert date must be before expiration date',
+    path: ['alertDate'],
+  }
+);
 
 export type ProductFormData = z.infer<typeof productFormSchema>;
 
@@ -70,7 +133,8 @@ export const variantFormSchema = z.object({
   productSKU: z.string().min(1, 'Product SKU is required'),
   variantName: z.string().min(1, 'Variant name is required'),
   variantSKU: z.string().min(1, 'Variant SKU is required'),
-  variantType: z.enum(['size', 'color', 'material', 'style', 'pack', 'other']),
+  // Phase 3: Fixed to match VariantType in api.ts:219 (PascalCase)
+  variantType: z.enum(['Color', 'Size', 'Material', 'Style']).default('Size'),
   price: z.coerce.number().positive('Price must be positive'),
   status: z.enum(['active', 'inactive']).default('active'),
   image: z.string().optional().nullable(),

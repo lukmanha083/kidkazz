@@ -19,7 +19,6 @@ import {
   Loader2,
   Cloud,
   HardDrive,
-  Play,
   AlertCircle,
   CheckCircle2,
 } from 'lucide-react';
@@ -419,7 +418,7 @@ export function VideoUpload({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={(e) => {
+                  onClick={(e: React.MouseEvent) => {
                     e.stopPropagation();
                     cancelUpload();
                   }}
@@ -439,7 +438,7 @@ export function VideoUpload({
                   variant="destructive"
                   size="icon"
                   className="absolute top-2 right-2 rounded-full"
-                  onClick={(e) => {
+                  onClick={(e: React.MouseEvent) => {
                     e.stopPropagation();
                     handleClear();
                   }}
@@ -477,7 +476,7 @@ export function VideoUpload({
                   </div>
                 ) : (
                   <Button
-                    onClick={(e) => {
+                    onClick={(e: React.MouseEvent) => {
                       e.stopPropagation();
                       uploadVideo();
                     }}

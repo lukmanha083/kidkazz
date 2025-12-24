@@ -401,7 +401,25 @@ export interface VariantWithInventory extends ProductVariant {
 }
 
 // CreateProductInput - DDD compliant (stock managed via Inventory Service)
-export interface CreateProductInput {
+// ============================================================================
+// PHASE 3: FormData Type Exports (Single Source of Truth from Zod)
+// ============================================================================
+// Import FormData types from form-schemas (inferred from Zod schemas)
+import type {
+  ProductFormData,
+  VariantFormData,
+  CategoryFormData,
+  WarehouseFormData,
+} from './form-schemas';
+
+/**
+ * @deprecated Use ProductFormData from form-schemas instead
+ * This ensures form data and API data always match (single source of truth)
+ */
+export type CreateProductInput = ProductFormData;
+
+// Keep the old interface for backward compatibility during migration
+export interface CreateProductInputLegacy {
   barcode: string;
   name: string;
   sku: string;
@@ -583,7 +601,14 @@ export const productApi = {
 // ============================================
 
 // CreateVariantInput - DDD compliant (stock managed via Inventory Service)
-export interface CreateVariantInput {
+/**
+ * @deprecated Use VariantFormData from form-schemas instead
+ * This ensures form data and API data always match (single source of truth)
+ */
+export type CreateVariantInput = VariantFormData;
+
+// Keep the old interface for backward compatibility during migration
+export interface CreateVariantInputLegacy {
   productId: string;
   productName: string;
   productSKU: string;

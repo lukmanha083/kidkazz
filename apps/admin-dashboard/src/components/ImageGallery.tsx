@@ -15,7 +15,6 @@ import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Upload,
-  X,
   Star,
   Trash2,
   Eye,
@@ -416,7 +415,7 @@ export function ImageGallery({ productId, maxImages = 10, readOnly = false }: Im
                       variant="secondary"
                       size="icon"
                       className="rounded-full"
-                      onClick={(e) => {
+                      onClick={(e: React.MouseEvent) => {
                         e.stopPropagation();
                         handleViewImage(image);
                       }}
@@ -430,7 +429,7 @@ export function ImageGallery({ productId, maxImages = 10, readOnly = false }: Im
                         variant="destructive"
                         size="icon"
                         className="rounded-full"
-                        onClick={(e) => {
+                        onClick={(e: React.MouseEvent) => {
                           e.stopPropagation();
                           handleDeleteImage(image.id);
                         }}

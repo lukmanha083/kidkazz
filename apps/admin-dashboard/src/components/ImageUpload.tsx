@@ -293,7 +293,7 @@ export function ImageUpload({
                   variant="destructive"
                   size="icon"
                   className="absolute top-2 right-2 rounded-full"
-                  onClick={(e) => {
+                  onClick={(e: React.MouseEvent) => {
                     e.stopPropagation();
                     handleClear();
                   }}
