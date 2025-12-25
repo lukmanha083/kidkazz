@@ -23,7 +23,6 @@ import {
   type LowStockStatusResponse,
 } from '../../lib/api';
 import { queryKeys } from '../../lib/query-client';
-import { optimisticCreate } from '../../lib/optimistic-updates';
 
 /**
  * Hook to fetch all products with optional inventory data
@@ -243,21 +242,43 @@ export function useCreateProduct() {
     onMutate: async (newProduct) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.products.all });
 
-      // Create optimistic product with temporary ID
-      const optimisticProduct = {
+      const previousData = queryClient.getQueryData<{ products: Product[]; total: number }>(
+        queryKeys.products.lists()
+      );
+
+      // Create optimistic product with temporary ID and required fields
+      const optimisticProduct: Product = {
         ...newProduct,
         id: `temp-${Date.now()}`,
+        rating: 0,
+        reviews: 0,
+        status: newProduct.status || 'inactive',
+        isBundle: newProduct.isBundle ?? false,
+        weight: newProduct.weight ?? null,
+        length: newProduct.length ?? null,
+        width: newProduct.width ?? null,
+        height: newProduct.height ?? null,
         createdAt: new Date(),
         updatedAt: new Date(),
       } as Product;
 
-      const { rollback } = optimisticCreate(
-        queryClient,
-        [...queryKeys.products.lists()],
-        optimisticProduct
+      // Update cache with correct shape { products, total }
+      queryClient.setQueryData<{ products: Product[]; total: number }>(
+        queryKeys.products.lists(),
+        (old) => {
+          if (!old) return old;
+          return {
+            products: [...old.products, optimisticProduct],
+            total: old.total + 1,
+          };
+        }
       );
 
-      return { rollback };
+      return {
+        rollback: () => {
+          queryClient.setQueryData(queryKeys.products.lists(), previousData);
+        },
+      };
     },
 
     // Phase 6: Rollback on error

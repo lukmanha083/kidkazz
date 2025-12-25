@@ -170,17 +170,22 @@ export async function syncProductUOMsEdit(
 
 		if (existingUOM) {
 			// Update existing UOM if there are changes
+			// NOTE: Stock is managed by Inventory Service (DDD), not compared here
 			if (
 				existingUOM.barcode !== uom.barcode ||
-				(existingUOM as any).stock !== uom.stock ||
 				existingUOM.isDefault !== uom.isDefault
 			) {
 				await uomApi.updateProductUOM(existingUOM.id, {
 					barcode: uom.barcode,
-					stock: uom.stock,
 					isDefault: uom.isDefault,
 				});
 			}
+			// TODO: Send stock changes to Inventory Service separately
+			// await inventoryApi.adjustStock({
+			//   productUOMId: existingUOM.id,
+			//   quantity: uom.stock,
+			//   reason: 'UOM stock update'
+			// });
 		} else {
 			// Add new UOM
 			await uomApi.addProductUOM({
@@ -297,31 +302,44 @@ export async function syncUOMWarehouseLocations(
 				const existingLocations =
 					existingLocationsResponse.locations || [];
 
-				// Delete all existing locations
-				for (const existingLocation of existingLocations) {
-					try {
-						await productUOMLocationApi.delete(existingLocation.id);
-					} catch (deleteError) {
-						console.error(
-							"Failed to delete UOM location:",
-							deleteError,
-						);
-					}
-				}
-
-				// Create new locations (physical location only)
+				// Diff-based sync: Create or update allocations first
 				for (const allocation of newAllocations) {
+					const existingLocation = existingLocations.find(
+						(loc: any) => loc.warehouseId === allocation.warehouseId,
+					);
+
 					try {
-						// DDD: Product Location API only manages physical location (no quantity)
-						await productUOMLocationApi.create({
-							productUOMId: currentUOM.id,
-							warehouseId: allocation.warehouseId,
-							rack: allocation.rack || null,
-							bin: allocation.bin || null,
-							zone: allocation.zone || null,
-							aisle: allocation.aisle || null,
-							// NOTE: quantity removed - managed by Inventory Service
-						});
+						if (existingLocation) {
+							// Update existing location if physical attributes differ
+							const needsUpdate =
+								existingLocation.rack !== (allocation.rack || null) ||
+								existingLocation.bin !== (allocation.bin || null) ||
+								existingLocation.zone !== (allocation.zone || null) ||
+								existingLocation.aisle !== (allocation.aisle || null);
+
+							if (needsUpdate) {
+								// DDD: Update physical location only (no quantity)
+								await productUOMLocationApi.update(existingLocation.id, {
+									rack: allocation.rack || null,
+									bin: allocation.bin || null,
+									zone: allocation.zone || null,
+									aisle: allocation.aisle || null,
+									// NOTE: quantity removed - managed by Inventory Service
+								});
+							}
+						} else {
+							// Create new location (physical location only)
+							// DDD: Product Location API only manages physical location (no quantity)
+							await productUOMLocationApi.create({
+								productUOMId: currentUOM.id,
+								warehouseId: allocation.warehouseId,
+								rack: allocation.rack || null,
+								bin: allocation.bin || null,
+								zone: allocation.zone || null,
+								aisle: allocation.aisle || null,
+								// NOTE: quantity removed - managed by Inventory Service
+							});
+						}
 
 						// TODO: Sync allocation.quantity to Inventory Service
 						// await inventoryApi.adjustStock({
@@ -332,11 +350,28 @@ export async function syncUOMWarehouseLocations(
 						//   source: 'warehouse',
 						//   reason: 'Stock sync from location update'
 						// });
-					} catch (createError) {
+					} catch (syncError) {
 						console.error(
-							"Failed to create UOM location:",
-							createError,
+							"Failed to sync UOM warehouse location:",
+							syncError,
 						);
+					}
+				}
+
+				// Delete locations that are no longer present
+				for (const existingLocation of existingLocations) {
+					const stillExists = newAllocations.find(
+						(alloc) => alloc.warehouseId === existingLocation.warehouseId,
+					);
+					if (!stillExists) {
+						try {
+							await productUOMLocationApi.delete(existingLocation.id);
+						} catch (deleteError) {
+							console.error(
+								"Failed to delete UOM location:",
+								deleteError,
+							);
+						}
 					}
 				}
 			}

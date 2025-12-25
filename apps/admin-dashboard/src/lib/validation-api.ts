@@ -17,13 +17,15 @@ const INVENTORY_SERVICE_URL = import.meta.env.VITE_INVENTORY_SERVICE_URL || 'htt
  * @param endpoint - Path to append to the service base URL (should start with `/`)
  * @param params - Query parameters to include; falsy values are omitted
  * @param service - Which service base URL to use: `'product'` or `'inventory'` (defaults to `'product'`)
+ * @param signal - Optional AbortSignal for request cancellation
  * @returns An object with `isUnique: boolean` where `isUnique` is `true` if the value is unique, `false` otherwise
  * @throws Error when the HTTP response is not OK; the error message includes the response status text
  */
 async function validationRequest(
 	endpoint: string,
 	params: Record<string, string>,
-	service: 'product' | 'inventory' = 'product'
+	service: 'product' | 'inventory' = 'product',
+	signal?: AbortSignal
 ): Promise<{ isUnique: boolean }> {
 	const baseUrls = {
 		product: PRODUCT_SERVICE_URL,
@@ -42,6 +44,7 @@ async function validationRequest(
 		headers: {
 			'Content-Type': 'application/json',
 		},
+		signal,
 	});
 
 	if (!response.ok) {
@@ -56,12 +59,14 @@ export const validationApi = {
 	 * Check if SKU is unique
 	 * @param sku - The SKU to validate
 	 * @param productId - Optional product ID to exclude from check (for edit mode)
+	 * @param signal - Optional AbortSignal for request cancellation
 	 */
-	checkSKUUnique: async (sku: string, productId?: string): Promise<boolean> => {
+	checkSKUUnique: async (sku: string, productId?: string, signal?: AbortSignal): Promise<boolean> => {
 		const response = await validationRequest(
 			'/api/validation/sku',
 			{ sku, excludeId: productId || '' },
-			'product'
+			'product',
+			signal
 		);
 		return response.isUnique;
 	},
@@ -70,12 +75,14 @@ export const validationApi = {
 	 * Check if barcode is unique
 	 * @param barcode - The barcode to validate
 	 * @param productId - Optional product ID to exclude from check (for edit mode)
+	 * @param signal - Optional AbortSignal for request cancellation
 	 */
-	checkBarcodeUnique: async (barcode: string, productId?: string): Promise<boolean> => {
+	checkBarcodeUnique: async (barcode: string, productId?: string, signal?: AbortSignal): Promise<boolean> => {
 		const response = await validationRequest(
 			'/api/validation/barcode',
 			{ barcode, excludeId: productId || '' },
-			'product'
+			'product',
+			signal
 		);
 		return response.isUnique;
 	},
@@ -84,12 +91,14 @@ export const validationApi = {
 	 * Check if warehouse code is unique
 	 * @param code - The warehouse code to validate
 	 * @param warehouseId - Optional warehouse ID to exclude from check (for edit mode)
+	 * @param signal - Optional AbortSignal for request cancellation
 	 */
-	checkWarehouseCodeUnique: async (code: string, warehouseId?: string): Promise<boolean> => {
+	checkWarehouseCodeUnique: async (code: string, warehouseId?: string, signal?: AbortSignal): Promise<boolean> => {
 		const response = await validationRequest(
 			'/api/validation/warehouse-code',
 			{ code, excludeId: warehouseId || '' },
-			'product'
+			'product',
+			signal
 		);
 		return response.isUnique;
 	},
@@ -100,12 +109,14 @@ export const validationApi = {
 	 * @param warehouseId - The warehouse ID (required for scoping)
 	 * @param productId - The product ID (required for scoping)
 	 * @param batchId - Optional batch ID to exclude from check (for edit mode)
+	 * @param signal - Optional AbortSignal for request cancellation
 	 */
 	checkBatchNumberUnique: async (
 		batchNumber: string,
 		warehouseId: string,
 		productId: string,
-		batchId?: string
+		batchId?: string,
+		signal?: AbortSignal
 	): Promise<boolean> => {
 		const response = await validationRequest(
 			'/api/validation/batch-number',
@@ -115,7 +126,8 @@ export const validationApi = {
 				productId,
 				excludeId: batchId || '',
 			},
-			'inventory'
+			'inventory',
+			signal
 		);
 		return response.isUnique;
 	},

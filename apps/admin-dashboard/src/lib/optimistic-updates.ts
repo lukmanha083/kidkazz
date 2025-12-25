@@ -36,9 +36,7 @@ export function optimisticCreate<T extends { id: string }>(
 
 	return {
 		rollback: () => {
-			if (previousData) {
-				queryClient.setQueryData(queryKey, previousData);
-			}
+			queryClient.setQueryData(queryKey, previousData);
 		},
 	};
 }
@@ -67,9 +65,7 @@ export function optimisticUpdate<T extends { id: string }>(
 
 	return {
 		rollback: () => {
-			if (previousData) {
-				queryClient.setQueryData(queryKey, previousData);
-			}
+			queryClient.setQueryData(queryKey, previousData);
 		},
 	};
 }
@@ -94,9 +90,7 @@ export function optimisticDelete<T extends { id: string }>(
 
 	return {
 		rollback: () => {
-			if (previousData) {
-				queryClient.setQueryData(queryKey, previousData);
-			}
+			queryClient.setQueryData(queryKey, previousData);
 		},
 	};
 }
@@ -124,9 +118,7 @@ export function optimisticBatchCreate<T extends { id: string }>(
 
 	return {
 		rollback: () => {
-			if (previousData) {
-				queryClient.setQueryData(queryKey, previousData);
-			}
+			queryClient.setQueryData(queryKey, previousData);
 		},
 	};
 }
@@ -154,9 +146,7 @@ export function optimisticBatchUpdate<T extends { id: string }>(
 
 	return {
 		rollback: () => {
-			if (previousData) {
-				queryClient.setQueryData(queryKey, previousData);
-			}
+			queryClient.setQueryData(queryKey, previousData);
 		},
 	};
 }
@@ -182,9 +172,7 @@ export function optimisticBatchDelete<T extends { id: string }>(
 
 	return {
 		rollback: () => {
-			if (previousData) {
-				queryClient.setQueryData(queryKey, previousData);
-			}
+			queryClient.setQueryData(queryKey, previousData);
 		},
 	};
 }

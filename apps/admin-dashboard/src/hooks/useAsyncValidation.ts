@@ -28,7 +28,7 @@ interface AsyncValidationState {
  * Starts a debounced validation request via `validationFn`, cancels any in-flight request
  * when a new validation is started or on unmount, and exposes validation state and controls.
  *
- * @param validationFn - Async function that determines whether the provided value is valid/unique. It receives the value and an optional `excludeId` and must resolve to `true` for valid or `false` for invalid.
+ * @param validationFn - Async function that determines whether the provided value is valid/unique. It receives the value, an optional `excludeId`, and an optional `AbortSignal` for cancellation, and must resolve to `true` for valid or `false` for invalid.
  * @param debounceMs - Delay in milliseconds to wait after the last call to `validate` before invoking `validationFn`. Defaults to 500.
  * @returns An object containing:
  *  - `isValidating`: `true` while a validation request is pending, otherwise `false`.
@@ -38,7 +38,7 @@ interface AsyncValidationState {
  *  - `reset()`: Function to reset the validation state to idle.
  */
 export function useAsyncValidation<T>(
-	validationFn: (value: T, excludeId?: string) => Promise<boolean>,
+	validationFn: (value: T, excludeId?: string, signal?: AbortSignal) => Promise<boolean>,
 	debounceMs = 500
 ) {
 	const [state, setState] = useState<AsyncValidationState>({
@@ -83,12 +83,14 @@ export function useAsyncValidation<T>(
 			// Set validating state
 			setState({ isValidating: true, isValid: null, error: null });
 
+			// Create AbortController before scheduling
+			abortControllerRef.current = new AbortController();
+			const signal = abortControllerRef.current.signal;
+
 			// Debounce the validation request
 			timeoutRef.current = setTimeout(async () => {
-				abortControllerRef.current = new AbortController();
-
 				try {
-					const isUnique = await validationFn(value, excludeId);
+					const isUnique = await validationFn(value, excludeId, signal);
 					setState({
 						isValidating: false,
 						isValid: isUnique,

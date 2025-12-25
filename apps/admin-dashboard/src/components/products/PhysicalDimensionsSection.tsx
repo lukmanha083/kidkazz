@@ -38,7 +38,10 @@ export function PhysicalDimensionsSection({ form }: PhysicalDimensionsSectionPro
 							step="0.01"
 							placeholder="0.5"
 							value={field.state.value || ''}
-							onChange={(e) => field.handleChange(parseFloat(e.target.value) || null)}
+							onChange={(e) => {
+								const parsed = parseFloat(e.target.value);
+								field.handleChange(Number.isFinite(parsed) ? parsed : null);
+							}}
 							onBlur={field.handleBlur}
 						/>
 						{field.state.meta.errors.length > 0 && (
@@ -61,7 +64,10 @@ export function PhysicalDimensionsSection({ form }: PhysicalDimensionsSectionPro
 								step="0.1"
 								placeholder="10"
 								value={field.state.value || ''}
-								onChange={(e) => field.handleChange(parseFloat(e.target.value) || null)}
+								onChange={(e) => {
+									const parsed = parseFloat(e.target.value);
+									field.handleChange(Number.isFinite(parsed) ? parsed : null);
+								}}
 								onBlur={field.handleBlur}
 							/>
 							{field.state.meta.errors.length > 0 && (
@@ -82,7 +88,10 @@ export function PhysicalDimensionsSection({ form }: PhysicalDimensionsSectionPro
 								step="0.1"
 								placeholder="10"
 								value={field.state.value || ''}
-								onChange={(e) => field.handleChange(parseFloat(e.target.value) || null)}
+								onChange={(e) => {
+									const parsed = parseFloat(e.target.value);
+									field.handleChange(Number.isFinite(parsed) ? parsed : null);
+								}}
 								onBlur={field.handleBlur}
 							/>
 							{field.state.meta.errors.length > 0 && (
@@ -103,7 +112,10 @@ export function PhysicalDimensionsSection({ form }: PhysicalDimensionsSectionPro
 								step="0.1"
 								placeholder="10"
 								value={field.state.value || ''}
-								onChange={(e) => field.handleChange(parseFloat(e.target.value) || null)}
+								onChange={(e) => {
+									const parsed = parseFloat(e.target.value);
+									field.handleChange(Number.isFinite(parsed) ? parsed : null);
+								}}
 								onBlur={field.handleBlur}
 							/>
 							{field.state.meta.errors.length > 0 && (

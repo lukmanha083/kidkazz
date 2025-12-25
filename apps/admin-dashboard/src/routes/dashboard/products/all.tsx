@@ -1101,6 +1101,8 @@ function AllProductsPage() {
 				}
 
 				// VALIDATE STOCK CONSISTENCY AFTER ALL UPDATES
+				// Note: This is a post-save validation warning, not a blocking validation
+				// Product data has already been saved successfully at this point
 				const isValid = await validateStockConsistencyWithToast(
 					selectedProduct.id,
 					productApi,
@@ -1108,16 +1110,19 @@ function AllProductsPage() {
 					queryKeys
 				);
 
-				if (!isValid) {
-					// Keep drawer open so user can fix the issue
-					return;
-				}
-
 				queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
 				queryClient.invalidateQueries({
 					queryKey: queryKeys.products.detail(selectedProduct.id),
 				});
-				toast.success("Product updated successfully");
+
+				// Always close drawer since data is saved (validation is just a warning)
+				if (isValid) {
+					toast.success("Product updated successfully");
+				} else {
+					toast.success("Product updated successfully (with stock warnings)", {
+						description: "Check the validation warnings and update stock levels if needed"
+					});
+				}
 				setFormDrawerOpen(false);
 			} catch (error: any) {
 				const errorMessage = getErrorMessage(error);
