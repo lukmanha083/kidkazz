@@ -46,6 +46,7 @@ Domain-Driven Design refactoring documentation - **THE SOURCE OF TRUTH**.
 |----------|-------------|----------|
 | [DDD_REFACTORING_ROADMAP.md](ddd/DDD_REFACTORING_ROADMAP.md) | **MASTER PLAN** - Complete 8-phase refactoring roadmap | ⭐ CRITICAL |
 | [DDD_REFACTORING_COMPLETE_SUMMARY.md](ddd/DDD_REFACTORING_COMPLETE_SUMMARY.md) | Phases 1-6 completion summary | High |
+| [DDD_PHASE4_TYPE_ERRORS_FIX.md](ddd/DDD_PHASE4_TYPE_ERRORS_FIX.md) | Phase 4 TypeScript errors resolution (69 errors fixed) | High |
 | [BUSINESS_RULES.md](ddd/BUSINESS_RULES.md) | All business rules and constraints | High |
 | [DDD_MIGRATION_GUIDE.md](ddd/DDD_MIGRATION_GUIDE.md) | Step-by-step migration guide | Medium |
 | [DDD_ANALYSIS_AND_FIX.md](ddd/DDD_ANALYSIS_AND_FIX.md) | Original DDD violations analysis | Reference |
