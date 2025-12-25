@@ -10,6 +10,7 @@ type Bindings = {
   DB: D1Database;
   WAREHOUSE_UPDATES: DurableObjectNamespace;
   PRODUCT_SERVICE: Fetcher;
+  INVENTORY_SERVICE?: Fetcher;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -208,9 +209,12 @@ app.delete('/:id', async (c) => {
 
   // 2. Get inventory report to check if warehouse can be deleted
   try {
-    // Use relative URL for internal service call
-    const baseUrl = new URL(c.req.url).origin;
-    const reportResponse = await fetch(`${baseUrl}/api/inventory/warehouse/${id}/report`);
+    // Use Cloudflare Fetcher binding for internal service call
+    const reportResponse = c.env.INVENTORY_SERVICE
+      ? await c.env.INVENTORY_SERVICE.fetch(
+          new Request(`http://inventory-service/api/inventory/warehouse/${id}/report`)
+        )
+      : await fetch(`${new URL(c.req.url).origin}/api/inventory/warehouse/${id}/report`);
 
     if (reportResponse.ok) {
       const report = await reportResponse.json() as {
@@ -235,9 +239,15 @@ app.delete('/:id', async (c) => {
       }
 
       // 3. Cascade delete: Clean up inventory records (all at zero)
-      const inventoryDeleteResponse = await fetch(`${baseUrl}/api/inventory/warehouse/${id}`, {
-        method: 'DELETE',
-      });
+      const inventoryDeleteResponse = c.env.INVENTORY_SERVICE
+        ? await c.env.INVENTORY_SERVICE.fetch(
+            new Request(`http://inventory-service/api/inventory/warehouse/${id}`, {
+              method: 'DELETE',
+            })
+          )
+        : await fetch(`${new URL(c.req.url).origin}/api/inventory/warehouse/${id}`, {
+            method: 'DELETE',
+          });
 
       let deletedInventoryRecords = 0;
       if (inventoryDeleteResponse.ok) {

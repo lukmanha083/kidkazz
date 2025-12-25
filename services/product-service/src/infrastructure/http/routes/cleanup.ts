@@ -38,10 +38,32 @@ app.post('/orphaned-locations', async (c) => {
       );
     }
 
-    const warehouseData = await warehouseResponse.json() as {
-      warehouses: Array<{ id: string; [key: string]: any }>;
-    };
-    const activeWarehouseIds = warehouseData.warehouses.map((w) => w.id);
+    const warehouseData = await warehouseResponse.json();
+
+    // Runtime validation: check that response has warehouses array
+    if (!warehouseData || typeof warehouseData !== 'object' || !('warehouses' in warehouseData)) {
+      console.error('Invalid warehouse response: missing warehouses property', warehouseData);
+      return c.json(
+        {
+          error: 'Invalid response from Inventory Service',
+          details: 'Expected response with warehouses array, got unexpected shape',
+        },
+        502
+      );
+    }
+
+    if (!Array.isArray(warehouseData.warehouses)) {
+      console.error('Invalid warehouse response: warehouses is not an array', warehouseData);
+      return c.json(
+        {
+          error: 'Invalid response from Inventory Service',
+          details: 'Expected warehouses to be an array',
+        },
+        502
+      );
+    }
+
+    const activeWarehouseIds = warehouseData.warehouses.map((w: any) => w.id);
 
     if (activeWarehouseIds.length === 0) {
       return c.json({
@@ -175,10 +197,32 @@ app.get('/orphaned-locations/check', async (c) => {
       );
     }
 
-    const warehouseData = await warehouseResponse.json() as {
-      warehouses: Array<{ id: string; [key: string]: any }>;
-    };
-    const activeWarehouseIds = warehouseData.warehouses.map((w) => w.id);
+    const warehouseData = await warehouseResponse.json();
+
+    // Runtime validation: check that response has warehouses array
+    if (!warehouseData || typeof warehouseData !== 'object' || !('warehouses' in warehouseData)) {
+      console.error('Invalid warehouse response: missing warehouses property', warehouseData);
+      return c.json(
+        {
+          error: 'Invalid response from Inventory Service',
+          details: 'Expected response with warehouses array, got unexpected shape',
+        },
+        502
+      );
+    }
+
+    if (!Array.isArray(warehouseData.warehouses)) {
+      console.error('Invalid warehouse response: warehouses is not an array', warehouseData);
+      return c.json(
+        {
+          error: 'Invalid response from Inventory Service',
+          details: 'Expected warehouses to be an array',
+        },
+        502
+      );
+    }
+
+    const activeWarehouseIds = warehouseData.warehouses.map((w: any) => w.id);
 
     // Check productLocations
     const allProductLocations = await db

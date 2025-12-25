@@ -159,7 +159,7 @@ export class ImageService {
         uploadedAt: new Date().toISOString(),
         isPrimary: options?.isPrimary ? 'true' : 'false',
         sortOrder: options?.sortOrder?.toString() || '0',
-        cropArea: options?.cropArea ? JSON.stringify(options.cropArea) : '',
+        ...(options?.cropArea ? { cropArea: JSON.stringify(options.cropArea) } : {}),
       },
     });
 

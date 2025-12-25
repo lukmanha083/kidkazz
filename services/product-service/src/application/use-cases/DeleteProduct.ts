@@ -37,6 +37,38 @@ export interface DeleteProductResult {
 
 export class DeleteProductUseCase {
   /**
+   * Get active bundles that contain this product
+   */
+  private async getActiveBundlesWithProduct(productId: string) {
+    return await db
+      .select({
+        bundleId: bundleItems.bundleId,
+        bundleName: productBundles.bundleName,
+        bundleSKU: productBundles.bundleSKU,
+      })
+      .from(bundleItems)
+      .innerJoin(productBundles, eq(bundleItems.bundleId, productBundles.id))
+      .where(
+        and(
+          eq(bundleItems.productId, productId),
+          eq(productBundles.status, 'active')
+        )
+      )
+      .all();
+  }
+
+  /**
+   * Get custom pricing records for this product
+   */
+  private async getCustomPricingRecords(productId: string) {
+    return await db
+      .select()
+      .from(customPricing)
+      .where(eq(customPricing.productId, productId))
+      .all();
+  }
+
+  /**
    * Execute the delete product use case with validation
    */
   async execute(input: DeleteProductInput): Promise<DeleteProductResult> {
@@ -70,21 +102,7 @@ export class DeleteProductUseCase {
     // }
 
     // Check 2: Product in active bundles
-    const activeBundlesWithProduct = await db
-      .select({
-        bundleId: bundleItems.bundleId,
-        bundleName: productBundles.bundleName,
-        bundleSKU: productBundles.bundleSKU,
-      })
-      .from(bundleItems)
-      .innerJoin(productBundles, eq(bundleItems.bundleId, productBundles.id))
-      .where(
-        and(
-          eq(bundleItems.productId, productId),
-          eq(productBundles.status, 'active')
-        )
-      )
-      .all();
+    const activeBundlesWithProduct = await this.getActiveBundlesWithProduct(productId);
 
     if (activeBundlesWithProduct.length > 0) {
       const bundleNames = activeBundlesWithProduct
@@ -96,11 +114,7 @@ export class DeleteProductUseCase {
     }
 
     // Check 3: Product has custom pricing
-    const customPricingRecords = await db
-      .select()
-      .from(customPricing)
-      .where(eq(customPricing.productId, productId))
-      .all();
+    const customPricingRecords = await this.getCustomPricingRecords(productId);
 
     if (customPricingRecords.length > 0) {
       cannotDeleteReasons.push(
@@ -191,10 +205,9 @@ export class DeleteProductUseCase {
       throw new Error(`Product with ID "${productId}" not found`);
     }
 
-    // In a real implementation, these would be actual queries
-    // For now, returning structure for demonstration
-    const customPricingRecords: any[] = []; // TODO: Implement actual query
-    const activeBundlesWithProduct: any[] = []; // TODO: Implement actual query
+    // Get actual counts from helper methods
+    const customPricingRecords = await this.getCustomPricingRecords(productId);
+    const activeBundlesWithProduct = await this.getActiveBundlesWithProduct(productId);
 
     return {
       productName: product.name,
