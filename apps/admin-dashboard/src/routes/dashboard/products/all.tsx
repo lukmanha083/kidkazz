@@ -2262,10 +2262,6 @@ function AllProductsPage() {
 									</div>
 								)}
 							</form.Field>
-							{/* Stock field removed - stock is now managed via Product Locations (Inventory Service) */}
-						</div>
-
-						<div className="grid grid-cols-2 gap-3">
 							<form.Field name="status">
 								{(field) => (
 									<div className="space-y-2">
@@ -2292,8 +2288,6 @@ function AllProductsPage() {
 									</div>
 								)}
 							</form.Field>
-							{/* NOTE: minimumStock field REMOVED per DDD compliance */}
-							{/* Stock alerts are now managed via Inventory Service */}
 						</div>
 
 						<div className="grid grid-cols-2 gap-3">
