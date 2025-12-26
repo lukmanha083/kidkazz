@@ -2039,7 +2039,7 @@ function AllProductsPage() {
 									</div>
 									{field.state.meta.errors.length > 0 && (
 										<p className="text-sm text-destructive">
-											{field.state.meta.errors.join(', ')}
+											{field.state.meta.errors.map(e => typeof e === 'string' ? e : (e && typeof e === 'object' && 'message' in e ? (e as { message: string }).message : String(e))).join(', ')}
 										</p>
 									)}
 									{barcodeValidation.error && (
@@ -2063,7 +2063,7 @@ function AllProductsPage() {
 									/>
 									{field.state.meta.errors.length > 0 && (
 										<p className="text-sm text-destructive">
-											{field.state.meta.errors.join(', ')}
+											{field.state.meta.errors.map(e => typeof e === 'string' ? e : (e && typeof e === 'object' && 'message' in e ? (e as { message: string }).message : String(e))).join(', ')}
 										</p>
 									)}
 								</div>
@@ -2083,7 +2083,7 @@ function AllProductsPage() {
 									/>
 									{field.state.meta.errors.length > 0 && (
 										<p className="text-sm text-destructive">
-											{field.state.meta.errors.join(', ')}
+											{field.state.meta.errors.map(e => typeof e === 'string' ? e : (e && typeof e === 'object' && 'message' in e ? (e as { message: string }).message : String(e))).join(', ')}
 										</p>
 									)}
 								</div>
@@ -2202,7 +2202,7 @@ function AllProductsPage() {
 										</div>
 										{field.state.meta.errors.length > 0 && (
 											<p className="text-sm text-destructive">
-												{field.state.meta.errors.join(', ')}
+												{field.state.meta.errors.map(e => typeof e === 'string' ? e : (e && typeof e === 'object' && 'message' in e ? (e as { message: string }).message : String(e))).join(', ')}
 											</p>
 										)}
 										{skuValidation.error && (
@@ -2231,7 +2231,7 @@ function AllProductsPage() {
 										</select>
 										{field.state.meta.errors.length > 0 && (
 											<p className="text-sm text-destructive">
-												{field.state.meta.errors.join(', ')}
+												{field.state.meta.errors.map(e => typeof e === 'string' ? e : (e && typeof e === 'object' && 'message' in e ? (e as { message: string }).message : String(e))).join(', ')}
 											</p>
 										)}
 									</div>
@@ -2256,7 +2256,7 @@ function AllProductsPage() {
 										/>
 										{field.state.meta.errors.length > 0 && (
 											<p className="text-sm text-destructive">
-												{field.state.meta.errors.join(', ')}
+												{field.state.meta.errors.map(e => typeof e === 'string' ? e : (e && typeof e === 'object' && 'message' in e ? (e as { message: string }).message : String(e))).join(', ')}
 											</p>
 										)}
 									</div>
@@ -2273,18 +2273,20 @@ function AllProductsPage() {
 										<select
 											id={field.name}
 											value={field.state.value}
-											onChange={(e) => field.handleChange(e.target.value as 'active' | 'inactive' | 'omnichannel sales')}
+											onChange={(e) => field.handleChange(e.target.value as 'online sales' | 'offline sales' | 'omnichannel sales' | 'inactive' | 'discontinued')}
 											onBlur={field.handleBlur}
 											className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
 											required
 										>
-											<option value="active">Active</option>
-											<option value="inactive">Inactive</option>
+											<option value="online sales">Online Sales</option>
+											<option value="offline sales">Offline Sales</option>
 											<option value="omnichannel sales">Omnichannel Sales</option>
+											<option value="inactive">Inactive</option>
+											<option value="discontinued">Discontinued</option>
 										</select>
 										{field.state.meta.errors.length > 0 && (
 											<p className="text-sm text-destructive">
-												{field.state.meta.errors.join(', ')}
+												{field.state.meta.errors.map(e => typeof e === 'string' ? e : (e && typeof e === 'object' && 'message' in e ? (e as { message: string }).message : String(e))).join(', ')}
 											</p>
 										)}
 									</div>
@@ -2322,7 +2324,7 @@ function AllProductsPage() {
 										</p>
 										{field.state.meta.errors.length > 0 && (
 											<p className="text-sm text-destructive">
-												{field.state.meta.errors.join(', ')}
+												{field.state.meta.errors.map(e => typeof e === 'string' ? e : (e && typeof e === 'object' && 'message' in e ? (e as { message: string }).message : String(e))).join(', ')}
 											</p>
 										)}
 									</div>
@@ -2350,7 +2352,7 @@ function AllProductsPage() {
 										</p>
 										{field.state.meta.errors.length > 0 && (
 											<p className="text-sm text-destructive">
-												{field.state.meta.errors.join(', ')}
+												{field.state.meta.errors.map(e => typeof e === 'string' ? e : (e && typeof e === 'object' && 'message' in e ? (e as { message: string }).message : String(e))).join(', ')}
 											</p>
 										)}
 									</div>

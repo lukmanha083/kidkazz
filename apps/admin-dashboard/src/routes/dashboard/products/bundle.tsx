@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from '@tanstack/react-form';
 import { zodValidator } from '@tanstack/zod-form-adapter';
@@ -509,10 +509,13 @@ function ProductBundlePage() {
 	const [discountPercentage, setDiscountPercentage] = useState(0);
 
 	// Update discount percentage when form field changes
-	form.subscribe(
-		(state) => state.values.discountPercentage,
-		(discountValue) => setDiscountPercentage(discountValue || 0),
-	);
+	useEffect(() => {
+		const unsubscribe = form.store.subscribe(() => {
+			const value = form.getFieldValue('discountPercentage');
+			setDiscountPercentage(value || 0);
+		});
+		return unsubscribe;
+	}, [form]);
 
 	// Auto-calculate bundle price based on selected products and discount
 	const calculatedBundlePrice = useMemo(() => {

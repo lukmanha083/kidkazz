@@ -161,7 +161,7 @@ function ProductVariantPage() {
 			productSKU: "",
 			variantName: "",
 			variantSKU: "",
-			variantType: "color" as const,
+			variantType: "Color" as const,
 			price: 0,
 			status: "active" as const,
 			image: null as string | null,
@@ -347,17 +347,20 @@ function ProductVariantPage() {
 		return `${productSKU}-${variantCode}`;
 	};
 
+	// Handler functions must be declared before useMemo that references them
+	const handleViewVariant = (variant: ProductVariant) => {
+		setSelectedVariant(variant);
+		setViewDrawerOpen(true);
+	};
+
 	// Handle product selection
 	const handleProductSelect = async (productSKU: string) => {
 		const product = products.find((p) => p.sku === productSKU);
 		if (product) {
-			setFormData({
-				...formData,
-				productId: product.id,
-				productName: product.name,
-				productSKU: product.sku,
-				variantSKU: generateVariantSKU(product.sku, formData.variantName),
-			});
+			form.setFieldValue('productId', product.id);
+			form.setFieldValue('productName', product.name);
+			form.setFieldValue('productSKU', product.sku);
+			form.setFieldValue('variantSKU', generateVariantSKU(product.sku, form.getFieldValue('variantName')));
 
 			// Reset warehouse allocations - let user allocate manually
 			// The parent product's warehouse structure is available but not pre-filled
@@ -407,11 +410,11 @@ function ProductVariantPage() {
 
 	// Handle variant name change (auto-update variant SKU)
 	const handleVariantNameChange = (variantName: string) => {
-		setFormData({
-			...formData,
-			variantName,
-			variantSKU: generateVariantSKU(formData.productSKU, variantName),
-		});
+		form.setFieldValue('variantName', variantName);
+		const productSKU = form.getFieldValue('productSKU');
+		if (productSKU) {
+			form.setFieldValue('variantSKU', generateVariantSKU(productSKU, variantName));
+		}
 	};
 
 	// Configure columns with callbacks
@@ -435,11 +438,6 @@ function ProductVariantPage() {
 			}),
 		[],
 	);
-
-	const handleViewVariant = (variant: ProductVariant) => {
-		setSelectedVariant(variant);
-		setViewDrawerOpen(true);
-	};
 
 	const handleAddVariant = () => {
 		setFormMode("add");
@@ -735,40 +733,48 @@ function ProductVariantPage() {
 					</DrawerHeader>
 
 					<form
-						onSubmit={handleSubmitForm}
+						onSubmit={(e) => {
+							e.preventDefault();
+							e.stopPropagation();
+							form.handleSubmit();
+						}}
 						className="flex-1 overflow-y-auto p-4 space-y-4"
 					>
-						<div className="space-y-2">
-							<Label>Select Product</Label>
-							<Combobox
-								options={productOptions}
-								value={formData.productSKU}
-								onValueChange={handleProductSelect}
-								placeholder="Search products..."
-								searchPlaceholder="Type to search..."
-								emptyText="No products found."
-							/>
-							<p className="text-xs text-muted-foreground">
-								Search and select the product this variant belongs to
-							</p>
-						</div>
+						<form.Field name="productSKU">
+							{(field) => (
+								<div className="space-y-2">
+									<Label>Select Product</Label>
+									<Combobox
+										options={productOptions}
+										value={field.state.value}
+										onValueChange={handleProductSelect}
+										placeholder="Search products..."
+										searchPlaceholder="Type to search..."
+										emptyText="No products found."
+									/>
+									<p className="text-xs text-muted-foreground">
+										Search and select the product this variant belongs to
+									</p>
+								</div>
+							)}
+						</form.Field>
 
-						{formData.productSKU && (
+						{form.getFieldValue('productSKU') && (
 							<div className="p-3 bg-muted/30 rounded-md space-y-2">
 								<div className="flex justify-between text-sm">
 									<span className="text-muted-foreground">Product:</span>
-									<span className="font-medium">{formData.productName}</span>
+									<span className="font-medium">{form.getFieldValue('productName')}</span>
 								</div>
 								<div className="flex justify-between text-sm">
 									<span className="text-muted-foreground">SKU:</span>
-									<span className="font-mono">{formData.productSKU}</span>
+									<span className="font-mono">{form.getFieldValue('productSKU')}</span>
 								</div>
 								<div className="flex justify-between text-sm">
 									<span className="text-muted-foreground">
 										Total Product Stock:
 									</span>
 									<span className="font-medium">
-										{getProductStockBySKU(formData.productSKU)} units
+										{getProductStockBySKU(form.getFieldValue('productSKU'))} units
 									</span>
 								</div>
 								<div className="flex justify-between text-sm">
@@ -777,7 +783,7 @@ function ProductVariantPage() {
 									</span>
 									<span className="font-medium text-orange-600 dark:text-orange-500">
 										{getAllocatedStockForProduct(
-											formData.productSKU,
+											form.getFieldValue('productSKU'),
 											selectedVariant?.id,
 										)}{" "}
 										units
@@ -789,7 +795,7 @@ function ProductVariantPage() {
 									</span>
 									<span className="font-medium text-green-600 dark:text-green-500">
 										{getRemainingStock(
-											formData.productSKU,
+											form.getFieldValue('productSKU'),
 											selectedVariant?.id,
 										)}{" "}
 										units
@@ -802,7 +808,7 @@ function ProductVariantPage() {
 						)}
 
 						{/* Parent Product Warehouse Stock Breakdown */}
-						{formData.productSKU && parentProductLocations.length > 0 && (
+						{form.getFieldValue('productSKU') && parentProductLocations.length > 0 && (
 							<div className="space-y-2">
 								<Label className="text-xs text-muted-foreground flex items-center gap-2">
 									<Package className="h-3 w-3" />
@@ -843,7 +849,7 @@ function ProductVariantPage() {
 											className="w-full"
 											onClick={() => {
 												const product = products.find(
-													(p) => p.sku === formData.productSKU,
+													(p) => p.sku === form.getFieldValue('productSKU'),
 												);
 												const warehouseStockDetails: WarehouseStockDetail[] =
 													parentProductLocations.map((loc) => ({
@@ -860,15 +866,15 @@ function ProductVariantPage() {
 													0,
 												);
 												setWarehouseModalData({
-													title: `Parent Product: ${formData.productName}`,
-													subtitle: `SKU: ${formData.productSKU} | Total Stock: ${totalStock} units`,
+													title: `Parent Product: ${form.getFieldValue('productName')}`,
+													subtitle: `SKU: ${form.getFieldValue('productSKU')} | Total Stock: ${totalStock} units`,
 													warehouseStocks: warehouseStockDetails,
 													reportType: "product",
-													itemName: formData.productName,
-													itemSKU: formData.productSKU,
+													itemName: form.getFieldValue('productName'),
+													itemSKU: form.getFieldValue('productSKU'),
 													productBarcode: product?.barcode,
-													productSKU: formData.productSKU,
-													productName: formData.productName,
+													productSKU: form.getFieldValue('productSKU'),
+													productName: form.getFieldValue('productName'),
 												});
 												setWarehouseModalOpen(true);
 											}}
@@ -888,144 +894,122 @@ function ProductVariantPage() {
 
 						<Separator />
 
-						<div className="space-y-2">
-							<Label htmlFor="variantName">Variant Name</Label>
-							<Input
-								id="variantName"
-								placeholder="Pink, Large, Cotton, etc."
-								value={formData.variantName}
-								onChange={(e) => handleVariantNameChange(e.target.value)}
-								required
-							/>
-							<p className="text-xs text-muted-foreground">
-								e.g., "Pink" for color, "Large" for size, "Cotton" for material
-							</p>
-						</div>
+						<form.Field name="variantName">
+							{(field) => (
+								<div className="space-y-2">
+									<Label htmlFor="variantName">Variant Name</Label>
+									<Input
+										id="variantName"
+										placeholder="Pink, Large, Cotton, etc."
+										value={field.state.value}
+										onChange={(e) => handleVariantNameChange(e.target.value)}
+										onBlur={field.handleBlur}
+										required
+									/>
+									<p className="text-xs text-muted-foreground">
+										e.g., "Pink" for color, "Large" for size, "Cotton" for material
+									</p>
+								</div>
+							)}
+						</form.Field>
 
-						<div className="space-y-2">
-							<Label htmlFor="variantSKU">Variant SKU (Auto-generated)</Label>
-							<Input
-								id="variantSKU"
-								placeholder="BB-001-PIN"
-								value={formData.variantSKU}
-								readOnly
-								className="bg-muted/30"
-								required
-							/>
-							<p className="text-xs text-muted-foreground">
-								Auto-generated from product SKU + variant name
-							</p>
-						</div>
+						<form.Field name="variantSKU">
+							{(field) => (
+								<div className="space-y-2">
+									<Label htmlFor="variantSKU">Variant SKU (Auto-generated)</Label>
+									<Input
+										id="variantSKU"
+										placeholder="BB-001-PIN"
+										value={field.state.value}
+										readOnly
+										className="bg-muted/30"
+										required
+									/>
+									<p className="text-xs text-muted-foreground">
+										Auto-generated from product SKU + variant name
+									</p>
+								</div>
+							)}
+						</form.Field>
 
-						<div className="space-y-2">
-							<Label htmlFor="variantType">Variant Type</Label>
-							<select
-								id="variantType"
-								value={formData.variantType}
-								onChange={(e) =>
-									setFormData({
-										...formData,
-										variantType: e.target.value as any,
-									})
-								}
-								className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-							>
-								<option value="Color">Color</option>
-								<option value="Size">Size</option>
-								<option value="Material">Material</option>
-								<option value="Style">Style</option>
-							</select>
-						</div>
+						<form.Field name="variantType">
+							{(field) => (
+								<div className="space-y-2">
+									<Label htmlFor="variantType">Variant Type</Label>
+									<select
+										id="variantType"
+										value={field.state.value}
+										onChange={(e) => field.handleChange(e.target.value as any)}
+										onBlur={field.handleBlur}
+										className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+									>
+										<option value="Color">Color</option>
+										<option value="Size">Size</option>
+										<option value="Material">Material</option>
+										<option value="Style">Style</option>
+									</select>
+								</div>
+							)}
+						</form.Field>
 
 						<Separator />
 
 						<div className="grid grid-cols-2 gap-3">
-							<div className="space-y-2">
-								<Label htmlFor="price">Price (Rp)</Label>
-								<Input
-									id="price"
-									type="number"
-									step="1000"
-									placeholder="50000"
-									value={formData.price}
-									onChange={(e) =>
-										setFormData({ ...formData, price: e.target.value })
-									}
-									required
-								/>
-							</div>
+							<form.Field name="price">
+								{(field) => (
+									<div className="space-y-2">
+										<Label htmlFor="price">Price (Rp)</Label>
+										<Input
+											id="price"
+											type="number"
+											step="1000"
+											placeholder="50000"
+											value={field.state.value}
+											onChange={(e) => field.handleChange(parseFloat(e.target.value) || 0)}
+											onBlur={field.handleBlur}
+											required
+										/>
+									</div>
+								)}
+							</form.Field>
 							<div className="space-y-2">
 								<Label htmlFor="stock">Stock</Label>
-								<Input
-									id="stock"
-									type="number"
-									placeholder="100"
-									value={formData.stock}
-									onChange={(e) =>
-										setFormData({ ...formData, stock: e.target.value })
-									}
-									min="0"
-									max={
-										formData.productSKU
-											? getRemainingStock(
-													formData.productSKU,
-													selectedVariant?.id,
-												) +
-												(formMode === "edit"
-													? parseInt(formData.stock) || 0
-													: 0)
-											: undefined
-									}
-									required
-								/>
-								{formData.productSKU && (
-									<p className="text-xs text-muted-foreground">
-										Maximum{" "}
-										{getRemainingStock(
-											formData.productSKU,
-											selectedVariant?.id,
-										) +
-											(formMode === "edit"
-												? parseInt(formData.stock) || 0
-												: 0)}{" "}
-										units available for this variant
-									</p>
-								)}
+								<p className="text-xs text-muted-foreground mt-2 p-2 bg-muted/50 rounded border">
+									Stock is managed by the Inventory Service and not editable here. Use the Inventory page to adjust stock levels.
+								</p>
 							</div>
 						</div>
 
-						<div className="space-y-2">
-							<Label htmlFor="status">Status</Label>
-							<select
-								id="status"
-								value={formData.status}
-								onChange={(e) =>
-									setFormData({
-										...formData,
-										status: e.target.value as "active" | "inactive",
-									})
-								}
-								className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-								required
-							>
-								<option value="active">Active</option>
-								<option value="inactive">Inactive</option>
-							</select>
-							<p className="text-xs text-muted-foreground">
-								Inactive variants won't be visible to customers
-							</p>
-						</div>
+						<form.Field name="status">
+							{(field) => (
+								<div className="space-y-2">
+									<Label htmlFor="status">Status</Label>
+									<select
+										id="status"
+										value={field.state.value}
+										onChange={(e) => field.handleChange(e.target.value as "active" | "inactive")}
+										onBlur={field.handleBlur}
+										className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+										required
+									>
+										<option value="active">Active</option>
+										<option value="inactive">Inactive</option>
+									</select>
+									<p className="text-xs text-muted-foreground">
+										Inactive variants won't be visible to customers
+									</p>
+								</div>
+							)}
+						</form.Field>
 
 						<Separator className="my-4" />
 
-						{/* Multi-Warehouse Allocation Section */}
-						<ProductWarehouseAllocation
-							warehouses={warehouses}
-							allocations={warehouseAllocations}
-							onAllocationsChange={setWarehouseAllocations}
-							totalStock={parseInt(formData.stock) || 0}
-							readOnly={false}
-						/>
+						{/* Note: Warehouse allocation removed per DDD - stock managed by Inventory Service */}
+						<div className="p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded">
+							<p className="text-sm text-blue-900 dark:text-blue-100">
+								<strong>Note:</strong> Warehouse allocation and stock management for variants is handled by the Inventory Service. Use the Inventory page to manage stock levels across warehouses.
+							</p>
+						</div>
 
 						<DrawerFooter className="px-0">
 							<Button type="submit" className="w-full">
