@@ -8,6 +8,7 @@ import productLocationsRoutes from './routes/product-locations';
 import variantLocationsRoutes from './routes/variant-locations';
 import productUOMLocationsRoutes from './routes/product-uom-locations';
 import cleanupRoutes from './routes/cleanup';
+import validationRoutes from './routes/validation';
 
 type Bindings = {
   DB: D1Database;
@@ -35,5 +36,6 @@ app.route('/product-locations', productLocationsRoutes);
 app.route('/variant-locations', variantLocationsRoutes);
 app.route('/product-uom-locations', productUOMLocationsRoutes);
 app.route('/cleanup', cleanupRoutes);
+app.route('/validation', validationRoutes);
 
 export default app;

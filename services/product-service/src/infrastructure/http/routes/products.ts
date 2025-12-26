@@ -33,7 +33,7 @@ const createProductSchema = z.object({
   reviews: z.number().default(0),
   availableForRetail: z.boolean().default(true),
   availableForWholesale: z.boolean().default(true),
-  status: z.enum(['online sales', 'offline sales', 'omnichannel sales', 'inactive', 'discontinued']).default('omnichannel sales'),
+  status: z.enum(['online sales', 'offline sales', 'omnichannel sales', 'inactive', 'discontinued']).default('offline sales'),
   isBundle: z.boolean().default(false),
   // Physical attributes for shipping calculations
   weight: z.number().optional().nullable(),

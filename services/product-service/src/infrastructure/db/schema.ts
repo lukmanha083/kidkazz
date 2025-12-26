@@ -82,7 +82,7 @@ export const products = sqliteTable('products', {
   availableForWholesale: integer('available_for_wholesale', { mode: 'boolean' }).default(true),
 
   // Status
-  status: text('status').default('omnichannel sales'), // 'online sales' | 'offline sales' | 'omnichannel sales' | 'inactive' | 'discontinued'
+  status: text('status').default('offline sales'), // 'online sales' | 'offline sales' | 'omnichannel sales' | 'inactive' | 'discontinued'
   isBundle: integer('is_bundle', { mode: 'boolean' }).default(false),
 
   // REMOVED (DDD Phase 4): expirationDate, alertDate

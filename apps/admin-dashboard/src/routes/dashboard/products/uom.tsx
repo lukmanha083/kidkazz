@@ -40,6 +40,18 @@ import { uomFormSchema, type UOMFormData } from '@/lib/form-schemas';
 import { DataTable } from '@/components/ui/data-table';
 import { getUOMColumns, uomTypeOptions } from '@/components/ui/data-table/columns';
 
+/**
+ * Extract error message from TanStack Form / Zod validation errors.
+ * Handles both string errors and Zod error objects with message property.
+ */
+function getErrorMessage(error: unknown): string {
+  if (typeof error === 'string') return error;
+  if (error && typeof error === 'object' && 'message' in error) {
+    return (error as { message: string }).message;
+  }
+  return String(error);
+}
+
 export const Route = createFileRoute('/dashboard/products/uom')({
   component: UOMPage,
 });
@@ -453,7 +465,7 @@ function UOMPage() {
                     required
                   />
                   {field.state.meta.errors.length > 0 && (
-                    <p className="text-xs text-destructive">{field.state.meta.errors[0]}</p>
+                    <p className="text-xs text-destructive">{getErrorMessage(field.state.meta.errors[0])}</p>
                   )}
                   <p className="text-xs text-muted-foreground">
                     Unique code for this unit (e.g., CARTON18, BOX24)
@@ -475,7 +487,7 @@ function UOMPage() {
                     required
                   />
                   {field.state.meta.errors.length > 0 && (
-                    <p className="text-xs text-destructive">{field.state.meta.errors[0]}</p>
+                    <p className="text-xs text-destructive">{getErrorMessage(field.state.meta.errors[0])}</p>
                   )}
                   <p className="text-xs text-muted-foreground">
                     Descriptive name for this unit
@@ -503,7 +515,7 @@ function UOMPage() {
                     disabled={form.getFieldValue('isBaseUnit')}
                   />
                   {field.state.meta.errors.length > 0 && (
-                    <p className="text-xs text-destructive">{field.state.meta.errors[0]}</p>
+                    <p className="text-xs text-destructive">{getErrorMessage(field.state.meta.errors[0])}</p>
                   )}
                   <p className="text-xs text-muted-foreground">
                     How many base units equals 1 of this unit (base unit depends on product: PCS, KG, L, etc.)
@@ -564,7 +576,7 @@ function UOMPage() {
                         ))}
                       </select>
                       {field.state.meta.errors.length > 0 && (
-                        <p className="text-xs text-destructive">{field.state.meta.errors[0]}</p>
+                        <p className="text-xs text-destructive">{getErrorMessage(field.state.meta.errors[0])}</p>
                       )}
                       <p className="text-xs text-muted-foreground">
                         Select which base unit this custom UOM is bound to (e.g., PCS, KG, L, etc.)

@@ -54,7 +54,7 @@ export const productFormSchema = z.object({
   availableForRetail: z.boolean().default(true),
   availableForWholesale: z.boolean().default(false),
   // Phase 3: Fixed to match ProductStatus type in api.ts:305
-  status: z.enum(['online sales', 'offline sales', 'omnichannel sales', 'inactive', 'discontinued']).default('online sales'),
+  status: z.enum(['online sales', 'offline sales', 'omnichannel sales', 'inactive', 'discontinued']).default('offline sales'),
   isBundle: z.boolean().default(false),
   // Expiration & Alert dates
   expirationDate: z.string().optional().nullable(),

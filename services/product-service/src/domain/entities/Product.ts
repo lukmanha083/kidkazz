@@ -118,7 +118,7 @@ export class Product extends AggregateRoot {
       reviews: 0,
       availableForRetail: input.availableForRetail !== false,
       availableForWholesale: input.availableForWholesale || false,
-      status: 'omnichannel sales', // Default to omnichannel sales (both online and offline)
+      status: 'offline sales', // Default to offline sales
       isBundle: false,
       createdAt: now,
       updatedAt: now,

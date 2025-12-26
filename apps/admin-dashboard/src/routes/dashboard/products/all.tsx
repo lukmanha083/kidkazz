@@ -304,7 +304,7 @@ function AllProductsPage() {
 			availableForRetail: true,
 			availableForWholesale: false,
 			// Phase 3: Updated to match ProductStatus enum
-			status: 'online sales' as const,
+			status: 'offline sales' as const,
 			isBundle: false,
 			expirationDate: null,
 			alertDate: null,
