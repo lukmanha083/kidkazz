@@ -46,6 +46,18 @@ import {
   type TransferStockFormData,
 } from '@/lib/form-schemas';
 
+/**
+ * Extract error message from TanStack Form / Zod validation errors.
+ * Handles both string errors and Zod error objects with message property.
+ */
+function getErrorMessage(error: unknown): string {
+  if (typeof error === 'string') return error;
+  if (error && typeof error === 'object' && 'message' in error) {
+    return (error as { message: string }).message;
+  }
+  return String(error);
+}
+
 export const Route = createFileRoute('/dashboard/inventory/transfer-stock')({
   component: TransferStockPage,
 });
@@ -786,7 +798,7 @@ function TransferStockPage() {
                   </p>
                   {field.state.meta.errors.length > 0 && (
                     <p className="text-sm text-destructive">
-                      {field.state.meta.errors.join(", ")}
+                      {field.state.meta.errors.map(getErrorMessage).join(", ")}
                     </p>
                   )}
                 </div>
@@ -819,7 +831,7 @@ function TransferStockPage() {
                   </p>
                   {field.state.meta.errors.length > 0 && (
                     <p className="text-sm text-destructive">
-                      {field.state.meta.errors.join(", ")}
+                      {field.state.meta.errors.map(getErrorMessage).join(", ")}
                     </p>
                   )}
                 </div>

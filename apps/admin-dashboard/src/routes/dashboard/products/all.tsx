@@ -2039,7 +2039,7 @@ function AllProductsPage() {
 									</div>
 									{field.state.meta.errors.length > 0 && (
 										<p className="text-sm text-destructive">
-											{field.state.meta.errors.map(e => typeof e === 'string' ? e : (e && typeof e === 'object' && 'message' in e ? (e as { message: string }).message : String(e))).join(', ')}
+											{field.state.meta.errors.map(getErrorMessage).join(', ')}
 										</p>
 									)}
 									{barcodeValidation.error && (
@@ -2063,7 +2063,7 @@ function AllProductsPage() {
 									/>
 									{field.state.meta.errors.length > 0 && (
 										<p className="text-sm text-destructive">
-											{field.state.meta.errors.map(e => typeof e === 'string' ? e : (e && typeof e === 'object' && 'message' in e ? (e as { message: string }).message : String(e))).join(', ')}
+											{field.state.meta.errors.map(getErrorMessage).join(', ')}
 										</p>
 									)}
 								</div>
@@ -2083,7 +2083,7 @@ function AllProductsPage() {
 									/>
 									{field.state.meta.errors.length > 0 && (
 										<p className="text-sm text-destructive">
-											{field.state.meta.errors.map(e => typeof e === 'string' ? e : (e && typeof e === 'object' && 'message' in e ? (e as { message: string }).message : String(e))).join(', ')}
+											{field.state.meta.errors.map(getErrorMessage).join(', ')}
 										</p>
 									)}
 								</div>
@@ -2202,7 +2202,7 @@ function AllProductsPage() {
 										</div>
 										{field.state.meta.errors.length > 0 && (
 											<p className="text-sm text-destructive">
-												{field.state.meta.errors.map(e => typeof e === 'string' ? e : (e && typeof e === 'object' && 'message' in e ? (e as { message: string }).message : String(e))).join(', ')}
+												{field.state.meta.errors.map(getErrorMessage).join(', ')}
 											</p>
 										)}
 										{skuValidation.error && (
@@ -2231,7 +2231,7 @@ function AllProductsPage() {
 										</select>
 										{field.state.meta.errors.length > 0 && (
 											<p className="text-sm text-destructive">
-												{field.state.meta.errors.map(e => typeof e === 'string' ? e : (e && typeof e === 'object' && 'message' in e ? (e as { message: string }).message : String(e))).join(', ')}
+												{field.state.meta.errors.map(getErrorMessage).join(', ')}
 											</p>
 										)}
 									</div>
@@ -2256,7 +2256,7 @@ function AllProductsPage() {
 										/>
 										{field.state.meta.errors.length > 0 && (
 											<p className="text-sm text-destructive">
-												{field.state.meta.errors.map(e => typeof e === 'string' ? e : (e && typeof e === 'object' && 'message' in e ? (e as { message: string }).message : String(e))).join(', ')}
+												{field.state.meta.errors.map(getErrorMessage).join(', ')}
 											</p>
 										)}
 									</div>
@@ -2282,7 +2282,7 @@ function AllProductsPage() {
 										</select>
 										{field.state.meta.errors.length > 0 && (
 											<p className="text-sm text-destructive">
-												{field.state.meta.errors.map(e => typeof e === 'string' ? e : (e && typeof e === 'object' && 'message' in e ? (e as { message: string }).message : String(e))).join(', ')}
+												{field.state.meta.errors.map(getErrorMessage).join(', ')}
 											</p>
 										)}
 									</div>
@@ -2318,7 +2318,7 @@ function AllProductsPage() {
 										</p>
 										{field.state.meta.errors.length > 0 && (
 											<p className="text-sm text-destructive">
-												{field.state.meta.errors.map(e => typeof e === 'string' ? e : (e && typeof e === 'object' && 'message' in e ? (e as { message: string }).message : String(e))).join(', ')}
+												{field.state.meta.errors.map(getErrorMessage).join(', ')}
 											</p>
 										)}
 									</div>
@@ -2346,7 +2346,7 @@ function AllProductsPage() {
 										</p>
 										{field.state.meta.errors.length > 0 && (
 											<p className="text-sm text-destructive">
-												{field.state.meta.errors.map(e => typeof e === 'string' ? e : (e && typeof e === 'object' && 'message' in e ? (e as { message: string }).message : String(e))).join(', ')}
+												{field.state.meta.errors.map(getErrorMessage).join(', ')}
 											</p>
 										)}
 									</div>

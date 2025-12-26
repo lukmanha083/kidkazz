@@ -58,6 +58,18 @@ import {
 	bundleStatusOptions,
 } from "@/components/ui/data-table/columns/bundle-columns";
 
+/**
+ * Extract error message from TanStack Form / Zod validation errors.
+ * Handles both string errors and Zod error objects with message property.
+ */
+function getErrorMessage(error: unknown): string {
+	if (typeof error === 'string') return error;
+	if (error && typeof error === 'object' && 'message' in error) {
+		return (error as { message: string }).message;
+	}
+	return String(error);
+}
+
 export const Route = createFileRoute("/dashboard/products/bundle")({
 	component: ProductBundlePage,
 });
@@ -842,7 +854,7 @@ function ProductBundlePage() {
 										required
 									/>
 									{field.state.meta.errors.length > 0 && (
-										<p className="text-xs text-destructive">{field.state.meta.errors[0]}</p>
+										<p className="text-xs text-destructive">{getErrorMessage(field.state.meta.errors[0])}</p>
 									)}
 								</div>
 							)}
@@ -880,7 +892,7 @@ function ProductBundlePage() {
 										)}
 									</div>
 									{field.state.meta.errors.length > 0 && (
-										<p className="text-xs text-destructive">{field.state.meta.errors[0]}</p>
+										<p className="text-xs text-destructive">{getErrorMessage(field.state.meta.errors[0])}</p>
 									)}
 									<p className="text-xs text-muted-foreground">
 										{formMode === "add"
@@ -959,7 +971,7 @@ function ProductBundlePage() {
 										))}
 									</select>
 									{field.state.meta.errors.length > 0 && (
-										<p className="text-xs text-destructive">{field.state.meta.errors[0]}</p>
+										<p className="text-xs text-destructive">{getErrorMessage(field.state.meta.errors[0])}</p>
 									)}
 									<p className="text-xs text-muted-foreground">
 										Select the warehouse where this bundle will be assembled. All
@@ -1061,7 +1073,7 @@ function ProductBundlePage() {
 											onBlur={field.handleBlur}
 										/>
 										{field.state.meta.errors.length > 0 && (
-											<p className="text-xs text-destructive">{field.state.meta.errors[0]}</p>
+											<p className="text-xs text-destructive">{getErrorMessage(field.state.meta.errors[0])}</p>
 										)}
 										<p className="text-xs text-muted-foreground">
 											Set discount percentage to calculate bundle price

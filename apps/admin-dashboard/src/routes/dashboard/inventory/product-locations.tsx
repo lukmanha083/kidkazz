@@ -56,6 +56,18 @@ import {
   type ProductLocationFormData,
 } from '@/lib/form-schemas';
 
+/**
+ * Extract error message from TanStack Form / Zod validation errors.
+ * Handles both string errors and Zod error objects with message property.
+ */
+function getErrorMessage(error: unknown): string {
+  if (typeof error === 'string') return error;
+  if (error && typeof error === 'object' && 'message' in error) {
+    return (error as { message: string }).message;
+  }
+  return String(error);
+}
+
 export const Route = createFileRoute('/dashboard/inventory/product-locations')({
   component: ProductLocationsPage,
 });
@@ -541,7 +553,7 @@ function ProductLocationsPage() {
                   )}
                   {field.state.meta.errors.length > 0 && (
                     <p className="text-sm text-destructive">
-                      {field.state.meta.errors.join(", ")}
+                      {field.state.meta.errors.map(getErrorMessage).join(", ")}
                     </p>
                   )}
                 </div>
@@ -569,7 +581,7 @@ function ProductLocationsPage() {
                   </Select>
                   {field.state.meta.errors.length > 0 && (
                     <p className="text-sm text-destructive">
-                      {field.state.meta.errors.join(", ")}
+                      {field.state.meta.errors.map(getErrorMessage).join(", ")}
                     </p>
                   )}
                 </div>
@@ -657,7 +669,7 @@ function ProductLocationsPage() {
                   </p>
                   {field.state.meta.errors.length > 0 && (
                     <p className="text-sm text-destructive">
-                      {field.state.meta.errors.join(", ")}
+                      {field.state.meta.errors.map(getErrorMessage).join(", ")}
                     </p>
                   )}
                 </div>
