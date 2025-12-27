@@ -2,15 +2,11 @@
 
 import * as React from "react"
 import { format } from "date-fns"
+import * as PopoverPrimitive from "@radix-ui/react-popover"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
 
 export interface DatePickerProps {
   date?: Date
@@ -22,15 +18,7 @@ export interface DatePickerProps {
 /**
  * Render a date selection UI consisting of a popover trigger and an inline calendar.
  *
- * The selected date is displayed in the trigger using a localized long date format. When the user selects
- * a date the component normalizes it to local time (year, month, day with time set to noon) before invoking
- * the change callback; if the selection is cleared the callback is invoked with `undefined`.
- *
- * @param date - The currently selected date, or `undefined` when no date is selected.
- * @param onDateChange - Optional callback invoked when the selection changes. Receives the normalized `Date` (time set to noon in local time) or `undefined`.
- * @param placeholder - Text shown in the trigger when no date is selected. Defaults to `"Pick a date"`.
- * @param disabled - If `true`, disables the trigger button and prevents opening the popover. Defaults to `false`.
- * @returns The rendered DatePicker React element.
+ * Uses Radix UI Popover for reliable behavior inside drawers/dialogs.
  */
 export function DatePicker({
   date,
@@ -38,14 +26,16 @@ export function DatePicker({
   placeholder = "Pick a date",
   disabled = false,
 }: DatePickerProps) {
+  const [open, setOpen] = React.useState(false);
+
   const handleDateChange = (selectedDate: Date | undefined) => {
     if (selectedDate) {
-      // Normalize to local timezone midnight to avoid off-by-one errors
+      // Normalize to local timezone noon to avoid off-by-one errors
       const normalizedDate = new Date(
         selectedDate.getFullYear(),
         selectedDate.getMonth(),
         selectedDate.getDate(),
-        12, // Set to noon to avoid timezone edge cases
+        12,
         0,
         0,
         0
@@ -54,32 +44,49 @@ export function DatePicker({
     } else {
       onDateChange?.(undefined);
     }
+    setOpen(false);
   };
 
   return (
-    <Popover>
-      <PopoverTrigger
-        render={
-          <Button
-            variant={"outline"}
-            className={cn(
-              "w-full justify-start text-left font-normal",
-              !date && "text-muted-foreground"
-            )}
-            disabled={disabled}
+    <PopoverPrimitive.Root open={open} onOpenChange={setOpen}>
+      <PopoverPrimitive.Trigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          className={cn(
+            "w-full justify-start text-left font-normal",
+            !date && "text-muted-foreground"
+          )}
+          disabled={disabled}
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+        >
+          {date ? format(date, "PPP") : <span>{placeholder}</span>}
+        </Button>
+      </PopoverPrimitive.Trigger>
+      <PopoverPrimitive.Portal>
+        <PopoverPrimitive.Content
+          className={cn(
+            "z-50 w-auto rounded-md border bg-popover p-0 text-popover-foreground shadow-md outline-none",
+            "data-[state=open]:animate-in data-[state=closed]:animate-out",
+            "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+            "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+            "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2",
+            "data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2"
+          )}
+          align="start"
+          sideOffset={4}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Calendar
+            mode="single"
+            selected={date}
+            onSelect={handleDateChange}
+            initialFocus
           />
-        }
-      >
-        {date ? format(date, "PPP") : <span>{placeholder}</span>}
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0">
-        <Calendar
-          mode="single"
-          selected={date}
-          onSelect={handleDateChange}
-          initialFocus
-        />
-      </PopoverContent>
-    </Popover>
+        </PopoverPrimitive.Content>
+      </PopoverPrimitive.Portal>
+    </PopoverPrimitive.Root>
   )
 }

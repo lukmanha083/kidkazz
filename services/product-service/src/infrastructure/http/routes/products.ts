@@ -593,16 +593,19 @@ app.post('/:id/deduct-sale', zValidator('json', z.object({
 */
 
 // GET /api/products/:id/uom-warehouse-stock - Get UOM stock breakdown by warehouse
-// NOTE: This route is deprecated after DDD Phase 4 refactoring
-// Stock information is now in Inventory Service - use /api/inventory endpoints instead
-/* DEPRECATED - Commented out during DDD refactoring
+// DDD: Product/UOM metadata from Product Service, stock data from Inventory Service
 app.get('/:id/uom-warehouse-stock', async (c) => {
   const productId = c.req.param('id');
   const db = drizzle(c.env.DB);
 
-  // Get product
+  // Get product metadata only (no stock fields per DDD)
   const product = await db
-    .select()
+    .select({
+      id: products.id,
+      name: products.name,
+      sku: products.sku,
+      baseUnit: products.baseUnit,
+    })
     .from(products)
     .where(eq(products.id, productId))
     .get();
@@ -611,63 +614,172 @@ app.get('/:id/uom-warehouse-stock', async (c) => {
     return c.json({ error: 'Product not found' }, 404);
   }
 
-  // Get all UOMs for this product
+  // Get UOM metadata only (no stock fields per DDD)
   const uoms = await db
-    .select()
+    .select({
+      id: productUOMs.id,
+      uomCode: productUOMs.uomCode,
+      uomName: productUOMs.uomName,
+      conversionFactor: productUOMs.conversionFactor,
+    })
     .from(productUOMs)
     .where(eq(productUOMs.productId, productId))
     .all();
 
-  // Get all UOM locations for this product
-  const uomLocations = [];
-  for (const uom of uoms) {
-    const locations = await db
-      .select()
-      .from(productUOMLocations)
-      .where(eq(productUOMLocations.productUOMId, uom.id))
-      .all();
+  // DDD: Fetch stock data from Inventory Service
+  let inventoryData: { inventory?: Array<{ uomId?: string; quantityAvailable?: number; warehouseId?: string }> } = { inventory: [] };
+  try {
+    const inventoryResponse = await c.env.INVENTORY_SERVICE.fetch(
+      new Request(`http://inventory-service/api/inventory?productId=${productId}`)
+    );
+    if (inventoryResponse.ok) {
+      inventoryData = await inventoryResponse.json() as typeof inventoryData;
+    }
+  } catch (error) {
+    console.error('Failed to fetch inventory data:', error);
+    // Continue with empty inventory - graceful degradation
+  }
 
-    uomLocations.push({
+  // Build UOM stocks from inventory data
+  const uomStocks = uoms.map(uom => {
+    // Filter inventory records for this UOM
+    const uomInventory = inventoryData.inventory?.filter(
+      inv => inv.uomId === uom.id
+    ) || [];
+
+    // Calculate total stock across warehouses
+    const totalStock = uomInventory.reduce(
+      (sum, inv) => sum + (inv.quantityAvailable || 0),
+      0
+    );
+
+    // Group by warehouse
+    const warehouseStocks = uomInventory.map(inv => ({
+      warehouseId: inv.warehouseId || '',
+      quantity: inv.quantityAvailable || 0,
+    }));
+
+    return {
       uomCode: uom.uomCode,
       uomName: uom.uomName,
       conversionFactor: uom.conversionFactor,
-      totalStock: uom.stock,
-      warehouseStocks: locations.map(loc => ({
-        warehouseId: loc.warehouseId,
-        quantity: loc.quantity,
-        rack: loc.rack,
-        bin: loc.bin,
-        zone: loc.zone,
-        aisle: loc.aisle,
-      })),
-    });
-  }
+      totalStock,
+      warehouseStocks,
+    };
+  });
 
-  // Get base unit locations (product_locations tracks stock in base units)
-  const baseLocations = await db
-    .select()
-    .from(productLocations)
-    .where(eq(productLocations.productId, productId))
-    .all();
+  // Get base unit inventory (no UOM specified)
+  const baseUnitInventory = inventoryData.inventory?.filter(
+    inv => !inv.uomId
+  ) || [];
+
+  const baseUnitLocations = baseUnitInventory.map(inv => ({
+    warehouseId: inv.warehouseId || '',
+    quantity: inv.quantityAvailable || 0,
+  }));
+
+  // Calculate total stock
+  const totalStock = inventoryData.inventory?.reduce(
+    (sum, inv) => sum + (inv.quantityAvailable || 0),
+    0
+  ) || 0;
 
   return c.json({
-    productId,
+    productId: product.id,
     productName: product.name,
     productSKU: product.sku,
     baseUnit: product.baseUnit,
-    totalStock: product.stock,
-    uomStocks: uomLocations,
-    baseUnitLocations: baseLocations.map(loc => ({
-      warehouseId: loc.warehouseId,
-      quantity: loc.quantity,
-      rack: loc.rack,
-      bin: loc.bin,
-      zone: loc.zone,
-      aisle: loc.aisle,
-    })),
+    totalStock,
+    uomStocks,
+    baseUnitLocations,
   });
 });
-*/
+
+// GET /api/products/:id/variant-warehouse-stock - Get variant stock breakdown by warehouse
+// DDD: Product metadata from Product Service, stock data from Inventory Service
+app.get('/:id/variant-warehouse-stock', async (c) => {
+  const productId = c.req.param('id');
+  const db = drizzle(c.env.DB);
+
+  // Get product metadata only (no stock fields per DDD)
+  const product = await db
+    .select({
+      id: products.id,
+      name: products.name,
+      sku: products.sku,
+    })
+    .from(products)
+    .where(eq(products.id, productId))
+    .get();
+
+  if (!product) {
+    return c.json({ error: 'Product not found' }, 404);
+  }
+
+  // Get variant metadata only (no stock fields per DDD)
+  const variants = await db
+    .select({
+      id: productVariants.id,
+      variantName: productVariants.variantName,
+      variantSKU: productVariants.variantSKU,
+    })
+    .from(productVariants)
+    .where(eq(productVariants.productId, productId))
+    .all();
+
+  // DDD: Fetch stock data from Inventory Service
+  let inventoryData: { inventory?: Array<{ variantId?: string; quantityAvailable?: number; warehouseId?: string }> } = { inventory: [] };
+  try {
+    const inventoryResponse = await c.env.INVENTORY_SERVICE.fetch(
+      new Request(`http://inventory-service/api/inventory?productId=${productId}`)
+    );
+    if (inventoryResponse.ok) {
+      inventoryData = await inventoryResponse.json() as typeof inventoryData;
+    }
+  } catch (error) {
+    console.error('Failed to fetch inventory data:', error);
+    // Continue with empty inventory - graceful degradation
+  }
+
+  // Build variant stocks from inventory data
+  const variantStocks = variants.map(variant => {
+    // Filter inventory records for this variant
+    const variantInventory = inventoryData.inventory?.filter(
+      inv => inv.variantId === variant.id
+    ) || [];
+
+    // Calculate total stock across warehouses
+    const totalStock = variantInventory.reduce(
+      (sum, inv) => sum + (inv.quantityAvailable || 0),
+      0
+    );
+
+    // Group by warehouse
+    const warehouseStocks = variantInventory.map(inv => ({
+      warehouseId: inv.warehouseId || '',
+      quantity: inv.quantityAvailable || 0,
+    }));
+
+    return {
+      variantId: variant.id,
+      variantName: variant.variantName,
+      variantSKU: variant.variantSKU,
+      totalStock,
+      warehouseStocks,
+    };
+  });
+
+  // Calculate total product stock from all variants
+  const totalStock = variantStocks.reduce((sum, v) => sum + v.totalStock, 0);
+
+  return c.json({
+    productId: product.id,
+    productName: product.name,
+    productSKU: product.sku,
+    totalStock,
+    variantStocks,
+  });
+});
 
 // POST /api/products/:id/validate-stock-consistency - Validate stock consistency per warehouse
 // NOTE: This route is deprecated after DDD Phase 4 refactoring

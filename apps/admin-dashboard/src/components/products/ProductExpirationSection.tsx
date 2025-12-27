@@ -3,6 +3,18 @@ import type { ProductFormData } from '@/lib/form-schemas';
 import { Label } from '@/components/ui/label';
 import { DatePicker } from '@/components/ui/date-picker';
 
+/**
+ * Extract error message from TanStack Form / Zod validation errors.
+ * Handles both string errors and Zod error objects with message property.
+ */
+function getErrorMessage(error: unknown): string {
+	if (typeof error === 'string') return error;
+	if (error && typeof error === 'object' && 'message' in error) {
+		return (error as { message: string }).message;
+	}
+	return String(error);
+}
+
 interface ProductExpirationSectionProps {
 	form: SimpleFormApi<ProductFormData>;
 }
@@ -54,7 +66,7 @@ export function ProductExpirationSection({ form }: ProductExpirationSectionProps
 							</p>
 							{field.state.meta.errors.length > 0 && (
 								<p className="text-sm text-destructive">
-									{field.state.meta.errors.join(", ")}
+									{field.state.meta.errors.map(getErrorMessage).join(", ")}
 								</p>
 							)}
 						</div>
@@ -84,7 +96,7 @@ export function ProductExpirationSection({ form }: ProductExpirationSectionProps
 							</p>
 							{field.state.meta.errors.length > 0 && (
 								<p className="text-sm text-destructive">
-									{field.state.meta.errors.join(", ")}
+									{field.state.meta.errors.map(getErrorMessage).join(", ")}
 								</p>
 							)}
 						</div>

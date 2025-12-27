@@ -47,6 +47,7 @@ export function DataTableFacetedFilter<TData, TValue>({
   return (
     <Popover>
       <PopoverTrigger
+        nativeButton={false}
         render={
           <Button variant="outline" size="sm" className="h-8 border-dashed" />
         }

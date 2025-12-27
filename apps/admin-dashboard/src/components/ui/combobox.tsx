@@ -80,6 +80,7 @@ export function Combobox({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
+        nativeButton={false}
         render={
           <Button
             variant="outline"

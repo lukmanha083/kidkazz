@@ -532,6 +532,30 @@ export const productApi = {
     return apiRequest(`/api/products/${id}/uom-warehouse-stock`);
   },
 
+  // Get variant warehouse stock breakdown
+  getVariantWarehouseStock: async (id: string): Promise<{
+    productId: string;
+    productName: string;
+    productSKU: string;
+    totalStock: number;
+    variantStocks: Array<{
+      variantId: string;
+      variantName: string;
+      variantSKU: string;
+      totalStock: number;
+      warehouseStocks: Array<{
+        warehouseId: string;
+        quantity: number;
+        rack?: string;
+        bin?: string;
+        zone?: string;
+        aisle?: string;
+      }>;
+    }>;
+  }> => {
+    return apiRequest(`/api/products/${id}/variant-warehouse-stock`);
+  },
+
   // Validate stock consistency per warehouse (product locations vs UOM locations)
   // Updated to use new per-warehouse validation approach
   validateStockConsistency: async (id: string): Promise<{

@@ -156,6 +156,16 @@ const formatStatusText = (status: string) => {
 		.join(" ");
 };
 
+// Helper function to format currency in Indonesian Rupiah
+const formatRupiah = (amount: number): string => {
+	return new Intl.NumberFormat("id-ID", {
+		style: "currency",
+		currency: "IDR",
+		minimumFractionDigits: 0,
+		maximumFractionDigits: 0,
+	}).format(amount);
+};
+
 // Helper function to get category badge color (based on category color from database)
 const getCategoryBadgeColor = (color?: string | null) => {
 	if (!color) {

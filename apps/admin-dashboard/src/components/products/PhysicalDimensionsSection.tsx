@@ -3,6 +3,18 @@ import type { ProductFormData } from '@/lib/form-schemas';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 
+/**
+ * Extract error message from TanStack Form / Zod validation errors.
+ * Handles both string errors and Zod error objects with message property.
+ */
+function getErrorMessage(error: unknown): string {
+	if (typeof error === 'string') return error;
+	if (error && typeof error === 'object' && 'message' in error) {
+		return (error as { message: string }).message;
+	}
+	return String(error);
+}
+
 interface PhysicalDimensionsSectionProps {
 	form: SimpleFormApi<ProductFormData>;
 }
@@ -36,17 +48,23 @@ export function PhysicalDimensionsSection({ form }: PhysicalDimensionsSectionPro
 							id={field.name}
 							type="number"
 							step="0.01"
+							min="0"
 							placeholder="0.5"
-							value={field.state.value || ''}
+							value={field.state.value !== null && field.state.value !== undefined ? String(field.state.value) : ''}
 							onChange={(e) => {
-								const parsed = parseFloat(e.target.value);
-								field.handleChange(Number.isFinite(parsed) ? parsed : null);
+								const value = e.target.value;
+								if (value === '' || value === null) {
+									field.handleChange(null);
+								} else {
+									const parsed = parseFloat(value);
+									field.handleChange(Number.isFinite(parsed) ? parsed : null);
+								}
 							}}
 							onBlur={field.handleBlur}
 						/>
 						{field.state.meta.errors.length > 0 && (
 							<p className="text-sm text-destructive">
-								{field.state.meta.errors.join(', ')}
+								{field.state.meta.errors.map(getErrorMessage).join(', ')}
 							</p>
 						)}
 					</div>
@@ -62,17 +80,23 @@ export function PhysicalDimensionsSection({ form }: PhysicalDimensionsSectionPro
 								id={field.name}
 								type="number"
 								step="0.1"
+								min="0"
 								placeholder="10"
-								value={field.state.value || ''}
+								value={field.state.value !== null && field.state.value !== undefined ? String(field.state.value) : ''}
 								onChange={(e) => {
-									const parsed = parseFloat(e.target.value);
-									field.handleChange(Number.isFinite(parsed) ? parsed : null);
+									const value = e.target.value;
+									if (value === '' || value === null) {
+										field.handleChange(null);
+									} else {
+										const parsed = parseFloat(value);
+										field.handleChange(Number.isFinite(parsed) ? parsed : null);
+									}
 								}}
 								onBlur={field.handleBlur}
 							/>
 							{field.state.meta.errors.length > 0 && (
 								<p className="text-sm text-destructive">
-									{field.state.meta.errors.join(', ')}
+									{field.state.meta.errors.map(getErrorMessage).join(', ')}
 								</p>
 							)}
 						</div>
@@ -86,17 +110,23 @@ export function PhysicalDimensionsSection({ form }: PhysicalDimensionsSectionPro
 								id={field.name}
 								type="number"
 								step="0.1"
+								min="0"
 								placeholder="10"
-								value={field.state.value || ''}
+								value={field.state.value !== null && field.state.value !== undefined ? String(field.state.value) : ''}
 								onChange={(e) => {
-									const parsed = parseFloat(e.target.value);
-									field.handleChange(Number.isFinite(parsed) ? parsed : null);
+									const value = e.target.value;
+									if (value === '' || value === null) {
+										field.handleChange(null);
+									} else {
+										const parsed = parseFloat(value);
+										field.handleChange(Number.isFinite(parsed) ? parsed : null);
+									}
 								}}
 								onBlur={field.handleBlur}
 							/>
 							{field.state.meta.errors.length > 0 && (
 								<p className="text-sm text-destructive">
-									{field.state.meta.errors.join(', ')}
+									{field.state.meta.errors.map(getErrorMessage).join(', ')}
 								</p>
 							)}
 						</div>
@@ -110,17 +140,23 @@ export function PhysicalDimensionsSection({ form }: PhysicalDimensionsSectionPro
 								id={field.name}
 								type="number"
 								step="0.1"
+								min="0"
 								placeholder="10"
-								value={field.state.value || ''}
+								value={field.state.value !== null && field.state.value !== undefined ? String(field.state.value) : ''}
 								onChange={(e) => {
-									const parsed = parseFloat(e.target.value);
-									field.handleChange(Number.isFinite(parsed) ? parsed : null);
+									const value = e.target.value;
+									if (value === '' || value === null) {
+										field.handleChange(null);
+									} else {
+										const parsed = parseFloat(value);
+										field.handleChange(Number.isFinite(parsed) ? parsed : null);
+									}
 								}}
 								onBlur={field.handleBlur}
 							/>
 							{field.state.meta.errors.length > 0 && (
 								<p className="text-sm text-destructive">
-									{field.state.meta.errors.join(', ')}
+									{field.state.meta.errors.map(getErrorMessage).join(', ')}
 								</p>
 							)}
 						</div>
