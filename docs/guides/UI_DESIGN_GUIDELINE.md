@@ -964,6 +964,16 @@ The admin dashboard has successfully migrated from Radix UI to Base UI with **88
 - ⏸️ Drawer - Using `vaul` library (Base UI Drawer not yet released)
 - ⏸️ Slot - Kept as dependency for `vaul`
 
+**Components Not Migrated to Base UI** (Radix UI):
+- 📅 **DatePicker** - Uses `@radix-ui/react-popover`
+  - **Reason**: Base UI Popover has modal behavior conflicts with Drawer (vaul)
+  - **Issue**: Base UI Popover's modal backdrop interferes with drawer interactions
+  - **Solution**: Temporarily using Radix UI Popover specifically for DatePicker
+  - **Location**: `apps/admin-dashboard/src/components/ui/date-picker.tsx`
+  - **Future Migration**: When Base UI Drawer is released OR when Base UI Popover modal conflicts are resolved
+  - **Migration Date**: 2025-12-27 (reverted from Base UI due to drawer conflicts)
+  - **Note**: All other popovers (Combobox, DataTableFacetedFilter) use Base UI Popover successfully outside of drawer contexts
+
 **Achievements**:
 - ✅ Removed 11 Radix UI packages
 - ✅ 20% bundle size reduction
@@ -1003,6 +1013,6 @@ pnpm dlx shadcn@latest add @basecn/button @basecn/card @basecn/dialog @basecn/se
 
 ---
 
-**Document Version:** 1.1.0
-**Last Updated:** December 19, 2025
+**Document Version:** 1.2.0
+**Last Updated:** December 27, 2025
 **Maintained by:** KidKazz Design Team
