@@ -188,69 +188,76 @@ export function DataTable<TData, TValue>({
 				filterableColumns={filterableColumns}
 				enableColumnVisibility={enableColumnVisibility}
 			/>
-			<div className="rounded-md border">
-				<Table>
-					<TableHeader>
-						{table.getHeaderGroups().map((headerGroup) => (
-							<TableRow key={headerGroup.id}>
-								{headerGroup.headers.map((header) => (
-									<TableHead key={header.id} className="whitespace-nowrap">
-										{header.isPlaceholder
-											? null
-											: flexRender(
-													header.column.columnDef.header,
-													header.getContext(),
-												)}
-									</TableHead>
+			{/* Horizontal scroll wrapper for mobile/tablet */}
+			<div className="overflow-x-auto -mx-4 tablet:mx-0">
+				<div className="inline-block min-w-full align-middle px-4 tablet:px-0">
+					<div className="rounded-md border">
+						<Table>
+							<TableHeader>
+								{table.getHeaderGroups().map((headerGroup) => (
+									<TableRow key={headerGroup.id}>
+										{headerGroup.headers.map((header) => (
+											<TableHead key={header.id} className="whitespace-nowrap">
+												{header.isPlaceholder
+													? null
+													: flexRender(
+															header.column.columnDef.header,
+															header.getContext(),
+														)}
+											</TableHead>
+										))}
+									</TableRow>
 								))}
-							</TableRow>
-						))}
-					</TableHeader>
-					<TableBody>
-						{isLoading ? (
-							<TableRow>
-								<TableCell
-									colSpan={columns.length}
-									className="h-24 text-center"
-								>
-									<div className="flex items-center justify-center gap-2">
-										<Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-										<span className="text-muted-foreground">Loading...</span>
-									</div>
-								</TableCell>
-							</TableRow>
-						) : table.getRowModel().rows?.length ? (
-							table.getRowModel().rows.map((row) => (
-								<TableRow
-									key={row.id}
-									data-state={row.getIsSelected() && "selected"}
-									className={onRowClick ? "cursor-pointer" : ""}
-									onClick={() => onRowClick?.(row.original)}
-								>
-									{row.getVisibleCells().map((cell) => (
-										<TableCell key={cell.id}>
-											{flexRender(
-												cell.column.columnDef.cell,
-												cell.getContext(),
-											)}
+							</TableHeader>
+							<TableBody>
+								{isLoading ? (
+									<TableRow>
+										<TableCell
+											colSpan={columns.length}
+											className="h-24 text-center"
+										>
+											<div className="flex items-center justify-center gap-2">
+												<Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+												<span className="text-muted-foreground">
+													Loading...
+												</span>
+											</div>
 										</TableCell>
-									))}
-								</TableRow>
-							))
-						) : (
-							<TableRow>
-								<TableCell
-									colSpan={columns.length}
-									className="h-24 text-center"
-								>
-									<span className="text-muted-foreground">
-										No results found.
-									</span>
-								</TableCell>
-							</TableRow>
-						)}
-					</TableBody>
-				</Table>
+									</TableRow>
+								) : table.getRowModel().rows?.length ? (
+									table.getRowModel().rows.map((row) => (
+										<TableRow
+											key={row.id}
+											data-state={row.getIsSelected() && "selected"}
+											className={onRowClick ? "cursor-pointer" : ""}
+											onClick={() => onRowClick?.(row.original)}
+										>
+											{row.getVisibleCells().map((cell) => (
+												<TableCell key={cell.id}>
+													{flexRender(
+														cell.column.columnDef.cell,
+														cell.getContext(),
+													)}
+												</TableCell>
+											))}
+										</TableRow>
+									))
+								) : (
+									<TableRow>
+										<TableCell
+											colSpan={columns.length}
+											className="h-24 text-center"
+										>
+											<span className="text-muted-foreground">
+												No results found.
+											</span>
+										</TableCell>
+									</TableRow>
+								)}
+							</TableBody>
+						</Table>
+					</div>
+				</div>
 			</div>
 			{enablePagination && <DataTablePagination table={table} />}
 		</div>
