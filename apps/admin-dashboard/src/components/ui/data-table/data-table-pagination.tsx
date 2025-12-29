@@ -37,25 +37,21 @@ export function DataTablePagination<TData>({
 		<div className="flex flex-col tablet:flex-row items-center justify-between gap-4 px-2">
 			{/* Row count - Hidden on mobile */}
 			<div className="hidden tablet:flex tablet:flex-1 text-sm text-muted-foreground">
-				{table.getFilteredSelectedRowModel().rows.length > 0 && (
+				{table.getFilteredSelectedRowModel().rows.length > 0 ? (
 					<span>
 						{table.getFilteredSelectedRowModel().rows.length} of{" "}
 						{table.getFilteredRowModel().rows.length} row(s) selected.
 					</span>
-				)}
-				{table.getFilteredSelectedRowModel().rows.length === 0 && (
+				) : (
 					<span>
-						Showing{" "}
-						{table.getState().pagination.pageIndex *
-							table.getState().pagination.pageSize +
-							1}{" "}
-						to{" "}
-						{Math.min(
-							(table.getState().pagination.pageIndex + 1) *
-								table.getState().pagination.pageSize,
-							table.getFilteredRowModel().rows.length,
-						)}{" "}
-						of {table.getFilteredRowModel().rows.length} entries
+						{(() => {
+							const totalRows = table.getFilteredRowModel().rows.length;
+							const pageIndex = table.getState().pagination.pageIndex;
+							const pageSize = table.getState().pagination.pageSize;
+							const start = totalRows === 0 ? 0 : pageIndex * pageSize + 1;
+							const end = Math.min((pageIndex + 1) * pageSize, totalRows);
+							return `Showing ${start} to ${end} of ${totalRows} entries`;
+						})()}
 					</span>
 				)}
 			</div>
