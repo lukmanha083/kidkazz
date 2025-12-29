@@ -57,10 +57,16 @@ export function getBundleColumns(
 		{
 			accessorKey: "bundleSKU",
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="SKU" />
+				<DataTableColumnHeader
+					column={column}
+					title="SKU"
+					className="hidden desktop:table-cell"
+				/>
 			),
 			cell: ({ row }) => (
-				<span className="font-mono text-sm">{row.getValue("bundleSKU")}</span>
+				<span className="font-mono text-sm hidden desktop:table-cell">
+					{row.getValue("bundleSKU")}
+				</span>
 			),
 		},
 		{
@@ -96,13 +102,22 @@ export function getBundleColumns(
 		{
 			accessorKey: "status",
 			header: ({ column }) => (
-				<DataTableColumnHeader column={column} title="Status" />
+				<DataTableColumnHeader
+					column={column}
+					title="Status"
+					className="hidden desktop:table-cell"
+				/>
 			),
 			cell: ({ row }) => {
 				const status = row.getValue("status") as string;
 				const isActive = status === "active";
 				return (
-					<Badge variant={isActive ? "default" : "secondary"}>{status}</Badge>
+					<Badge
+						variant={isActive ? "default" : "secondary"}
+						className="hidden desktop:table-cell"
+					>
+						{status}
+					</Badge>
 				);
 			},
 			filterFn: (row, id, value) => {
