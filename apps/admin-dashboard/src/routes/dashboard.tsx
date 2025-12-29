@@ -409,7 +409,10 @@ function DashboardLayout() {
 											to={item.href}
 											onClick={() => {
 												setActiveMenu(item.id);
-												setIsMobileMenuOpen(false);
+												// Only close drawer if menu item has no submenu
+												if (!item.submenu) {
+													setIsMobileMenuOpen(false);
+												}
 											}}
 											className={cn(
 												"w-full flex items-center gap-3 h-9 px-3 rounded-md text-sm font-medium transition-colors",
