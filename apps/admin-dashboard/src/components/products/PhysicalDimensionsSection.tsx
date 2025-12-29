@@ -59,7 +59,7 @@ export function PhysicalDimensionsSection({
 							}
 							onChange={(e) => {
 								const value = e.target.value;
-								if (value === "" || value === null) {
+								if (value === "") {
 									field.handleChange(null);
 								} else {
 									const parsed = parseFloat(value);
@@ -95,7 +95,7 @@ export function PhysicalDimensionsSection({
 								}
 								onChange={(e) => {
 									const value = e.target.value;
-									if (value === "" || value === null) {
+									if (value === "") {
 										field.handleChange(null);
 									} else {
 										const parsed = parseFloat(value);
@@ -129,7 +129,7 @@ export function PhysicalDimensionsSection({
 								}
 								onChange={(e) => {
 									const value = e.target.value;
-									if (value === "" || value === null) {
+									if (value === "") {
 										field.handleChange(null);
 									} else {
 										const parsed = parseFloat(value);
@@ -163,7 +163,7 @@ export function PhysicalDimensionsSection({
 								}
 								onChange={(e) => {
 									const value = e.target.value;
-									if (value === "" || value === null) {
+									if (value === "") {
 										field.handleChange(null);
 									} else {
 										const parsed = parseFloat(value);

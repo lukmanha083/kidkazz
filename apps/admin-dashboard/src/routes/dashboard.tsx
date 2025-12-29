@@ -14,7 +14,6 @@ import {
 	Menu,
 	X,
 	Bell,
-	Search,
 	ChevronRight,
 	Moon,
 	Sun,
@@ -25,7 +24,6 @@ import {
 	Database,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
 	DropdownMenu,
@@ -62,13 +60,6 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-	{
-		id: "search",
-		title: "Search",
-		href: "/dashboard/search",
-		icon: Search,
-		shortcut: "⌘K",
-	},
 	{
 		id: "dashboard",
 		title: "Dashboard",
@@ -330,6 +321,7 @@ function DashboardLayout() {
 										active ? "bg-accent" : "hover:bg-accent/50",
 									)}
 									title={item.title}
+									aria-label={item.title}
 								>
 									<Icon className="h-5 w-5" />
 								</Link>
