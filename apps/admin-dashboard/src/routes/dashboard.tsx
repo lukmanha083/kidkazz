@@ -419,6 +419,20 @@ function DashboardLayout() {
 											<Icon className="h-4 w-4" />
 											<span className="flex-1">{item.title}</span>
 										</Link>
+										{item.submenu && active && (
+											<div className="ml-9 mt-1 space-y-1">
+												{item.submenu.map((subitem) => (
+													<Link
+														key={subitem.href}
+														to={subitem.href}
+														onClick={() => setIsMobileMenuOpen(false)}
+														className="flex items-center h-8 text-sm text-muted-foreground hover:text-foreground transition-colors"
+													>
+														{subitem.title}
+													</Link>
+												))}
+											</div>
+										)}
 									</div>
 								);
 							})}
