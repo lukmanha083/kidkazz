@@ -200,15 +200,18 @@ export function ProductUOMManagementSection({
 												Default
 											</label>
 										</div>
-										<Button
-											type="button"
-											variant="ghost"
-											size="icon"
-											onClick={() => onRemoveUOM(uom)}
-											className="h-8 w-8"
-										>
-											<Trash2 className="h-4 w-4 text-destructive" />
-										</Button>
+										{/* Hide delete button for PCS (base unit) */}
+										{uom.uomCode !== "PCS" && (
+											<Button
+												type="button"
+												variant="ghost"
+												size="icon"
+												onClick={() => onRemoveUOM(uom)}
+												className="h-8 w-8"
+											>
+												<Trash2 className="h-4 w-4 text-destructive" />
+											</Button>
+										)}
 									</div>
 								</div>
 

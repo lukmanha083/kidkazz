@@ -222,9 +222,165 @@ export class Stock extends ValueObject<number> {
 
 ---
 
+### Rule 7: Base Unit UOM Barcode Sync
+
+**Rule**: The base unit UOM (whether PCS, KG, L, M, or any configured base unit) must always have the same barcode as the product barcode.
+
+**Business Rationale**:
+- The base unit represents the smallest sellable/trackable unit of a product
+- When scanning a product barcode at POS or in warehouse, it should identify the base unit
+- Ensures consistency between product identification and UOM tracking
+- Prevents confusion when different barcodes exist for the same physical item
+- Applies to all base unit types: PCS (pieces), KG (kilograms), L (liters), M (meters), etc.
+- For weight-based products, the product barcode represents 1 unit of the base unit (e.g., 1 KG)
+
+**Weight-Based Product Use Case**:
+For products measured by weight (KG base unit), the workflow is:
+1. Product barcode (e.g., "8992345678901") represents 1 KG of the product
+2. Weight machine measures actual weight (e.g., 2.5 KG)
+3. Weight machine can print a weight-embedded barcode for the specific weight
+4. The base unit barcode remains the product barcode, representing 1 KG
+5. POS system calculates: scanned_weight × price_per_KG = total_price
+
+**Implementation**:
+
+**Domain Layer**:
+```typescript
+// When creating/updating product UOMs, ensure base unit barcode matches product barcode
+export function createBaseUnitUOM(
+  formValues: ProductFormData,
+  existingUOMs: ProductUOMWithStock[],
+  // ...
+): ProductUOMWithStock[] {
+  // selectedBaseUnitCode can be PCS, KG, L, M, etc.
+  const selectedBaseUnitCode = formValues.baseUnit || "PCS";
+
+  const existingBaseUOMIndex = finalProductUOMs.findIndex(
+    (u) => u.uomCode === selectedBaseUnitCode
+  );
+
+  if (existingBaseUOMIndex === -1) {
+    // Create new base UOM with product barcode
+    const baseUOM: ProductUOMWithStock = {
+      // ...
+      uomCode: selectedBaseUnitCode,  // PCS, KG, L, M, etc.
+      barcode: formValues.barcode,     // ← Synced with product barcode
+      // ...
+    };
+  } else {
+    // Base UOM exists - sync barcode with product barcode
+    const existingBaseUOM = finalProductUOMs[existingBaseUOMIndex];
+    if (existingBaseUOM.barcode !== formValues.barcode) {
+      finalProductUOMs[existingBaseUOMIndex] = {
+        ...existingBaseUOM,
+        barcode: formValues.barcode, // ← Always sync
+        updatedAt: new Date(),
+      };
+    }
+  }
+  return finalProductUOMs;
+}
+```
+
+**Frontend Behavior**:
+- When adding a new product, base unit UOM (PCS/KG/L/M) is auto-created with empty barcode
+- When user enters product barcode, it is automatically synced to base unit UOM on form submission
+- Base unit UOM barcode field is read-only (inherited from product)
+- Other UOMs (BOX6, CARTON12, BAG5KG, etc.) can have their own unique barcodes
+
+**API Validation**:
+```typescript
+// Example 1: Product with PCS base unit
+POST /api/products
+{
+  "barcode": "1234567890123",
+  "name": "Baby Bottle",
+  "baseUnit": "PCS",
+  "productUOMs": [
+    { "uomCode": "PCS", "barcode": "1234567890123" },  // ← Must match
+    { "uomCode": "BOX6", "barcode": "9876543210987" }  // ← Can be different
+  ]
+}
+
+// Example 2: Product with KG base unit (weight-based)
+// Product barcode represents 1 KG
+POST /api/products
+{
+  "barcode": "2345678901234",  // ← This barcode = 1 KG
+  "name": "Baby Formula Powder",
+  "baseUnit": "KG",
+  "productUOMs": [
+    { "uomCode": "KG", "barcode": "2345678901234" },      // ← Must match (1 KG)
+    { "uomCode": "BAG500G", "barcode": "2345678901235" }  // ← Can be different
+  ]
+}
+
+// Validation: productUOMs.find(u => u.uomCode === baseUnit).barcode === product.barcode
+```
+
+**Error Messages**:
+- ❌ "Base unit UOM barcode must match product barcode"
+- ⚠️ "KG barcode will be synced with product barcode" (dynamic message based on base unit)
+
+**Business Rules**:
+1. Base unit UOM barcode is always equal to product barcode (regardless of unit type)
+2. Changing product barcode automatically updates base unit UOM barcode
+3. Base unit UOM barcode cannot be manually edited (read-only, inherited)
+4. Non-base UOMs can have independent barcodes
+5. When scanning product barcode at POS, it identifies the base unit UOM
+6. This rule applies to ALL base unit types: PCS, KG, L, M, etc.
+7. For weight-based products (KG), product barcode represents 1 KG of the product
+
+**Example Scenarios**:
+
+```typescript
+// Scenario 1: Standard product (PCS base unit)
+Product: "Baby Bottle"
+Product Barcode: "8991234567890"
+Base Unit: PCS
+
+Product UOMs:
+- PCS: barcode = "8991234567890" (same as product) ✅
+- BOX6: barcode = "8991234567891" (unique) ✅
+- CARTON12: barcode = "8991234567892" (unique) ✅
+
+// Scenario 2: Weight-based product (KG base unit)
+Product: "Baby Formula Powder"
+Product Barcode: "8992345678901"  // ← Represents 1 KG
+Base Unit: KG
+Price: Rp 150,000 per KG
+
+Product UOMs:
+- KG: barcode = "8992345678901" (same as product, represents 1 KG) ✅
+- BAG500G: barcode = "8992345678902" (unique) ✅
+- CARTON10KG: barcode = "8992345678903" (unique) ✅
+
+Weight Machine Workflow:
+1. Customer requests 2.5 KG of Baby Formula Powder
+2. Staff weighs product on scale: 2.5 KG
+3. Weight machine prints weight-embedded barcode: "28 9234 5678 901 02500 X"
+   - Prefix "28" = weight-embedded barcode
+   - "9234 5678 901" = product identifier
+   - "02500" = weight in grams (2500g = 2.5 KG)
+   - "X" = check digit
+4. POS scans barcode → identifies product → calculates: 2.5 KG × Rp 150,000 = Rp 375,000
+
+// Scenario 3: Liquid product (L base unit)
+Product: "Baby Shampoo"
+Product Barcode: "8993456789012"  // ← Represents 1 L
+Base Unit: L
+
+Product UOMs:
+- L: barcode = "8993456789012" (same as product) ✅
+- BOTTLE250ML: barcode = "8993456789013" (unique) ✅
+- BOX12BOTTLES: barcode = "8993456789014" (unique) ✅
+```
+
+---
+
 ## Physical Attributes Rules
 
-### Rule 7: Weight Validation
+### Rule 8: Weight Validation
 
 **Rule**:
 - Weight cannot be negative
@@ -264,7 +420,7 @@ const errors = businessRules.product.validatePhysicalAttributes({
 
 ---
 
-### Rule 8: Dimension Validation
+### Rule 9: Dimension Validation
 
 **Rule**:
 - Length, width, height must be positive
@@ -291,7 +447,7 @@ if (props.length > MAX_DIMENSION_CM || props.width > MAX_DIMENSION_CM || props.h
 
 ---
 
-### Rule 9: Volume Weight Calculation
+### Rule 10: Volume Weight Calculation
 
 **Formula**: `(Length × Width × Height) / 5000 = Volume Weight (kg)`
 
@@ -314,7 +470,7 @@ public getChargeableWeight(): number {
 
 ## Warehouse Management Rules
 
-### Rule 10: Multi-Warehouse Product Allocation
+### Rule 11: Multi-Warehouse Product Allocation
 
 **Rule**: Products, product bundles, and product variants must support multi-warehouse allocation. Stock must be tracked separately per warehouse.
 
@@ -425,7 +581,7 @@ POST /api/inventory/transfer
 
 ---
 
-### Rule 11: Product Stock Consistency Per Warehouse (UPDATED)
+### Rule 12: Product Stock Consistency Per Warehouse (UPDATED)
 
 **Rule**: For EACH warehouse, the stock of a product in product_locations must match the total stock from product_uom_locations (converted to base units). Validation is done PER WAREHOUSE, not globally.
 
@@ -580,7 +736,7 @@ The system now supports products with different base units (e.g., KG for weight-
 
 ---
 
-### Rule 12: Warehouse Code Format
+### Rule 13: Warehouse Code Format
 
 **Rule**: Warehouse code must contain only uppercase letters, numbers, and hyphens.
 
@@ -600,7 +756,7 @@ const error = businessRules.warehouse.validateCode(code);
 
 ---
 
-### Rule 13: Warehouse Location Required Fields
+### Rule 14: Warehouse Location Required Fields
 
 **Rule**: Address line 1, city, province, and postal code are required.
 
@@ -628,7 +784,7 @@ const errors = businessRules.warehouse.validateLocation({
 
 ## Price Management Rules
 
-### Rule 14: Price Cannot Be Negative
+### Rule 15: Price Cannot Be Negative
 
 **Rule**: All prices (base, retail, wholesale) must be non-negative.
 
@@ -659,7 +815,7 @@ const error = businessRules.product.validatePrice(price);
 
 ## Event Business Rules
 
-### Rule 15: Domain Events Must Be Published
+### Rule 16: Domain Events Must Be Published
 
 **Rule**: All state-changing operations must publish domain events.
 

@@ -852,18 +852,14 @@ className="animate-in slide-in-from-bottom duration-500"
 
 ### Overview
 
-Kidkazz leverages shadcn/ui with Base UI components, configured via preset URLs for consistent setup across all frontend applications. This approach ensures standardized design systems across our omnichannel platform while allowing customization for different app types and target audiences.
+Kidkazz leverages shadcn/ui with Radix UI primitives, configured via preset URLs for consistent setup across all frontend applications. This approach ensures standardized design systems across our omnichannel platform while allowing customization for different app types and target audiences.
 
 ### Admin Dashboard Configuration
 
-**Migration Status**: ✅ **COMPLETE** (2025-12-19)
-- **Coverage**: 88.2% (15/17 components migrated to Base UI/Sonner)
-- **See**: [Base UI Migration Complete](./BASE_UI_MIGRATION_COMPLETE.md)
-
 **Current Setup**:
-- **Component Library**: Base UI (`@base-ui/react` v1.0.0)
+- **Component Library**: Radix UI (via shadcn/ui)
 - **Toast Library**: Sonner (`sonner` v2.0.7)
-- **Drawer Library**: vaul (temporary, until Base UI Drawer released)
+- **Drawer Library**: vaul
 - **Style**: `default` (professional black & white theme)
 - **Base Color**: `slate` (neutral blue-gray)
 - **Theme**: `slate` (monochrome for data focus)
@@ -874,7 +870,7 @@ Kidkazz leverages shadcn/ui with Base UI components, configured via preset URLs 
 
 **Equivalent Preset URL**:
 ```
-https://ui.shadcn.com/init?base=base&style=default&baseColor=slate&theme=slate&iconLibrary=lucide&font=inter&menuAccent=subtle&menuColor=default&radius=small&template=vite
+https://ui.shadcn.com/init?style=default&baseColor=slate&theme=slate&iconLibrary=lucide&font=inter&menuAccent=subtle&menuColor=default&radius=small&template=vite
 ```
 
 **Rationale**:
@@ -883,6 +879,7 @@ https://ui.shadcn.com/init?base=base&style=default&baseColor=slate&theme=slate&i
 - **Subtle Menu Accent**: Professional, non-distracting navigation
 - **Default Style**: Traditional, reliable design language for internal tools
 - **Vite Template**: Fast hot-module replacement, optimized for development
+- **Radix UI**: Stable, production-ready primitives with excellent accessibility
 
 ---
 
@@ -933,57 +930,54 @@ See [SHADCN_PRESET_SETUP_GUIDE.md](./SHADCN_PRESET_SETUP_GUIDE.md) for complete 
 **Rapid Development**:
 - New project setup in minutes (single preset command)
 - Pre-configured Tailwind CSS with brand colors
-- Base UI components ready to install
+- Radix UI components ready to install
 
 **Design Flexibility**:
 - Customize style, colors, fonts per app type
 - Target audience-specific configurations (B2C vs B2B vs admin)
 - Maintain brand consistency while allowing variation
 
-**Base UI Migration**:
-- Modern React patterns (render props instead of asChild)
-- Smaller bundle sizes (20-30% reduction vs Radix UI)
-- Headless components (maximum customization)
+**Radix UI Benefits**:
+- Production-ready, battle-tested primitives
+- Excellent accessibility (WAI-ARIA compliant)
+- Stable API with long-term support
+- Comprehensive component ecosystem
 
 ---
 
-### Migration Status — ✅ COMPLETE (2025-12-19)
+### Component Library Status — ✅ Radix UI (2025-12-29)
 
-The admin dashboard has successfully migrated from Radix UI to Base UI with **88.2% coverage** (15/17 components):
+The admin dashboard uses **Radix UI** as the component primitive library via shadcn/ui.
 
-**Completed Components**:
-- ✅ Progress, Avatar, Separator, Label, Checkbox
-- ✅ Button, Breadcrumb, Tabs
-- ✅ Dialog, AlertDialog
-- ✅ Select, Popover, Dropdown Menu (Menu)
-- ✅ Command, Combobox
-- ✅ Data Table ecosystem (faceted filters, column headers, row actions, pagination)
-- ✅ Toast notifications (migrated to Sonner)
+**Previous Migration History**:
+- **2025-12-19**: Attempted migration to Base UI (88.2% coverage)
+- **2025-12-29**: **Reverted to Radix UI** due to critical issues:
+  - `aria-hidden` focus blocking bug causing frozen dialogs
+  - `nativeButton` prop inconsistencies
+  - Focus management problems in nested interactive elements
+  - Modal backdrop conflicts with Drawer (vaul) interactions
 
-**Remaining Components** (2):
-- ⏸️ Drawer - Using `vaul` library (Base UI Drawer not yet released)
-- ⏸️ Slot - Kept as dependency for `vaul`
+**Current Component Stack**:
+- ✅ All UI components using Radix UI primitives
+- ✅ Dialog, Popover, Select, Dropdown Menu, Alert Dialog - Radix UI
+- ✅ Button, Tabs, Checkbox, Avatar, Progress, Separator - Radix UI
+- ✅ Data Table ecosystem (column headers, row actions, faceted filters) - Radix UI
+- ✅ Toast notifications - Sonner (independent library)
+- ✅ Drawer - vaul (independent library)
 
-**Components Not Migrated to Base UI** (Radix UI):
-- 📅 **DatePicker** - Uses `@radix-ui/react-popover`
-  - **Reason**: Base UI Popover has modal behavior conflicts with Drawer (vaul)
-  - **Issue**: Base UI Popover's modal backdrop interferes with drawer interactions
-  - **Solution**: Temporarily using Radix UI Popover specifically for DatePicker
-  - **Location**: `apps/admin-dashboard/src/components/ui/date-picker.tsx`
-  - **Future Migration**: When Base UI Drawer is released OR when Base UI Popover modal conflicts are resolved
-  - **Migration Date**: 2025-12-27 (reverted from Base UI due to drawer conflicts)
-  - **Note**: All other popovers (Combobox, DataTableFacetedFilter) use Base UI Popover successfully outside of drawer contexts
+**Key Pattern Differences** (Base UI → Radix UI):
+- `render={<Button />}` → `asChild` + Button as child
+- `nativeButton={true}` → Not needed (removed)
+- `data-[popup-open]` → `data-[state=open]`
+- `data-[highlighted]` → `data-highlighted`
+- `Positioner` + `Popup` → `Content` component
 
 **Achievements**:
-- ✅ Removed 11 Radix UI packages
-- ✅ 20% bundle size reduction
-- ✅ All asChild patterns updated to Base UI render props
-- ✅ Production build passing (8.33s)
-
-**Documentation**:
-- [BASE_UI_MIGRATION_COMPLETE.md](./BASE_UI_MIGRATION_COMPLETE.md) - Executive summary
-- [BASE_UI_MIGRATION_SESSION_2_SUMMARY.md](./BASE_UI_MIGRATION_SESSION_2_SUMMARY.md) - Detailed implementation
-- [BASE_UI_MIGRATION_GUIDE.md](./BASE_UI_MIGRATION_GUIDE.md) - Complete reference
+- ✅ All `aria-hidden` focus blocking issues resolved
+- ✅ Dialogs and popovers fully interactive
+- ✅ Production build passing (7.31s)
+- ✅ Stable, battle-tested component primitives
+- ✅ Excellent accessibility (WAI-ARIA compliant)
 
 ---
 
@@ -992,13 +986,13 @@ The admin dashboard has successfully migrated from Radix UI to Base UI with **88
 **Create New Project from Preset**:
 ```bash
 # Example: New POS system
-pnpm dlx shadcn@latest create --preset "https://ui.shadcn.com/init?base=base&style=mira&baseColor=zinc&theme=zinc&iconLibrary=lucide&font=inter&menuAccent=bold&menuColor=default&radius=medium&template=vite" kidkazz-pos
+pnpm dlx shadcn@latest create --preset "https://ui.shadcn.com/init?style=mira&baseColor=zinc&theme=zinc&iconLibrary=lucide&font=inter&menuAccent=bold&menuColor=default&radius=medium&template=vite" kidkazz-pos
 ```
 
-**Install Base UI Components**:
+**Install shadcn/ui Components** (Radix UI):
 ```bash
 cd kidkazz-pos
-pnpm dlx shadcn@latest add @basecn/button @basecn/card @basecn/dialog @basecn/select @basecn/input @basecn/label
+pnpm dlx shadcn@latest add button card dialog select input label
 ```
 
 **Note**: As of December 2025, the `shadcn create --preset` command has known bugs (GitHub #9043, #9064, #9081). Always have [manual setup fallback](./SHADCN_PRESET_SETUP_GUIDE.md#cli-command-examples) ready.
@@ -1008,11 +1002,10 @@ pnpm dlx shadcn@latest add @basecn/button @basecn/card @basecn/dialog @basecn/se
 ### Related Documentation
 
 - [SHADCN_PRESET_SETUP_GUIDE.md](./SHADCN_PRESET_SETUP_GUIDE.md) - Complete preset reference (parameter explanations, CLI examples, troubleshooting)
-- [BASE_UI_MIGRATION_GUIDE.md](./BASE_UI_MIGRATION_GUIDE.md) - Migration from Radix UI to Base UI
 - [SHADCN_UI_REFACTORING_GUIDE.md](./SHADCN_UI_REFACTORING_GUIDE.md) - Component refactoring examples
 
 ---
 
-**Document Version:** 1.2.0
-**Last Updated:** December 27, 2025
+**Document Version:** 2.0.0
+**Last Updated:** December 29, 2025
 **Maintained by:** KidKazz Design Team

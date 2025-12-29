@@ -26,6 +26,7 @@ interface ComboboxProps {
   searchPlaceholder?: string
   emptyText?: string
   className?: string
+  disabled?: boolean
 }
 
 /**
@@ -43,6 +44,7 @@ interface ComboboxProps {
  * @param searchPlaceholder - Placeholder text for the search input inside the popover
  * @param emptyText - Message displayed when no options match the search
  * @param className - Additional CSS classes applied to the trigger button
+ * @param disabled - Whether the combobox is disabled
  * @returns A JSX element representing the combobox component
  */
 export function Combobox({
@@ -53,6 +55,7 @@ export function Combobox({
   searchPlaceholder = "Search...",
   emptyText = "No option found.",
   className,
+  disabled = false,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
   const [searchValue, setSearchValue] = React.useState("")
@@ -79,21 +82,19 @@ export function Combobox({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger
-        nativeButton={false}
-        render={
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            className={cn("w-full justify-between", className)}
-          />
-        }
-      >
-        {value
-          ? options.find((option) => option.value === value)?.label
-          : placeholder}
-        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+      <PopoverTrigger asChild disabled={disabled}>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          disabled={disabled}
+          className={cn("w-full justify-between", className)}
+        >
+          {value
+            ? options.find((option) => option.value === value)?.label
+            : placeholder}
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
       </PopoverTrigger>
       <PopoverContent className="w-full p-0" align="start">
         <div className="flex flex-col">

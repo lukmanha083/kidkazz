@@ -1429,5 +1429,3 @@ pnpm dev -- --port 3000
 
 **Related Documentation**:
 - [UI Design Guideline](./UI_DESIGN_GUIDELINE.md)
-- [Base UI Migration Guide](./BASE_UI_MIGRATION_GUIDE.md)
-- [Base UI Migration Execution Plan](./BASE_UI_MIGRATION_EXECUTION_PLAN.md)

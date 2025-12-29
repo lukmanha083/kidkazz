@@ -92,7 +92,7 @@ import {
 import { PhysicalDimensionsSection } from "@/components/products/PhysicalDimensionsSection";
 import { ProductExpirationSection } from "@/components/products/ProductExpirationSection";
 import { ProductUOMManagementSection } from "@/components/products/ProductUOMManagementSection";
-import { useUOMManagement } from "@/hooks/useUOMManagement";
+import { useUOMManagement, type ProductUOMWithStock } from "@/hooks/useUOMManagement";
 import { useAsyncValidation } from "@/hooks/useAsyncValidation";
 import { validationApi } from "@/lib/validation-api";
 import { productListSearchSchema } from "@/lib/route-search-schemas";
@@ -522,7 +522,7 @@ function AllProductsPage() {
 
 					// Fetch product UOMs
 					try {
-						const productUOMsData = await productApi.getProductUOMs(product.id);
+						const productUOMsData = await uomApi.getProductUOMs(product.id);
 						uomManagement.setProductUOMs(productUOMsData.productUOMs || []);
 					} catch (error) {
 						console.error("Failed to fetch product UOMs:", error);
@@ -530,11 +530,12 @@ function AllProductsPage() {
 					}
 
 					// Fetch product locations
+					let formattedAllocations: WarehouseAllocation[] = [];
 					try {
 						const productLocationsData = await productLocationApi.getByProduct(
 							product.id,
 						);
-						const formattedAllocations: WarehouseAllocation[] = (
+						formattedAllocations = (
 							productLocationsData.locations || []
 						).map((location: any) => ({
 							warehouseId: location.warehouseId,
@@ -582,7 +583,9 @@ function AllProductsPage() {
 					setDeleteDialogOpen(true);
 				},
 			}),
-		[categories],
+		// Dependencies: categories for column data, form and uomManagement for callbacks
+		// Note: useState setters are stable and don't need to be listed
+		[categories, form, uomManagement],
 	);
 
 	// Create product mutation
@@ -815,6 +818,22 @@ function AllProductsPage() {
 		form.reset();
 		uomManagement.resetAll();
 		setWarehouseAllocations([]); // Reset warehouse allocations
+
+		// Auto-create PCS as default base unit
+		const pcsBaseUOM: ProductUOMWithStock = {
+			id: `uom-pcs-${Date.now()}`,
+			productId: "",
+			uomCode: "PCS",
+			uomName: "Pieces",
+			barcode: "",
+			conversionFactor: 1,
+			stock: 0,
+			isDefault: true,
+			createdAt: new Date(),
+			updatedAt: new Date(),
+		};
+		uomManagement.setProductUOMs([pcsBaseUOM]);
+
 		setFormDrawerOpen(true);
 	};
 
@@ -911,6 +930,14 @@ function AllProductsPage() {
 	};
 
 	const handleRemoveUOM = (uom: ProductUOM) => {
+		// Prevent deletion of PCS (base unit)
+		if (uom.uomCode === "PCS") {
+			toast.error("Cannot delete base unit", {
+				description: "PCS is the default base unit and cannot be removed",
+			});
+			return;
+		}
+
 		setUomToDelete(uom);
 		setDeleteDialogOpen(true);
 	};

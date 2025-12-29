@@ -35,7 +35,12 @@ export function createBaseUnitUOM(
 	let finalProductUOMs = [...existingUOMs];
 	const selectedBaseUnitCode = formValues.baseUnit || "PCS";
 
-	if (!finalProductUOMs.some((u) => u.uomCode === selectedBaseUnitCode)) {
+	const existingBaseUOMIndex = finalProductUOMs.findIndex(
+		(u) => u.uomCode === selectedBaseUnitCode
+	);
+
+	if (existingBaseUOMIndex === -1) {
+		// Base UOM doesn't exist, create it
 		const hasDefault = finalProductUOMs.some((u) => u.isDefault);
 
 		// Calculate allocated stock from other UOMs
@@ -71,6 +76,18 @@ export function createBaseUnitUOM(
 		}
 
 		finalProductUOMs = [baseUOM, ...finalProductUOMs];
+	} else {
+		// Base UOM exists - sync barcode with product barcode
+		// PCS barcode should always match the product barcode
+		const existingBaseUOM = finalProductUOMs[existingBaseUOMIndex];
+		if (existingBaseUOM.barcode !== formValues.barcode) {
+			finalProductUOMs[existingBaseUOMIndex] = {
+				...existingBaseUOM,
+				barcode: formValues.barcode,
+				productId: selectedProductId || existingBaseUOM.productId,
+				updatedAt: new Date(),
+			};
+		}
 	}
 
 	// Ensure at least one UOM is default

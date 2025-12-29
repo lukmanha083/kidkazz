@@ -128,9 +128,9 @@ function LoginPage() {
               <p className="text-sm text-muted-foreground">
                 Forgot password?{' '}
                 <Button
+                  type="button"
                   variant="link"
                   className="px-0 h-auto font-normal text-primary"
-                  render={<button type="button" />}
                   onClick={() => {
                     // TODO: Implement password reset functionality
                     console.log('Password reset clicked');

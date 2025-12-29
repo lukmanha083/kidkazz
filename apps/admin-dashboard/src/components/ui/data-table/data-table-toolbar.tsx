@@ -93,13 +93,11 @@ export function DataTableToolbar<TData>({
       </div>
       {enableColumnVisibility && (
         <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <Button variant="outline" size="sm" className="ml-auto h-8" />
-            }
-          >
-            <SlidersHorizontal className="mr-2 h-4 w-4" />
-            View
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="ml-auto h-8">
+              <SlidersHorizontal className="mr-2 h-4 w-4" />
+              View
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-[180px]">
             <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>

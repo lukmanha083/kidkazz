@@ -1,26 +1,31 @@
-import * as React from "react";
-import { Separator as SeparatorPrimitive } from "@base-ui/react/separator";
+"use client"
 
-import { cn } from "@/lib/utils";
+import * as React from "react"
+import * as SeparatorPrimitive from "@radix-ui/react-separator"
 
-/**
- * Renders a styled separator element that adapts sizing for horizontal or vertical orientation.
- *
- * @param className - Additional CSS classes to apply to the separator.
- * @param props - Remaining props forwarded to the underlying SeparatorPrimitive.
- * @returns A React element for a separator with orientation-aware sizing and the provided classes.
- */
-function Separator({ className, ...props }: SeparatorPrimitive.Props) {
-  return (
-    <SeparatorPrimitive
-      data-slot="separator"
+import { cn } from "@/lib/utils"
+
+const Separator = React.forwardRef<
+  React.ElementRef<typeof SeparatorPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof SeparatorPrimitive.Root>
+>(
+  (
+    { className, orientation = "horizontal", decorative = true, ...props },
+    ref
+  ) => (
+    <SeparatorPrimitive.Root
+      ref={ref}
+      decorative={decorative}
+      orientation={orientation}
       className={cn(
-        "bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px",
+        "shrink-0 bg-border",
+        orientation === "horizontal" ? "h-[1px] w-full" : "h-full w-[1px]",
         className
       )}
       {...props}
     />
-  );
-}
+  )
+)
+Separator.displayName = SeparatorPrimitive.Root.displayName
 
-export { Separator };
+export { Separator }
