@@ -1,15 +1,15 @@
-import type { SimpleFormApi } from '@/types';
-import type { ProductFormData } from '@/lib/form-schemas';
-import type { UOM } from '@/lib/api';
-import type { Warehouse } from '@/lib/api';
-import type { useUOMManagement } from '@/hooks/useUOMManagement';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
-import { ProductUOMWarehouseAllocation } from './ProductUOMWarehouseAllocation';
+import type { SimpleFormApi } from "@/types";
+import type { ProductFormData } from "@/lib/form-schemas";
+import type { UOM } from "@/lib/api";
+import type { Warehouse } from "@/lib/api";
+import type { useUOMManagement } from "@/hooks/useUOMManagement";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { ProductUOMWarehouseAllocation } from "./ProductUOMWarehouseAllocation";
 
 interface ProductUOMManagementSectionProps {
 	form: SimpleFormApi<ProductFormData>;
@@ -21,7 +21,7 @@ interface ProductUOMManagementSectionProps {
 	onUOMAllocationsChange: (uomId: string, allocations: any[]) => void;
 	generateUniqueBarcode: () => string;
 	isBarcodeUnique: (barcode: string, excludeId?: string) => boolean;
-	formMode: 'add' | 'edit';
+	formMode: "add" | "edit";
 	selectedProductId?: string;
 }
 
@@ -55,7 +55,11 @@ export function ProductUOMManagementSection({
 	selectedProductId,
 }: ProductUOMManagementSectionProps) {
 	const handleAddUOM = () => {
-		if (!uomManagement.selectedUOM || !uomManagement.uomBarcode || !uomManagement.uomStock) {
+		if (
+			!uomManagement.selectedUOM ||
+			!uomManagement.uomBarcode ||
+			!uomManagement.uomStock
+		) {
 			toast.error("Missing UOM information", {
 				description: "Please fill in UOM, barcode, and stock quantity",
 			});
@@ -81,7 +85,10 @@ export function ProductUOMManagementSection({
 			return;
 		}
 
-		if (uomManagement.uomBarcode === form.state.values.barcode && uom.code !== "PCS") {
+		if (
+			uomManagement.uomBarcode === form.state.values.barcode &&
+			uom.code !== "PCS"
+		) {
 			toast.error("Duplicate barcode", {
 				description:
 					"This barcode is the same as the main product barcode. Please use a different barcode for additional UOMs.",
@@ -121,30 +128,25 @@ export function ProductUOMManagementSection({
 			</div>
 
 			{/* Stock Allocation Summary */}
-			<div className="grid grid-cols-3 gap-3 p-3 bg-background border rounded">
+			<div className="grid grid-cols-1 tablet:grid-cols-2 desktop:grid-cols-3 gap-3 p-3 bg-background border rounded">
 				<div className="text-sm">
-					<span className="font-medium text-foreground">
-						Total Stock:{" "}
-					</span>
+					<span className="font-medium text-foreground">Total Stock: </span>
 					<span className="text-muted-foreground">
 						0 {form.state.values.baseUnit || "PCS"} (managed via Inventory)
 					</span>
 				</div>
 				<div className="text-sm">
-					<span className="font-medium text-foreground">
-						Allocated:{" "}
-					</span>
+					<span className="font-medium text-foreground">Allocated: </span>
 					<span className="text-muted-foreground">
 						{uomManagement.calculateAllocatedPCS()}{" "}
 						{form.state.values.baseUnit || "PCS"}
 					</span>
 				</div>
 				<div className="text-sm">
-					<span className="font-medium text-foreground">
-						Available:{" "}
-					</span>
+					<span className="font-medium text-foreground">Available: </span>
 					<span className="text-primary font-bold">
-						{uomManagement.getRemainingPCS(0)} {form.state.values.baseUnit || "PCS"}
+						{uomManagement.getRemainingPCS(0)}{" "}
+						{form.state.values.baseUnit || "PCS"}
 					</span>
 				</div>
 			</div>
@@ -155,10 +157,7 @@ export function ProductUOMManagementSection({
 					<Label className="text-sm font-medium">Added UOMs</Label>
 					<div className="space-y-3">
 						{uomManagement.productUOMs.map((uom) => (
-							<div
-								key={uom.id}
-								className="border rounded bg-background"
-							>
+							<div key={uom.id} className="border rounded bg-background">
 								<div className="flex items-start justify-between gap-3 p-3">
 									<div className="flex-1 min-w-0 space-y-1">
 										<div className="flex items-center gap-2 flex-wrap">
@@ -180,7 +179,9 @@ export function ProductUOMManagementSection({
 												Conversion: 1 {uom.uomCode} = {uom.conversionFactor}{" "}
 												{form.state.values.baseUnit || "PCS"}
 											</div>
-											<div>Stock: {uom.stock} {uom.uomCode}</div>
+											<div>
+												Stock: {uom.stock} {uom.uomCode}
+											</div>
 										</div>
 									</div>
 
@@ -219,7 +220,9 @@ export function ProductUOMManagementSection({
 								<div className="px-3 pb-3 pt-2 border-t bg-muted/10">
 									<ProductUOMWarehouseAllocation
 										warehouses={warehouses}
-										allocations={uomManagement.uomWarehouseAllocations[uom.id] || []}
+										allocations={
+											uomManagement.uomWarehouseAllocations[uom.id] || []
+										}
 										onAllocationsChange={(allocations) =>
 											onUOMAllocationsChange(uom.id, allocations)
 										}
@@ -238,7 +241,7 @@ export function ProductUOMManagementSection({
 			{/* Add UOM Form */}
 			<div className="space-y-4 border-t pt-4">
 				<Label className="text-sm font-medium">Add New UOM</Label>
-				<div className="grid grid-cols-3 gap-3">
+				<div className="grid grid-cols-1 tablet:grid-cols-2 desktop:grid-cols-3 gap-3">
 					<div className="space-y-2">
 						<Label htmlFor="uom-select" className="text-xs">
 							UOM Type

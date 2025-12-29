@@ -1,15 +1,15 @@
-import type { SimpleFormApi } from '@/types';
-import type { ProductFormData } from '@/lib/form-schemas';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
+import type { SimpleFormApi } from "@/types";
+import type { ProductFormData } from "@/lib/form-schemas";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 /**
  * Extract error message from TanStack Form / Zod validation errors.
  * Handles both string errors and Zod error objects with message property.
  */
 function getErrorMessage(error: unknown): string {
-	if (typeof error === 'string') return error;
-	if (error && typeof error === 'object' && 'message' in error) {
+	if (typeof error === "string") return error;
+	if (error && typeof error === "object" && "message" in error) {
 		return (error as { message: string }).message;
 	}
 	return String(error);
@@ -28,7 +28,9 @@ interface PhysicalDimensionsSectionProps {
  * @param form - The form API instance used to register and manage the `weight`, `length`, `width`, and `height` fields
  * @returns The JSX element for the physical dimensions section
  */
-export function PhysicalDimensionsSection({ form }: PhysicalDimensionsSectionProps) {
+export function PhysicalDimensionsSection({
+	form,
+}: PhysicalDimensionsSectionProps) {
 	return (
 		<div className="space-y-4 border rounded-lg p-4 bg-muted/20">
 			<div>
@@ -50,10 +52,14 @@ export function PhysicalDimensionsSection({ form }: PhysicalDimensionsSectionPro
 							step="0.01"
 							min="0"
 							placeholder="0.5"
-							value={field.state.value !== null && field.state.value !== undefined ? String(field.state.value) : ''}
+							value={
+								field.state.value !== null && field.state.value !== undefined
+									? String(field.state.value)
+									: ""
+							}
 							onChange={(e) => {
 								const value = e.target.value;
-								if (value === '' || value === null) {
+								if (value === "" || value === null) {
 									field.handleChange(null);
 								} else {
 									const parsed = parseFloat(value);
@@ -64,14 +70,14 @@ export function PhysicalDimensionsSection({ form }: PhysicalDimensionsSectionPro
 						/>
 						{field.state.meta.errors.length > 0 && (
 							<p className="text-sm text-destructive">
-								{field.state.meta.errors.map(getErrorMessage).join(', ')}
+								{field.state.meta.errors.map(getErrorMessage).join(", ")}
 							</p>
 						)}
 					</div>
 				)}
 			</form.Field>
 
-			<div className="grid grid-cols-3 gap-3">
+			<div className="grid grid-cols-1 tablet:grid-cols-2 desktop:grid-cols-3 gap-3">
 				<form.Field name="length">
 					{(field) => (
 						<div className="space-y-2">
@@ -82,10 +88,14 @@ export function PhysicalDimensionsSection({ form }: PhysicalDimensionsSectionPro
 								step="0.1"
 								min="0"
 								placeholder="10"
-								value={field.state.value !== null && field.state.value !== undefined ? String(field.state.value) : ''}
+								value={
+									field.state.value !== null && field.state.value !== undefined
+										? String(field.state.value)
+										: ""
+								}
 								onChange={(e) => {
 									const value = e.target.value;
-									if (value === '' || value === null) {
+									if (value === "" || value === null) {
 										field.handleChange(null);
 									} else {
 										const parsed = parseFloat(value);
@@ -96,7 +106,7 @@ export function PhysicalDimensionsSection({ form }: PhysicalDimensionsSectionPro
 							/>
 							{field.state.meta.errors.length > 0 && (
 								<p className="text-sm text-destructive">
-									{field.state.meta.errors.map(getErrorMessage).join(', ')}
+									{field.state.meta.errors.map(getErrorMessage).join(", ")}
 								</p>
 							)}
 						</div>
@@ -112,10 +122,14 @@ export function PhysicalDimensionsSection({ form }: PhysicalDimensionsSectionPro
 								step="0.1"
 								min="0"
 								placeholder="10"
-								value={field.state.value !== null && field.state.value !== undefined ? String(field.state.value) : ''}
+								value={
+									field.state.value !== null && field.state.value !== undefined
+										? String(field.state.value)
+										: ""
+								}
 								onChange={(e) => {
 									const value = e.target.value;
-									if (value === '' || value === null) {
+									if (value === "" || value === null) {
 										field.handleChange(null);
 									} else {
 										const parsed = parseFloat(value);
@@ -126,7 +140,7 @@ export function PhysicalDimensionsSection({ form }: PhysicalDimensionsSectionPro
 							/>
 							{field.state.meta.errors.length > 0 && (
 								<p className="text-sm text-destructive">
-									{field.state.meta.errors.map(getErrorMessage).join(', ')}
+									{field.state.meta.errors.map(getErrorMessage).join(", ")}
 								</p>
 							)}
 						</div>
@@ -142,10 +156,14 @@ export function PhysicalDimensionsSection({ form }: PhysicalDimensionsSectionPro
 								step="0.1"
 								min="0"
 								placeholder="10"
-								value={field.state.value !== null && field.state.value !== undefined ? String(field.state.value) : ''}
+								value={
+									field.state.value !== null && field.state.value !== undefined
+										? String(field.state.value)
+										: ""
+								}
 								onChange={(e) => {
 									const value = e.target.value;
-									if (value === '' || value === null) {
+									if (value === "" || value === null) {
 										field.handleChange(null);
 									} else {
 										const parsed = parseFloat(value);
@@ -156,7 +174,7 @@ export function PhysicalDimensionsSection({ form }: PhysicalDimensionsSectionPro
 							/>
 							{field.state.meta.errors.length > 0 && (
 								<p className="text-sm text-destructive">
-									{field.state.meta.errors.map(getErrorMessage).join(', ')}
+									{field.state.meta.errors.map(getErrorMessage).join(", ")}
 								</p>
 							)}
 						</div>

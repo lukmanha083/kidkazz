@@ -1,15 +1,15 @@
-import type { SimpleFormApi } from '@/types';
-import type { ProductFormData } from '@/lib/form-schemas';
-import { Label } from '@/components/ui/label';
-import { DatePicker } from '@/components/ui/date-picker';
+import type { SimpleFormApi } from "@/types";
+import type { ProductFormData } from "@/lib/form-schemas";
+import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
 
 /**
  * Extract error message from TanStack Form / Zod validation errors.
  * Handles both string errors and Zod error objects with message property.
  */
 function getErrorMessage(error: unknown): string {
-	if (typeof error === 'string') return error;
-	if (error && typeof error === 'object' && 'message' in error) {
+	if (typeof error === "string") return error;
+	if (error && typeof error === "object" && "message" in error) {
 		return (error as { message: string }).message;
 	}
 	return String(error);
@@ -30,7 +30,9 @@ interface ProductExpirationSectionProps {
  * @param form - Form API used to bind and update `alertDate` and `expirationDate`
  * @returns A React element containing the expiration and alert date fields
  */
-export function ProductExpirationSection({ form }: ProductExpirationSectionProps) {
+export function ProductExpirationSection({
+	form,
+}: ProductExpirationSectionProps) {
 	return (
 		<div className="space-y-4 border rounded-lg p-4 bg-muted/20">
 			<div>
@@ -42,16 +44,14 @@ export function ProductExpirationSection({ form }: ProductExpirationSectionProps
 				</p>
 			</div>
 
-			<div className="grid grid-cols-2 gap-4">
+			<div className="grid grid-cols-1 tablet:grid-cols-2 gap-4">
 				<form.Field name="alertDate">
 					{(field) => (
 						<div className="space-y-2">
 							<Label htmlFor={field.name}>Alert Date</Label>
 							<DatePicker
 								date={
-									field.state.value
-										? new Date(field.state.value)
-										: undefined
+									field.state.value ? new Date(field.state.value) : undefined
 								}
 								onDateChange={(date) => {
 									const alertDate = date
@@ -79,9 +79,7 @@ export function ProductExpirationSection({ form }: ProductExpirationSectionProps
 							<Label htmlFor={field.name}>Expiration Date</Label>
 							<DatePicker
 								date={
-									field.state.value
-										? new Date(field.state.value)
-										: undefined
+									field.state.value ? new Date(field.state.value) : undefined
 								}
 								onDateChange={(date) => {
 									const expirationDate = date
