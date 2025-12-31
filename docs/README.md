@@ -145,24 +145,24 @@ Comprehensive testing documentation and guides.
 ### 📚 Guides (`guides/`)
 How-to guides and tutorials.
 
-| Document | Description |
-|----------|-------------|
-| [DEVELOPMENT_SETUP_GUIDE.md](guides/DEVELOPMENT_SETUP_GUIDE.md) | Local environment setup |
-| [INTEGRATION_QUICK_START.md](guides/INTEGRATION_QUICK_START.md) | Quick integration guide |
-| [INTEGRATION_TUTORIAL.md](guides/INTEGRATION_TUTORIAL.md) | Step-by-step integration tutorial |
-| [IMAGE_HANDLING_GUIDE.md](guides/IMAGE_HANDLING_GUIDE.md) | Image upload and management |
-| [IMAGE_ENHANCEMENTS_GUIDE.md](guides/IMAGE_ENHANCEMENTS_GUIDE.md) | Image optimization techniques |
-| [VIDEO_HANDLING_GUIDE.md](guides/VIDEO_HANDLING_GUIDE.md) | Video upload and management |
-| [SHADCN_UI_REFACTORING_GUIDE.md](guides/SHADCN_UI_REFACTORING_GUIDE.md) | ShadCN UI component migration |
-| [CRON_CONFIGURATION.md](guides/CRON_CONFIGURATION.md) | Scheduled jobs setup |
-| [WEIGHT_BASED_BARCODE_GUIDE.md](guides/WEIGHT_BASED_BARCODE_GUIDE.md) | Weight-based barcode system for POS |
-| [MOBILE_APP_EXPO_GUIDE.md](guides/MOBILE_APP_EXPO_GUIDE.md) | Mobile app development with Expo |
-| [UI_DESIGN_GUIDELINE.md](guides/UI_DESIGN_GUIDELINE.md) | UI design standards and guidelines |
-| [SERVICE_STARTUP_GUIDE.md](guides/SERVICE_STARTUP_GUIDE.md) | Microservices startup guide |
-| [EXPIRATION_DATE_FEATURE_GUIDE.md](guides/EXPIRATION_DATE_FEATURE_GUIDE.md) | Product expiration tracking |
-| [MULTI_UOM_BARCODE_IMPLEMENTATION.md](guides/MULTI_UOM_BARCODE_IMPLEMENTATION.md) | Multi-UOM barcode implementation |
-| [MULTI_WAREHOUSE_UOM_API_GUIDE.md](guides/MULTI_WAREHOUSE_UOM_API_GUIDE.md) | Multi-warehouse UOM API guide |
-| [DATABASE_MIGRATION_RETAIL_WHOLESALE.md](guides/DATABASE_MIGRATION_RETAIL_WHOLESALE.md) | Database migration for dual markets |
+| Document | Description | Priority |
+|----------|-------------|----------|
+| [UI_DESIGN_GUIDELINE.md](guides/UI_DESIGN_GUIDELINE.md) | ⭐ **Complete UI/UX Design System** - Brand, colors, typography, responsive patterns, component guidelines | **MUST READ** |
+| [DEVELOPMENT_SETUP_GUIDE.md](guides/DEVELOPMENT_SETUP_GUIDE.md) | Local environment setup | High |
+| [INTEGRATION_QUICK_START.md](guides/INTEGRATION_QUICK_START.md) | Quick integration guide | High |
+| [INTEGRATION_TUTORIAL.md](guides/INTEGRATION_TUTORIAL.md) | Step-by-step integration tutorial | Medium |
+| [IMAGE_HANDLING_GUIDE.md](guides/IMAGE_HANDLING_GUIDE.md) | Image upload and management | Medium |
+| [IMAGE_ENHANCEMENTS_GUIDE.md](guides/IMAGE_ENHANCEMENTS_GUIDE.md) | Image optimization techniques | Low |
+| [VIDEO_HANDLING_GUIDE.md](guides/VIDEO_HANDLING_GUIDE.md) | Video upload and management | Low |
+| [SHADCN_UI_REFACTORING_GUIDE.md](guides/SHADCN_UI_REFACTORING_GUIDE.md) | ShadCN UI component migration | Medium |
+| [CRON_CONFIGURATION.md](guides/CRON_CONFIGURATION.md) | Scheduled jobs setup | Low |
+| [WEIGHT_BASED_BARCODE_GUIDE.md](guides/WEIGHT_BASED_BARCODE_GUIDE.md) | Weight-based barcode system for POS | Medium |
+| [MOBILE_APP_EXPO_GUIDE.md](guides/MOBILE_APP_EXPO_GUIDE.md) | Mobile app development with Expo | Medium |
+| [SERVICE_STARTUP_GUIDE.md](guides/SERVICE_STARTUP_GUIDE.md) | Microservices startup guide | High |
+| [EXPIRATION_DATE_FEATURE_GUIDE.md](guides/EXPIRATION_DATE_FEATURE_GUIDE.md) | Product expiration tracking | Medium |
+| [MULTI_UOM_BARCODE_IMPLEMENTATION.md](guides/MULTI_UOM_BARCODE_IMPLEMENTATION.md) | Multi-UOM barcode implementation | Medium |
+| [MULTI_WAREHOUSE_UOM_API_GUIDE.md](guides/MULTI_WAREHOUSE_UOM_API_GUIDE.md) | Multi-warehouse UOM API guide | Medium |
+| [DATABASE_MIGRATION_RETAIL_WHOLESALE.md](guides/DATABASE_MIGRATION_RETAIL_WHOLESALE.md) | Database migration for dual markets | Low |
 
 **Start here if you want to**: Set up your development environment, learn specific features, or follow tutorials.
 
@@ -233,10 +233,23 @@ Development tools and CI/CD.
 4. Transactions: [Saga Pattern](architecture/SAGA_PATTERN_DISTRIBUTED_TRANSACTIONS.md)
 
 ### I want to work on the frontend
-1. Architecture: [Frontend Architecture](bounded-contexts/frontend/FRONTEND_ARCHITECTURE.md)
-2. Roadmap: [Frontend Refactoring Roadmap](bounded-contexts/frontend/FRONTEND_REFACTORING_ROADMAP.md)
-3. Migration: [Phase 2B Frontend Migration](implementation/phases/PHASE2B_FRONTEND_MIGRATION_GUIDE.md)
-4. UI: [ShadCN UI Refactoring](guides/SHADCN_UI_REFACTORING_GUIDE.md)
+1. **START HERE**: [UI Design Guideline](guides/UI_DESIGN_GUIDELINE.md) - ⭐ **MUST READ** for ALL frontend work
+2. Architecture: [Frontend Architecture](bounded-contexts/frontend/FRONTEND_ARCHITECTURE.md)
+3. Roadmap: [Frontend Refactoring Roadmap](bounded-contexts/frontend/FRONTEND_REFACTORING_ROADMAP.md)
+4. Migration: [Phase 2B Frontend Migration](implementation/phases/PHASE2B_FRONTEND_MIGRATION_GUIDE.md)
+5. Components: [ShadCN UI Refactoring Guide](guides/SHADCN_UI_REFACTORING_GUIDE.md)
+
+### I want to create a new UI page/component
+1. **MANDATORY**: Read [UI Design Guideline](guides/UI_DESIGN_GUIDELINE.md) - Complete design system
+2. **Brand**: Review color palette, typography, and component styles
+3. **Responsive**: Follow [Button Patterns](guides/UI_DESIGN_GUIDELINE.md#button-responsive-patterns) for page headers
+4. **Grids**: Use [Card & Grid Layouts](guides/UI_DESIGN_GUIDELINE.md#card--grid-layout-patterns) for responsive layouts
+5. **Tables**: Implement [Table Components](guides/UI_DESIGN_GUIDELINE.md#table-component-patterns) with column visibility
+6. **Search**: Add [Global Search](guides/UI_DESIGN_GUIDELINE.md#search-component-patterns) for search functionality
+7. **Forms**: Follow [Form Layout Patterns](guides/UI_DESIGN_GUIDELINE.md#form-layout-patterns) for responsive grids
+8. **Drawers**: Use [Drawer Patterns](guides/UI_DESIGN_GUIDELINE.md#drawer-component-patterns) for forms/details
+9. **Test**: At breakpoints 320px, 375px, 768px, 1024px, 1440px
+10. **Checklist**: Use [Quick Reference Checklist](guides/UI_DESIGN_GUIDELINE.md#quick-reference-checklist) before PR
 
 ### I want to work on accounting
 1. Architecture: [Accounting Service Architecture](bounded-contexts/accounting/ACCOUNTING_SERVICE_ARCHITECTURE.md)

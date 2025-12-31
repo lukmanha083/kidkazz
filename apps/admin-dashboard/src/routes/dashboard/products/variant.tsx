@@ -525,7 +525,7 @@ function ProductVariantPage() {
 	return (
 		<div className="space-y-6">
 			{/* Page Header */}
-			<div className="flex items-center justify-between">
+			<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
 				<div>
 					<h1 className="text-3xl font-bold tracking-tight">
 						Product Variants
@@ -534,7 +534,7 @@ function ProductVariantPage() {
 						Manage product variations such as colors, sizes, and materials
 					</p>
 				</div>
-				<Button onClick={handleAddVariant} className="gap-2">
+				<Button onClick={handleAddVariant} className="gap-2 self-start sm:self-auto">
 					<Plus className="h-4 w-4" />
 					Add Variant
 				</Button>
@@ -551,7 +551,7 @@ function ProductVariantPage() {
 						columns={columns}
 						data={variants}
 						searchKey="variantName"
-						searchPlaceholder="Search variants..."
+						searchPlaceholder="Search by product, variant, SKU..."
 						isLoading={isLoading}
 						enableColumnVisibility
 						filterableColumns={[
@@ -684,27 +684,30 @@ function ProductVariantPage() {
 					)}
 
 					<DrawerFooter>
-						<Button
-							onClick={() => {
-								if (selectedVariant) {
-									handleEditVariant(selectedVariant).catch((error) => {
-										console.error("Failed to open edit variant:", error);
-										toast.error("Failed to load variant details", {
-											description:
-												error instanceof Error
-													? error.message
-													: "Unknown error",
+						<div className="flex flex-col sm:flex-row gap-2 w-full">
+							<Button
+								onClick={() => {
+									if (selectedVariant) {
+										handleEditVariant(selectedVariant).catch((error) => {
+											console.error("Failed to open edit variant:", error);
+											toast.error("Failed to load variant details", {
+												description:
+													error instanceof Error
+														? error.message
+														: "Unknown error",
+											});
 										});
-									});
-								}
-							}}
-						>
-							<Edit className="h-4 w-4 mr-2" />
-							Edit Variant
-						</Button>
-						<DrawerClose asChild>
-							<Button variant="outline">Close</Button>
-						</DrawerClose>
+									}
+								}}
+								className="w-full sm:w-auto"
+							>
+								<Edit className="h-4 w-4 mr-2" />
+								Edit Variant
+							</Button>
+							<DrawerClose asChild>
+								<Button variant="outline" className="w-full sm:w-auto">Close</Button>
+							</DrawerClose>
+						</div>
 					</DrawerFooter>
 				</DrawerContent>
 			</Drawer>
@@ -1012,14 +1015,16 @@ function ProductVariantPage() {
 						</div>
 
 						<DrawerFooter className="px-0">
-							<Button type="submit" className="w-full">
-								{formMode === "add" ? "Create Variant" : "Update Variant"}
-							</Button>
-							<DrawerClose asChild>
-								<Button type="button" variant="outline" className="w-full">
-									Cancel
+							<div className="flex flex-col sm:flex-row gap-2 w-full">
+								<Button type="submit" className="w-full sm:w-auto">
+									{formMode === "add" ? "Create Variant" : "Update Variant"}
 								</Button>
-							</DrawerClose>
+								<DrawerClose asChild>
+									<Button type="button" variant="outline" className="w-full sm:w-auto">
+										Cancel
+									</Button>
+								</DrawerClose>
+							</div>
 						</DrawerFooter>
 					</form>
 				</DrawerContent>

@@ -591,14 +591,14 @@ function ProductBundlePage() {
 	return (
 		<div className="space-y-6">
 			{/* Page Header */}
-			<div className="flex items-center justify-between">
+			<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
 				<div>
 					<h1 className="text-3xl font-bold tracking-tight">Product Bundles</h1>
 					<p className="text-muted-foreground mt-1">
 						Create and manage product bundles with special pricing
 					</p>
 				</div>
-				<Button onClick={handleAddBundle} className="gap-2">
+				<Button onClick={handleAddBundle} className="gap-2 self-start sm:self-auto">
 					<Plus className="h-4 w-4" />
 					Create Bundle
 				</Button>
@@ -617,7 +617,7 @@ function ProductBundlePage() {
 						columns={columns}
 						data={bundles}
 						searchKey="bundleName"
-						searchPlaceholder="Search bundles..."
+						searchPlaceholder="Search by name, SKU, price..."
 						isLoading={isLoading}
 						enableColumnVisibility
 						filterableColumns={[
@@ -798,15 +798,18 @@ function ProductBundlePage() {
 					)}
 
 					<DrawerFooter>
-						<Button
-							onClick={() => selectedBundle && handleEditBundle(selectedBundle)}
-						>
-							<Edit className="mr-2 h-4 w-4" />
-							Edit Bundle
-						</Button>
-						<DrawerClose asChild>
-							<Button variant="outline">Close</Button>
-						</DrawerClose>
+						<div className="flex flex-col sm:flex-row gap-2 w-full">
+							<Button
+								onClick={() => selectedBundle && handleEditBundle(selectedBundle)}
+								className="w-full sm:w-auto"
+							>
+								<Edit className="mr-2 h-4 w-4" />
+								Edit Bundle
+							</Button>
+							<DrawerClose asChild>
+								<Button variant="outline" className="w-full sm:w-auto">Close</Button>
+							</DrawerClose>
+						</div>
 					</DrawerFooter>
 				</DrawerContent>
 			</Drawer>
@@ -1237,28 +1240,31 @@ function ProductBundlePage() {
 						</div>
 
 						<DrawerFooter className="px-0">
-							<Button
-								type="submit"
-								disabled={
-									createBundleMutation.isPending ||
-									updateBundleMutation.isPending
-								}
-							>
-								{createBundleMutation.isPending ||
-								updateBundleMutation.isPending ? (
-									<>
-										<Loader2 className="h-4 w-4 mr-2 animate-spin" />
-										{formMode === "add" ? "Creating..." : "Updating..."}
-									</>
-								) : formMode === "add" ? (
-									"Create Bundle"
-								) : (
-									"Update Bundle"
-								)}
-							</Button>
-							<DrawerClose asChild>
-								<Button variant="outline">Cancel</Button>
-							</DrawerClose>
+							<div className="flex flex-col sm:flex-row gap-2 w-full">
+								<Button
+									type="submit"
+									className="w-full sm:w-auto"
+									disabled={
+										createBundleMutation.isPending ||
+										updateBundleMutation.isPending
+									}
+								>
+									{createBundleMutation.isPending ||
+									updateBundleMutation.isPending ? (
+										<>
+											<Loader2 className="h-4 w-4 mr-2 animate-spin" />
+											{formMode === "add" ? "Creating..." : "Updating..."}
+										</>
+									) : formMode === "add" ? (
+										"Create Bundle"
+									) : (
+										"Update Bundle"
+									)}
+								</Button>
+								<DrawerClose asChild>
+									<Button variant="outline" className="w-full sm:w-auto">Cancel</Button>
+								</DrawerClose>
+							</div>
 						</DrawerFooter>
 					</form>
 				</DrawerContent>

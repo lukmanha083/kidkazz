@@ -60,11 +60,11 @@ export function getBundleColumns(
 				<DataTableColumnHeader
 					column={column}
 					title="SKU"
-					className="hidden desktop:table-cell"
+					className="hidden lg:table-cell"
 				/>
 			),
 			cell: ({ row }) => (
-				<span className="font-mono text-sm hidden desktop:table-cell">
+				<span className="font-mono text-sm hidden lg:table-cell">
 					{row.getValue("bundleSKU")}
 				</span>
 			),
@@ -105,7 +105,7 @@ export function getBundleColumns(
 				<DataTableColumnHeader
 					column={column}
 					title="Status"
-					className="hidden desktop:table-cell"
+					className="hidden lg:table-cell"
 				/>
 			),
 			cell: ({ row }) => {
@@ -114,7 +114,7 @@ export function getBundleColumns(
 				return (
 					<Badge
 						variant={isActive ? "default" : "secondary"}
-						className="hidden desktop:table-cell"
+						className="hidden lg:table-cell"
 					>
 						{status}
 					</Badge>

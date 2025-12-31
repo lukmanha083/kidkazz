@@ -209,15 +209,15 @@ function DashboardLayout() {
 	}, [darkMode]);
 
 	return (
-		<div className="flex h-screen bg-background">
-			{/* Desktop Sidebar - Full width (224px) */}
-			<div className="hidden desktop:flex desktop:w-56 border-r border-border flex-col bg-card">
+		<div className="flex min-h-screen bg-background">
+			{/* Desktop Sidebar - Compact width (192px) - Sticky */}
+			<div className="hidden desktop:flex desktop:w-48 border-r border-border flex-col bg-card sticky top-0 h-screen">
 				{/* Store Header */}
-				<div className="p-4 border-b border-border flex items-center justify-between">
+				<div className="p-4 border-b border-border flex items-center justify-between shrink-0">
 					<Logo size="md" showText={true} />
 				</div>
 
-				{/* Navigation Menu */}
+				{/* Navigation Menu - Scrollable */}
 				<nav className="flex-1 p-3 space-y-1 overflow-y-auto">
 					{navItems.map((item) => {
 						const Icon = item.icon;
@@ -258,8 +258,8 @@ function DashboardLayout() {
 					})}
 				</nav>
 
-				{/* Bottom Section with Settings */}
-				<div className="p-3 border-t border-border space-y-1">
+				{/* Bottom Section - Stuck to Bottom */}
+				<div className="p-3 border-t border-border space-y-1 shrink-0">
 					<Link to="/dashboard/settings">
 						<Button variant="ghost" className="w-full justify-start gap-3 h-9">
 							<Settings className="h-4 w-4" />
@@ -299,10 +299,10 @@ function DashboardLayout() {
 				</div>
 			</div>
 
-			{/* Tablet Sidebar - Collapsed (icons only, 64px) */}
-			<div className="hidden tablet:flex desktop:hidden tablet:w-16 border-r border-border flex-col bg-card">
+			{/* Tablet Sidebar - Collapsed (icons only, 64px) - Sticky */}
+			<div className="hidden tablet:flex desktop:hidden tablet:w-16 border-r border-border flex-col bg-card sticky top-0 h-screen">
 				{/* Store Header */}
-				<div className="p-2 border-b border-border flex items-center justify-center h-[65px]">
+				<div className="p-2 border-b border-border flex items-center justify-center h-[65px] shrink-0">
 					<Logo size="sm" showText={false} />
 				</div>
 
@@ -330,8 +330,8 @@ function DashboardLayout() {
 					})}
 				</nav>
 
-				{/* Bottom Section - Icons Only */}
-				<div className="p-2 border-t border-border space-y-1">
+				{/* Bottom Section - Icons Only - Stuck to Bottom */}
+				<div className="p-2 border-t border-border space-y-1 shrink-0">
 					<Link to="/dashboard/settings">
 						<Button
 							variant="ghost"
@@ -378,8 +378,9 @@ function DashboardLayout() {
 						className="absolute inset-0 bg-black/50"
 						onClick={() => setIsMobileMenuOpen(false)}
 					/>
-					<aside className="absolute left-0 top-0 bottom-0 w-64 bg-card border-r">
-						<div className="p-4 border-b border-border flex items-center justify-between">
+					<aside className="absolute left-0 top-0 bottom-0 w-64 bg-card border-r flex flex-col">
+						{/* Header */}
+						<div className="p-4 border-b border-border flex items-center justify-between shrink-0">
 							<Logo size="md" showText={true} />
 							<Button
 								variant="ghost"
@@ -391,7 +392,9 @@ function DashboardLayout() {
 								<X className="h-4 w-4" />
 							</Button>
 						</div>
-						<nav className="p-3 space-y-1">
+
+						{/* Navigation Menu - Scrollable */}
+						<nav className="flex-1 p-3 space-y-1 overflow-y-auto">
 							{navItems.map((item) => {
 								const Icon = item.icon;
 								const active = isActive(item.href);
@@ -432,6 +435,49 @@ function DashboardLayout() {
 								);
 							})}
 						</nav>
+
+						{/* Bottom Section - Stuck to Bottom */}
+						<div className="p-3 border-t border-border space-y-1 shrink-0">
+							<Link to="/dashboard/settings">
+								<Button
+									variant="ghost"
+									className="w-full justify-start gap-3 h-9"
+								>
+									<Settings className="h-4 w-4" />
+									<span>Settings</span>
+								</Button>
+							</Link>
+
+							{/* User Profile */}
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button
+										variant="ghost"
+										className="w-full justify-start gap-2 h-auto p-2"
+									>
+										<Avatar className="h-8 w-8">
+											<AvatarFallback className="bg-gradient-to-br from-blue-500 to-cyan-500 text-white text-sm">
+												A
+											</AvatarFallback>
+										</Avatar>
+										<div className="flex-1 min-w-0 text-left">
+											<p className="text-sm font-medium truncate">
+												admin@kidkazz.com
+											</p>
+										</div>
+										<Menu className="h-3.5 w-3.5" />
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="end" className="w-56">
+									<DropdownMenuItem>Profile</DropdownMenuItem>
+									<DropdownMenuSeparator />
+									<DropdownMenuItem>
+										<LogOut className="h-4 w-4 mr-2" />
+										Logout
+									</DropdownMenuItem>
+								</DropdownMenuContent>
+							</DropdownMenu>
+						</div>
 					</aside>
 				</div>
 			)}
@@ -508,8 +554,8 @@ function DashboardLayout() {
 					</div>
 				</div>
 
-				{/* Page Content - Responsive padding + bottom nav space on mobile */}
-				<div className="flex-1 p-4 pb-20 tablet:p-5 tablet:pb-5 desktop:p-6 desktop:pb-6 overflow-auto">
+				{/* Page Content */}
+				<div className="p-4 pb-20 tablet:p-5 tablet:pb-5 desktop:p-6 desktop:pb-6">
 					<Outlet />
 				</div>
 			</div>

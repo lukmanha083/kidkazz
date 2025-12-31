@@ -66,11 +66,11 @@ export function getVariantColumns(
 				<DataTableColumnHeader
 					column={column}
 					title="Product SKU"
-					className="hidden desktop:table-cell"
+					className="hidden lg:table-cell"
 				/>
 			),
 			cell: ({ row }) => (
-				<span className="font-mono text-sm text-muted-foreground hidden desktop:table-cell">
+				<span className="font-mono text-sm text-muted-foreground hidden lg:table-cell">
 					{row.getValue("productSKU")}
 				</span>
 			),
@@ -93,11 +93,11 @@ export function getVariantColumns(
 				<DataTableColumnHeader
 					column={column}
 					title="Variant SKU"
-					className="hidden desktop:table-cell"
+					className="hidden lg:table-cell"
 				/>
 			),
 			cell: ({ row }) => (
-				<span className="font-mono text-sm text-muted-foreground hidden desktop:table-cell">
+				<span className="font-mono text-sm text-muted-foreground hidden lg:table-cell">
 					{row.getValue("variantSKU")}
 				</span>
 			),
@@ -108,14 +108,14 @@ export function getVariantColumns(
 				<DataTableColumnHeader
 					column={column}
 					title="Type"
-					className="hidden desktop:table-cell"
+					className="hidden lg:table-cell"
 				/>
 			),
 			cell: ({ row }) => {
 				const type = row.getValue("variantType") as string;
 				return (
 					<Badge
-						className={`${getVariantTypeBadge(type)} hidden desktop:table-cell`}
+						className={`${getVariantTypeBadge(type)} hidden lg:table-cell`}
 					>
 						{type}
 					</Badge>
@@ -164,7 +164,7 @@ export function getVariantColumns(
 				<DataTableColumnHeader
 					column={column}
 					title="Status"
-					className="hidden desktop:table-cell"
+					className="hidden lg:table-cell"
 				/>
 			),
 			cell: ({ row }) => {
@@ -177,7 +177,7 @@ export function getVariantColumns(
 							isActive
 								? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-500"
 								: ""
-						} hidden desktop:table-cell`}
+						} hidden lg:table-cell`}
 					>
 						{status}
 					</Badge>

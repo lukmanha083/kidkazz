@@ -226,14 +226,14 @@ function CategoryPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Categories</h1>
           <p className="text-muted-foreground mt-1">
             Manage product categories
           </p>
         </div>
-        <Button onClick={handleAddCategory} className="gap-2">
+        <Button onClick={handleAddCategory} className="gap-2 self-start sm:self-auto">
           <Plus className="h-4 w-4" />
           Add Category
         </Button>
@@ -265,7 +265,7 @@ function CategoryPage() {
               columns={columns}
               data={categories}
               searchKey="name"
-              searchPlaceholder="Search categories..."
+              searchPlaceholder="Search by name, description..."
               isLoading={isLoading}
               filterableColumns={[
                 {
@@ -399,25 +399,27 @@ function CategoryPage() {
             </form.Field>
 
             <DrawerFooter className="px-0">
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={form.state.isSubmitting || !form.state.canSubmit}
-              >
-                {form.state.isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    {formMode === 'add' ? 'Creating...' : 'Updating...'}
-                  </>
-                ) : (
-                  formMode === 'add' ? 'Create Category' : 'Update Category'
-                )}
-              </Button>
-              <DrawerClose asChild>
-                <Button type="button" variant="outline" className="w-full">
-                  Cancel
+              <div className="flex flex-col sm:flex-row gap-2 w-full">
+                <Button
+                  type="submit"
+                  className="w-full sm:w-auto"
+                  disabled={form.state.isSubmitting || !form.state.canSubmit}
+                >
+                  {form.state.isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      {formMode === 'add' ? 'Creating...' : 'Updating...'}
+                    </>
+                  ) : (
+                    formMode === 'add' ? 'Create Category' : 'Update Category'
+                  )}
                 </Button>
-              </DrawerClose>
+                <DrawerClose asChild>
+                  <Button type="button" variant="outline" className="w-full sm:w-auto">
+                    Cancel
+                  </Button>
+                </DrawerClose>
+              </div>
             </DrawerFooter>
           </form>
         </DrawerContent>

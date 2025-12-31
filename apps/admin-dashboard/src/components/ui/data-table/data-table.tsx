@@ -134,6 +134,7 @@ export function DataTable<TData, TValue>({
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 	const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 	const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+	const [globalFilter, setGlobalFilter] = useState<string>("");
 	const [internalPagination, setInternalPagination] = useState<PaginationState>(
 		{
 			pageIndex: 0,
@@ -168,6 +169,8 @@ export function DataTable<TData, TValue>({
 		onColumnVisibilityChange: setColumnVisibility,
 		onRowSelectionChange: setRowSelection,
 		onPaginationChange: setPaginationState,
+		onGlobalFilterChange: setGlobalFilter,
+		globalFilterFn: "includesString",
 		manualPagination,
 		state: {
 			sorting,
@@ -175,6 +178,7 @@ export function DataTable<TData, TValue>({
 			columnVisibility,
 			rowSelection,
 			pagination: paginationState,
+			globalFilter,
 		},
 		enableRowSelection,
 	});

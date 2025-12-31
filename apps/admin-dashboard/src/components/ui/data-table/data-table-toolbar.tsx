@@ -1,3 +1,4 @@
+import * as React from "react";
 import { Table } from "@tanstack/react-table";
 import { X, Search, SlidersHorizontal } from "lucide-react";
 import { Button } from "../button";
@@ -19,7 +20,15 @@ interface DataTableToolbarProps<TData> {
 	filterableColumns?: {
 		id: string;
 		title: string;
-		options: { label: string; value: string }[];
+		options: {
+			label: string;
+			value: string;
+			icon?: React.ComponentType<{ className?: string }>;
+			/** Child values that should be selected when this option is selected */
+			children?: string[];
+			/** Parent value - if set, this option is a child */
+			parentValue?: string;
+		}[];
 	}[];
 	enableColumnVisibility?: boolean;
 }
@@ -28,13 +37,13 @@ interface DataTableToolbarProps<TData> {
  * Render a data-table toolbar with optional search, faceted column filters, a reset action, and a column visibility menu.
  *
  * Renders:
- * - A search input bound to the column identified by `searchKey` (when provided).
+ * - A global search input that searches across all columns (when searchKey is provided).
  * - One DataTableFacetedFilter per entry in `filterableColumns` for the matching table column.
- * - A "Reset" button when any column filters are active.
+ * - A "Reset" button when any filters are active.
  * - A "View" dropdown that lists hideable columns with checkboxes when `enableColumnVisibility` is true.
  *
- * @param table - TanStack Table instance used to read state and manipulate column filters and visibility.
- * @param searchKey - Optional column id whose filter value is bound to the search input.
+ * @param table - TanStack Table instance used to read state and manipulate filters and visibility.
+ * @param searchKey - Optional flag to enable global search (searches all columns).
  * @param searchPlaceholder - Placeholder text for the search input.
  * @param filterableColumns - Array of faceted filter descriptors. Each item should contain:
  *   - id: the column id
@@ -50,23 +59,21 @@ export function DataTableToolbar<TData>({
 	filterableColumns = [],
 	enableColumnVisibility = true,
 }: DataTableToolbarProps<TData>) {
-	const isFiltered = table.getState().columnFilters.length > 0;
+	const isFiltered =
+		table.getState().columnFilters.length > 0 ||
+		(table.getState().globalFilter ?? "") !== "";
 
 	return (
-		<div className="flex flex-col tablet:flex-row items-start tablet:items-center justify-between gap-3 tablet:gap-4">
-			<div className="flex flex-1 items-center gap-2 flex-wrap w-full tablet:w-auto">
+		<div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-4">
+			<div className="flex flex-1 items-center gap-2 flex-wrap">
 				{searchKey && (
-					<div className="relative w-full tablet:w-auto">
+					<div className="relative">
 						<Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
 						<Input
 							placeholder={searchPlaceholder}
-							value={
-								(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""
-							}
-							onChange={(event) =>
-								table.getColumn(searchKey)?.setFilterValue(event.target.value)
-							}
-							className="pl-8 w-full tablet:w-[200px] desktop:w-[250px]"
+							value={(table.getState().globalFilter as string) ?? ""}
+							onChange={(event) => table.setGlobalFilter(event.target.value)}
+							className="pl-8 w-[200px] md:w-[200px] lg:w-[250px]"
 						/>
 					</div>
 				)}
@@ -85,7 +92,10 @@ export function DataTableToolbar<TData>({
 				{isFiltered && (
 					<Button
 						variant="ghost"
-						onClick={() => table.resetColumnFilters()}
+						onClick={() => {
+							table.resetColumnFilters();
+							table.setGlobalFilter("");
+						}}
 						className="h-8 px-2 lg:px-3"
 					>
 						Reset
@@ -99,7 +109,7 @@ export function DataTableToolbar<TData>({
 						<Button
 							variant="outline"
 							size="sm"
-							className="tablet:ml-auto h-8 w-full tablet:w-auto"
+							className="hidden desktop:inline-flex desktop:ml-auto h-8"
 						>
 							<SlidersHorizontal className="mr-2 h-4 w-4" />
 							View
