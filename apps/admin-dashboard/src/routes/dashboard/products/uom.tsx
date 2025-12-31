@@ -92,6 +92,14 @@ function UOMPage() {
       onChange: uomFormSchema,
     },
     onSubmit: async ({ value }) => {
+      // Conditional validation: baseUnitCode is required only for non-base units
+      if (!value.isBaseUnit && (!value.baseUnitCode || value.baseUnitCode.trim().length === 0)) {
+        toast.error('Validation Error', {
+          description: 'Please select a base unit for this custom UOM',
+        });
+        return;
+      }
+
       if (formMode === 'add') {
         await createUOMMutation.mutateAsync(value);
       } else if (formMode === 'edit' && selectedUOM) {
@@ -566,7 +574,6 @@ function UOMPage() {
                         onChange={(e) => field.handleChange(e.target.value || null)}
                         onBlur={field.handleBlur}
                         className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-                        required
                       >
                         <option value="">Select base unit...</option>
                         {uoms.filter(uom => uom.isBaseUnit).map(baseUom => (

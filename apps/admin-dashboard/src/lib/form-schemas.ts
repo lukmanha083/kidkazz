@@ -169,6 +169,8 @@ export const uomFormSchema = z.object({
   baseUnitCode: z.string().optional().nullable(),
   conversionFactor: z.coerce.number().positive('Conversion factor must be positive').default(1),
 });
+// Note: Conditional validation for baseUnitCode (required only when isBaseUnit=false)
+// is handled in the form component's onSubmit handler
 
 export type UOMFormData = z.infer<typeof uomFormSchema>;
 
