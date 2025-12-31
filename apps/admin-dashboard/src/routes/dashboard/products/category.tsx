@@ -282,24 +282,20 @@ function CategoryPage() {
       {/* Add/Edit Category Form Drawer */}
       <Drawer open={formDrawerOpen} onOpenChange={setFormDrawerOpen}>
         <DrawerContent side="left">
-          <DrawerHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <DrawerTitle>
-                  {formMode === 'add' ? 'Add New Category' : 'Edit Category'}
-                </DrawerTitle>
-                <DrawerDescription>
-                  {formMode === 'add'
-                    ? 'Create a new product category'
-                    : 'Update category information'}
-                </DrawerDescription>
-              </div>
-              <DrawerClose asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <X className="h-4 w-4" />
-                </Button>
-              </DrawerClose>
-            </div>
+          <DrawerHeader className="relative">
+            <DrawerClose asChild>
+              <Button variant="ghost" size="icon" className="absolute right-0 top-0 h-8 w-8">
+                <X className="h-4 w-4" />
+              </Button>
+            </DrawerClose>
+            <DrawerTitle>
+              {formMode === 'add' ? 'Add New Category' : 'Edit Category'}
+            </DrawerTitle>
+            <DrawerDescription>
+              {formMode === 'add'
+                ? 'Create a new product category'
+                : 'Update category information'}
+            </DrawerDescription>
           </DrawerHeader>
 
           <form

@@ -1319,20 +1319,16 @@ function AllProductsPage() {
 				onOpenChange={setProductDetailDrawerOpen}
 			>
 				<DrawerContent side="right">
-					<DrawerHeader>
-						<div className="flex items-start justify-between">
-							<div>
-								<DrawerTitle>{selectedProduct?.name}</DrawerTitle>
-								<DrawerDescription>
-									Product Details & Inventory Report
-								</DrawerDescription>
-							</div>
-							<DrawerClose asChild>
-								<Button variant="ghost" size="icon" className="h-8 w-8">
-									<X className="h-4 w-4" />
-								</Button>
-							</DrawerClose>
-						</div>
+					<DrawerHeader className="relative">
+						<DrawerClose asChild>
+							<Button variant="ghost" size="icon" className="absolute right-0 top-0 h-8 w-8">
+								<X className="h-4 w-4" />
+							</Button>
+						</DrawerClose>
+						<DrawerTitle>{selectedProduct?.name}</DrawerTitle>
+						<DrawerDescription>
+							Product Details & Inventory Report
+						</DrawerDescription>
 					</DrawerHeader>
 
 					{selectedProduct && (
@@ -2042,24 +2038,20 @@ function AllProductsPage() {
 			{/* Add/Edit Product Form Drawer (Left Side) - Simplified for now */}
 			<Drawer open={formDrawerOpen} onOpenChange={setFormDrawerOpen}>
 				<DrawerContent side="left">
-					<DrawerHeader>
-						<div className="flex items-start justify-between">
-							<div>
-								<DrawerTitle>
-									{formMode === "add" ? "Add New Product" : "Edit Product"}
-								</DrawerTitle>
-								<DrawerDescription>
-									{formMode === "add"
-										? "Fill in the details to create a new product"
-										: "Update product information"}
-								</DrawerDescription>
-							</div>
-							<DrawerClose asChild>
-								<Button variant="ghost" size="icon" className="h-8 w-8">
-									<X className="h-4 w-4" />
-								</Button>
-							</DrawerClose>
-						</div>
+					<DrawerHeader className="relative">
+						<DrawerClose asChild>
+							<Button variant="ghost" size="icon" className="absolute right-0 top-0 h-8 w-8">
+								<X className="h-4 w-4" />
+							</Button>
+						</DrawerClose>
+						<DrawerTitle>
+							{formMode === "add" ? "Add New Product" : "Edit Product"}
+						</DrawerTitle>
+						<DrawerDescription>
+							{formMode === "add"
+								? "Fill in the details to create a new product"
+								: "Update product information"}
+						</DrawerDescription>
 					</DrawerHeader>
 
 					<form

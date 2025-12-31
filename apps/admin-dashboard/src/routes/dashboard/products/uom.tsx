@@ -355,18 +355,14 @@ function UOMPage() {
       {/* View UOM Drawer (Right Side) */}
       <Drawer open={viewDrawerOpen} onOpenChange={setViewDrawerOpen}>
         <DrawerContent side="right">
-          <DrawerHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <DrawerTitle>{selectedUOM?.name}</DrawerTitle>
-                <DrawerDescription>Unit of Measure Details</DrawerDescription>
-              </div>
-              <DrawerClose asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <X className="h-4 w-4" />
-                </Button>
-              </DrawerClose>
-            </div>
+          <DrawerHeader className="relative">
+            <DrawerClose asChild>
+              <Button variant="ghost" size="icon" className="absolute right-0 top-0 h-8 w-8">
+                <X className="h-4 w-4" />
+              </Button>
+            </DrawerClose>
+            <DrawerTitle>{selectedUOM?.name}</DrawerTitle>
+            <DrawerDescription>Unit of Measure Details</DrawerDescription>
           </DrawerHeader>
 
           {selectedUOM && (

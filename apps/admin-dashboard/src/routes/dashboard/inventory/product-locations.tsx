@@ -498,24 +498,20 @@ function ProductLocationsPage() {
       {/* Form Drawer */}
       <Drawer open={formDrawerOpen} onOpenChange={setFormDrawerOpen}>
         <DrawerContent side="left">
-          <DrawerHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <DrawerTitle>
-                  {formMode === 'add' ? 'Add Product Location' : 'Edit Product Location'}
-                </DrawerTitle>
-                <DrawerDescription>
-                  {formMode === 'add'
-                    ? 'Set the warehouse location for a product'
-                    : 'Update product location information'}
-                </DrawerDescription>
-              </div>
-              <DrawerClose asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <X className="h-4 w-4" />
-                </Button>
-              </DrawerClose>
-            </div>
+          <DrawerHeader className="relative">
+            <DrawerClose asChild>
+              <Button variant="ghost" size="icon" className="absolute right-0 top-0 h-8 w-8">
+                <X className="h-4 w-4" />
+              </Button>
+            </DrawerClose>
+            <DrawerTitle>
+              {formMode === 'add' ? 'Add Product Location' : 'Edit Product Location'}
+            </DrawerTitle>
+            <DrawerDescription>
+              {formMode === 'add'
+                ? 'Set the warehouse location for a product'
+                : 'Update product location information'}
+            </DrawerDescription>
           </DrawerHeader>
 
           <form

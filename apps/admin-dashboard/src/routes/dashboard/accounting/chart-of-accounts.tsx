@@ -549,24 +549,20 @@ function ChartOfAccountsPage() {
       {/* Add/Edit Account Form Drawer */}
       <Drawer open={formDrawerOpen} onOpenChange={setFormDrawerOpen}>
         <DrawerContent side="left">
-          <DrawerHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <DrawerTitle>
-                  {formMode === 'add' ? 'Add New Account' : 'Edit Account'}
-                </DrawerTitle>
-                <DrawerDescription>
-                  {formMode === 'add'
-                    ? 'Create a new account in your chart of accounts'
-                    : 'Update account information'}
-                </DrawerDescription>
-              </div>
-              <DrawerClose asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <X className="h-4 w-4" />
-                </Button>
-              </DrawerClose>
-            </div>
+          <DrawerHeader className="relative">
+            <DrawerClose asChild>
+              <Button variant="ghost" size="icon" className="absolute right-0 top-0 h-8 w-8">
+                <X className="h-4 w-4" />
+              </Button>
+            </DrawerClose>
+            <DrawerTitle>
+              {formMode === 'add' ? 'Add New Account' : 'Edit Account'}
+            </DrawerTitle>
+            <DrawerDescription>
+              {formMode === 'add'
+                ? 'Create a new account in your chart of accounts'
+                : 'Update account information'}
+            </DrawerDescription>
           </DrawerHeader>
 
           <form onSubmit={handleSubmitForm} className="flex-1 overflow-y-auto p-4 space-y-4">

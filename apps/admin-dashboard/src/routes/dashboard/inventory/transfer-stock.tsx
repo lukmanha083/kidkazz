@@ -625,18 +625,14 @@ function TransferStockPage() {
       {/* View Transfer Drawer (Right Side) */}
       <Drawer open={viewDrawerOpen} onOpenChange={setViewDrawerOpen}>
         <DrawerContent side="right">
-          <DrawerHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <DrawerTitle>{selectedTransfer?.transferNumber}</DrawerTitle>
-                <DrawerDescription>Stock Transfer Details</DrawerDescription>
-              </div>
-              <DrawerClose asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <X className="h-4 w-4" />
-                </Button>
-              </DrawerClose>
-            </div>
+          <DrawerHeader className="relative">
+            <DrawerClose asChild>
+              <Button variant="ghost" size="icon" className="absolute right-0 top-0 h-8 w-8">
+                <X className="h-4 w-4" />
+              </Button>
+            </DrawerClose>
+            <DrawerTitle>{selectedTransfer?.transferNumber}</DrawerTitle>
+            <DrawerDescription>Stock Transfer Details</DrawerDescription>
           </DrawerHeader>
 
           {selectedTransfer && (
@@ -746,20 +742,16 @@ function TransferStockPage() {
       {/* Add Transfer Form Drawer (Left Side) */}
       <Drawer open={formDrawerOpen} onOpenChange={setFormDrawerOpen}>
         <DrawerContent side="left">
-          <DrawerHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <DrawerTitle>New Stock Transfer</DrawerTitle>
-                <DrawerDescription>
-                  Transfer products between warehouses
-                </DrawerDescription>
-              </div>
-              <DrawerClose asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <X className="h-4 w-4" />
-                </Button>
-              </DrawerClose>
-            </div>
+          <DrawerHeader className="relative">
+            <DrawerClose asChild>
+              <Button variant="ghost" size="icon" className="absolute right-0 top-0 h-8 w-8">
+                <X className="h-4 w-4" />
+              </Button>
+            </DrawerClose>
+            <DrawerTitle>New Stock Transfer</DrawerTitle>
+            <DrawerDescription>
+              Transfer products between warehouses
+            </DrawerDescription>
           </DrawerHeader>
 
           <form
