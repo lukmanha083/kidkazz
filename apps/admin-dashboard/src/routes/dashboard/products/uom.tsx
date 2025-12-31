@@ -537,11 +537,11 @@ function UOMPage() {
                   <Input
                     id="conversionFactor"
                     type="number"
-                    min="0.01"
-                    step="0.01"
+                    min="1"
+                    step="1"
                     placeholder="18"
                     value={field.state.value}
-                    onChange={(e) => field.handleChange(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => field.handleChange(parseInt(e.target.value, 10) || 0)}
                     onBlur={field.handleBlur}
                     required
                     disabled={form.getFieldValue('isBaseUnit')}
@@ -550,7 +550,7 @@ function UOMPage() {
                     <p className="text-xs text-destructive">{getErrorMessage(field.state.meta.errors[0])}</p>
                   )}
                   <p className="text-xs text-muted-foreground">
-                    How many base units equals 1 of this unit (base unit depends on product: PCS, KG, L, etc.)
+                    Whole number only. How many base units equals 1 of this unit.
                   </p>
                 </div>
               )}

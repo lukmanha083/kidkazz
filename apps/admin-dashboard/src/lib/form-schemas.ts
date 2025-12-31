@@ -167,7 +167,7 @@ export const uomFormSchema = z.object({
   name: z.string().min(1, 'UOM name is required'),
   isBaseUnit: z.boolean().default(false),
   baseUnitCode: z.string().optional().nullable(),
-  conversionFactor: z.coerce.number().positive('Conversion factor must be positive').default(1),
+  conversionFactor: z.coerce.number().int('Conversion factor must be a whole number').positive('Conversion factor must be positive').default(1),
 });
 // Note: Conditional validation for baseUnitCode (required only when isBaseUnit=false)
 // is handled in the form component's onSubmit handler
