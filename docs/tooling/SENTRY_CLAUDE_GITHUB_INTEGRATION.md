@@ -52,7 +52,7 @@ kidkazz/
 │   ├── user-service/         # Authentication
 │   └── inventory-service/    # Warehouse management
 ├── apps/
-│   └── admin-dashboard/      # Admin UI (TanStack Start)
+│   └── erp-dashboard/      # Admin UI (TanStack Start)
 └── shared/                   # Shared libraries
 ```
 

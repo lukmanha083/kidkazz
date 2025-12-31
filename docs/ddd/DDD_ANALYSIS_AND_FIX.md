@@ -140,7 +140,7 @@ CREATE TABLE inventory_batches (
 
 ### Product Report (Shows Expired Items)
 
-**Location:** `/dashboard/products` → `apps/admin-dashboard/src/routes/dashboard/products/index.tsx`
+**Location:** `/dashboard/products` → `apps/erp-dashboard/src/routes/dashboard/products/index.tsx`
 
 **Data Source:**
 ```typescript
@@ -166,7 +166,7 @@ const expiringProducts = products
 
 ### Inventory Expired Stock Report (Empty!)
 
-**Location:** `/dashboard/inventory/expired-stock` → `apps/admin-dashboard/src/routes/dashboard/inventory/expired-stock.tsx`
+**Location:** `/dashboard/inventory/expired-stock` → `apps/erp-dashboard/src/routes/dashboard/inventory/expired-stock.tsx`
 
 **Data Source:**
 ```typescript
@@ -298,7 +298,7 @@ async function syncMinimumStock() {
 **2. Add Validation**
 ```typescript
 // Prevent creating products with expirationDate but no warehouse allocation
-// apps/admin-dashboard/src/routes/dashboard/products/all.tsx
+// apps/erp-dashboard/src/routes/dashboard/products/all.tsx
 
 if (formData.expirationDate && warehouseAllocations.length === 0) {
   toast.error('Expiration date requires warehouse allocation', {
@@ -541,7 +541,7 @@ async function migrateExpirationDates() {
 ### 🟡 High Priority (Next Sprint)
 - [ ] Create Inventory Service API endpoint: GET /api/inventory/product/:id/total-stock
 - [ ] Refactor Product Service to remove stock field
-- [ ] Update admin dashboard to call Inventory Service for stock display
+- [ ] Update ERP dashboard to call Inventory Service for stock display
 - [ ] Add API endpoint: GET /api/inventory/product/:id/low-stock-status
 
 ### 🟢 Medium Priority (Future)

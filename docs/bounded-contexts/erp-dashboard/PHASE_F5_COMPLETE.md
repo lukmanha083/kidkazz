@@ -7,7 +7,7 @@
 
 ## Summary
 
-Phase F5 successfully integrates **TanStack Virtual** into the admin dashboard, providing high-performance virtual scrolling for large datasets. All components have been created, tested, documented, and validated by CodeRabbit.
+Phase F5 successfully integrates **TanStack Virtual** into the ERP dashboard, providing high-performance virtual scrolling for large datasets. All components have been created, tested, documented, and validated by CodeRabbit.
 
 ---
 
@@ -46,7 +46,7 @@ Phase F5 successfully integrates **TanStack Virtual** into the admin dashboard, 
 - **CodeRabbit validated**: Fixed key props and colSpan
 
 ### 3. Documentation ✅
-**Path**: `apps/admin-dashboard/docs/VIRTUAL_SCROLLING_GUIDE.md`
+**Path**: `apps/erp-dashboard/docs/VIRTUAL_SCROLLING_GUIDE.md`
 
 Comprehensive guide including:
 - When to use virtual scrolling
@@ -119,7 +119,7 @@ PHASE_F5_COMPLETE.md (this file)
 
 ### Modified
 ```
-apps/admin-dashboard/package.json (added dependency)
+apps/erp-dashboard/package.json (added dependency)
 src/components/ui/data-table/index.ts (added export)
 ```
 

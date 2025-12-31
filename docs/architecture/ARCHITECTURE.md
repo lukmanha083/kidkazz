@@ -894,7 +894,7 @@ Available ──► Reserved ──► Allocated
   - Product catalog (tiered pricing)
   - MOQ validation
   - RFQ system
-- [ ] Enhance Admin Dashboard
+- [ ] Enhance Real Time ERP Dashboard
   - Dual-pricing management
   - Multi-warehouse inventory
   - Saga monitoring dashboard

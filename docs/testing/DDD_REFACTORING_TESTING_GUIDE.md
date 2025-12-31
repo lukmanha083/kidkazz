@@ -25,8 +25,8 @@ cd services/inventory-service
 npm run dev
 # Should start on http://localhost:8792
 
-# Terminal 3 - Admin Dashboard (optional, for visual verification)
-cd apps/admin-dashboard
+# Terminal 3 - Real Time ERP Dashboard (optional, for visual verification)
+cd apps/erp-dashboard
 npm run dev
 # Should start on http://localhost:3000
 ```
@@ -1429,12 +1429,12 @@ curl "http://localhost:8792/api/inventory?productId=prod_123"
 
 ## Frontend Integration Testing
 
-**Goal**: Verify admin dashboard uses the DDD pattern correctly.
+**Goal**: Verify ERP dashboard uses the DDD pattern correctly.
 
 ### Test 5.1: Product Table Stock Column
 
 ```bash
-# Step 1: Open admin dashboard
+# Step 1: Open ERP dashboard
 # Navigate to: http://localhost:3000/dashboard/products/all
 ```
 
@@ -1683,7 +1683,7 @@ ab -n 100 -c 10 "http://localhost:8792/api/batches?status=active"
 - [ ] Product location create/update triggers inventory sync
 - [ ] Bundle stock displays virtual calculation
 - [ ] No deprecated product.stock field usage
-- [ ] All admin dashboard pages use DDD pattern APIs
+- [ ] All ERP dashboard pages use DDD pattern APIs
 
 ---
 

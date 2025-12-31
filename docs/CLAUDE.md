@@ -11,7 +11,7 @@
 
 ### Project Overview
 
-Kidkazz is Real-Time Omnichannel ERP with Real-Time multi-warehouse inventory management using websocket, built on Cloudflare Workers using microservices architecture for backend. The frontend will using tanstack router, query, table, virtual table, form. For UIDesign it will leverage Shadcn UI as UI Component. We will have several frontend app such as admin-dashboard web for internal ERP, Point of Sale for on-store offline sales, E-Commerce Web for Retail, E-Commerce Web for Wholesale, Mobile Android App for kidkazz admin, Mobile Android and IOS App for Retail.
+Kidkazz is Real-Time Omnichannel ERP with Real-Time multi-warehouse inventory management using websocket, built on Cloudflare Workers using microservices architecture for backend. The frontend will using tanstack router, query, table, virtual table, form. For UIDesign it will leverage Shadcn UI as UI Component. We will have several frontend app such as erp-dashboard web for internal ERP, Point of Sale for on-store offline sales, E-Commerce Web for Retail, E-Commerce Web for Wholesale, Mobile Android App for kidkazz admin, Mobile Android and IOS App for Retail.
 
 **Key Technologies**:
 - Backend: Cloudflare Workers (Hono framework)

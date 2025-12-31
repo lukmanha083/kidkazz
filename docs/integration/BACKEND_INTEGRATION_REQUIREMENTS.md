@@ -989,7 +989,7 @@ No body.
 
 #### 3.3 Frontend Integration Update
 
-**File:** `apps/admin-dashboard/src/routes/dashboard/products/variant.tsx`
+**File:** `apps/erp-dashboard/src/routes/dashboard/products/variant.tsx`
 
 **Current Status:** UI complete, form submission NOT saving allocations
 
@@ -1370,7 +1370,7 @@ describe('BundleAPI', () => {
 ## 8. Contact & Support
 
 For questions or clarifications:
-- **Frontend Implementation:** See files in `apps/admin-dashboard/src/routes/dashboard/products/`
+- **Frontend Implementation:** See files in `apps/erp-dashboard/src/routes/dashboard/products/`
 - **Business Rules:** See `docs/BUSINESS_RULES.md` Rule #9
 - **Testing Requirements:** See `MULTI_WAREHOUSE_TESTING.md`
 

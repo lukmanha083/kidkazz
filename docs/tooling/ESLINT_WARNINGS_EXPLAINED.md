@@ -207,14 +207,14 @@ async findById(_id: string): Promise<Result<Order | null>> {
 
 ## Files Fixed
 
-### Admin Dashboard
-- `apps/admin-dashboard/src/main.tsx` - Fixed non-null assertion
-- `apps/admin-dashboard/src/types.ts` - Created proper type definitions
-- `apps/admin-dashboard/src/tabs/StatusTab.tsx` - Removed unused error variable
-- `apps/admin-dashboard/src/tabs/AuthTab.tsx` - Fixed `any` types and type assertions
-- `apps/admin-dashboard/src/tabs/ProductsTab.tsx` - Fixed `any` types
-- `apps/admin-dashboard/src/tabs/OrdersTab.tsx` - Fixed `any` types
-- `apps/admin-dashboard/src/tabs/ShippingTab.tsx` - Fixed `any` types
+### Real Time ERP Dashboard
+- `apps/erp-dashboard/src/main.tsx` - Fixed non-null assertion
+- `apps/erp-dashboard/src/types.ts` - Created proper type definitions
+- `apps/erp-dashboard/src/tabs/StatusTab.tsx` - Removed unused error variable
+- `apps/erp-dashboard/src/tabs/AuthTab.tsx` - Fixed `any` types and type assertions
+- `apps/erp-dashboard/src/tabs/ProductsTab.tsx` - Fixed `any` types
+- `apps/erp-dashboard/src/tabs/OrdersTab.tsx` - Fixed `any` types
+- `apps/erp-dashboard/src/tabs/ShippingTab.tsx` - Fixed `any` types
 
 ### Order Service
 - `services/order-service/src/domain/entities/Order.ts` - Created `DomainEvent` and `ShippingAddress` types

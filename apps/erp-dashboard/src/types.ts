@@ -1,5 +1,5 @@
 /**
- * Shared Types for Admin Dashboard
+ * Shared Types for Real Time ERP Dashboard
  * Proper type definitions to replace 'any' usage
  */
 

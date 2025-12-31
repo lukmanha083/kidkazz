@@ -44,8 +44,8 @@ The platform now supports **dual markets**: **Retail (B2C)** and **Wholesale (B2
 |-----------|-----------|--------|----------|
 | **Retail Customer** | `retail_buyer` | Retail Frontend | - Browse retail products<br>- See retail prices<br>- Buy single units<br>- No MOQ required<br>- Standard checkout |
 | **Wholesale Buyer** | `wholesale_buyer` | Wholesale Frontend | - Browse wholesale products<br>- See bulk pricing tiers<br>- Must meet MOQ<br>- Tiered discounts<br>- Request quotes (RFQ)<br>- Company verification required |
-| **Supplier** | `supplier` | Admin Dashboard | - Manage products<br>- Set pricing (retail + wholesale)<br>- Fulfill orders |
-| **Admin** | `admin` | Admin Dashboard | - Full access<br>- Manage all users<br>- View all orders |
+| **Supplier** | `supplier` | Real Time ERP Dashboard | - Manage products<br>- Set pricing (retail + wholesale)<br>- Fulfill orders |
+| **Admin** | `admin` | Real Time ERP Dashboard | - Full access<br>- Manage all users<br>- View all orders |
 
 ---
 
@@ -178,7 +178,7 @@ Products can be configured for different markets:
 /register            - Company registration
 ```
 
-### 3. Admin Dashboard (`apps/admin-dashboard`) ✅ Already Built
+### 3. Real Time ERP Dashboard (`apps/erp-dashboard`) ✅ Already Built
 
 **Features:**
 - Manage all products (set retail + wholesale pricing)
@@ -258,7 +258,7 @@ POST /api/payments/virtual-account - Create VA payment
 2. API checks `users.role`:
    - `retail_buyer` → Redirect to Retail Frontend
    - `wholesale_buyer` → Redirect to Wholesale Frontend
-   - `admin` or `supplier` → Redirect to Admin Dashboard
+   - `admin` or `supplier` → Redirect to Real Time ERP Dashboard
 
 ### Session Management
 ```typescript
@@ -362,7 +362,7 @@ if (userRole === 'wholesale_buyer') {
 Cloudflare Pages:
 ├── retail.yourdomain.com      → Retail Frontend
 ├── wholesale.yourdomain.com   → Wholesale Frontend
-└── admin.yourdomain.com       → Admin Dashboard
+└── admin.yourdomain.com       → Real Time ERP Dashboard
 
 Cloudflare Workers:
 └── api.yourdomain.com         → Unified API (role-based routing)
@@ -372,7 +372,7 @@ Cloudflare Workers:
 ```
 yourdomain.com/               → Retail Frontend
 yourdomain.com/wholesale/     → Wholesale Frontend
-yourdomain.com/admin/         → Admin Dashboard
+yourdomain.com/admin/         → Real Time ERP Dashboard
 ```
 
 ---

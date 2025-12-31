@@ -1,6 +1,6 @@
-# KidKazz Admin Dashboard
+# KidKazz Real Time ERP Dashboard
 
-Simple admin dashboard to test all microservices in the KidKazz e-commerce platform.
+Simple ERP dashboard to test all microservices in the KidKazz e-commerce platform.
 
 ## Features
 

@@ -781,7 +781,7 @@ WHERE expiration_date < CURRENT_DATE;
 - [ ] ✅ Responses contain real data (not hardcoded arrays)
 
 **Code Review (Optional):**
-- [ ] Open `apps/admin-dashboard/src/routes/dashboard/inventory/index.tsx`
+- [ ] Open `apps/erp-dashboard/src/routes/dashboard/inventory/index.tsx`
 - [ ] ✅ useQuery hooks for inventoryApi, warehouseApi, productApi
 - [ ] ❌ NO mock data arrays like `const mockInventory = [...]`
 - [ ] ❌ NO imports from mockData.ts files

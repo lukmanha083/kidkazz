@@ -114,7 +114,7 @@ curl -X POST http://localhost:8792/api/inventory/admin/sync-minimum-stock
 The key is to set expiration date **within 30 days** for it to appear in reports.
 
 ```typescript
-// In the admin dashboard:
+// In the ERP dashboard:
 Expiration Date: TODAY + 10 days  // ✅ Will appear
 Expiration Date: TODAY + 45 days  // ❌ Won't appear (filtered out)
 ```
@@ -308,7 +308,7 @@ curl -X POST http://localhost:8792/api/inventory/admin/sync-minimum-stock
 ```
 
 ### 3. Create Proper Test Product
-In admin dashboard:
+In ERP dashboard:
 - Go to Products → Add Product
 - Fill form:
   - Barcode: `TEST-PHASE1-001`

@@ -147,7 +147,7 @@ If productLocations includes rack/bin/zone/aisle:
 
 **Hide fields in ProductWarehouseAllocation component:**
 ```typescript
-// apps/admin-dashboard/src/components/products/ProductWarehouseAllocation.tsx
+// apps/erp-dashboard/src/components/products/ProductWarehouseAllocation.tsx
 
 // Remove from interface (optional fields, not required in UI):
 export interface WarehouseAllocation {
@@ -167,7 +167,7 @@ export interface WarehouseAllocation {
 
 **Keep fields visible in ProductUOMWarehouseAllocation component:**
 ```typescript
-// apps/admin-dashboard/src/components/products/ProductUOMWarehouseAllocation.tsx
+// apps/erp-dashboard/src/components/products/ProductUOMWarehouseAllocation.tsx
 // Keep rack, bin, zone, aisle fields visible ✅
 ```
 

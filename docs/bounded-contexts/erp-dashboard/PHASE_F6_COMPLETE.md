@@ -8,7 +8,7 @@
 
 ## Overview
 
-Phase F6 successfully migrated all admin-dashboard forms from manual state management to **TanStack Form** with **Zod validation**. This provides type-safe, validated form handling with real-time error feedback and consistent patterns across the application.
+Phase F6 successfully migrated all erp-dashboard forms from manual state management to **TanStack Form** with **Zod validation**. This provides type-safe, validated form handling with real-time error feedback and consistent patterns across the application.
 
 ---
 
@@ -471,7 +471,7 @@ Future work includes:
 - ✅ **Consistent patterns** across all forms
 - ✅ **Legacy code** cleaned up
 
-The admin-dashboard now has modern, type-safe, validated form handling that aligns with DDD principles and provides excellent developer and user experience.
+The erp-dashboard now has modern, type-safe, validated form handling that aligns with DDD principles and provides excellent developer and user experience.
 
 ---
 

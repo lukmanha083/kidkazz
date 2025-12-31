@@ -54,7 +54,7 @@ Phase 1 focused on preparing the API client layer and verifying backend REST API
 
 ## Task 1.2: Update TypeScript Types ✅
 
-### Changes Made to `/apps/admin-dashboard/src/lib/api.ts`
+### Changes Made to `/apps/erp-dashboard/src/lib/api.ts`
 
 #### 1. Service URL Configuration
 ```typescript
@@ -229,8 +229,8 @@ Most TypeScript errors found are **pre-existing issues** unrelated to our change
 **Estimated Time**: 1-2 hours
 
 Need to create:
-- `apps/admin-dashboard/src/hooks/useWarehouses.ts`
-- `apps/admin-dashboard/src/hooks/useInventory.ts`
+- `apps/erp-dashboard/src/hooks/useWarehouses.ts`
+- `apps/erp-dashboard/src/hooks/useInventory.ts`
 
 Example structure (similar to `useProducts.ts`):
 ```typescript
@@ -327,8 +327,8 @@ To fully complete Phase 1 as described in the roadmap:
 - `services/product-service/src/infrastructure/http/routes.ts` - Fixed routing
 
 ### Frontend
-- `apps/admin-dashboard/src/lib/api.ts` - Updated types and added inventory API
-- Removed: `apps/admin-dashboard/src/lib/inventory-api.ts` (duplicate file)
+- `apps/erp-dashboard/src/lib/api.ts` - Updated types and added inventory API
+- Removed: `apps/erp-dashboard/src/lib/inventory-api.ts` (duplicate file)
 
 ---
 

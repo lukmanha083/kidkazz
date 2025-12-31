@@ -141,7 +141,7 @@ wrangler d1 migrations apply DB          # For production
 ### 4. Install Frontend Dependencies
 
 ```bash
-cd apps/admin-dashboard
+cd apps/erp-dashboard
 npm install hls.js  # For HLS video streaming support
 ```
 

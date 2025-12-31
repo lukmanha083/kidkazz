@@ -1,4 +1,4 @@
-# Admin Dashboard Responsive Design Implementation Summary
+# Real Time ERP Dashboard Responsive Design Implementation Summary
 
 **Date:** 2025-12-29
 **Status:** Phase 1-3 Completed ✅
@@ -7,7 +7,7 @@
 
 ## Overview
 
-Successfully implemented Phase 1-3 of the responsive design plan for the Kidkazz Admin Dashboard, making it fully responsive across mobile (320px+), tablet (768px+), and desktop (1024px+) breakpoints.
+Successfully implemented Phase 1-3 of the responsive design plan for the Kidkazz Real Time ERP Dashboard, making it fully responsive across mobile (320px+), tablet (768px+), and desktop (1024px+) breakpoints.
 
 ---
 
@@ -16,7 +16,7 @@ Successfully implemented Phase 1-3 of the responsive design plan for the Kidkazz
 ### Phase 1: Core Layout Components
 
 #### 1.1 Custom Tailwind Breakpoints
-**File:** `apps/admin-dashboard/tailwind.config.js`
+**File:** `apps/erp-dashboard/tailwind.config.js`
 
 Added custom responsive breakpoints:
 ```javascript
@@ -30,7 +30,7 @@ screens: {
 ```
 
 #### 1.2 Responsive Sidebar
-**File:** `apps/admin-dashboard/src/routes/dashboard.tsx`
+**File:** `apps/erp-dashboard/src/routes/dashboard.tsx`
 
 **Desktop (1024px+):**
 - Full sidebar with logo + text (224px width)
@@ -49,7 +49,7 @@ screens: {
 - Full navigation in drawer
 
 #### 1.3 Responsive Top Bar
-**File:** `apps/admin-dashboard/src/routes/dashboard.tsx`
+**File:** `apps/erp-dashboard/src/routes/dashboard.tsx`
 
 **Mobile:**
 - Hamburger button + Logo
@@ -64,7 +64,7 @@ screens: {
 - All actions visible
 
 #### 1.4 Main Content Area Padding
-**File:** `apps/admin-dashboard/src/routes/dashboard.tsx`
+**File:** `apps/erp-dashboard/src/routes/dashboard.tsx`
 
 Responsive padding with bottom spacing for mobile nav:
 ```tsx
@@ -76,7 +76,7 @@ className="p-4 pb-20 tablet:p-5 tablet:pb-5 desktop:p-6 desktop:pb-6"
 ### Phase 2: Navigation Components
 
 #### 2.1 Mobile Bottom Navigation
-**File:** `apps/admin-dashboard/src/components/layout/BottomNav.tsx`
+**File:** `apps/erp-dashboard/src/components/layout/BottomNav.tsx`
 
 **Features:**
 - Fixed bottom navigation bar (visible only on mobile < 768px)
@@ -94,7 +94,7 @@ className="p-4 pb-20 tablet:p-5 tablet:pb-5 desktop:p-6 desktop:pb-6"
 | Menu | More | Opens drawer |
 
 #### 2.2 Collapsible Sidebar Navigation
-**File:** `apps/admin-dashboard/src/routes/dashboard.tsx`
+**File:** `apps/erp-dashboard/src/routes/dashboard.tsx`
 
 **Tablet Features:**
 - Icon-only navigation buttons
@@ -108,7 +108,7 @@ className="p-4 pb-20 tablet:p-5 tablet:pb-5 desktop:p-6 desktop:pb-6"
 ### Phase 3: Data Table Responsive Patterns
 
 #### 3.1 Horizontal Scroll Wrapper
-**File:** `apps/admin-dashboard/src/components/ui/data-table/data-table.tsx`
+**File:** `apps/erp-dashboard/src/components/ui/data-table/data-table.tsx`
 
 **Implementation:**
 ```tsx
@@ -127,7 +127,7 @@ className="p-4 pb-20 tablet:p-5 tablet:pb-5 desktop:p-6 desktop:pb-6"
 - Preserves horizontal scroll for wide tables
 
 #### 3.2 Responsive Data Table Toolbar
-**File:** `apps/admin-dashboard/src/components/ui/data-table/data-table-toolbar.tsx`
+**File:** `apps/erp-dashboard/src/components/ui/data-table/data-table-toolbar.tsx`
 
 **Changes:**
 | Element | Mobile | Tablet | Desktop |
@@ -150,7 +150,7 @@ className="tablet:ml-auto h-8 w-full tablet:w-auto"
 ```
 
 #### 3.3 Responsive Data Table Pagination
-**File:** `apps/admin-dashboard/src/components/ui/data-table/data-table-pagination.tsx`
+**File:** `apps/erp-dashboard/src/components/ui/data-table/data-table-pagination.tsx`
 
 **Changes:**
 | Element | Mobile | Tablet | Desktop |
@@ -206,16 +206,16 @@ className="hidden desktop:flex h-8 w-8 p-0"
 ## Files Modified
 
 ### Core Layout
-1. `apps/admin-dashboard/tailwind.config.js` - Custom breakpoints
-2. `apps/admin-dashboard/src/routes/dashboard.tsx` - Responsive sidebar + top bar
+1. `apps/erp-dashboard/tailwind.config.js` - Custom breakpoints
+2. `apps/erp-dashboard/src/routes/dashboard.tsx` - Responsive sidebar + top bar
 
 ### New Components
-3. `apps/admin-dashboard/src/components/layout/BottomNav.tsx` - Mobile bottom navigation
+3. `apps/erp-dashboard/src/components/layout/BottomNav.tsx` - Mobile bottom navigation
 
 ### Data Table Components
-4. `apps/admin-dashboard/src/components/ui/data-table/data-table.tsx` - Horizontal scroll
-5. `apps/admin-dashboard/src/components/ui/data-table/data-table-toolbar.tsx` - Responsive toolbar
-6. `apps/admin-dashboard/src/components/ui/data-table/data-table-pagination.tsx` - Responsive pagination
+4. `apps/erp-dashboard/src/components/ui/data-table/data-table.tsx` - Horizontal scroll
+5. `apps/erp-dashboard/src/components/ui/data-table/data-table-toolbar.tsx` - Responsive toolbar
+6. `apps/erp-dashboard/src/components/ui/data-table/data-table-pagination.tsx` - Responsive pagination
 
 ---
 
@@ -286,7 +286,7 @@ className="hidden desktop:flex h-8 w-8 p-0"
 
 ## Related Documentation
 
-- [Admin Dashboard Responsive Design Plan](./ADMIN_DASHBOARD_RESPONSIVE_DESIGN_PLAN.md) - Full implementation plan
+- [Real Time ERP Dashboard Responsive Design Plan](./ADMIN_DASHBOARD_RESPONSIVE_DESIGN_PLAN.md) - Full implementation plan
 - [UI Design Guideline](./UI_DESIGN_GUIDELINE.md) - Design system reference
 
 ---

@@ -254,7 +254,7 @@ LIMIT 10;
 
 ## Post-Migration Tasks
 
-1. **Update Admin Dashboard:**
+1. **Update Real Time ERP Dashboard:**
    - Add UI to set retail vs wholesale availability
    - Add retail price input field
    - Update product list to show availability flags

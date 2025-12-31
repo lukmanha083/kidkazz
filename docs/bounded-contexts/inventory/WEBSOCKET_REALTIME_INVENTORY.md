@@ -23,7 +23,7 @@
 ### Problem Statement
 
 **Omnichannel Sales Challenges**:
-- Multiple sales channels (online store, mobile app, admin dashboard, POS terminals)
+- Multiple sales channels (online store, mobile app, ERP dashboard, POS terminals)
 - Concurrent inventory updates causing race conditions
 - Stock displayed in one channel becomes outdated when another channel makes a sale
 - Risk of overselling when stock updates aren't synchronized in real-time
@@ -582,7 +582,7 @@ app.get('/ws', async (c) => {
 
 ### Phase 5D: WebSocket Client Hook
 
-**File**: `apps/admin-dashboard/src/hooks/useInventoryWebSocket.ts`
+**File**: `apps/erp-dashboard/src/hooks/useInventoryWebSocket.ts`
 
 ```typescript
 import { useEffect, useRef, useState, useCallback } from 'react';
@@ -750,7 +750,7 @@ export function useInventoryWebSocket(options: UseInventoryWebSocketOptions = {}
 
 ### Phase 5E: Update Product Table with Real-Time Stock
 
-**File**: `apps/admin-dashboard/src/routes/dashboard/products/all.tsx`
+**File**: `apps/erp-dashboard/src/routes/dashboard/products/all.tsx`
 
 ```typescript
 import { useInventoryWebSocket } from '@/hooks/useInventoryWebSocket';
@@ -863,7 +863,7 @@ ws.onmessage = (event) => {
 ### Test 3: Real-Time Stock Updates
 
 ```bash
-# Step 1: Open admin dashboard in browser
+# Step 1: Open ERP dashboard in browser
 # Navigate to products page
 
 # Step 2: In terminal, adjust inventory
@@ -944,7 +944,7 @@ wscat -c wss://your-worker.workers.dev/ws
 ```bash
 # Add WebSocket hook
 # Update components to use real-time updates
-cd apps/admin-dashboard
+cd apps/erp-dashboard
 npm run build
 npm run deploy
 ```

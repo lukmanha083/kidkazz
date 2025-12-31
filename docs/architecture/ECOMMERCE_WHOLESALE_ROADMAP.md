@@ -44,7 +44,7 @@ This roadmap outlines the development plan for a dual-market E-Commerce platform
 - **Applications**:
   1. **Retail Frontend** - For retail customers (B2C)
   2. **Wholesale Frontend** - For wholesale buyers (B2B)
-  3. **Admin Dashboard** - For admin/suppliers ✅ (Already built)
+  3. **Real Time ERP Dashboard** - For admin/suppliers ✅ (Already built)
 
 ### Backend
 - **Runtime**: Cloudflare Workers (Edge Computing)
@@ -130,7 +130,7 @@ pnpm init
 
 # Create folder structure
 mkdir -p services/{product-service,order-service,payment-service,user-service,inventory-service,api-gateway}/src
-mkdir -p apps/{admin-dashboard,retail-frontend,wholesale-frontend}
+mkdir -p apps/{erp-dashboard,retail-frontend,wholesale-frontend}
 mkdir -p shared/{domain-events,types,utils}
 mkdir -p docs
 ```
@@ -969,7 +969,7 @@ This roadmap reflects the decision to implement a **full microservices architect
 - [ ] Order history & reordering
 - [ ] shadcn/ui components integration
 
-### 5.3 Admin Dashboard Enhancements
+### 5.3 Real Time ERP Dashboard Enhancements
 - [ ] Dual-pricing management UI
   - Set retail prices
   - Configure wholesale tiered pricing

@@ -558,7 +558,7 @@ export class CleanupOrphanedReferencesJob {
 **Why**: Prevent accidental deletion of critical data
 
 ```typescript
-// Admin Dashboard: Show impact before deletion
+// Real Time ERP Dashboard: Show impact before deletion
 const confirmDeleteWarehouse = async (warehouseId: string) => {
   // Get impact analysis
   const impact = await api.analyzeWarehouseDeletionImpact(warehouseId);

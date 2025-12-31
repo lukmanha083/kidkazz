@@ -291,7 +291,7 @@ ALTER TABLE `products` ADD COLUMN `height` real;
 
 #### 4. Frontend Types
 
-**File**: `apps/admin-dashboard/src/lib/api.ts`
+**File**: `apps/erp-dashboard/src/lib/api.ts`
 
 Updated TypeScript interfaces:
 
@@ -358,7 +358,7 @@ POST /api/products
 1. `services/product-service/src/domain/value-objects/PhysicalAttributes.ts` ✅ (NEW)
 2. `services/product-service/src/domain/entities/Product.ts` ✅
 3. `services/product-service/src/infrastructure/db/schema.ts` ✅
-4. `apps/admin-dashboard/src/lib/api.ts` ✅
+4. `apps/erp-dashboard/src/lib/api.ts` ✅
 
 ### Migrations Created
 

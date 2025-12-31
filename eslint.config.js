@@ -12,7 +12,7 @@ export default tseslint.config(
       '**/build/**',
       '**/*.config.js',
       '**/*.config.ts',
-      'apps/admin-dashboard/app/**', // Old admin dashboard version
+      'apps/erp-dashboard/app/**', // Old ERP dashboard version
       'apps/backend/**', // Old backend version
     ],
   },
@@ -59,9 +59,9 @@ export default tseslint.config(
     },
   },
 
-  // React-specific rules for admin dashboard
+  // React-specific rules for ERP dashboard
   {
-    files: ['apps/admin-dashboard/**/*.{ts,tsx}'],
+    files: ['apps/erp-dashboard/**/*.{ts,tsx}'],
     languageOptions: {
       parserOptions: {
         ecmaFeatures: {

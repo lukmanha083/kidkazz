@@ -8,7 +8,7 @@
 
 ## Overview
 
-Phase F5 successfully integrates TanStack Virtual into the admin dashboard, enabling high-performance rendering of large datasets through virtual scrolling. This phase is part of the broader Frontend Refactoring Roadmap for TanStack Ecosystem integration.
+Phase F5 successfully integrates TanStack Virtual into the ERP dashboard, enabling high-performance rendering of large datasets through virtual scrolling. This phase is part of the broader Frontend Refactoring Roadmap for TanStack Ecosystem integration.
 
 ---
 
@@ -23,7 +23,7 @@ Phase F5 successfully integrates TanStack Virtual into the admin dashboard, enab
 npm install @tanstack/react-virtual
 ```
 
-**Package Version**: Added to dependencies in `apps/admin-dashboard/package.json`
+**Package Version**: Added to dependencies in `apps/erp-dashboard/package.json`
 
 ---
 
@@ -315,7 +315,7 @@ maxHeight="calc(100vh - 200px)"
 
 ## Documentation
 
-**Created**: `apps/admin-dashboard/docs/VIRTUAL_SCROLLING_GUIDE.md`
+**Created**: `apps/erp-dashboard/docs/VIRTUAL_SCROLLING_GUIDE.md`
 
 **Sections**:
 1. When to Use Virtual Scrolling
@@ -433,7 +433,7 @@ Following user requirements:
 
 ## Summary
 
-Phase F5 successfully delivers high-performance virtual scrolling components for the admin dashboard. The implementation provides:
+Phase F5 successfully delivers high-performance virtual scrolling components for the ERP dashboard. The implementation provides:
 
 1. **Three complementary components** for different use cases
 2. **Full TanStack integration** with Table and Virtual libraries
@@ -472,7 +472,7 @@ The components are **production-ready** and can be adopted incrementally as page
 - `docs/PHASE_F5_COMPLETION_SUMMARY.md` (this file)
 
 ### Modified
-- `apps/admin-dashboard/package.json` - Added @tanstack/react-virtual
+- `apps/erp-dashboard/package.json` - Added @tanstack/react-virtual
 - `src/components/ui/data-table/index.ts` - Added VirtualizedDataTable export
 
 ### Referenced

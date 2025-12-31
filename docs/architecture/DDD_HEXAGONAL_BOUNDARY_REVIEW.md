@@ -283,7 +283,7 @@ This was previously a violation but has been fixed. Bundle stock is now calculat
 **Migration Steps:**
 1. Create migration to remove `minimumStock` from `products` table
 2. Update Product Service API to not return `minimumStock`
-3. Update Admin Dashboard to fetch `minimumStock` from Inventory Service
+3. Update Real Time ERP Dashboard to fetch `minimumStock` from Inventory Service
 4. Test Low Stock Report uses Inventory Service data
 
 **Impact:** Low Stock alerts will work correctly
@@ -294,7 +294,7 @@ This was previously a violation but has been fixed. Bundle stock is now calculat
 1. Migrate existing `products.expirationDate` to `inventoryBatches.expirationDate`
 2. Create one batch per product's warehouse location
 3. Remove columns from `products` table
-4. Update Admin Dashboard expired stock reports
+4. Update Real Time ERP Dashboard expired stock reports
 
 **Impact:** FEFO picking becomes possible, accurate expiration tracking
 
@@ -303,7 +303,7 @@ This was previously a violation but has been fixed. Bundle stock is now calculat
 **Migration Steps:**
 1. Ensure Inventory Service tracks stock by variant ID and UOM
 2. Remove `stock` fields from both tables
-3. Update Admin Dashboard to call Inventory Service for stock display
+3. Update Real Time ERP Dashboard to call Inventory Service for stock display
 
 **Impact:** Single source of truth for all stock data
 
@@ -423,7 +423,7 @@ The boundary between Product Service and Inventory Service is **NOT correctly im
 
 1. **Create migration plan** to remove stock-related fields from Product Service
 2. **Ensure Inventory Service APIs** exist for all stock queries
-3. **Update Admin Dashboard** to use Inventory Service for stock display
+3. **Update Real Time ERP Dashboard** to use Inventory Service for stock display
 4. **Test thoroughly** to ensure reports work correctly after migration
 
 ---

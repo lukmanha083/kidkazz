@@ -21,7 +21,7 @@ This document provides comprehensive testing guidance for the multi-warehouse re
 ## 1. Frontend Component Testing
 
 ### 1.1 ProductWarehouseAllocation Component
-**File:** `apps/admin-dashboard/src/components/products/ProductWarehouseAllocation.tsx:1`
+**File:** `apps/erp-dashboard/src/components/products/ProductWarehouseAllocation.tsx:1`
 
 #### Test Cases:
 
@@ -118,7 +118,7 @@ const allocations = [];
 ---
 
 ### 1.2 Product Form Integration Tests
-**File:** `apps/admin-dashboard/src/routes/dashboard/products/all.tsx:1`
+**File:** `apps/erp-dashboard/src/routes/dashboard/products/all.tsx:1`
 
 #### Test Cases:
 
@@ -266,7 +266,7 @@ const allocations = [];
 ---
 
 ### 1.3 Bundle Form Integration Tests
-**File:** `apps/admin-dashboard/src/routes/dashboard/products/bundle.tsx:1`
+**File:** `apps/erp-dashboard/src/routes/dashboard/products/bundle.tsx:1`
 
 #### Test Cases:
 
@@ -343,7 +343,7 @@ const allocations = [];
 ---
 
 ### 1.4 Variant Form Integration Tests
-**File:** `apps/admin-dashboard/src/routes/dashboard/products/variant.tsx:1`
+**File:** `apps/erp-dashboard/src/routes/dashboard/products/variant.tsx:1`
 
 #### Test Cases:
 
@@ -421,7 +421,7 @@ const allocations = [];
 ---
 
 ### 1.5 Expiration Date Report Tests
-**File:** `apps/admin-dashboard/src/routes/dashboard/products/index.tsx:111-147`
+**File:** `apps/erp-dashboard/src/routes/dashboard/products/index.tsx:111-147`
 
 #### Test Cases:
 
@@ -485,7 +485,7 @@ const product = {
 ---
 
 ### 1.6 Inventory Report Tests
-**File:** `apps/admin-dashboard/src/routes/dashboard/inventory/index.tsx:1`
+**File:** `apps/erp-dashboard/src/routes/dashboard/inventory/index.tsx:1`
 
 #### Test Cases:
 
@@ -596,7 +596,7 @@ const products = [
 ---
 
 ### 1.7 Informational Notice Card Tests
-**File:** `apps/admin-dashboard/src/routes/dashboard/products/index.tsx:187-232`
+**File:** `apps/erp-dashboard/src/routes/dashboard/products/index.tsx:187-232`
 
 #### Test Cases:
 
@@ -1022,7 +1022,7 @@ Delete variant location.
 
 Once backend APIs are ready, update these files:
 
-#### apps/admin-dashboard/src/routes/dashboard/products/variant.tsx
+#### apps/erp-dashboard/src/routes/dashboard/products/variant.tsx
 
 **Load allocations on edit:**
 ```typescript

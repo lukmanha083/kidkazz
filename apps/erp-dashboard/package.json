@@ -1,7 +1,7 @@
 {
-  "name": "admin-dashboard",
+  "name": "erp-dashboard",
   "version": "1.0.0",
-  "description": "KidKazz Admin Dashboard - Test all microservices",
+  "description": "KidKazz Real Time ERP Dashboard",
   "type": "module",
   "scripts": {
     "dev": "vite",

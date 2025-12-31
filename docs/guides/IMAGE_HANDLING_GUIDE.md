@@ -201,7 +201,7 @@ class ImageService {
 
 ### ImageUpload Component
 
-**File**: `apps/admin-dashboard/src/components/ImageUpload.tsx`
+**File**: `apps/erp-dashboard/src/components/ImageUpload.tsx`
 
 Features:
 - Drag & drop or click to upload
@@ -490,7 +490,7 @@ time curl -s http://localhost:8788/api/images/test.jpg > /dev/null
 
 2. **Start Frontend**:
    ```bash
-   cd apps/admin-dashboard
+   cd apps/erp-dashboard
    npm run dev
    ```
 
@@ -647,7 +647,7 @@ wrangler deploy
 
 #### 5. Update Frontend URLs
 
-Update `.env` in `apps/admin-dashboard`:
+Update `.env` in `apps/erp-dashboard`:
 
 ```env
 VITE_PRODUCT_SERVICE_URL=https://product-service.your-domain.workers.dev

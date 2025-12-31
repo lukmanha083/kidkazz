@@ -94,7 +94,7 @@ curl http://localhost:8792/internal/stats/inventory
 ### 1. Install Dependencies
 
 ```bash
-cd apps/admin-dashboard
+cd apps/erp-dashboard
 
 # Install React Query and WebSocket dependencies
 npm install @tanstack/react-query
@@ -102,7 +102,7 @@ npm install @tanstack/react-query
 
 ### 2. Environment Variables
 
-Create `.env` file in `apps/admin-dashboard`:
+Create `.env` file in `apps/erp-dashboard`:
 
 ```env
 # Development
@@ -133,7 +133,7 @@ function App() {
 
 ### Example 1: Warehouse Management Page
 
-**File**: `apps/admin-dashboard/src/routes/dashboard/inventory/warehouse.tsx`
+**File**: `apps/erp-dashboard/src/routes/dashboard/inventory/warehouse.tsx`
 
 Replace useState/useEffect with React Query hooks:
 
@@ -248,7 +248,7 @@ function WarehouseManagementPage() {
 
 ### Example 2: Inventory Management with Real-Time Sync
 
-**File**: `apps/admin-dashboard/src/routes/dashboard/inventory/index.tsx`
+**File**: `apps/erp-dashboard/src/routes/dashboard/inventory/index.tsx`
 
 ```typescript
 import {
@@ -379,7 +379,7 @@ npm run dev
 
 **Terminal 3: Frontend**
 ```bash
-cd apps/admin-dashboard
+cd apps/erp-dashboard
 npm run dev
 ```
 
@@ -570,7 +570,7 @@ await warehouseApi.create(data);
    cd services/product-service && npm run dev
 
    # Terminal 3
-   cd apps/admin-dashboard && npm run dev
+   cd apps/erp-dashboard && npm run dev
    ```
 
 2. **Make changes** to hooks/components
@@ -586,7 +586,7 @@ await warehouseApi.create(data);
 
 1. **Type check**:
    ```bash
-   cd apps/admin-dashboard
+   cd apps/erp-dashboard
    npx tsc --noEmit
    ```
 

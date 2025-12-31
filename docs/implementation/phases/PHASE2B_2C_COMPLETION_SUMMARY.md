@@ -18,7 +18,7 @@ Migrate frontend components to use Inventory Service as the authoritative source
 
 ### Changes Made
 
-#### 1. Product Report Page (`apps/admin-dashboard/src/routes/dashboard/products/index.tsx`)
+#### 1. Product Report Page (`apps/erp-dashboard/src/routes/dashboard/products/index.tsx`)
 
 **Problem**: Product Report page was directly using `product.stock` field for:
 - Total inventory value calculation
@@ -60,7 +60,7 @@ const getProductStock = (productId: string): number => {
 - ✅ Total inventory value calculated from actual stock
 - ✅ No dependency on deprecated product.stock field
 
-#### 2. Bundle Page (`apps/admin-dashboard/src/routes/dashboard/products/bundle.tsx`)
+#### 2. Bundle Page (`apps/erp-dashboard/src/routes/dashboard/products/bundle.tsx`)
 
 **Problem**: Bundle page was using:
 - `bundle.availableStock` for stored bundle quantity
@@ -117,7 +117,7 @@ const calculateMaxBundles = (items: BundleItem[]) => {
 
 #### 3. Low Stock Report (Already Compliant)
 
-The Low Stock Report (`apps/admin-dashboard/src/routes/dashboard/inventory/low-stock.tsx`) was already using Inventory Service data correctly, so no changes were needed.
+The Low Stock Report (`apps/erp-dashboard/src/routes/dashboard/inventory/low-stock.tsx`) was already using Inventory Service data correctly, so no changes were needed.
 
 ### Architecture Improvements
 
@@ -379,12 +379,12 @@ curl http://localhost:8791/api/bundles/{bundle_id}/available-stock?warehouseId={
 ## Files Modified
 
 ### Frontend Files
-1. `apps/admin-dashboard/src/routes/dashboard/products/index.tsx` (Product Report)
+1. `apps/erp-dashboard/src/routes/dashboard/products/index.tsx` (Product Report)
    - Added inventory data fetching
    - Created stock aggregation logic
    - Updated all stock calculations
 
-2. `apps/admin-dashboard/src/routes/dashboard/products/bundle.tsx` (Bundle Management)
+2. `apps/erp-dashboard/src/routes/dashboard/products/bundle.tsx` (Bundle Management)
    - Removed availableStock form fields
    - Added virtual stock calculation display
    - Updated to use inventory data

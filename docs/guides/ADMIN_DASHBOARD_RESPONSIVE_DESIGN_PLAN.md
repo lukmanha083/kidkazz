@@ -1,12 +1,12 @@
-# Admin Dashboard Responsive Design Plan
+# Real Time ERP Dashboard Responsive Design Plan
 
-> Refactoring Kidkazz Admin Dashboard for Desktop, Tablet, and Mobile
+> Refactoring Kidkazz Real Time ERP Dashboard for Desktop, Tablet, and Mobile
 
 ---
 
 ## Overview
 
-This document outlines the comprehensive plan to refactor the admin dashboard to be fully responsive across three primary breakpoints: Desktop, Tablet, and Mobile. The goal is to provide an optimal user experience for administrators accessing the dashboard from any device.
+This document outlines the comprehensive plan to refactor the ERP dashboard to be fully responsive across three primary breakpoints: Desktop, Tablet, and Mobile. The goal is to provide an optimal user experience for administrators accessing the dashboard from any device.
 
 **Current State:**
 - Dashboard has basic mobile sidebar support (`lg:hidden` toggle)

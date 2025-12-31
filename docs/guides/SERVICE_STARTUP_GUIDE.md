@@ -89,9 +89,9 @@ curl "http://localhost:8794/api/reports/sales-by-person?startDate=2025-11-01&end
 
 ---
 
-### Terminal 4: Admin Dashboard (Port 5173)
+### Terminal 4: Real Time ERP Dashboard (Port 5173)
 ```bash
-cd apps/admin-dashboard
+cd apps/erp-dashboard
 pnpm dev
 ```
 
@@ -146,9 +146,9 @@ kill -9 <PID>
 
 ## Frontend API Configuration
 
-The admin dashboard needs to know which ports to call. Update your API configuration:
+The ERP dashboard needs to know which ports to call. Update your API configuration:
 
-**File:** `apps/admin-dashboard/src/lib/api.ts` (or wherever you configure API endpoints)
+**File:** `apps/erp-dashboard/src/lib/api.ts` (or wherever you configure API endpoints)
 
 ```typescript
 const API_CONFIG = {

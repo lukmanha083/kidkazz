@@ -23,7 +23,7 @@ Refactor to use shadcn/ui components like the product form:
 
 ## 📦 Available Shadcn/UI Components
 
-Located in: `/home/user/kidkazz/apps/admin-dashboard/src/components/ui/`
+Located in: `/home/user/kidkazz/apps/erp-dashboard/src/components/ui/`
 
 ```
 ├── button.tsx       - Button component with variants
@@ -425,7 +425,7 @@ return (
 ## 📚 Reference
 
 - [shadcn/ui Documentation](https://ui.shadcn.com/)
-- [Product Form Example](/home/user/kidkazz/apps/admin-dashboard/src/routes/dashboard/products/all.tsx)
+- [Product Form Example](/home/user/kidkazz/apps/erp-dashboard/src/routes/dashboard/products/all.tsx)
 - [Tailwind CSS](https://tailwindcss.com/docs)
 - [Radix UI](https://www.radix-ui.com/) (underlying components)
 

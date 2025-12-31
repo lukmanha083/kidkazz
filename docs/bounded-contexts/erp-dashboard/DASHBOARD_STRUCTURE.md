@@ -1,7 +1,7 @@
-# Kidkazz Admin Dashboard Structure
+# Kidkazz Real Time ERP Dashboard Structure
 
 ## Overview
-This document explains the structure and location of the Kidkazz admin dashboard components and pages.
+This document explains the structure and location of the Kidkazz ERP dashboard components and pages.
 
 ## Technology Stack
 - **Router**: TanStack Router (file-based routing)
@@ -12,7 +12,7 @@ This document explains the structure and location of the Kidkazz admin dashboard
 ## Main Files
 
 ### 1. Dashboard Layout (Sidebar + Header)
-**Location**: `apps/admin-dashboard/src/routes/dashboard.tsx`
+**Location**: `apps/erp-dashboard/src/routes/dashboard.tsx`
 
 This file contains:
 - The main layout wrapper for all dashboard pages
@@ -36,7 +36,7 @@ This file contains:
 ---
 
 ### 2. Dashboard Home Page (Main Content)
-**Location**: `apps/admin-dashboard/src/routes/dashboard/index.tsx`
+**Location**: `apps/erp-dashboard/src/routes/dashboard/index.tsx`
 
 This file contains:
 - Dashboard homepage content
@@ -55,7 +55,7 @@ This file contains:
 ---
 
 ### 3. Root Layout
-**Location**: `apps/admin-dashboard/src/routes/__root.tsx`
+**Location**: `apps/erp-dashboard/src/routes/__root.tsx`
 
 This is the root wrapper for the entire application. It includes:
 - The `<Outlet />` component for rendering child routes
@@ -66,22 +66,22 @@ This is the root wrapper for the entire application. It includes:
 ## Other Dashboard Pages
 
 ### Products Page
-**Location**: `apps/admin-dashboard/src/routes/dashboard/products.tsx`
+**Location**: `apps/erp-dashboard/src/routes/dashboard/products.tsx`
 - Manages product inventory
 - Product listing and management
 
 ### Orders Page
-**Location**: `apps/admin-dashboard/src/routes/dashboard/orders.tsx`
+**Location**: `apps/erp-dashboard/src/routes/dashboard/orders.tsx`
 - Order management and tracking
 - Order details and status updates
 
 ### Customers Page
-**Location**: `apps/admin-dashboard/src/routes/dashboard/customers.tsx`
+**Location**: `apps/erp-dashboard/src/routes/dashboard/customers.tsx`
 - Customer management
 - Customer information and history
 
 ### Settings Page
-**Location**: `apps/admin-dashboard/src/routes/dashboard/settings.tsx`
+**Location**: `apps/erp-dashboard/src/routes/dashboard/settings.tsx`
 - Application settings and configuration
 - User preferences
 
@@ -90,7 +90,7 @@ This is the root wrapper for the entire application. It includes:
 ## Component Library
 
 ### UI Components Location
-**Path**: `apps/admin-dashboard/src/components/ui/`
+**Path**: `apps/erp-dashboard/src/components/ui/`
 
 Currently available shadcn/ui components:
 - `button.tsx` - Button component
@@ -103,7 +103,7 @@ Currently available shadcn/ui components:
 - `pagination.tsx` - Pagination component
 
 ### Custom Components
-**Path**: `apps/admin-dashboard/src/components/`
+**Path**: `apps/erp-dashboard/src/components/`
 
 - `Logo.tsx` - Kidkazz brand logo component
 
@@ -128,7 +128,7 @@ The following components are needed to match the Medusa-style design:
 
 ### Design Improvements
 
-Based on the Medusa admin dashboard design, the following improvements are planned:
+Based on the Medusa ERP dashboard design, the following improvements are planned:
 
 1. **Sidebar Enhancements**:
    - Add store/brand avatar at the top
@@ -156,7 +156,7 @@ Based on the Medusa admin dashboard design, the following improvements are plann
 ## File Structure
 
 ```
-apps/admin-dashboard/
+apps/erp-dashboard/
 ├── src/
 │   ├── routes/
 │   │   ├── __root.tsx                 # Root layout

@@ -649,7 +649,7 @@ kidkazz/
 │   │   │   └── index.ts
 │   │   └── wrangler.toml
 │   │
-│   ├── admin-dashboard/          # Frontend (existing)
+│   ├── erp-dashboard/          # Frontend (existing)
 │   │
 │   └── services/                 # ⭐ NEW: Bounded Context Workers
 │       ├── product-service/
@@ -718,7 +718,7 @@ kidkazz/
 - [ ] Set up event sourcing (optional)
 
 ### Phase 4: Frontend Integration (Week 7-8)
-- [ ] Update Admin Dashboard to call API Gateway
+- [ ] Update Real Time ERP Dashboard to call API Gateway
 - [ ] Build Retail Frontend
 - [ ] Build Wholesale Frontend
 - [ ] End-to-end testing

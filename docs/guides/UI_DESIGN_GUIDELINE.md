@@ -87,10 +87,10 @@ Best Price Excellent Service
 
 ---
 
-## 🖤 Admin Dashboard - Black & White Theme
+## 🖤 Real Time ERP Dashboard - Black & White Theme
 
 ### Overview
-The admin dashboard uses a **professional black and white theme** leveraging shadcn/ui's ready-made components. This monochrome approach ensures:
+The ERP dashboard uses a **professional black and white theme** leveraging shadcn/ui's ready-made components. This monochrome approach ensures:
 - **Focus on data:** No color distractions from analytics and content
 - **Professional appearance:** Clean, modern, corporate-friendly
 - **Accessibility:** Maximum contrast for readability
@@ -299,7 +299,7 @@ font-family: 'Fredoka', 'Comic Neue', cursive;
 
 ### Typography Usage
 
-**Admin Dashboard:**
+**Real Time ERP Dashboard:**
 ```tsx
 <h1 className="font-nunito text-h2 font-bold">Dashboard Title</h1>
 <p className="font-inter text-base">Professional body text</p>
@@ -1287,8 +1287,8 @@ If you find code that doesn't follow these patterns:
 
 ```bash
 # Find all uses of custom breakpoints
-grep -r "desktop:" apps/admin-dashboard/src/
-grep -r "tablet:" apps/admin-dashboard/src/
+grep -r "desktop:" apps/erp-dashboard/src/
+grep -r "tablet:" apps/erp-dashboard/src/
 
 # Replace with standard breakpoints
 desktop: → lg:
@@ -1633,7 +1633,7 @@ screens: {
 
 ## 📋 Implementation Checklist
 
-### Admin Dashboard (Current)
+### Real Time ERP Dashboard (Current)
 - [x] shadcn/ui components installed
 - [x] Tailwind CSS configured
 - [x] **Black and White Theme** - Professional monochrome design
@@ -1713,7 +1713,7 @@ screens: {
 
 ## 🚀 Next Steps
 
-1. **Install Google Fonts** in admin dashboard
+1. **Install Google Fonts** in ERP dashboard
 2. **Update typography** to use Nunito for headings
 3. **Add Lucide icons** to all components
 4. **Implement micro-animations** for buttons and cards
@@ -1729,7 +1729,7 @@ screens: {
 
 Kidkazz leverages shadcn/ui with Radix UI primitives, configured via preset URLs for consistent setup across all frontend applications. This approach ensures standardized design systems across our omnichannel platform while allowing customization for different app types and target audiences.
 
-### Admin Dashboard Configuration
+### Real Time ERP Dashboard Configuration
 
 **Current Setup**:
 - **Component Library**: Radix UI (via shadcn/ui)
@@ -1788,7 +1788,7 @@ See [SHADCN_PRESET_SETUP_GUIDE.md](./SHADCN_PRESET_SETUP_GUIDE.md) for complete 
 #### 4. Mobile Admin App
 - **Style**: `mira` (compact for small screens)
 - **Radius**: `medium` (touch-optimized)
-- **Theme**: `slate` (matches admin dashboard)
+- **Theme**: `slate` (matches ERP dashboard)
 - **Menu Accent**: `bold` (clear touch targets)
 - **Use Case**: Managers on-the-go, real-time updates
 - **Template**: `expo`
@@ -1822,7 +1822,7 @@ See [SHADCN_PRESET_SETUP_GUIDE.md](./SHADCN_PRESET_SETUP_GUIDE.md) for complete 
 
 ### Component Library Status — ✅ Radix UI (2025-12-29)
 
-The admin dashboard uses **Radix UI** as the component primitive library via shadcn/ui.
+The ERP dashboard uses **Radix UI** as the component primitive library via shadcn/ui.
 
 **Previous Migration History**:
 - **2025-12-19**: Attempted migration to Base UI (88.2% coverage)

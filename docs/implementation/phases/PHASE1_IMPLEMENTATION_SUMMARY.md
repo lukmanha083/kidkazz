@@ -79,7 +79,7 @@ curl -X POST http://localhost:8792/api/inventory/admin/sync-minimum-stock
 
 ### 3. Product Validation - Expiration Date Requires Warehouse Allocation
 
-**File Modified:** `apps/admin-dashboard/src/routes/dashboard/products/all.tsx`
+**File Modified:** `apps/erp-dashboard/src/routes/dashboard/products/all.tsx`
 
 **Location:** Lines 956-963
 
@@ -179,7 +179,7 @@ Result: Low Stock Report works correctly
 |------|------|---------------|---------|
 | `services/inventory-service/scripts/sync-minimum-stock.ts` | Created | 171 | Migration script |
 | `services/inventory-service/src/routes/inventory.ts` | Modified | +170 | Admin endpoint |
-| `apps/admin-dashboard/src/routes/dashboard/products/all.tsx` | Modified | +8 | Validation |
+| `apps/erp-dashboard/src/routes/dashboard/products/all.tsx` | Modified | +8 | Validation |
 | `docs/PHASE1_TESTING_GUIDE.md` | Created | 350 | Testing docs |
 | `docs/PHASE1_IMPLEMENTATION_SUMMARY.md` | Created | - | This file |
 
@@ -314,7 +314,7 @@ The following tasks are ready for implementation:
    - Update use cases to query Inventory Service
    - Maintain backward compatibility
 
-3. **Update Admin Dashboard:**
+3. **Update Real Time ERP Dashboard:**
    - Call Inventory Service for stock display
    - Update stock queries throughout the application
 

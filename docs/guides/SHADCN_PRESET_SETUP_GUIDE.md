@@ -39,7 +39,7 @@ The shadcn/ui preset approach allows you to create new projects with a fully con
 - ✅ Team collaboration (preset URL = shared config)
 
 **Use Manual Setup**:
-- ✅ Migrating existing project (like admin-dashboard Radix → Base UI)
+- ✅ Migrating existing project (like erp-dashboard Radix → Base UI)
 - ✅ Preset command has known bugs (see [Troubleshooting](#troubleshooting))
 - ✅ Need custom configuration beyond preset parameters
 - ✅ Working with monorepo or complex build setup
@@ -52,7 +52,7 @@ KidKazz is building 5+ frontend applications with different target audiences:
 
 | App Type | Target Audience | Design Priority |
 |----------|-----------------|-----------------|
-| **Admin Dashboard** | Internal staff | Professional, data-focused, efficient |
+| **Real Time ERP Dashboard** | Internal staff | Professional, data-focused, efficient |
 | **Point of Sale** | Store cashiers | Touch-friendly, fast, offline-capable |
 | **Retail E-Commerce** | Parents (B2C) | Playful, trustworthy, colorful |
 | **Wholesale E-Commerce** | Business buyers (B2B) | Professional, data-heavy, streamlined |
@@ -107,7 +107,7 @@ https://ui.shadcn.com/init?base=<base>&style=<style>&baseColor=<baseColor>&theme
 | **lyra** | Boxy, sharp edges | Technical apps, admin tools | **Square corners**, structured |
 
 **KidKazz Usage**:
-- Admin Dashboard & Wholesale: `default`
+- Real Time ERP Dashboard & Wholesale: `default`
 - POS & Mobile: `mira` (compact for efficiency)
 - Retail E-Commerce: `nova` (spacious for browsing)
 
@@ -128,7 +128,7 @@ https://ui.shadcn.com/init?base=<base>&style=<style>&baseColor=<baseColor>&theme
 | **stone** | Warm gray-beige | Natural, earthy | Warm undertones |
 
 **KidKazz Usage**:
-- Admin Dashboard: `slate` (professional tech vibe)
+- Real Time ERP Dashboard: `slate` (professional tech vibe)
 - POS: `zinc` (modern, neutral)
 - Retail: Use `theme` parameter for purple (not baseColor)
 - Wholesale: `blue` for theme
@@ -151,7 +151,7 @@ https://ui.shadcn.com/init?base=<base>&style=<style>&baseColor=<baseColor>&theme
 ```
 baseColor=slate&theme=purple  → Slate neutrals with purple brand
 baseColor=zinc&theme=blue     → Zinc neutrals with blue brand
-baseColor=slate&theme=slate   → Monochrome (admin dashboards)
+baseColor=slate&theme=slate   → Monochrome (ERP dashboards)
 ```
 
 **KidKazz Usage**:
@@ -210,7 +210,7 @@ baseColor=slate&theme=slate   → Monochrome (admin dashboards)
 - `bold`: High contrast, clear emphasis (efficient, action-oriented)
 
 **KidKazz Usage**:
-- Admin Dashboard: `subtle` (professional, non-distracting)
+- Real Time ERP Dashboard: `subtle` (professional, non-distracting)
 - POS: `bold` (quick visual scanning, efficiency)
 - E-Commerce: `subtle` (friendly, not aggressive)
 - Mobile: `bold` (clear touch targets)
@@ -242,7 +242,7 @@ baseColor=slate&theme=slate   → Monochrome (admin dashboards)
 | `large` | 1.5rem (24px) | Soft, approachable |
 
 **KidKazz Usage**:
-- Admin Dashboard: `small` (compact layouts, data tables)
+- Real Time ERP Dashboard: `small` (compact layouts, data tables)
 - POS: `medium` (touch-friendly, balanced)
 - Retail E-Commerce: `large` (friendly, playful)
 - Wholesale: `small` (professional, data-heavy)
@@ -264,7 +264,7 @@ baseColor=slate&theme=slate   → Monochrome (admin dashboards)
 | **expo** | React Native (Expo) | Mobile apps | iOS + Android, native APIs |
 
 **KidKazz Usage**:
-- Admin Dashboard: `vite` (SPA, fast dev)
+- Real Time ERP Dashboard: `vite` (SPA, fast dev)
 - POS: `vite` (offline-capable, fast)
 - Retail E-Commerce: `next` (SEO, product pages)
 - Wholesale E-Commerce: `next` (SEO, catalog)
@@ -290,7 +290,7 @@ pnpm dlx shadcn@latest create --preset https://ui.shadcn.com/init?base=base&styl
 
 ## KidKazz Preset Templates
 
-### Template 1: Admin Dashboard (Internal ERP)
+### Template 1: Real Time ERP Dashboard (Internal ERP)
 
 **Target Audience**: Internal staff, warehouse managers, accountants
 **Design Priority**: Professional, data-focused, efficient, monochrome
@@ -314,17 +314,17 @@ https://ui.shadcn.com/init?base=base&style=default&baseColor=slate&theme=slate&i
 
 **CLI Command**:
 ```bash
-pnpm dlx shadcn@latest create --preset "https://ui.shadcn.com/init?base=base&style=default&baseColor=slate&theme=slate&iconLibrary=lucide&font=inter&menuAccent=subtle&menuColor=default&radius=small&template=vite" kidkazz-admin-dashboard
+pnpm dlx shadcn@latest create --preset "https://ui.shadcn.com/init?base=base&style=default&baseColor=slate&theme=slate&iconLibrary=lucide&font=inter&menuAccent=subtle&menuColor=default&radius=small&template=vite" kidkazz-erp-dashboard
 ```
 
 **First Components to Install**:
 ```bash
-cd kidkazz-admin-dashboard
+cd kidkazz-erp-dashboard
 pnpm dlx shadcn@latest add @basecn/button @basecn/card @basecn/input @basecn/label @basecn/dialog @basecn/select @basecn/table @basecn/tabs @basecn/form
 ```
 
 **Key Features**:
-- Black & white color scheme (admin dashboard theme)
+- Black & white color scheme (ERP dashboard theme)
 - Compact layouts (small radius, default style)
 - Data-table optimized (TanStack Table)
 - WebSocket real-time updates support
@@ -524,7 +524,7 @@ https://ui.shadcn.com/init?base=base&style=mira&baseColor=slate&theme=slate&icon
 **Parameter Rationale**:
 - `base=base`: Modern Base UI
 - `style=mira`: **Compact for small screens**
-- `baseColor=slate`: Professional (matches admin dashboard)
+- `baseColor=slate`: Professional (matches ERP dashboard)
 - `theme=slate`: Monochrome (efficient, focused)
 - `iconLibrary=lucide`: Clear mobile icons
 - `font=inter`: Readable on small screens
@@ -567,7 +567,7 @@ npx create-tamagui --template expo kidkazz-mobile-admin
 
 ### Preset Template Comparison Matrix
 
-| Feature | Admin Dashboard | POS | Retail E-Commerce | Wholesale E-Commerce | Mobile Admin |
+| Feature | Real Time ERP Dashboard | POS | Retail E-Commerce | Wholesale E-Commerce | Mobile Admin |
 |---------|----------------|-----|-------------------|---------------------|--------------|
 | **Style** | default | mira | nova | default | mira |
 | **Base Color** | slate | zinc | slate | slate | slate |
@@ -1401,7 +1401,7 @@ pnpm dev -- --port 3000
 ### Quick Reference
 
 **5 KidKazz Preset Templates**:
-1. **Admin Dashboard**: `style=default`, `radius=small`, `theme=slate`, `template=vite`
+1. **Real Time ERP Dashboard**: `style=default`, `radius=small`, `theme=slate`, `template=vite`
 2. **POS**: `style=mira`, `radius=medium`, `theme=zinc`, `template=vite`
 3. **Retail**: `style=nova`, `radius=large`, `theme=purple`, `template=next`
 4. **Wholesale**: `style=default`, `radius=small`, `theme=blue`, `template=next`

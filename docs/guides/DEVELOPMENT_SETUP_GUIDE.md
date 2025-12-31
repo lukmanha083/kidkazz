@@ -87,7 +87,7 @@ pnpm install
 This will install dependencies for all workspaces:
 - Root workspace
 - All microservices in `services/`
-- Frontend app in `apps/admin-dashboard`
+- Frontend app in `apps/erp-dashboard`
 - Shared packages in `packages/`
 
 ### 3. Verify Installation
@@ -230,10 +230,10 @@ curl http://localhost:8792/health
 
 ## Running the Frontend
 
-### Terminal Window 4: Admin Dashboard
+### Terminal Window 4: Real Time ERP Dashboard
 
 ```bash
-cd apps/admin-dashboard
+cd apps/erp-dashboard
 npm run dev
 # or
 pnpm dev
@@ -255,7 +255,7 @@ Open your browser and navigate to:
 http://localhost:5173
 ```
 
-You should see the KidKazz Admin Dashboard.
+You should see the KidKazz Real Time ERP Dashboard.
 
 ---
 
@@ -476,7 +476,7 @@ curl -X POST http://localhost:8792/api/inventory/adjust \
 
 ### React Query Integration Testing
 
-#### 1. Open Admin Dashboard
+#### 1. Open Real Time ERP Dashboard
 
 Navigate to `http://localhost:5173`
 
@@ -605,7 +605,7 @@ curl -i -N \
 
 **Solution**:
 ```bash
-cd apps/admin-dashboard
+cd apps/erp-dashboard
 npm install @tanstack/react-query
 ```
 
@@ -662,7 +662,7 @@ curl http://localhost:8792/internal/stats/inventory
    cd services/inventory-service && npm run dev
 
    # Terminal 3
-   cd apps/admin-dashboard && npm run dev
+   cd apps/erp-dashboard && npm run dev
    ```
 
 2. **Make code changes**
@@ -685,7 +685,7 @@ curl http://localhost:8792/internal/stats/inventory
 1. **Type check**:
    ```bash
    cd services/inventory-service && npm run type-check
-   cd apps/admin-dashboard && npx tsc --noEmit
+   cd apps/erp-dashboard && npx tsc --noEmit
    ```
 
 2. **Run all tests**:
@@ -711,7 +711,7 @@ curl http://localhost:8792/internal/stats/inventory
 
 ### Frontend (.env)
 
-Create `apps/admin-dashboard/.env`:
+Create `apps/erp-dashboard/.env`:
 
 ```env
 VITE_PRODUCT_SERVICE_URL=http://localhost:8788
@@ -747,7 +747,7 @@ wrangler d1 migrations apply inventory-db
 wrangler deploy
 
 # Frontend
-cd apps/admin-dashboard
+cd apps/erp-dashboard
 npm run build
 # Deploy to Cloudflare Pages or your hosting provider
 ```

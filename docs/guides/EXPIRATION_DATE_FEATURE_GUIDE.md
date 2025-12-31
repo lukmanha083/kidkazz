@@ -134,7 +134,7 @@ The Product Report shows:
 
 **Code Location**:
 ```
-apps/admin-dashboard/src/routes/dashboard/products/index.tsx
+apps/erp-dashboard/src/routes/dashboard/products/index.tsx
 Lines 111-147
 ```
 
@@ -186,7 +186,7 @@ The Inventory Report shows:
 
 **Code Location**:
 ```
-apps/admin-dashboard/src/routes/dashboard/inventory/index.tsx
+apps/erp-dashboard/src/routes/dashboard/inventory/index.tsx
 Lines 114-147
 ```
 

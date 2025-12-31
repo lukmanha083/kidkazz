@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes how the frontend (Admin Dashboard) integrates with the DDD-based microservices architecture using **WebSocket for real-time updates**, **TanStack React Query for data management**, and REST APIs.
+This document describes how the frontend (Real Time ERP Dashboard) integrates with the DDD-based microservices architecture using **WebSocket for real-time updates**, **TanStack React Query for data management**, and REST APIs.
 
 **Key Technologies:**
 - **@tanstack/react-query**: Modern data fetching and caching
@@ -16,7 +16,7 @@ This document describes how the frontend (Admin Dashboard) integrates with the D
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│                    Admin Dashboard (Frontend)                     │
+│                    Real Time ERP Dashboard (Frontend)                     │
 │              React + TanStack Router + React Query                │
 │                                                                    │
 │  ┌───────────────────────────────────────────────────────────┐  │
@@ -85,7 +85,7 @@ This document describes how the frontend (Admin Dashboard) integrates with the D
 
 ### 1. React Query Layer
 
-**Location**: `apps/admin-dashboard/src/lib/query-client.ts`
+**Location**: `apps/erp-dashboard/src/lib/query-client.ts`
 
 **Responsibilities**:
 - Configure React Query client with optimal defaults
@@ -139,7 +139,7 @@ export const queryKeys = {
 
 ### 2. WebSocket Integration
 
-**Location**: `apps/admin-dashboard/src/hooks/useWebSocket.ts`
+**Location**: `apps/erp-dashboard/src/hooks/useWebSocket.ts`
 
 **Purpose**: Manage real-time WebSocket connections with automatic reconnection and React Query integration.
 
@@ -183,7 +183,7 @@ const { isConnected, send } = useWebSocket({
 
 ### 3. React Query Hooks
 
-**Location**: `apps/admin-dashboard/src/hooks/queries/`
+**Location**: `apps/erp-dashboard/src/hooks/queries/`
 
 Modern hooks that combine React Query with WebSocket for a complete data management solution.
 
@@ -298,7 +298,7 @@ const handleAdjust = async () => {
 
 ### 4. API Client Layer
 
-**Location**: `apps/admin-dashboard/src/lib/api.ts`
+**Location**: `apps/erp-dashboard/src/lib/api.ts`
 
 **Responsibilities**:
 - Define TypeScript interfaces matching backend domain models
@@ -504,7 +504,7 @@ const handleMessage = (message) => {
 
 ### Development
 
-**`.env` for Admin Dashboard**:
+**`.env` for Real Time ERP Dashboard**:
 ```bash
 VITE_PRODUCT_SERVICE_URL=http://localhost:8788
 VITE_INVENTORY_SERVICE_URL=http://localhost:8792

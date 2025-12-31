@@ -1,6 +1,6 @@
 # Phase F6 Future Enhancements - Implementation Summary
 
-**Project**: Kidkazz Admin Dashboard
+**Project**: Kidkazz Real Time ERP Dashboard
 **Feature**: Post-Phase F6 Form Enhancements
 **Status**: ALL PHASES (1-6) ✅ COMPLETE | Production Ready 🚀
 **Date**: December 24, 2025 (All Phases Completed)
@@ -10,7 +10,7 @@
 
 ## Executive Summary
 
-This document tracks the implementation of 6 major enhancements to the admin dashboard forms following the completion of Phase F6 (TanStack Form Integration). All enhancements strictly follow the **Admin Dashboard Black & White Theme** as defined in `docs/guides/UI_DESIGN_GUIDELINE.md`.
+This document tracks the implementation of 6 major enhancements to the ERP dashboard forms following the completion of Phase F6 (TanStack Form Integration). All enhancements strictly follow the **Real Time ERP Dashboard Black & White Theme** as defined in `docs/guides/UI_DESIGN_GUIDELINE.md`.
 
 ### Enhancement Overview
 
@@ -29,7 +29,7 @@ This document tracks the implementation of 6 major enhancements to the admin das
 
 ## UI Design Guidelines Compliance
 
-### Admin Dashboard Theme (Black & White)
+### Real Time ERP Dashboard Theme (Black & White)
 
 All components follow the professional monochrome design:
 
@@ -143,8 +143,8 @@ const form = useForm({
 ```
 
 ### Files Modified
-- ✅ `apps/admin-dashboard/src/lib/form-schemas.ts`
-- ✅ `apps/admin-dashboard/src/routes/dashboard/products/all.tsx`
+- ✅ `apps/erp-dashboard/src/lib/form-schemas.ts`
+- ✅ `apps/erp-dashboard/src/routes/dashboard/products/all.tsx`
 
 ### Impact
 - **Lines Reduced**: ~60 lines (removed legacy state + setFormData calls)
@@ -160,7 +160,7 @@ const form = useForm({
 
 ### Component Created
 
-**File**: `apps/admin-dashboard/src/components/products/PhysicalDimensionsSection.tsx`
+**File**: `apps/erp-dashboard/src/components/products/PhysicalDimensionsSection.tsx`
 
 **UI Design Compliance:**
 - Professional black & white theme
@@ -220,8 +220,8 @@ export function PhysicalDimensionsSection({ form }: Props) {
 ```
 
 ### Files Created/Modified
-- ✅ Created: `apps/admin-dashboard/src/components/products/PhysicalDimensionsSection.tsx`
-- ✅ Modified: `apps/admin-dashboard/src/routes/dashboard/products/all.tsx`
+- ✅ Created: `apps/erp-dashboard/src/components/products/PhysicalDimensionsSection.tsx`
+- ✅ Modified: `apps/erp-dashboard/src/routes/dashboard/products/all.tsx`
 
 ### Impact
 - **Lines Reduced**: 98 lines → 1 line (98% reduction in main component)
@@ -237,7 +237,7 @@ export function PhysicalDimensionsSection({ form }: Props) {
 **Status**: ✅ Implemented and integrated
 
 **Create**:
-`apps/admin-dashboard/src/components/products/ProductExpirationSection.tsx`
+`apps/erp-dashboard/src/components/products/ProductExpirationSection.tsx`
 
 **Structure**:
 ```typescript
@@ -281,7 +281,7 @@ export function ProductExpirationSection({ form }: Props) {
 **Status**: ✅ Implemented and integrated
 
 **Create**:
-`apps/admin-dashboard/src/hooks/useUOMManagement.ts`
+`apps/erp-dashboard/src/hooks/useUOMManagement.ts`
 
 **Hook Structure**:
 ```typescript
@@ -359,7 +359,7 @@ export function useUOMManagement() {
 **Status**: ✅ Implemented and integrated
 
 **Create**:
-`apps/admin-dashboard/src/components/products/ProductUOMManagementSection.tsx`
+`apps/erp-dashboard/src/components/products/ProductUOMManagementSection.tsx`
 
 **Structure**:
 ```typescript
@@ -436,7 +436,7 @@ export function ProductUOMManagementSection({
 **Status**: ⏸️ Deferred for safety - Will complete after Phase 2.1-2.4 validation in production
 
 **Create**:
-`apps/admin-dashboard/src/lib/product-form-utils.ts`
+`apps/erp-dashboard/src/lib/product-form-utils.ts`
 
 **Utility Functions**:
 ```typescript
@@ -811,7 +811,7 @@ export const batchQuantityAdjustmentFormSchema = z.object({
 
 ### Files Modified
 
-- ✅ `apps/admin-dashboard/src/lib/form-schemas.ts`
+- ✅ `apps/erp-dashboard/src/lib/form-schemas.ts`
   - Updated `productFormSchema` (lines 35-122)
   - Added 4 `.refine()` validation rules
   - No breaking changes to existing schemas
@@ -890,7 +890,7 @@ export const batchQuantityAdjustmentFormSchema = z.object({
 
 ### 5.1 Create Validation API Functions
 
-**Create** `apps/admin-dashboard/src/lib/validation-api.ts`:
+**Create** `apps/erp-dashboard/src/lib/validation-api.ts`:
 ```typescript
 import { apiClient } from './api-client';
 
@@ -932,7 +932,7 @@ export const validationApi = {
 
 ### 5.2 Create Debounced Async Validation Hook
 
-**Create** `apps/admin-dashboard/src/hooks/useAsyncValidation.ts`:
+**Create** `apps/erp-dashboard/src/hooks/useAsyncValidation.ts`:
 ```typescript
 import { useState, useCallback, useRef } from 'react';
 
@@ -1077,7 +1077,7 @@ const barcodeValidation = useAsyncValidation(validationApi.checkBarcodeUnique);
 
 ### 6.1 Create Optimistic Update Utilities
 
-**Create** `apps/admin-dashboard/src/lib/optimistic-updates.ts`:
+**Create** `apps/erp-dashboard/src/lib/optimistic-updates.ts`:
 ```typescript
 import { QueryClient } from '@tanstack/react-query';
 
@@ -1211,23 +1211,23 @@ Apply similar pattern to:
 ## Files Summary
 
 ### Created Files
-1. ✅ `apps/admin-dashboard/src/components/products/PhysicalDimensionsSection.tsx`
-2. 📋 `apps/admin-dashboard/src/components/products/ProductExpirationSection.tsx`
-3. 📋 `apps/admin-dashboard/src/hooks/useUOMManagement.ts`
-4. 📋 `apps/admin-dashboard/src/components/products/ProductUOMManagementSection.tsx`
-5. 📋 `apps/admin-dashboard/src/lib/product-form-utils.ts`
-6. 📋 `apps/admin-dashboard/src/hooks/useAsyncValidation.ts`
-7. 📋 `apps/admin-dashboard/src/lib/validation-api.ts`
-8. 📋 `apps/admin-dashboard/src/lib/optimistic-updates.ts`
+1. ✅ `apps/erp-dashboard/src/components/products/PhysicalDimensionsSection.tsx`
+2. 📋 `apps/erp-dashboard/src/components/products/ProductExpirationSection.tsx`
+3. 📋 `apps/erp-dashboard/src/hooks/useUOMManagement.ts`
+4. 📋 `apps/erp-dashboard/src/components/products/ProductUOMManagementSection.tsx`
+5. 📋 `apps/erp-dashboard/src/lib/product-form-utils.ts`
+6. 📋 `apps/erp-dashboard/src/hooks/useAsyncValidation.ts`
+7. 📋 `apps/erp-dashboard/src/lib/validation-api.ts`
+8. 📋 `apps/erp-dashboard/src/lib/optimistic-updates.ts`
 
 ### Modified Files
-1. ✅ `apps/admin-dashboard/src/lib/form-schemas.ts` (Phases 1, 3, 4)
-2. ✅ `apps/admin-dashboard/src/routes/dashboard/products/all.tsx` (Phases 1, 2, 5)
-3. 📋 `apps/admin-dashboard/src/routes/dashboard/products/variant.tsx` (Phases 3, 5)
-4. 📋 `apps/admin-dashboard/src/routes/dashboard/inventory/batches.tsx` (Phases 4, 5)
-5. 📋 `apps/admin-dashboard/src/routes/dashboard/inventory/transfer-stock.tsx` (Phase 4)
-6. 📋 `apps/admin-dashboard/src/hooks/queries/*.ts` (all files in Phases 3, 6)
-7. 📋 `apps/admin-dashboard/src/lib/api.ts` (Phase 3)
+1. ✅ `apps/erp-dashboard/src/lib/form-schemas.ts` (Phases 1, 3, 4)
+2. ✅ `apps/erp-dashboard/src/routes/dashboard/products/all.tsx` (Phases 1, 2, 5)
+3. 📋 `apps/erp-dashboard/src/routes/dashboard/products/variant.tsx` (Phases 3, 5)
+4. 📋 `apps/erp-dashboard/src/routes/dashboard/inventory/batches.tsx` (Phases 4, 5)
+5. 📋 `apps/erp-dashboard/src/routes/dashboard/inventory/transfer-stock.tsx` (Phase 4)
+6. 📋 `apps/erp-dashboard/src/hooks/queries/*.ts` (all files in Phases 3, 6)
+7. 📋 `apps/erp-dashboard/src/lib/api.ts` (Phase 3)
 
 ---
 
@@ -1288,10 +1288,10 @@ See: `CODERABBIT_REVIEW_CHECKLIST.md`
 ## Phase 2 Completion Summary ✅
 
 **Completed Tasks (Phase 2.1-2.4)**:
-- ✅ PhysicalDimensionsSection.tsx (115 lines) - apps/admin-dashboard/src/components/products/PhysicalDimensionsSection.tsx:85
-- ✅ ProductExpirationSection.tsx (85 lines) - apps/admin-dashboard/src/components/products/ProductExpirationSection.tsx:86
-- ✅ useUOMManagement.ts (150 lines) - apps/admin-dashboard/src/hooks/useUOMManagement.ts:88
-- ✅ ProductUOMManagementSection.tsx (272 lines) - apps/admin-dashboard/src/components/products/ProductUOMManagementSection.tsx:87
+- ✅ PhysicalDimensionsSection.tsx (115 lines) - apps/erp-dashboard/src/components/products/PhysicalDimensionsSection.tsx:85
+- ✅ ProductExpirationSection.tsx (85 lines) - apps/erp-dashboard/src/components/products/ProductExpirationSection.tsx:86
+- ✅ useUOMManagement.ts (150 lines) - apps/erp-dashboard/src/hooks/useUOMManagement.ts:88
+- ✅ ProductUOMManagementSection.tsx (272 lines) - apps/erp-dashboard/src/components/products/ProductUOMManagementSection.tsx:87
 
 **Integration Status**:
 - ✅ All components imported in all.tsx (lines 85-88)
@@ -1438,11 +1438,11 @@ See: `CODERABBIT_REVIEW_CHECKLIST.md`
 **TypeScript Compilation**: ✅ PASS (Phase 5 changes)
 
 **Files Created**:
-- `apps/admin-dashboard/src/lib/validation-api.ts` (125 lines)
-- `apps/admin-dashboard/src/hooks/useAsyncValidation.ts` (105 lines)
+- `apps/erp-dashboard/src/lib/validation-api.ts` (125 lines)
+- `apps/erp-dashboard/src/hooks/useAsyncValidation.ts` (105 lines)
 
 **Files Modified**:
-- `apps/admin-dashboard/src/routes/dashboard/products/all.tsx`
+- `apps/erp-dashboard/src/routes/dashboard/products/all.tsx`
   - Added imports for validation (lines 96-97)
   - Added CheckCircle2, XCircle icons (lines 46-47)
   - Initialized validation hooks (lines 330-331)
@@ -1487,14 +1487,14 @@ See: `CODERABBIT_REVIEW_CHECKLIST.md`
 - Removed deprecated `stock` property from buildProductPayload
 
 **Files Created**:
-- `apps/admin-dashboard/src/lib/optimistic-updates.ts` (180 lines)
+- `apps/erp-dashboard/src/lib/optimistic-updates.ts` (180 lines)
 
 **Files Modified**:
-- `apps/admin-dashboard/src/hooks/queries/useProducts.ts`
+- `apps/erp-dashboard/src/hooks/queries/useProducts.ts`
   - Added import for optimisticCreate (line 26)
   - Updated useCreateProduct with optimistic updates (lines 234-272)
   - Fixed readonly array spread (line 254)
-- `apps/admin-dashboard/src/lib/product-form-utils.ts`
+- `apps/erp-dashboard/src/lib/product-form-utils.ts`
   - Removed deprecated stock property (line 92)
 
 **CodeRabbit Review**: ✅ COMPLETE (Phase 5 & 6)
@@ -1527,7 +1527,7 @@ See: `CODERABBIT_REVIEW_CHECKLIST.md`
   - Added comprehensive DDD compliance documentation
   - Added TODO comments for future Inventory Service integration
 - **Files Modified**:
-  - `apps/admin-dashboard/src/lib/product-form-utils.ts`:
+  - `apps/erp-dashboard/src/lib/product-form-utils.ts`:
     - `createUOMWarehouseLocations()` - lines 191-240
     - `syncUOMWarehouseLocations()` - lines 242-321
     - `createProductWarehouseLocations()` - lines 323-357
@@ -1537,7 +1537,7 @@ See: `CODERABBIT_REVIEW_CHECKLIST.md`
 - **Location**: `ProductUOMManagementSection.tsx` line 83
 - **Problem**: `parseInt(uomManagement.uomStock)` missing radix parameter
 - **Fix Applied**: Changed to `parseInt(uomManagement.uomStock, 10)`
-- **File Modified**: `apps/admin-dashboard/src/components/products/ProductUOMManagementSection.tsx:83`
+- **File Modified**: `apps/erp-dashboard/src/components/products/ProductUOMManagementSection.tsx:83`
 
 ### TypeScript Compilation Results ✅
 

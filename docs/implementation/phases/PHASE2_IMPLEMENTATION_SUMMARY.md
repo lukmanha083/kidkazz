@@ -282,7 +282,7 @@ stock: z.number().optional().default(0), // DEPRECATED: Use Inventory Service fo
 - ✅ Deprecate stock field in validation schemas
 
 ### Phase 2B: Frontend Migration ⏳ (Next)
-- ⏳ Update admin dashboard to call new endpoints
+- ⏳ Update ERP dashboard to call new endpoints
 - ⏳ Update product list pages
 - ⏳ Update product detail pages
 - ⏳ Update bundle pages
@@ -446,7 +446,7 @@ curl http://localhost:8791/api/products/prod_new/stock
 
 ## Next Steps (Phase 2B)
 
-### 1. Admin Dashboard Updates (High Priority)
+### 1. Real Time ERP Dashboard Updates (High Priority)
 - [ ] Update product list page to call `/api/products/:id/stock`
 - [ ] Update product detail page stock display
 - [ ] Update bundle pages to call `/api/bundles/:id/available-stock`

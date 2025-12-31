@@ -1,4 +1,4 @@
-# RBAC Implementation Plan for Admin Dashboard
+# RBAC Implementation Plan for Real Time ERP Dashboard
 
 **Date**: 2025-11-18
 **Status**: Design Phase
@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-This document outlines the implementation plan for integrating Role-Based Access Control (RBAC) into the KidKazz admin-dashboard frontend with the user-service backend.
+This document outlines the implementation plan for integrating Role-Based Access Control (RBAC) into the KidKazz erp-dashboard frontend with the user-service backend.
 
 ### Goals
 1. Implement secure authentication with email + phone registration
@@ -46,7 +46,7 @@ Based on research from leading ERP systems (Procuzy, ERPNext, Odoo, SAP):
 
 ## Current State Analysis
 
-### Admin Dashboard (React + Vite + TanStack Router)
+### Real Time ERP Dashboard (React + Vite + TanStack Router)
 - **Framework**: React 18.2.0 with Vite
 - **Router**: TanStack Router (file-based routing)
 - **UI**: shadcn/ui + Tailwind CSS
@@ -473,12 +473,12 @@ services/user-service/src/
 7. Implement auto-redirect on 401/403
 
 **Files to Create**:
-- `apps/admin-dashboard/src/services/tokenService.ts`
-- `apps/admin-dashboard/src/services/api.ts`
-- `apps/admin-dashboard/src/auth/AuthProvider.tsx`
-- `apps/admin-dashboard/src/auth/useAuth.ts`
-- `apps/admin-dashboard/src/auth/authService.ts`
-- `apps/admin-dashboard/src/auth/types.ts`
+- `apps/erp-dashboard/src/services/tokenService.ts`
+- `apps/erp-dashboard/src/services/api.ts`
+- `apps/erp-dashboard/src/auth/AuthProvider.tsx`
+- `apps/erp-dashboard/src/auth/useAuth.ts`
+- `apps/erp-dashboard/src/auth/authService.ts`
+- `apps/erp-dashboard/src/auth/types.ts`
 
 **Deliverables**:
 - ✅ Persistent authentication
@@ -499,12 +499,12 @@ services/user-service/src/
 6. Create RoleGuard component
 
 **Files to Create**:
-- `apps/admin-dashboard/src/permissions/constants.ts`
-- `apps/admin-dashboard/src/permissions/PermissionChecker.ts`
-- `apps/admin-dashboard/src/permissions/usePermissions.ts`
-- `apps/admin-dashboard/src/auth/PermissionGate.tsx`
-- `apps/admin-dashboard/src/auth/ProtectedRoute.tsx`
-- `apps/admin-dashboard/src/auth/RoleGuard.tsx`
+- `apps/erp-dashboard/src/permissions/constants.ts`
+- `apps/erp-dashboard/src/permissions/PermissionChecker.ts`
+- `apps/erp-dashboard/src/permissions/usePermissions.ts`
+- `apps/erp-dashboard/src/auth/PermissionGate.tsx`
+- `apps/erp-dashboard/src/auth/ProtectedRoute.tsx`
+- `apps/erp-dashboard/src/auth/RoleGuard.tsx`
 
 **Deliverables**:
 - ✅ Permission checking utilities
@@ -525,10 +525,10 @@ services/user-service/src/
 7. Add loading states
 
 **Files to Create/Update**:
-- `apps/admin-dashboard/src/routes/index.tsx` (login page)
-- `apps/admin-dashboard/src/routes/register.tsx`
-- `apps/admin-dashboard/src/routes/forgot-password.tsx`
-- `apps/admin-dashboard/src/components/PasswordStrength.tsx`
+- `apps/erp-dashboard/src/routes/index.tsx` (login page)
+- `apps/erp-dashboard/src/routes/register.tsx`
+- `apps/erp-dashboard/src/routes/forgot-password.tsx`
+- `apps/erp-dashboard/src/components/PasswordStrength.tsx`
 
 **Deliverables**:
 - ✅ Professional login UI
@@ -548,9 +548,9 @@ services/user-service/src/
 5. Test route protection
 
 **Files to Update**:
-- `apps/admin-dashboard/src/routes/__root.tsx`
-- `apps/admin-dashboard/src/routes/dashboard.tsx`
-- `apps/admin-dashboard/src/components/Sidebar.tsx` (if exists)
+- `apps/erp-dashboard/src/routes/__root.tsx`
+- `apps/erp-dashboard/src/routes/dashboard.tsx`
+- `apps/erp-dashboard/src/components/Sidebar.tsx` (if exists)
 
 **Deliverables**:
 - ✅ All dashboard routes protected
@@ -571,10 +571,10 @@ services/user-service/src/
 7. Add pagination
 
 **Files to Create**:
-- `apps/admin-dashboard/src/routes/dashboard/users.tsx`
-- `apps/admin-dashboard/src/components/UserRoleDialog.tsx`
-- `apps/admin-dashboard/src/components/RolePermissionMatrix.tsx`
-- `apps/admin-dashboard/src/routes/dashboard/roles.tsx`
+- `apps/erp-dashboard/src/routes/dashboard/users.tsx`
+- `apps/erp-dashboard/src/components/UserRoleDialog.tsx`
+- `apps/erp-dashboard/src/components/RolePermissionMatrix.tsx`
+- `apps/erp-dashboard/src/routes/dashboard/roles.tsx`
 
 **Deliverables**:
 - ✅ Admin can view all users
@@ -596,7 +596,7 @@ services/user-service/src/
 7. Update customer pages with permission gates
 
 **Files to Update**:
-- All route files in `apps/admin-dashboard/src/routes/dashboard/`
+- All route files in `apps/erp-dashboard/src/routes/dashboard/`
 - Dashboard home page
 
 **Deliverables**:

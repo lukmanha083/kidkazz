@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This roadmap outlines the comprehensive refactoring plan for the **admin-dashboard** frontend application to:
+This roadmap outlines the comprehensive refactoring plan for the **erp-dashboard** frontend application to:
 1. Align with the DDD/Hexagonal architecture of backend services
 2. Leverage the **TanStack Ecosystem** for modern React development
 3. Implement real-time inventory updates via WebSocket

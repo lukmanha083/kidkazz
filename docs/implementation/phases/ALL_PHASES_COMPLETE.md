@@ -45,7 +45,7 @@ All 6 phases of the Frontend Integration Roadmap have been successfully complete
    - Error handling utilities
 
 ### Files Modified
-- `apps/admin-dashboard/src/lib/api.ts` - Complete API client
+- `apps/erp-dashboard/src/lib/api.ts` - Complete API client
 - `PHASE_1_COMPLETION_REPORT.md` - Phase 1 documentation
 
 ---
@@ -82,9 +82,9 @@ All 6 phases of the Frontend Integration Roadmap have been successfully complete
 - Can easily upgrade to WebSocket later with Durable Objects
 
 ### Files Created
-- `apps/admin-dashboard/src/hooks/usePolling.ts`
-- `apps/admin-dashboard/src/hooks/useWarehouses.ts`
-- `apps/admin-dashboard/src/hooks/useInventory.ts`
+- `apps/erp-dashboard/src/hooks/usePolling.ts`
+- `apps/erp-dashboard/src/hooks/useWarehouses.ts`
+- `apps/erp-dashboard/src/hooks/useInventory.ts`
 
 ---
 
@@ -125,7 +125,7 @@ All 6 phases of the Frontend Integration Roadmap have been successfully complete
 | Dimensions must be positive and ≤200cm | `businessRules.product.validatePhysicalAttributes` | "Dimensions cannot exceed 200cm per side" |
 
 ### Files Created
-- `apps/admin-dashboard/src/lib/validation.ts` - Complete validation utilities
+- `apps/erp-dashboard/src/lib/validation.ts` - Complete validation utilities
 
 ---
 
@@ -289,15 +289,15 @@ const product = await fetch('/api/products/123');
 ### Frontend Changes
 
 **API Client**:
-- `apps/admin-dashboard/src/lib/api.ts` (UPDATED)
-- `apps/admin-dashboard/src/lib/validation.ts` (NEW)
+- `apps/erp-dashboard/src/lib/api.ts` (UPDATED)
+- `apps/erp-dashboard/src/lib/validation.ts` (NEW)
 
 **React Hooks**:
-- `apps/admin-dashboard/src/hooks/usePolling.ts` (NEW)
-- `apps/admin-dashboard/src/hooks/useWarehouses.ts` (NEW)
-- `apps/admin-dashboard/src/hooks/useInventory.ts` (NEW)
-- `apps/admin-dashboard/src/hooks/useProducts.ts` (EXISTING)
-- `apps/admin-dashboard/src/hooks/useCategories.ts` (EXISTING)
+- `apps/erp-dashboard/src/hooks/usePolling.ts` (NEW)
+- `apps/erp-dashboard/src/hooks/useWarehouses.ts` (NEW)
+- `apps/erp-dashboard/src/hooks/useInventory.ts` (NEW)
+- `apps/erp-dashboard/src/hooks/useProducts.ts` (EXISTING)
+- `apps/erp-dashboard/src/hooks/useCategories.ts` (EXISTING)
 
 ### Testing
 
@@ -458,7 +458,7 @@ cd services/product-service && wrangler deploy
 cd services/inventory-service && wrangler deploy
 
 # Deploy frontend
-cd apps/admin-dashboard && pnpm run build && pnpm run deploy
+cd apps/erp-dashboard && pnpm run build && pnpm run deploy
 ```
 
 ---

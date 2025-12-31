@@ -1,4 +1,4 @@
-# Admin Dashboard Console Investigation - Action Checklist
+# Real Time ERP Dashboard Console Investigation - Action Checklist
 
 **Related Document:** [ADMIN_DASHBOARD_CONSOLE_INVESTIGATION.md](./ADMIN_DASHBOARD_CONSOLE_INVESTIGATION.md)
 **Last Updated:** 2025-12-27
@@ -50,7 +50,7 @@ pnpm dev
 **Impact:** Accessibility & SEO
 
 **Files to Modify:**
-- [ ] `apps/admin-dashboard/src/routes/dashboard.tsx`
+- [ ] `apps/erp-dashboard/src/routes/dashboard.tsx`
 
 **Implementation:**
 ```tsx
@@ -218,8 +218,8 @@ app.use('/*', cors({
 **Impact:** Better developer experience
 
 **Files to Modify:**
-- [ ] `apps/admin-dashboard/src/main.tsx`
-- [ ] `apps/admin-dashboard/src/vite-env.d.ts`
+- [ ] `apps/erp-dashboard/src/main.tsx`
+- [ ] `apps/erp-dashboard/src/vite-env.d.ts`
 
 **Implementation:**
 ```typescript
@@ -259,7 +259,7 @@ interface Window {
 **Impact:** Better browser tab info
 
 **Files to Modify:**
-- [ ] `apps/admin-dashboard/index.html`
+- [ ] `apps/erp-dashboard/index.html`
 
 **Implementation:**
 ```html
@@ -271,13 +271,13 @@ interface Window {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <!-- Primary Meta Tags -->
-    <title>KidKazz - Admin Dashboard</title>
-    <meta name="title" content="KidKazz - Admin Dashboard">
+    <title>KidKazz - Real Time ERP Dashboard</title>
+    <meta name="title" content="KidKazz - Real Time ERP Dashboard">
     <meta name="description" content="Manage products, inventory, orders, and accounting for KidKazz wholesale business">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
-    <meta property="og:title" content="KidKazz Admin Dashboard">
+    <meta property="og:title" content="KidKazz Real Time ERP Dashboard">
     <meta property="og:description" content="Manage products, inventory, orders, and accounting">
 
     <!-- Robots (admin panel should NOT be indexed) -->

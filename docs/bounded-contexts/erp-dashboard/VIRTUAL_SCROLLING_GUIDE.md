@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide explains how to use virtual scrolling components for high-performance rendering of large datasets in the admin dashboard.
+This guide explains how to use virtual scrolling components for high-performance rendering of large datasets in the ERP dashboard.
 
 **Phase**: F5 - TanStack Virtual Integration (Complete)
 **Related**: Frontend Refactoring Roadmap Phase F5

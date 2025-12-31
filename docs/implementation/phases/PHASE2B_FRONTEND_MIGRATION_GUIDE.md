@@ -2,7 +2,7 @@
 
 ## Overview
 
-Phase 2B involves updating the admin dashboard frontend to use the new DDD-compliant stock endpoints from Inventory Service instead of the deprecated `product.stock` field.
+Phase 2B involves updating the ERP dashboard frontend to use the new DDD-compliant stock endpoints from Inventory Service instead of the deprecated `product.stock` field.
 
 **Status**: 🟡 In Progress
 **API Client**: ✅ Updated (commit 04c2303)
@@ -87,34 +87,34 @@ bundleApi.getAvailableStock(id: string, warehouseId?: string): Promise<BundleSto
 
 ### High Priority Files
 
-1. **`apps/admin-dashboard/src/routes/dashboard/products/all.tsx`**
+1. **`apps/erp-dashboard/src/routes/dashboard/products/all.tsx`**
    - **Lines**: 587, 601, 673, 749, 755, 896, 900, 938, 982, 1092, 1097, 1109, 1511, 1513, 1519, 1692, 1766, 2037, 2288, 2504, 2535, 2536, 2568, 2663
    - **Changes**: Replace `product.stock` with async stock fetch
    - **Estimated effort**: 4-6 hours
 
-2. **`apps/admin-dashboard/src/routes/dashboard/products/bundle.tsx`**
+2. **`apps/erp-dashboard/src/routes/dashboard/products/bundle.tsx`**
    - **Changes**: Replace `bundle.availableStock` with virtual calculation
    - **Estimated effort**: 2-3 hours
 
-3. **`apps/admin-dashboard/src/routes/dashboard/products/index.tsx`**
+3. **`apps/erp-dashboard/src/routes/dashboard/products/index.tsx`**
    - **Changes**: Update product list display
    - **Estimated effort**: 1-2 hours
 
-4. **`apps/admin-dashboard/src/routes/dashboard/products/variant.tsx`**
+4. **`apps/erp-dashboard/src/routes/dashboard/products/variant.tsx`**
    - **Changes**: Update variant stock display
    - **Estimated effort**: 1-2 hours
 
 ### Medium Priority Files
 
-5. **`apps/admin-dashboard/src/routes/dashboard/inventory/index.tsx`**
+5. **`apps/erp-dashboard/src/routes/dashboard/inventory/index.tsx`**
    - **Changes**: Update inventory reports
    - **Estimated effort**: 2-3 hours
 
-6. **`apps/admin-dashboard/src/routes/dashboard/inventory/expired-stock.tsx`**
+6. **`apps/erp-dashboard/src/routes/dashboard/inventory/expired-stock.tsx`**
    - **Changes**: Update expired stock report
    - **Estimated effort**: 1 hour
 
-7. **`apps/admin-dashboard/src/routes/dashboard/inventory/uom-conversion.tsx`**
+7. **`apps/erp-dashboard/src/routes/dashboard/inventory/uom-conversion.tsx`**
    - **Changes**: Update UOM stock display
    - **Estimated effort**: 1 hour
 
@@ -326,7 +326,7 @@ function ProductStockCell({ productId }: { productId: string }) {
 
 ## Specific File Changes
 
-### File: `apps/admin-dashboard/src/routes/dashboard/products/all.tsx`
+### File: `apps/erp-dashboard/src/routes/dashboard/products/all.tsx`
 
 #### Change 1: Product List Display (Line ~1519)
 
@@ -441,7 +441,7 @@ const totalStock = formMode === 'create'
 
 ---
 
-### File: `apps/admin-dashboard/src/routes/dashboard/products/bundle.tsx`
+### File: `apps/erp-dashboard/src/routes/dashboard/products/bundle.tsx`
 
 #### Change 1: Bundle List Display
 
@@ -726,7 +726,7 @@ const stock = stockData?.totalAvailable ?? product.stock ?? 0;
 
 ## Next Steps
 
-1. **Start with Product List Page** (`apps/admin-dashboard/src/routes/dashboard/products/all.tsx`)
+1. **Start with Product List Page** (`apps/erp-dashboard/src/routes/dashboard/products/all.tsx`)
    - Create `ProductStockDisplay` component
    - Replace `product.stock` references
    - Add loading states

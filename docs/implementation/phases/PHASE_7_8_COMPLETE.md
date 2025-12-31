@@ -175,15 +175,15 @@ All mutations include optimistic updates:
 ### Files Created/Modified
 
 **New Files**:
-- `apps/admin-dashboard/src/lib/query-client.ts` - Query configuration
-- `apps/admin-dashboard/src/hooks/useWebSocket.ts` - WebSocket hook
-- `apps/admin-dashboard/src/hooks/queries/useWarehouses.ts` - Warehouse hooks
-- `apps/admin-dashboard/src/hooks/queries/useInventory.ts` - Inventory hooks
-- `apps/admin-dashboard/src/hooks/queries/index.ts` - Hook exports
+- `apps/erp-dashboard/src/lib/query-client.ts` - Query configuration
+- `apps/erp-dashboard/src/hooks/useWebSocket.ts` - WebSocket hook
+- `apps/erp-dashboard/src/hooks/queries/useWarehouses.ts` - Warehouse hooks
+- `apps/erp-dashboard/src/hooks/queries/useInventory.ts` - Inventory hooks
+- `apps/erp-dashboard/src/hooks/queries/index.ts` - Hook exports
 
 **Modified Files**:
-- `apps/admin-dashboard/src/main.tsx` - Added QueryClientProvider
-- `apps/admin-dashboard/package.json` - Added @tanstack/react-query dependency
+- `apps/erp-dashboard/src/main.tsx` - Added QueryClientProvider
+- `apps/erp-dashboard/package.json` - Added @tanstack/react-query dependency
 
 ---
 
@@ -337,7 +337,7 @@ cd services/product-service
 npm run dev
 
 # Terminal 3: Frontend
-cd apps/admin-dashboard
+cd apps/erp-dashboard
 npm run dev
 ```
 
@@ -499,13 +499,13 @@ Both should pass 100% (16/16 tests).
 
 | File | Type | Description |
 |------|------|-------------|
-| `apps/admin-dashboard/src/lib/query-client.ts` | NEW | React Query configuration |
-| `apps/admin-dashboard/src/hooks/useWebSocket.ts` | NEW | WebSocket connection hook |
-| `apps/admin-dashboard/src/hooks/queries/useWarehouses.ts` | NEW | Warehouse React Query hooks |
-| `apps/admin-dashboard/src/hooks/queries/useInventory.ts` | NEW | Inventory React Query hooks |
-| `apps/admin-dashboard/src/hooks/queries/index.ts` | NEW | Hook exports |
-| `apps/admin-dashboard/src/main.tsx` | MODIFIED | Added QueryClientProvider |
-| `apps/admin-dashboard/package.json` | MODIFIED | Added @tanstack/react-query |
+| `apps/erp-dashboard/src/lib/query-client.ts` | NEW | React Query configuration |
+| `apps/erp-dashboard/src/hooks/useWebSocket.ts` | NEW | WebSocket connection hook |
+| `apps/erp-dashboard/src/hooks/queries/useWarehouses.ts` | NEW | Warehouse React Query hooks |
+| `apps/erp-dashboard/src/hooks/queries/useInventory.ts` | NEW | Inventory React Query hooks |
+| `apps/erp-dashboard/src/hooks/queries/index.ts` | NEW | Hook exports |
+| `apps/erp-dashboard/src/main.tsx` | MODIFIED | Added QueryClientProvider |
+| `apps/erp-dashboard/package.json` | MODIFIED | Added @tanstack/react-query |
 
 ### Documentation
 

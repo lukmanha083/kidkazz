@@ -1,12 +1,12 @@
-# kidkazz Admin Dashboard - Testing Workflow
+# kidkazz Real Time ERP Dashboard - Testing Workflow
 
-> Comprehensive testing checklist for admin dashboard functionality
+> Comprehensive testing checklist for ERP dashboard functionality
 
 ---
 
 ## 🎯 Testing Overview
 
-This document outlines all testing workflows for the kidkazz admin dashboard, including UI/UX testing, functionality testing, and future role-based access control scenarios.
+This document outlines all testing workflows for the kidkazz ERP dashboard, including UI/UX testing, functionality testing, and future role-based access control scenarios.
 
 ---
 
@@ -514,7 +514,7 @@ When implementing role-based access control, test the following:
 
 1. **Start Development Server**
    ```bash
-   cd apps/admin-dashboard
+   cd apps/erp-dashboard
    pnpm dev
    ```
 

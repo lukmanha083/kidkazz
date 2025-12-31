@@ -59,7 +59,7 @@ Body: {
 
 ### 2. Frontend Changes (Product Form)
 
-**File**: `/apps/admin-dashboard/src/routes/dashboard/products/all.tsx`
+**File**: `/apps/erp-dashboard/src/routes/dashboard/products/all.tsx`
 
 **Changes Needed**:
 1. Replace single warehouse selector with multi-warehouse table
@@ -92,7 +92,7 @@ Body: {
 
 ### 3. Bundle Warehouse Support
 
-**File**: `/apps/admin-dashboard/src/routes/dashboard/products/bundle.tsx`
+**File**: `/apps/erp-dashboard/src/routes/dashboard/products/bundle.tsx`
 
 **Backend Requirements**:
 - Add `warehouseId` field to bundle table
@@ -107,7 +107,7 @@ Body: {
 
 ### 4. Variant Warehouse Support
 
-**File**: `/apps/admin-dashboard/src/routes/dashboard/products/variant.tsx`
+**File**: `/apps/erp-dashboard/src/routes/dashboard/products/variant.tsx`
 
 **Backend Requirements**:
 - Add variant location table (similar to product locations)
@@ -122,7 +122,7 @@ Body: {
 
 ### 5. Inventory Report Updates
 
-**File**: `/apps/admin-dashboard/src/routes/dashboard/inventory/index.tsx`
+**File**: `/apps/erp-dashboard/src/routes/dashboard/inventory/index.tsx`
 
 **Changes**:
 1. Replace mock data with real API calls

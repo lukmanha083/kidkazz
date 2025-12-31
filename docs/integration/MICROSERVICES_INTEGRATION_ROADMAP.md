@@ -29,7 +29,7 @@ This document outlines the step-by-step process for integrating the frontend wit
                          │ HTTP
                          ▼
               ┌─────────────────────┐
-              │   Admin Dashboard   │
+              │   Real Time ERP Dashboard   │
               │     (Frontend)      │
               └──────────┬──────────┘
                          │ HTTP
@@ -1430,7 +1430,7 @@ export default {
 
 ### Update API Client
 
-**File:** `apps/admin-dashboard/src/lib/api.ts`
+**File:** `apps/erp-dashboard/src/lib/api.ts`
 
 ```typescript
 // Base URL points to API Gateway
@@ -1466,7 +1466,7 @@ export const inventoryApi = {
 
 ### Environment Configuration
 
-**File:** `apps/admin-dashboard/.env`
+**File:** `apps/erp-dashboard/.env`
 
 ```env
 # Points to API Gateway (single entry point)

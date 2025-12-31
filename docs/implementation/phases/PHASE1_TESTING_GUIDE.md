@@ -40,7 +40,7 @@ This guide provides step-by-step instructions for testing the Phase 1 critical f
 
 ### Steps:
 
-1. Navigate to Products page in admin dashboard
+1. Navigate to Products page in ERP dashboard
 2. Click "Add Product" button
 3. Fill in the product form:
    - Barcode: `TEST-EXP-001`
@@ -70,7 +70,7 @@ This guide provides step-by-step instructions for testing the Phase 1 critical f
 
 ### Steps:
 
-1. Navigate to Products page in admin dashboard
+1. Navigate to Products page in ERP dashboard
 2. Click "Add Product" button
 3. Fill in the product form:
    - Barcode: `TEST-EXP-002`
@@ -158,7 +158,7 @@ This guide provides step-by-step instructions for testing the Phase 1 critical f
    # Check the response JSON
    ```
 
-2. Verify in the admin dashboard:
+2. Verify in the ERP dashboard:
    - Navigate to Inventory page
    - Check that inventory records show the correct minimumStock values
    - These should match the minimumStock from the product records
@@ -250,7 +250,7 @@ This guide provides step-by-step instructions for testing the Phase 1 critical f
 
 **Solution:**
 - Clear browser cache
-- Verify the admin dashboard code was updated
+- Verify the ERP dashboard code was updated
 - Check browser console for JavaScript errors
 
 ---

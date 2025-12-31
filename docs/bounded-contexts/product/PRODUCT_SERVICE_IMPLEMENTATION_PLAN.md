@@ -5,7 +5,7 @@ Refactor existing product-service from basic implementation to full hexagonal ar
 
 ## Current State
 - `services/product-service/` exists with basic scaffolding
-- Frontend uses mock data in `apps/admin-dashboard`
+- Frontend uses mock data in `apps/erp-dashboard`
 - Monolithic `apps/backend` has product logic we need to migrate
 
 ## Goal
@@ -391,7 +391,7 @@ curl -X POST http://localhost:8787/api/products -d '{"name":"Test Product"}'
 **Task:** Point frontend to API Gateway
 
 ```typescript
-// apps/admin-dashboard/src/lib/api.ts
+// apps/erp-dashboard/src/lib/api.ts
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8787';
 
 export const productApi = {
@@ -450,8 +450,8 @@ export const productApi = {
 **Task:** Update product management pages to use real API
 
 **Files to update:**
-- `apps/admin-dashboard/src/routes/dashboard/products/index.tsx`
-- `apps/admin-dashboard/src/routes/dashboard/products/variant.tsx`
+- `apps/erp-dashboard/src/routes/dashboard/products/index.tsx`
+- `apps/erp-dashboard/src/routes/dashboard/products/variant.tsx`
 
 ```typescript
 // Example: Product list page

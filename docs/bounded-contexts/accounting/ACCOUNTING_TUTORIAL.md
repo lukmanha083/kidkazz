@@ -169,7 +169,7 @@ curl "http://localhost:8787/api/accounting/reports/balance-sheet?asOf=2024-11-18
 ### File Structure
 
 ```
-apps/admin-dashboard/src/routes/dashboard/accounting/
+apps/erp-dashboard/src/routes/dashboard/accounting/
 ├── index.tsx                    # Dashboard overview
 ├── chart-of-accounts.tsx       # COA management
 ├── journal-entries.tsx         # Journal entry list
@@ -186,7 +186,7 @@ Due to length constraints, here are the component templates. Use them as a start
 
 #### 1. Chart of Accounts Component
 
-**File:** `apps/admin-dashboard/src/routes/dashboard/accounting/chart-of-accounts.tsx`
+**File:** `apps/erp-dashboard/src/routes/dashboard/accounting/chart-of-accounts.tsx`
 
 **Key Features:**
 - List all accounts grouped by type
@@ -211,7 +211,7 @@ Liabilities (2000-2999)
 
 #### 2. Journal Entry Form Component
 
-**File:** `apps/admin-dashboard/src/routes/dashboard/accounting/journal-entry-form.tsx`
+**File:** `apps/erp-dashboard/src/routes/dashboard/accounting/journal-entry-form.tsx`
 
 **Key Features:**
 - Multi-line entry with add/remove lines
@@ -241,7 +241,7 @@ Lines:
 
 #### 3. General Ledger Component
 
-**File:** `apps/admin-dashboard/src/routes/dashboard/accounting/ledger.tsx`
+**File:** `apps/erp-dashboard/src/routes/dashboard/accounting/ledger.tsx`
 
 **Key Features:**
 - Select account to view
@@ -270,7 +270,7 @@ Closing Balance:                  $13,000
 
 #### 4. Income Statement Component
 
-**File:** `apps/admin-dashboard/src/routes/dashboard/accounting/reports/income-statement.tsx`
+**File:** `apps/erp-dashboard/src/routes/dashboard/accounting/reports/income-statement.tsx`
 
 **Key Features:**
 - Period selector (MTD, QTD, YTD, Custom)
@@ -310,7 +310,7 @@ NET INCOME                          $52,000  (25%)
 
 #### 5. Balance Sheet Component
 
-**File:** `apps/admin-dashboard/src/routes/dashboard/accounting/reports/balance-sheet.tsx`
+**File:** `apps/erp-dashboard/src/routes/dashboard/accounting/reports/balance-sheet.tsx`
 
 **Key Features:**
 - As-of date selector
@@ -555,7 +555,7 @@ const balance = await db
 - [Accounting Research Document](./ACCOUNTING_RESEARCH.md)
 - [Backend API Routes](../apps/backend/src/routes/accounting.ts)
 - [Database Schema](../apps/backend/src/db/schema.ts)
-- [API Client](../apps/admin-dashboard/src/lib/api.ts)
+- [API Client](../apps/erp-dashboard/src/lib/api.ts)
 
 ---
 

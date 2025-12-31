@@ -27,7 +27,7 @@ npm run dev
 
 ### Create Test Product
 
-In admin dashboard, create:
+In ERP dashboard, create:
 - **Barcode:** `TEST-REG-001`
 - **Name:** `Regular Location Test`
 - **SKU:** `REG-001`

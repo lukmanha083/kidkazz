@@ -120,7 +120,7 @@
 
 ## 🎨 Phase 2: Frontend Testing (Priority: MEDIUM)
 
-### Admin Dashboard - Product Management
+### Real Time ERP Dashboard - Product Management
 
 #### 4.1 Product List View
 - [ ] Display all products
@@ -159,7 +159,7 @@
 - [ ] Successful deletion
 - [ ] Error handling
 
-### Admin Dashboard - Warehouse Management
+### Real Time ERP Dashboard - Warehouse Management
 
 #### 5.1 Warehouse CRUD
 - [ ] List all warehouses
@@ -167,7 +167,7 @@
 - [ ] Edit warehouse details
 - [ ] Delete warehouse
 
-### Admin Dashboard - Inventory Management
+### Real Time ERP Dashboard - Inventory Management
 
 #### 6.1 Inventory View
 - [ ] View inventory levels by product

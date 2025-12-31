@@ -21,7 +21,7 @@ Wire the refactored Product Service and Inventory Service (DDD + tRPC architectu
   - Events: WarehouseCreated, InventoryCreated, InventoryAdjusted
 
 ### Frontend Current State
-- Location: `apps/admin-dashboard/`
+- Location: `apps/erp-dashboard/`
 - Framework: React + TanStack Router
 - API Client: `/src/lib/api.ts`
 - Features: Product management, Inventory management, Accounting
@@ -73,7 +73,7 @@ Wire the refactored Product Service and Inventory Service (DDD + tRPC architectu
 - [ ] Ensure type compatibility with frontend components
 
 **Files to Update:**
-- `apps/admin-dashboard/src/lib/api.ts`
+- `apps/erp-dashboard/src/lib/api.ts`
 
 ---
 
@@ -125,9 +125,9 @@ Wire the refactored Product Service and Inventory Service (DDD + tRPC architectu
 - [ ] Add React context for event subscriptions
 
 **Files to Create:**
-- `apps/admin-dashboard/src/lib/events.ts` - Event client
-- `apps/admin-dashboard/src/contexts/EventContext.tsx` - React context
-- `apps/admin-dashboard/src/hooks/useEventSubscription.ts` - React hook
+- `apps/erp-dashboard/src/lib/events.ts` - Event client
+- `apps/erp-dashboard/src/contexts/EventContext.tsx` - React context
+- `apps/erp-dashboard/src/hooks/useEventSubscription.ts` - React hook
 
 ---
 
@@ -151,8 +151,8 @@ Wire the refactored Product Service and Inventory Service (DDD + tRPC architectu
 - [ ] Handle optimistic updates vs event confirmations
 
 **Files to Update:**
-- Product pages: `apps/admin-dashboard/src/routes/dashboard/products/*`
-- Inventory pages: `apps/admin-dashboard/src/routes/dashboard/inventory/*`
+- Product pages: `apps/erp-dashboard/src/routes/dashboard/products/*`
+- Inventory pages: `apps/erp-dashboard/src/routes/dashboard/inventory/*`
 
 ---
 
@@ -286,8 +286,8 @@ Wire the refactored Product Service and Inventory Service (DDD + tRPC architectu
 - [ ] Load testing (optional)
 
 **Files to Create:**
-- `apps/admin-dashboard/e2e/product-workflow.spec.ts`
-- `apps/admin-dashboard/e2e/inventory-workflow.spec.ts`
+- `apps/erp-dashboard/e2e/product-workflow.spec.ts`
+- `apps/erp-dashboard/e2e/inventory-workflow.spec.ts`
 
 ---
 

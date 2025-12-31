@@ -1,16 +1,16 @@
-# Admin Dashboard - Browser Console Investigation Report
+# Real Time ERP Dashboard - Browser Console Investigation Report
 
 **Document Version:** 1.1
 **Investigation Date:** 2025-12-27
 **Last Updated:** 2025-12-29
-**Application:** KidKazz Admin Dashboard
+**Application:** KidKazz Real Time ERP Dashboard
 **Environment:** Development (Vite + React)
 
 ---
 
 ## Executive Summary
 
-Investigation of the KidKazz Admin Dashboard revealed **no critical errors** in the console. The application is functioning properly with all network requests completing successfully (HTTP 200 status). However, several optimization opportunities and potential issues have been identified for future improvement.
+Investigation of the KidKazz Real Time ERP Dashboard revealed **no critical errors** in the console. The application is functioning properly with all network requests completing successfully (HTTP 200 status). However, several optimization opportunities and potential issues have been identified for future improvement.
 
 ### Overall Health Status: ✅ HEALTHY
 
@@ -37,7 +37,7 @@ The page structure lacks a `<main>` HTML element. The content is not wrapped in 
 
 #### Solutions
 
-**File to modify:** `apps/admin-dashboard/src/routes/dashboard.tsx`
+**File to modify:** `apps/erp-dashboard/src/routes/dashboard.tsx`
 
 ```tsx
 function DashboardLayout() {
@@ -84,7 +84,7 @@ TanStack Router and Query Client instances are not exposed to the window object,
 
 #### Solutions
 
-**File to modify:** `apps/admin-dashboard/src/main.tsx`
+**File to modify:** `apps/erp-dashboard/src/main.tsx`
 
 ```typescript
 import { router } from './router';
@@ -308,7 +308,7 @@ if (import.meta.env.DEV) {
 **Responsive table improvements:**
 
 ```css
-/* apps/admin-dashboard/src/components/ui/data-table/data-table.css */
+/* apps/erp-dashboard/src/components/ui/data-table/data-table.css */
 
 @media (max-width: 768px) {
   /* Reduce font size on mobile */
@@ -342,7 +342,7 @@ if (import.meta.env.DEV) {
 **Mobile drawer improvements:**
 
 ```tsx
-// apps/admin-dashboard/src/routes/dashboard.tsx
+// apps/erp-dashboard/src/routes/dashboard.tsx
 
 <DrawerContent
   side={isMobile ? "bottom" : "right"}
@@ -382,7 +382,7 @@ const breakpoints = {
 
 #### Solutions
 
-**File to modify:** `apps/admin-dashboard/index.html`
+**File to modify:** `apps/erp-dashboard/index.html`
 
 ```html
 <!DOCTYPE html>
@@ -393,13 +393,13 @@ const breakpoints = {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <!-- Primary Meta Tags -->
-    <title>KidKazz - Admin Dashboard</title>
-    <meta name="title" content="KidKazz - Admin Dashboard">
+    <title>KidKazz - Real Time ERP Dashboard</title>
+    <meta name="title" content="KidKazz - Real Time ERP Dashboard">
     <meta name="description" content="Manage products, inventory, orders, and accounting for KidKazz wholesale business">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
-    <meta property="og:title" content="KidKazz Admin Dashboard">
+    <meta property="og:title" content="KidKazz Real Time ERP Dashboard">
     <meta property="og:description" content="Manage products, inventory, orders, and accounting">
 
     <!-- Robots -->
@@ -480,7 +480,7 @@ const breakpoints = {
 ### 🔴 High Priority
 
 1. **Add semantic `<main>` element for accessibility compliance**
-   - File: `apps/admin-dashboard/src/routes/dashboard.tsx`
+   - File: `apps/erp-dashboard/src/routes/dashboard.tsx`
    - Estimated effort: 15 minutes
    - Impact: High (accessibility & SEO)
 
@@ -504,12 +504,12 @@ const breakpoints = {
 ### 🟢 Low Priority
 
 5. **Expose dev-only window references for debugging**
-   - File: `apps/admin-dashboard/src/main.tsx`
+   - File: `apps/erp-dashboard/src/main.tsx`
    - Estimated effort: 30 minutes
    - Impact: Low (developer experience)
 
 6. **Add SEO meta tags**
-   - File: `apps/admin-dashboard/index.html`
+   - File: `apps/erp-dashboard/index.html`
    - Estimated effort: 15 minutes
    - Impact: Low (SEO)
 
@@ -522,7 +522,7 @@ const breakpoints = {
 
 ## Conclusion
 
-The **KidKazz Admin Dashboard is stable and functioning well** with no critical console errors. The application properly handles all API calls, network requests, and routing.
+The **KidKazz Real Time ERP Dashboard is stable and functioning well** with no critical console errors. The application properly handles all API calls, network requests, and routing.
 
 ### Key Findings
 
@@ -546,7 +546,7 @@ The recommended improvements focus on **accessibility, performance optimization,
 ## Related Documentation
 
 - [UI Design Guideline](./UI_DESIGN_GUIDELINE.md) - Includes component library status and migration history
-- [Admin Dashboard Responsive Design Plan](./ADMIN_DASHBOARD_RESPONSIVE_DESIGN_PLAN.md)
+- [Real Time ERP Dashboard Responsive Design Plan](./ADMIN_DASHBOARD_RESPONSIVE_DESIGN_PLAN.md)
 - [Frontend Architecture](../bounded-contexts/frontend/FRONTEND_ARCHITECTURE.md)
 
 ---

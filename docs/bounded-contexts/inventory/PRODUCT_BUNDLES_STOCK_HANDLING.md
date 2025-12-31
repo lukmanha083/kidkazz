@@ -301,13 +301,13 @@ Since your system supports both retail (Baby Kidkazz) and wholesale:
 **Phase 2A: Virtual Bundles (High Priority)**
 - Remove `availableStock` from `productBundles` schema
 - Add `GET /api/bundles/:id/available-stock` endpoint
-- Update admin dashboard to show calculated stock
+- Update ERP dashboard to show calculated stock
 - Update Order Service to deduct components when bundle sold
 
 **Phase 3B: Physical Bundles (Low Priority)**
 - Add `POST /api/bundles/:id/assemble` endpoint
 - Add `POST /api/bundles/:id/disassemble` endpoint
-- Add assembly workflow to admin dashboard
+- Add assembly workflow to ERP dashboard
 - Track bundle as separate inventory item
 
 ---
@@ -328,7 +328,7 @@ app.get('/:id/available-stock', async (c) => {
 });
 ```
 
-### Step 3: Update admin dashboard
+### Step 3: Update ERP dashboard
 ```typescript
 // Instead of bundle.availableStock, call:
 const response = await fetch(`/api/bundles/${bundleId}/available-stock`);
@@ -405,7 +405,7 @@ Inventory Service
    - Update Order Service to deduct components
 4. **Add to Phase 3 roadmap** (optional):
    - Implement physical assembly endpoints
-   - Add assembly UI to admin dashboard
+   - Add assembly UI to ERP dashboard
 
 ---
 
