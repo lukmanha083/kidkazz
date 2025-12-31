@@ -268,15 +268,15 @@ function WarehouseManagementPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Warehouse Management</h1>
           <p className="text-muted-foreground mt-1">
             Manage warehouse locations and inventory centers
           </p>
         </div>
-        <Button onClick={handleAddWarehouse}>
-          <Plus className="mr-2 h-4 w-4" />
+        <Button onClick={handleAddWarehouse} className="gap-2 self-start sm:self-auto">
+          <Plus className="h-4 w-4" />
           Add Warehouse
         </Button>
       </div>
@@ -332,7 +332,7 @@ function WarehouseManagementPage() {
             columns={columns}
             data={warehouses}
             searchKey="name"
-            searchPlaceholder="Search warehouses..."
+            searchPlaceholder="Search by name, code, location..."
             isLoading={isLoading}
             onRowClick={handleViewWarehouse}
             filterableColumns={[
@@ -359,7 +359,7 @@ function WarehouseManagementPage() {
               {/* Basic Information */}
               <div className="space-y-4">
                 <h3 className="font-semibold text-sm text-muted-foreground uppercase">Basic Information</h3>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">Warehouse Code</p>
                     <p className="font-mono font-medium">{selectedWarehouse.code}</p>
@@ -390,7 +390,7 @@ function WarehouseManagementPage() {
                     <p className="font-medium">{selectedWarehouse.addressLine2}</p>
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">City</p>
                     <p className="font-medium">{selectedWarehouse.city}</p>
@@ -400,7 +400,7 @@ function WarehouseManagementPage() {
                     <p className="font-medium">{selectedWarehouse.province}</p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">Postal Code</p>
                     <p className="font-mono font-medium">{selectedWarehouse.postalCode}</p>
@@ -432,13 +432,15 @@ function WarehouseManagementPage() {
           )}
 
           <DrawerFooter>
-            <Button onClick={() => selectedWarehouse && handleEditWarehouse(selectedWarehouse)}>
-              <Edit className="h-4 w-4 mr-2" />
-              Edit Warehouse
-            </Button>
-            <DrawerClose asChild>
-              <Button variant="outline">Close</Button>
-            </DrawerClose>
+            <div className="flex flex-col sm:flex-row gap-2 w-full">
+              <Button onClick={() => selectedWarehouse && handleEditWarehouse(selectedWarehouse)} className="w-full sm:w-auto">
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Warehouse
+              </Button>
+              <DrawerClose asChild>
+                <Button variant="outline" className="w-full sm:w-auto">Close</Button>
+              </DrawerClose>
+            </div>
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
@@ -465,7 +467,7 @@ function WarehouseManagementPage() {
             }}
             className="flex-1 overflow-y-auto p-4 space-y-4"
           >
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <form.Field name="code">
                 {(field) => (
                   <div className="space-y-2">
@@ -542,7 +544,7 @@ function WarehouseManagementPage() {
               )}
             </form.Field>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <form.Field name="city">
                 {(field) => (
                   <div className="space-y-2">
@@ -584,7 +586,7 @@ function WarehouseManagementPage() {
               </form.Field>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <form.Field name="postalCode">
                 {(field) => (
                   <div className="space-y-2">
@@ -626,7 +628,7 @@ function WarehouseManagementPage() {
               </form.Field>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <form.Field name="contactName">
                 {(field) => (
                   <div className="space-y-2">
@@ -698,25 +700,27 @@ function WarehouseManagementPage() {
             </form.Field>
 
             <DrawerFooter className="px-0">
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={form.state.isSubmitting || !form.state.canSubmit}
-              >
-                {form.state.isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    {formMode === 'add' ? 'Creating...' : 'Updating...'}
-                  </>
-                ) : (
-                  formMode === 'add' ? 'Create Warehouse' : 'Update Warehouse'
-                )}
-              </Button>
-              <DrawerClose asChild>
-                <Button type="button" variant="outline" className="w-full">
-                  Cancel
+              <div className="flex flex-col sm:flex-row gap-2 w-full">
+                <Button
+                  type="submit"
+                  className="w-full sm:w-auto"
+                  disabled={form.state.isSubmitting || !form.state.canSubmit}
+                >
+                  {form.state.isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      {formMode === 'add' ? 'Creating...' : 'Updating...'}
+                    </>
+                  ) : (
+                    formMode === 'add' ? 'Create Warehouse' : 'Update Warehouse'
+                  )}
                 </Button>
-              </DrawerClose>
+                <DrawerClose asChild>
+                  <Button type="button" variant="outline" className="w-full sm:w-auto">
+                    Cancel
+                  </Button>
+                </DrawerClose>
+              </div>
             </DrawerFooter>
           </form>
         </DrawerContent>

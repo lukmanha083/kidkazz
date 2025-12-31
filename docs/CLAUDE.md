@@ -206,6 +206,25 @@ inventory.version  // Incremented on every update
 
 ## Common Tasks: Where to Look
 
+### Task: Create New Frontend Feature/UI Component
+1. **Read First**: `docs/guides/UI_DESIGN_GUIDELINE.md` - **MANDATORY**
+2. **Review**: Responsive design patterns section (comprehensive checklist)
+3. **Key Concepts**:
+   - Standard Tailwind breakpoints (sm:, md:, lg:, xl:)
+   - Button patterns (page headers, drawer footers)
+   - Card/grid layouts (responsive grids)
+   - Table column visibility (hide non-essential on mobile)
+   - Search component (global search, compact width)
+   - Form layouts (responsive grids)
+   - Drawer positioning (left for forms, right for details)
+4. **Follow Checklist**:
+   - Page header buttons: `self-start sm:self-auto`
+   - Stat cards: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-X`
+   - Table columns: `hidden lg:table-cell` for non-essential
+   - Form grids: `grid-cols-1 sm:grid-cols-2`
+   - Drawer buttons: `flex flex-col sm:flex-row gap-2 w-full`
+5. **Test**: Multiple breakpoints (320px, 375px, 768px, 1024px, 1440px)
+
 ### Task: Implement Phase 7 (Inter-Warehouse Transfer)
 1. **Read First**: `docs/ddd/DDD_REFACTORING_ROADMAP.md` (lines 1101-2399)
 2. **Review**: Workflow diagram, state machine, schema design
@@ -429,6 +448,7 @@ wrangler d1 execute kidkazz-db --file=services/inventory-service/migrations/0006
 - [Inventory Integration Testing](testing/INVENTORY_INTEGRATION_TESTING.md)
 
 ### For Frontend Work
+- ⭐ [UI Design Guideline](guides/UI_DESIGN_GUIDELINE.md) - **MUST READ** for all frontend features
 - [Frontend Architecture](bounded-contexts/frontend/FRONTEND_ARCHITECTURE.md)
 - [Frontend Refactoring Roadmap](bounded-contexts/frontend/FRONTEND_REFACTORING_ROADMAP.md)
 - [Phase 2B Migration Guide](implementation/phases/PHASE2B_FRONTEND_MIGRATION_GUIDE.md)

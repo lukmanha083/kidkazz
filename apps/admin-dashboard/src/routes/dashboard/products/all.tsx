@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useForm } from '@tanstack/react-form';
-import { zodValidator } from '@tanstack/zod-form-adapter';
+import { useForm } from "@tanstack/react-form";
+import { zodValidator } from "@tanstack/zod-form-adapter";
 import { toast } from "sonner";
 import {
 	Card,
@@ -64,7 +64,7 @@ import {
 	productUOMLocationApi,
 	variantLocationApi,
 } from "@/lib/api";
-import { productFormSchema, type ProductFormData } from '@/lib/form-schemas';
+import { productFormSchema, type ProductFormData } from "@/lib/form-schemas";
 import {
 	createBaseUnitUOM,
 	buildProductPayload,
@@ -75,16 +75,14 @@ import {
 	createProductWarehouseLocations,
 	syncProductWarehouseLocations,
 	validateStockConsistencyWithToast,
-} from '@/lib/product-form-utils';
+} from "@/lib/product-form-utils";
 import { ImageGallery } from "@/components/ImageGallery";
 import { VideoGallery } from "@/components/VideoGallery";
 import {
 	ProductWarehouseAllocation,
 	type WarehouseAllocation,
 } from "@/components/products/ProductWarehouseAllocation";
-import {
-	type UOMWarehouseAllocation,
-} from "@/components/products/ProductUOMWarehouseAllocation";
+import { type UOMWarehouseAllocation } from "@/components/products/ProductUOMWarehouseAllocation";
 import {
 	WarehouseDetailModal,
 	type WarehouseStockDetail,
@@ -92,7 +90,10 @@ import {
 import { PhysicalDimensionsSection } from "@/components/products/PhysicalDimensionsSection";
 import { ProductExpirationSection } from "@/components/products/ProductExpirationSection";
 import { ProductUOMManagementSection } from "@/components/products/ProductUOMManagementSection";
-import { useUOMManagement, type ProductUOMWithStock } from "@/hooks/useUOMManagement";
+import {
+	useUOMManagement,
+	type ProductUOMWithStock,
+} from "@/hooks/useUOMManagement";
 import { useAsyncValidation } from "@/hooks/useAsyncValidation";
 import { validationApi } from "@/lib/validation-api";
 import { productListSearchSchema } from "@/lib/route-search-schemas";
@@ -293,16 +294,16 @@ function AllProductsPage() {
 	// TanStack Form for product management (DDD compliant - NO stock fields)
 	const form = useForm({
 		defaultValues: {
-			barcode: '',
-			name: '',
-			sku: '',
-			description: '',
-			image: '',
-			categoryId: '',
+			barcode: "",
+			name: "",
+			sku: "",
+			description: "",
+			image: "",
+			categoryId: "",
 			price: 0,
 			retailPrice: null,
 			wholesalePrice: null,
-			baseUnit: 'PCS',
+			baseUnit: "PCS",
 			wholesaleThreshold: 10,
 			minimumOrderQuantity: 1,
 			weight: null,
@@ -314,14 +315,14 @@ function AllProductsPage() {
 			availableForRetail: true,
 			availableForWholesale: false,
 			// Phase 3: Updated to match ProductStatus enum
-			status: 'offline sales' as const,
+			status: "offline sales" as const,
 			isBundle: false,
 			expirationDate: null,
 			alertDate: null,
-			rack: '',
-			bin: '',
-			zone: '',
-			aisle: '',
+			rack: "",
+			bin: "",
+			zone: "",
+			aisle: "",
 		} as ProductFormData,
 		validatorAdapter: zodValidator(),
 		validators: {
@@ -338,7 +339,9 @@ function AllProductsPage() {
 
 	// Phase 5: Async validation hooks with debouncing
 	const skuValidation = useAsyncValidation(validationApi.checkSKUUnique);
-	const barcodeValidation = useAsyncValidation(validationApi.checkBarcodeUnique);
+	const barcodeValidation = useAsyncValidation(
+		validationApi.checkBarcodeUnique,
+	);
 
 	// Warehouse allocations state
 	const [warehouseAllocations, setWarehouseAllocations] = useState<
@@ -535,17 +538,17 @@ function AllProductsPage() {
 						const productLocationsData = await productLocationApi.getByProduct(
 							product.id,
 						);
-						formattedAllocations = (
-							productLocationsData.locations || []
-						).map((location: any) => ({
-							warehouseId: location.warehouseId,
-							quantity: location.quantity || 0,
-							minimumStock: location.minimumStock || 0,
-							rack: location.rack || "",
-							bin: location.bin || "",
-							zone: location.zone || "",
-							aisle: location.aisle || "",
-						}));
+						formattedAllocations = (productLocationsData.locations || []).map(
+							(location: any) => ({
+								warehouseId: location.warehouseId,
+								quantity: location.quantity || 0,
+								minimumStock: location.minimumStock || 0,
+								rack: location.rack || "",
+								bin: location.bin || "",
+								zone: location.zone || "",
+								aisle: location.aisle || "",
+							}),
+						);
 						setWarehouseAllocations(formattedAllocations);
 					} catch (error) {
 						console.error("Failed to fetch product locations:", error);
@@ -553,28 +556,31 @@ function AllProductsPage() {
 					}
 
 					// Update TanStack Form with product data
-					form.setFieldValue('barcode', product.barcode);
-					form.setFieldValue('name', product.name);
-					form.setFieldValue('sku', product.sku);
-					form.setFieldValue('description', product.description || '');
-					form.setFieldValue('categoryId', product.categoryId || '');
-					form.setFieldValue('price', product.price);
-					form.setFieldValue('baseUnit', product.baseUnit || 'PCS');
-					form.setFieldValue('wholesaleThreshold', product.wholesaleThreshold || 12);
+					form.setFieldValue("barcode", product.barcode);
+					form.setFieldValue("name", product.name);
+					form.setFieldValue("sku", product.sku);
+					form.setFieldValue("description", product.description || "");
+					form.setFieldValue("categoryId", product.categoryId || "");
+					form.setFieldValue("price", product.price);
+					form.setFieldValue("baseUnit", product.baseUnit || "PCS");
+					form.setFieldValue(
+						"wholesaleThreshold",
+						product.wholesaleThreshold || 12,
+					);
 					// Phase 3: Updated type cast to match ProductStatus enum
-					form.setFieldValue('status', product.status);
-					form.setFieldValue('weight', product.weight);
-					form.setFieldValue('length', product.length);
-					form.setFieldValue('width', product.width);
-					form.setFieldValue('height', product.height);
+					form.setFieldValue("status", product.status);
+					form.setFieldValue("weight", product.weight);
+					form.setFieldValue("length", product.length);
+					form.setFieldValue("width", product.width);
+					form.setFieldValue("height", product.height);
 					// Initialize expiration/location fields from warehouse allocations loaded above
 					const firstLocation = formattedAllocations[0];
-					form.setFieldValue('expirationDate', null);
-					form.setFieldValue('alertDate', null);
-					form.setFieldValue('rack', firstLocation?.rack || '');
-					form.setFieldValue('bin', firstLocation?.bin || '');
-					form.setFieldValue('zone', firstLocation?.zone || '');
-					form.setFieldValue('aisle', firstLocation?.aisle || '');
+					form.setFieldValue("expirationDate", null);
+					form.setFieldValue("alertDate", null);
+					form.setFieldValue("rack", firstLocation?.rack || "");
+					form.setFieldValue("bin", firstLocation?.bin || "");
+					form.setFieldValue("zone", firstLocation?.zone || "");
+					form.setFieldValue("aisle", firstLocation?.aisle || "");
 
 					setFormDrawerOpen(true);
 				},
@@ -734,12 +740,13 @@ function AllProductsPage() {
 
 		// Auto-generate SKU when both category and name are available
 		if (formMode === "add" || !form.state.values.sku) {
-			const categoryId = field === "categoryId" ? value : form.state.values.categoryId;
+			const categoryId =
+				field === "categoryId" ? value : form.state.values.categoryId;
 			const name = field === "name" ? value : form.state.values.name;
 
 			if (categoryId && name) {
 				const sku = generateSKU(categoryId, name);
-				form.setFieldValue('sku', sku);
+				form.setFieldValue("sku", sku);
 			}
 		}
 	};
@@ -847,31 +854,40 @@ function AllProductsPage() {
 		const firstLocation = fullProduct.productLocations?.[0];
 
 		// Update TanStack Form values
-		form.setFieldValue('barcode', fullProduct.barcode);
-		form.setFieldValue('name', fullProduct.name);
-		form.setFieldValue('sku', fullProduct.sku);
-		form.setFieldValue('description', fullProduct.description || '');
-		form.setFieldValue('categoryId', fullProduct.categoryId || '');
-		form.setFieldValue('price', fullProduct.price);
-		form.setFieldValue('baseUnit', fullProduct.baseUnit);
-		form.setFieldValue('wholesaleThreshold', fullProduct.wholesaleThreshold);
-		form.setFieldValue('status', fullProduct.status as 'active' | 'inactive' | 'omnichannel sales');
-		form.setFieldValue('weight', fullProduct.weight);
-		form.setFieldValue('length', fullProduct.length);
-		form.setFieldValue('width', fullProduct.width);
-		form.setFieldValue('height', fullProduct.height);
-		form.setFieldValue('availableForRetail', fullProduct.availableForRetail);
-		form.setFieldValue('availableForWholesale', fullProduct.availableForWholesale);
-		form.setFieldValue('minimumOrderQuantity', fullProduct.minimumOrderQuantity || 1);
+		form.setFieldValue("barcode", fullProduct.barcode);
+		form.setFieldValue("name", fullProduct.name);
+		form.setFieldValue("sku", fullProduct.sku);
+		form.setFieldValue("description", fullProduct.description || "");
+		form.setFieldValue("categoryId", fullProduct.categoryId || "");
+		form.setFieldValue("price", fullProduct.price);
+		form.setFieldValue("baseUnit", fullProduct.baseUnit);
+		form.setFieldValue("wholesaleThreshold", fullProduct.wholesaleThreshold);
+		form.setFieldValue(
+			"status",
+			fullProduct.status as "active" | "inactive" | "omnichannel sales",
+		);
+		form.setFieldValue("weight", fullProduct.weight);
+		form.setFieldValue("length", fullProduct.length);
+		form.setFieldValue("width", fullProduct.width);
+		form.setFieldValue("height", fullProduct.height);
+		form.setFieldValue("availableForRetail", fullProduct.availableForRetail);
+		form.setFieldValue(
+			"availableForWholesale",
+			fullProduct.availableForWholesale,
+		);
+		form.setFieldValue(
+			"minimumOrderQuantity",
+			fullProduct.minimumOrderQuantity || 1,
+		);
 
 		// Update expiration/alert date fields (now in TanStack form)
-		form.setFieldValue('expirationDate', fullProduct.expirationDate || null);
-		form.setFieldValue('alertDate', fullProduct.alertDate || null);
+		form.setFieldValue("expirationDate", fullProduct.expirationDate || null);
+		form.setFieldValue("alertDate", fullProduct.alertDate || null);
 		// Update location fields (now in TanStack form)
-		form.setFieldValue('rack', firstLocation?.rack || '');
-		form.setFieldValue('bin', firstLocation?.bin || '');
-		form.setFieldValue('zone', firstLocation?.zone || '');
-		form.setFieldValue('aisle', firstLocation?.aisle || '');
+		form.setFieldValue("rack", firstLocation?.rack || "");
+		form.setFieldValue("bin", firstLocation?.bin || "");
+		form.setFieldValue("zone", firstLocation?.zone || "");
+		form.setFieldValue("aisle", firstLocation?.aisle || "");
 		uomManagement.setProductUOMs(fullProduct.productUOMs || []);
 		uomManagement.resetUOMInputs();
 
@@ -1002,7 +1018,7 @@ function AllProductsPage() {
 			uomManagement.productUOMs,
 			availableUOMs,
 			uomManagement.calculateAllocatedPCS,
-			selectedProduct?.id
+			selectedProduct?.id,
 		);
 
 		// 3. Build product payload (DDD compliant)
@@ -1029,7 +1045,7 @@ function AllProductsPage() {
 						const uomCodeMap = await syncProductUOMsAdd(
 							createdProduct.id,
 							finalProductUOMs,
-							uomApi
+							uomApi,
 						);
 
 						// Fetch the created product to get the actual UOM IDs
@@ -1046,7 +1062,7 @@ function AllProductsPage() {
 								uomCodeMap,
 								createdProductWithUOMs.productUOMs,
 								uomManagement.uomWarehouseAllocations,
-								productUOMLocationApi
+								productUOMLocationApi,
 							);
 						}
 					} catch (uomError: any) {
@@ -1064,7 +1080,7 @@ function AllProductsPage() {
 						await createProductWarehouseLocations(
 							createdProduct.id,
 							warehouseAllocations,
-							productLocationApi
+							productLocationApi,
 						);
 					} catch (locationError) {
 						console.error("Failed to create product locations:", locationError);
@@ -1097,7 +1113,7 @@ function AllProductsPage() {
 							selectedProduct.id,
 							finalProductUOMs,
 							existingUOMs,
-							uomApi
+							uomApi,
 						);
 
 						// Sync UOM warehouse locations
@@ -1106,7 +1122,7 @@ function AllProductsPage() {
 							finalProductUOMs,
 							uomManagement.uomWarehouseAllocations,
 							productApi,
-							productUOMLocationApi
+							productUOMLocationApi,
 						);
 					} catch (uomError: any) {
 						console.error("Failed to sync product UOMs:", uomError);
@@ -1125,7 +1141,7 @@ function AllProductsPage() {
 						selectedProduct.id,
 						warehouseAllocations,
 						existingLocations,
-						productLocationApi
+						productLocationApi,
 					);
 				} catch (locationError) {
 					console.error("Failed to sync product locations:", locationError);
@@ -1144,7 +1160,7 @@ function AllProductsPage() {
 					selectedProduct.id,
 					productApi,
 					queryClient,
-					queryKeys
+					queryKeys,
 				);
 
 				queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
@@ -1157,7 +1173,8 @@ function AllProductsPage() {
 					toast.success("Product updated successfully");
 				} else {
 					toast.success("Product updated successfully (with stock warnings)", {
-						description: "Check the validation warnings and update stock levels if needed"
+						description:
+							"Check the validation warnings and update stock levels if needed",
 					});
 				}
 				setFormDrawerOpen(false);
@@ -1210,14 +1227,17 @@ function AllProductsPage() {
 	return (
 		<div className="space-y-6">
 			{/* Page Header */}
-			<div className="flex items-center justify-between">
+			<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
 				<div>
 					<h1 className="text-3xl font-bold tracking-tight">Products</h1>
 					<p className="text-muted-foreground mt-1">
 						Manage your product inventory and catalog
 					</p>
 				</div>
-				<Button onClick={handleAddProduct} className="gap-2">
+				<Button
+					onClick={handleAddProduct}
+					className="gap-2 self-start sm:self-auto"
+				>
 					<Plus className="h-4 w-4" />
 					Add Product
 				</Button>
@@ -1236,7 +1256,7 @@ function AllProductsPage() {
 						columns={columns}
 						data={productsWithStock}
 						searchKey="name"
-						searchPlaceholder="Search products..."
+						searchPlaceholder="Search by name, barcode, SKU, price..."
 						isLoading={isLoading}
 						enableColumnVisibility
 						filterableColumns={[
@@ -1248,10 +1268,45 @@ function AllProductsPage() {
 							{
 								id: "category",
 								title: "Category",
-								options: categories.map((c) => ({
-									label: c.name,
-									value: c.name,
-								})),
+								options: (() => {
+									// Build hierarchical list: parents followed by their children
+									const result: Array<{
+										label: string;
+										value: string;
+										children?: string[];
+										parentValue?: string;
+									}> = [];
+
+									// Get root categories (no parent)
+									const rootCategories = categories.filter((c) => !c.parentId);
+
+									// For each root category, add it and then its children
+									rootCategories.forEach((parent) => {
+										// Find children of this category
+										const children = categories.filter(
+											(child) => child.parentId === parent.id,
+										);
+										const childNames = children.map((child) => child.name);
+
+										// Add parent
+										result.push({
+											label: parent.name,
+											value: parent.name,
+											children: childNames.length > 0 ? childNames : undefined,
+										});
+
+										// Add children immediately after parent
+										children.forEach((child) => {
+											result.push({
+												label: child.name,
+												value: child.name,
+												parentValue: parent.name,
+											});
+										});
+									});
+
+									return result;
+								})(),
 							},
 						]}
 					/>
@@ -1964,17 +2019,22 @@ function AllProductsPage() {
 					)}
 
 					<DrawerFooter>
-						<Button
-							onClick={() =>
-								selectedProduct && handleEditProduct(selectedProduct)
-							}
-						>
-							<Edit className="h-4 w-4 mr-2" />
-							Edit Product
-						</Button>
-						<DrawerClose asChild>
-							<Button variant="outline">Close</Button>
-						</DrawerClose>
+						<div className="flex flex-col sm:flex-row gap-2 w-full">
+							<Button
+								onClick={() =>
+									selectedProduct && handleEditProduct(selectedProduct)
+								}
+								className="w-full sm:w-auto"
+							>
+								<Edit className="h-4 w-4 mr-2" />
+								Edit Product
+							</Button>
+							<DrawerClose asChild>
+								<Button variant="outline" className="w-full sm:w-auto">
+									Close
+								</Button>
+							</DrawerClose>
+						</div>
 					</DrawerFooter>
 				</DrawerContent>
 			</Drawer>
@@ -2022,16 +2082,19 @@ function AllProductsPage() {
 												value={field.state.value}
 												onChange={(e) => {
 													field.handleChange(e.target.value);
-													barcodeValidation.validate(e.target.value, selectedProduct?.id);
+													barcodeValidation.validate(
+														e.target.value,
+														selectedProduct?.id,
+													);
 												}}
 												onBlur={field.handleBlur}
 												required
 												className={
 													barcodeValidation.isValid === false
-														? 'border-destructive pr-9'
+														? "border-destructive pr-9"
 														: barcodeValidation.isValid === true
-														? 'border-green-500 pr-9'
-														: ''
+															? "border-green-500 pr-9"
+															: ""
 												}
 											/>
 											{/* Phase 5: Async validation feedback icons */}
@@ -2053,7 +2116,10 @@ function AllProductsPage() {
 												const newBarcode = generateUniqueBarcode();
 												if (newBarcode) {
 													field.handleChange(newBarcode);
-													barcodeValidation.validate(newBarcode, selectedProduct?.id);
+													barcodeValidation.validate(
+														newBarcode,
+														selectedProduct?.id,
+													);
 													toast.success("Barcode generated");
 												}
 											}}
@@ -2076,11 +2142,13 @@ function AllProductsPage() {
 									</div>
 									{field.state.meta.errors.length > 0 && (
 										<p className="text-sm text-destructive">
-											{field.state.meta.errors.map(getErrorMessage).join(', ')}
+											{field.state.meta.errors.map(getErrorMessage).join(", ")}
 										</p>
 									)}
 									{barcodeValidation.error && (
-										<p className="text-sm text-destructive">{barcodeValidation.error}</p>
+										<p className="text-sm text-destructive">
+											{barcodeValidation.error}
+										</p>
 									)}
 								</div>
 							)}
@@ -2094,13 +2162,15 @@ function AllProductsPage() {
 										id={field.name}
 										placeholder="Baby Bottle Set"
 										value={field.state.value}
-										onChange={(e) => handleCategoryOrNameChange("name", e.target.value)}
+										onChange={(e) =>
+											handleCategoryOrNameChange("name", e.target.value)
+										}
 										onBlur={field.handleBlur}
 										required
 									/>
 									{field.state.meta.errors.length > 0 && (
 										<p className="text-sm text-destructive">
-											{field.state.meta.errors.map(getErrorMessage).join(', ')}
+											{field.state.meta.errors.map(getErrorMessage).join(", ")}
 										</p>
 									)}
 								</div>
@@ -2114,13 +2184,13 @@ function AllProductsPage() {
 									<Input
 										id={field.name}
 										placeholder="BPA-free baby bottles..."
-										value={field.state.value || ''}
+										value={field.state.value || ""}
 										onChange={(e) => field.handleChange(e.target.value)}
 										onBlur={field.handleBlur}
 									/>
 									{field.state.meta.errors.length > 0 && (
 										<p className="text-sm text-destructive">
-											{field.state.meta.errors.map(getErrorMessage).join(', ')}
+											{field.state.meta.errors.map(getErrorMessage).join(", ")}
 										</p>
 									)}
 								</div>
@@ -2213,17 +2283,20 @@ function AllProductsPage() {
 												value={field.state.value}
 												onChange={(e) => {
 													field.handleChange(e.target.value);
-													skuValidation.validate(e.target.value, selectedProduct?.id);
+													skuValidation.validate(
+														e.target.value,
+														selectedProduct?.id,
+													);
 												}}
 												onBlur={field.handleBlur}
 												required
 												readOnly
 												className={
 													skuValidation.isValid === false
-														? 'bg-muted/30 border-destructive pr-9'
+														? "bg-muted/30 border-destructive pr-9"
 														: skuValidation.isValid === true
-														? 'bg-muted/30 border-green-500 pr-9'
-														: 'bg-muted/30 pr-9'
+															? "bg-muted/30 border-green-500 pr-9"
+															: "bg-muted/30 pr-9"
 												}
 											/>
 											{/* Phase 5: Async validation feedback icons */}
@@ -2239,11 +2312,15 @@ function AllProductsPage() {
 										</div>
 										{field.state.meta.errors.length > 0 && (
 											<p className="text-sm text-destructive">
-												{field.state.meta.errors.map(getErrorMessage).join(', ')}
+												{field.state.meta.errors
+													.map(getErrorMessage)
+													.join(", ")}
 											</p>
 										)}
 										{skuValidation.error && (
-											<p className="text-sm text-destructive">{skuValidation.error}</p>
+											<p className="text-sm text-destructive">
+												{skuValidation.error}
+											</p>
 										)}
 									</div>
 								)}
@@ -2254,8 +2331,10 @@ function AllProductsPage() {
 										<Label htmlFor={field.name}>Category</Label>
 										<select
 											id={field.name}
-											value={field.state.value || ''}
-											onChange={(e) => handleCategoryOrNameChange("categoryId", e.target.value)}
+											value={field.state.value || ""}
+											onChange={(e) =>
+												handleCategoryOrNameChange("categoryId", e.target.value)
+											}
 											onBlur={field.handleBlur}
 											className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
 										>
@@ -2268,7 +2347,9 @@ function AllProductsPage() {
 										</select>
 										{field.state.meta.errors.length > 0 && (
 											<p className="text-sm text-destructive">
-												{field.state.meta.errors.map(getErrorMessage).join(', ')}
+												{field.state.meta.errors
+													.map(getErrorMessage)
+													.join(", ")}
 											</p>
 										)}
 									</div>
@@ -2286,14 +2367,18 @@ function AllProductsPage() {
 											type="number"
 											step="1000"
 											placeholder="50000"
-											value={field.state.value || ''}
-											onChange={(e) => field.handleChange(parseFloat(e.target.value) || 0)}
+											value={field.state.value || ""}
+											onChange={(e) =>
+												field.handleChange(parseFloat(e.target.value) || 0)
+											}
 											onBlur={field.handleBlur}
 											required
 										/>
 										{field.state.meta.errors.length > 0 && (
 											<p className="text-sm text-destructive">
-												{field.state.meta.errors.map(getErrorMessage).join(', ')}
+												{field.state.meta.errors
+													.map(getErrorMessage)
+													.join(", ")}
 											</p>
 										)}
 									</div>
@@ -2306,20 +2391,33 @@ function AllProductsPage() {
 										<select
 											id={field.name}
 											value={field.state.value}
-											onChange={(e) => field.handleChange(e.target.value as 'online sales' | 'offline sales' | 'omnichannel sales' | 'inactive' | 'discontinued')}
+											onChange={(e) =>
+												field.handleChange(
+													e.target.value as
+														| "online sales"
+														| "offline sales"
+														| "omnichannel sales"
+														| "inactive"
+														| "discontinued",
+												)
+											}
 											onBlur={field.handleBlur}
 											className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
 											required
 										>
 											<option value="online sales">Online Sales</option>
 											<option value="offline sales">Offline Sales</option>
-											<option value="omnichannel sales">Omnichannel Sales</option>
+											<option value="omnichannel sales">
+												Omnichannel Sales
+											</option>
 											<option value="inactive">Inactive</option>
 											<option value="discontinued">Discontinued</option>
 										</select>
 										{field.state.meta.errors.length > 0 && (
 											<p className="text-sm text-destructive">
-												{field.state.meta.errors.map(getErrorMessage).join(', ')}
+												{field.state.meta.errors
+													.map(getErrorMessage)
+													.join(", ")}
 											</p>
 										)}
 									</div>
@@ -2355,7 +2453,9 @@ function AllProductsPage() {
 										</p>
 										{field.state.meta.errors.length > 0 && (
 											<p className="text-sm text-destructive">
-												{field.state.meta.errors.map(getErrorMessage).join(', ')}
+												{field.state.meta.errors
+													.map(getErrorMessage)
+													.join(", ")}
 											</p>
 										)}
 									</div>
@@ -2374,8 +2474,10 @@ function AllProductsPage() {
 											id={field.name}
 											type="number"
 											placeholder="12"
-											value={field.state.value || ''}
-											onChange={(e) => field.handleChange(parseInt(e.target.value) || 10)}
+											value={field.state.value || ""}
+											onChange={(e) =>
+												field.handleChange(parseInt(e.target.value) || 10)
+											}
 											onBlur={field.handleBlur}
 										/>
 										<p className="text-xs text-muted-foreground">
@@ -2383,7 +2485,9 @@ function AllProductsPage() {
 										</p>
 										{field.state.meta.errors.length > 0 && (
 											<p className="text-sm text-destructive">
-												{field.state.meta.errors.map(getErrorMessage).join(', ')}
+												{field.state.meta.errors
+													.map(getErrorMessage)
+													.join(", ")}
 											</p>
 										)}
 									</div>
@@ -2430,31 +2534,37 @@ function AllProductsPage() {
 						/>
 
 						<DrawerFooter className="px-0">
-							<Button
-								type="submit"
-								className="w-full"
-								disabled={
-									createProductMutation.isPending ||
-									updateProductMutation.isPending
-								}
-							>
-								{createProductMutation.isPending ||
-								updateProductMutation.isPending ? (
-									<>
-										<Loader2 className="h-4 w-4 mr-2 animate-spin" />
-										{formMode === "add" ? "Creating..." : "Updating..."}
-									</>
-								) : formMode === "add" ? (
-									"Create Product"
-								) : (
-									"Update Product"
-								)}
-							</Button>
-							<DrawerClose asChild>
-								<Button type="button" variant="outline" className="w-full">
-									Cancel
+							<div className="flex flex-col sm:flex-row gap-2 w-full">
+								<Button
+									type="submit"
+									className="w-full sm:w-auto"
+									disabled={
+										createProductMutation.isPending ||
+										updateProductMutation.isPending
+									}
+								>
+									{createProductMutation.isPending ||
+									updateProductMutation.isPending ? (
+										<>
+											<Loader2 className="h-4 w-4 mr-2 animate-spin" />
+											{formMode === "add" ? "Creating..." : "Updating..."}
+										</>
+									) : formMode === "add" ? (
+										"Create Product"
+									) : (
+										"Update Product"
+									)}
 								</Button>
-							</DrawerClose>
+								<DrawerClose asChild>
+									<Button
+										type="button"
+										variant="outline"
+										className="w-full sm:w-auto"
+									>
+										Cancel
+									</Button>
+								</DrawerClose>
+							</div>
 						</DrawerFooter>
 					</form>
 				</DrawerContent>

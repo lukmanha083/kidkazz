@@ -240,21 +240,21 @@ function UOMPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Unit of Measure (UOM)</h1>
           <p className="text-muted-foreground mt-1">
             Manage custom units of measurement and conversion factors
           </p>
         </div>
-        <Button onClick={handleAddUOM} className="gap-2">
+        <Button onClick={handleAddUOM} className="gap-2 self-start sm:self-auto">
           <Plus className="h-4 w-4" />
           Add Custom UOM
         </Button>
       </div>
 
       {/* Summary Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total UOMs</CardTitle>
@@ -306,7 +306,7 @@ function UOMPage() {
             columns={columns}
             data={uoms}
             searchKey="name"
-            searchPlaceholder="Search UOMs..."
+            searchPlaceholder="Search by name, abbreviation..."
             isLoading={isLoading}
             onRowClick={handleViewUOM}
             filterableColumns={[
@@ -603,25 +603,27 @@ function UOMPage() {
             )}
 
             <DrawerFooter className="px-0">
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={createUOMMutation.isPending || updateUOMMutation.isPending || form.state.isSubmitting}
-              >
-                {createUOMMutation.isPending || updateUOMMutation.isPending || form.state.isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    {formMode === 'add' ? 'Creating...' : 'Updating...'}
-                  </>
-                ) : (
-                  formMode === 'add' ? 'Create UOM' : 'Update UOM'
-                )}
-              </Button>
-              <DrawerClose asChild>
-                <Button type="button" variant="outline" className="w-full">
-                  Cancel
+              <div className="flex flex-col sm:flex-row gap-2 w-full">
+                <Button
+                  type="submit"
+                  className="w-full sm:w-auto"
+                  disabled={createUOMMutation.isPending || updateUOMMutation.isPending || form.state.isSubmitting}
+                >
+                  {createUOMMutation.isPending || updateUOMMutation.isPending || form.state.isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      {formMode === 'add' ? 'Creating...' : 'Updating...'}
+                    </>
+                  ) : (
+                    formMode === 'add' ? 'Create UOM' : 'Update UOM'
+                  )}
                 </Button>
-              </DrawerClose>
+                <DrawerClose asChild>
+                  <Button type="button" variant="outline" className="w-full sm:w-auto">
+                    Cancel
+                  </Button>
+                </DrawerClose>
+              </div>
             </DrawerFooter>
           </form>
         </DrawerContent>

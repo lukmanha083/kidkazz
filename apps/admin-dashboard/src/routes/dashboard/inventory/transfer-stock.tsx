@@ -425,21 +425,21 @@ function TransferStockPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Stock Transfer</h1>
           <p className="text-muted-foreground mt-1">
             Manage inventory movement between warehouses
           </p>
         </div>
-        <Button onClick={handleAddTransfer} className="gap-2" disabled={activeWarehouses.length < 2}>
+        <Button onClick={handleAddTransfer} className="gap-2 self-start sm:self-auto" disabled={activeWarehouses.length < 2}>
           <Plus className="h-4 w-4" />
           New Transfer
         </Button>
       </div>
 
       {/* Summary Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Transfers</CardTitle>
@@ -524,14 +524,14 @@ function TransferStockPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[140px]">Transfer #</TableHead>
-                  <TableHead className="w-[160px]">From</TableHead>
-                  <TableHead className="w-[160px]">To</TableHead>
-                  <TableHead className="w-[100px] text-right">Items</TableHead>
-                  <TableHead className="w-[100px] text-right">Quantity</TableHead>
-                  <TableHead className="w-[120px]">Date</TableHead>
-                  <TableHead className="w-[100px]">Status</TableHead>
-                  <TableHead className="w-[80px] text-right">Actions</TableHead>
+                  <TableHead>Transfer #</TableHead>
+                  <TableHead>From</TableHead>
+                  <TableHead>To</TableHead>
+                  <TableHead className="text-right hidden md:table-cell">Items</TableHead>
+                  <TableHead className="text-right hidden lg:table-cell">Quantity</TableHead>
+                  <TableHead className="hidden sm:table-cell">Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -553,13 +553,13 @@ function TransferStockPage() {
                         {transfer.destinationWarehouseName}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right font-medium">
+                    <TableCell className="text-right font-medium hidden md:table-cell">
                       {transfer.items.length}
                     </TableCell>
-                    <TableCell className="text-right font-medium">
+                    <TableCell className="text-right font-medium hidden lg:table-cell">
                       {transfer.totalItems}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="text-sm text-muted-foreground hidden sm:table-cell">
                       {transfer.transferDate}
                     </TableCell>
                     <TableCell>
@@ -642,7 +642,7 @@ function TransferStockPage() {
           {selectedTransfer && (
             <div className="flex-1 overflow-y-auto p-4">
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs text-muted-foreground">Transfer Number</Label>
                     <p className="text-sm font-mono font-medium mt-1">
@@ -714,7 +714,7 @@ function TransferStockPage() {
 
                 <Separator />
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs text-muted-foreground">Transfer Date</Label>
                     <p className="text-sm mt-1">{selectedTransfer.transferDate}</p>
@@ -954,15 +954,17 @@ function TransferStockPage() {
             </form.Field>
 
             <DrawerFooter className="px-0">
-              <Button type="submit" className="w-full" disabled={transferItems.length === 0}>
-                <ArrowRightLeft className="h-4 w-4 mr-2" />
-                Execute Transfer
-              </Button>
-              <DrawerClose asChild>
-                <Button type="button" variant="outline" className="w-full">
-                  Cancel
+              <div className="flex flex-col sm:flex-row gap-2 w-full">
+                <Button type="submit" className="w-full sm:w-auto" disabled={transferItems.length === 0}>
+                  <ArrowRightLeft className="h-4 w-4 mr-2" />
+                  Execute Transfer
                 </Button>
-              </DrawerClose>
+                <DrawerClose asChild>
+                  <Button type="button" variant="outline" className="w-full sm:w-auto">
+                    Cancel
+                  </Button>
+                </DrawerClose>
+              </div>
             </DrawerFooter>
           </form>
         </DrawerContent>

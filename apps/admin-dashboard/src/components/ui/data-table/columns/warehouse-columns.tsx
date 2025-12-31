@@ -61,24 +61,32 @@ export function getWarehouseColumns(options: WarehouseColumnOptions = {}): Colum
     {
       accessorKey: 'province',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Province" />
+        <DataTableColumnHeader column={column} title="Province" className="hidden lg:table-cell" />
       ),
+      cell: ({ row }) => {
+        const province = row.getValue('province') as string;
+        return <span className="hidden lg:inline">{province}</span>;
+      },
     },
     {
       accessorKey: 'contactName',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Contact" />
+        <DataTableColumnHeader column={column} title="Contact" className="hidden lg:table-cell" />
       ),
-      cell: ({ row }) => row.getValue('contactName') || '-',
+      cell: ({ row }) => {
+        const contact = row.getValue('contactName') as string;
+        return <span className="hidden lg:inline">{contact || '-'}</span>;
+      },
     },
     {
       accessorKey: 'contactPhone',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Phone" />
+        <DataTableColumnHeader column={column} title="Phone" className="hidden lg:table-cell" />
       ),
-      cell: ({ row }) => (
-        <span className="font-mono text-sm">{row.getValue('contactPhone') || '-'}</span>
-      ),
+      cell: ({ row }) => {
+        const phone = row.getValue('contactPhone') as string;
+        return <span className="font-mono text-sm hidden lg:inline">{phone || '-'}</span>;
+      },
     },
     {
       accessorKey: 'status',

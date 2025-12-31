@@ -126,11 +126,11 @@ export function getProductColumns(
 				<DataTableColumnHeader
 					column={column}
 					title="SKU"
-					className="hidden desktop:table-cell"
+					className="hidden lg:table-cell"
 				/>
 			),
 			cell: ({ row }) => (
-				<span className="font-mono text-sm text-muted-foreground hidden desktop:table-cell">
+				<span className="font-mono text-sm text-muted-foreground hidden lg:table-cell">
 					{row.getValue("sku")}
 				</span>
 			),
@@ -145,7 +145,7 @@ export function getProductColumns(
 				<DataTableColumnHeader
 					column={column}
 					title="Category"
-					className="hidden desktop:table-cell"
+					className="hidden lg:table-cell"
 				/>
 			),
 			cell: ({ row }) => {
@@ -155,7 +155,7 @@ export function getProductColumns(
 				return (
 					<Badge
 						variant="outline"
-						className={`${getCategoryBadgeColor(category?.color)} hidden desktop:table-cell`}
+						className={`${getCategoryBadgeColor(category?.color)} hidden lg:table-cell`}
 					>
 						{category?.name || "Uncategorized"}
 					</Badge>
@@ -219,7 +219,7 @@ export function getProductColumns(
 				<DataTableColumnHeader
 					column={column}
 					title="Status"
-					className="hidden desktop:table-cell"
+					className="hidden lg:table-cell"
 				/>
 			),
 			cell: ({ row }) => {
@@ -227,7 +227,7 @@ export function getProductColumns(
 				return (
 					<Badge
 						variant="outline"
-						className={`${getStatusBadgeColor(status)} hidden desktop:table-cell`}
+						className={`${getStatusBadgeColor(status)} hidden lg:table-cell`}
 					>
 						{formatStatusText(status)}
 					</Badge>
@@ -244,11 +244,11 @@ export function getProductColumns(
 				<DataTableColumnHeader
 					column={column}
 					title="Rating"
-					className="hidden desktop:table-cell"
+					className="hidden lg:table-cell"
 				/>
 			),
 			cell: ({ row }) => (
-				<div className="flex items-center gap-1 hidden desktop:table-cell">
+				<div className="flex items-center gap-1 hidden lg:table-cell">
 					<Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
 					<span className="font-medium">{row.original.rating}</span>
 					<span className="text-xs text-muted-foreground">

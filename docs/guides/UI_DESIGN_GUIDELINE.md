@@ -652,17 +652,556 @@ className="animate-in slide-in-from-bottom duration-500"
 
 ---
 
-## 📱 Responsive Design
+## 📱 Responsive Design Patterns
 
-### Breakpoints
-```css
-/* Mobile first approach */
---screen-sm: 640px;   /* Mobile landscape */
---screen-md: 768px;   /* Tablet */
---screen-lg: 1024px;  /* Desktop */
---screen-xl: 1280px;  /* Large desktop */
---screen-2xl: 1536px; /* Extra large */
+> **IMPORTANT:** This section defines mandatory responsive patterns for all new features, especially frontend development. Always follow these guidelines when creating new UI components.
+
+### Standard Tailwind Breakpoints
+
+**Use standard Tailwind breakpoints for content components (tables, cards, forms, etc.).**
+
+| Breakpoint | Size | Usage |
+|------------|------|-------|
+| **base** (default) | < 640px | Mobile phones (1 column layouts, essential info only) |
+| **sm:** | ≥ 640px | Large phones / Small tablets (2 columns possible) |
+| **md:** | ≥ 768px | Tablets (show more columns/info) |
+| **lg:** | ≥ 1024px | Desktop (show all columns, full layout) |
+| **xl:** | ≥ 1280px | Large desktop (optimal viewing experience) |
+| **2xl:** | ≥ 1536px | Extra large displays |
+
+**Exception:** Kidkazz uses custom breakpoints (`tablet:`, `desktop:`) ONLY for dashboard layout (sidebar behavior). See [Custom Breakpoints](#-custom-breakpoints-kidkazz-specific) section for details.
+
+```tsx
+// ❌ WRONG - Custom breakpoints in content components
+className="hidden desktop:table-cell tablet:w-auto"
+
+// ✅ CORRECT - Standard Tailwind breakpoints for content
+className="hidden lg:table-cell md:w-auto"
+
+// ✅ ALSO CORRECT - Custom breakpoints for dashboard layout only
+className="hidden desktop:flex desktop:w-48"  // Sidebar
 ```
+
+---
+
+### Button Responsive Patterns
+
+#### Page Header Buttons (Add/Create Actions)
+
+**Pattern:** Buttons should be compact on mobile, positioned strategically based on screen size.
+
+```tsx
+{/* Page Header */}
+<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+  <div>
+    <h1 className="text-3xl font-bold tracking-tight">Page Title</h1>
+    <p className="text-muted-foreground mt-1">Page description</p>
+  </div>
+  <Button onClick={handleAdd} className="gap-2 self-start sm:self-auto">
+    <Plus className="h-4 w-4" />
+    Add Item
+  </Button>
+</div>
+```
+
+**Responsive Behavior:**
+
+| Screen Size | Layout | Button Width | Button Position |
+|-------------|--------|--------------|-----------------|
+| **Mobile** (< 640px) | Stacked vertical | Auto-width (compact) | Left-aligned (`self-start`) |
+| **Tablet+** (≥ 640px) | Horizontal | Auto-width | Right-aligned (via `justify-between`) |
+
+**Key Classes:**
+- `flex flex-col sm:flex-row` - Stacks on mobile, horizontal on tablet+
+- `sm:items-center sm:justify-between` - Align items horizontally on larger screens
+- `gap-4` - Consistent spacing
+- `self-start sm:self-auto` - Left-align button on mobile
+
+---
+
+#### View Drawer Footer Buttons
+
+**Pattern:** Action buttons in view/detail drawers stack on mobile, horizontal on tablet+.
+
+```tsx
+<DrawerFooter>
+  <div className="flex flex-col sm:flex-row gap-2 w-full">
+    <Button onClick={() => handleEdit(selectedItem)} className="w-full sm:w-auto">
+      <Edit className="h-4 w-4 mr-2" />
+      Edit
+    </Button>
+    <DrawerClose asChild>
+      <Button variant="outline" className="w-full sm:w-auto">Close</Button>
+    </DrawerClose>
+  </div>
+</DrawerFooter>
+```
+
+**Responsive Behavior:**
+
+| Screen Size | Layout | Button Width |
+|-------------|--------|--------------|
+| **Mobile** (< 640px) | Stacked vertical | Full-width |
+| **Tablet+** (≥ 640px) | Side-by-side horizontal | Auto-width |
+
+---
+
+#### Form Drawer Footer Buttons
+
+**Pattern:** Submit and cancel buttons follow the same responsive pattern as view drawers.
+
+```tsx
+<DrawerFooter className="px-0">
+  <div className="flex flex-col sm:flex-row gap-2 w-full">
+    <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>
+      {isSubmitting ? (
+        <>
+          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          Saving...
+        </>
+      ) : (
+        'Save Changes'
+      )}
+    </Button>
+    <DrawerClose asChild>
+      <Button type="button" variant="outline" className="w-full sm:w-auto">
+        Cancel
+      </Button>
+    </DrawerClose>
+  </div>
+</DrawerFooter>
+```
+
+---
+
+### Card & Grid Layout Patterns
+
+#### Stat Card Grids (2-3 Cards)
+
+**Pattern:** 1 column on mobile, 2 columns on tablet, 3 columns on desktop.
+
+```tsx
+{/* Summary Stats */}
+<div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+  <Card>
+    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardTitle className="text-sm font-medium">Total Items</CardTitle>
+      <Package className="h-4 w-4 text-muted-foreground" />
+    </CardHeader>
+    <CardContent>
+      <div className="text-2xl font-bold">1,234</div>
+      <p className="text-xs text-muted-foreground">+10% from last month</p>
+    </CardContent>
+  </Card>
+  {/* More cards... */}
+</div>
+```
+
+**Grid Progression:**
+```
+Mobile (< 640px):    [Card 1]
+                     [Card 2]
+                     [Card 3]
+
+Tablet (640-1023px): [Card 1] [Card 2]
+                     [Card 3]
+
+Desktop (≥ 1024px):  [Card 1] [Card 2] [Card 3]
+```
+
+---
+
+#### Stat Card Grids (4+ Cards)
+
+**Pattern:** 1 column on mobile, 2 columns on tablet, 4 columns on desktop.
+
+```tsx
+{/* Summary Stats */}
+<div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+  {/* Cards... */}
+</div>
+```
+
+---
+
+#### Grid Pattern Reference
+
+| Card Count | Mobile | Tablet (sm:) | Desktop (lg:) |
+|------------|--------|--------------|---------------|
+| 2 cards | `grid-cols-1` | `sm:grid-cols-2` | `lg:grid-cols-2` |
+| 3 cards | `grid-cols-1` | `sm:grid-cols-2` | `lg:grid-cols-3` |
+| 4 cards | `grid-cols-1` | `sm:grid-cols-2` | `lg:grid-cols-4` |
+| 6 cards | `grid-cols-1` | `sm:grid-cols-2` | `lg:grid-cols-3` |
+
+---
+
+### Table Component Patterns
+
+#### Column Visibility Pattern
+
+**Pattern:** Hide non-essential columns on smaller screens to prevent horizontal scrolling.
+
+**Essential vs Non-Essential Columns:**
+
+**Essential Columns (Always Visible):**
+- Primary identifier (Name, Title, ID)
+- Status/State
+- Primary action (Price, Quantity)
+- Actions column
+
+**Non-Essential Columns (Hide on Mobile/Tablet):**
+- SKU codes
+- Secondary identifiers
+- Metadata (Created date, Updated date)
+- Contact information
+- Secondary status indicators
+
+```tsx
+// ❌ WRONG - Using custom breakpoint
+{
+  accessorKey: 'sku',
+  header: ({ column }) => (
+    <DataTableColumnHeader
+      column={column}
+      title="SKU"
+      className="hidden desktop:table-cell"  // ❌ Custom breakpoint
+    />
+  ),
+  cell: ({ row }) => (
+    <span className="hidden desktop:table-cell">  // ❌ Custom breakpoint
+      {row.getValue('sku')}
+    </span>
+  ),
+}
+
+// ✅ CORRECT - Using standard Tailwind breakpoint
+{
+  accessorKey: 'sku',
+  header: ({ column }) => (
+    <DataTableColumnHeader
+      column={column}
+      title="SKU"
+      className="hidden lg:table-cell"  // ✅ Standard breakpoint
+    />
+  ),
+  cell: ({ row }) => (
+    <span className="hidden lg:table-cell">  // ✅ Standard breakpoint
+      {row.getValue('sku')}
+    </span>
+  ),
+}
+```
+
+---
+
+#### Column Visibility Guidelines by Breakpoint
+
+```tsx
+// Hide on mobile only (< 640px)
+className="hidden sm:table-cell"
+
+// Hide on mobile and small tablets (< 768px)
+className="hidden md:table-cell"
+
+// Hide on mobile and tablets (< 1024px) - Most common for SKU, secondary info
+className="hidden lg:table-cell"
+
+// Hide until very large screens (< 1280px)
+className="hidden xl:table-cell"
+```
+
+---
+
+#### Table Header Hardcoded Widths
+
+**Rule:** Avoid hardcoded widths on table headers. Let tables be fluid and responsive.
+
+```tsx
+// ❌ WRONG - Hardcoded widths
+<TableHead className="w-[140px]">Transfer #</TableHead>
+<TableHead className="w-[160px]">From</TableHead>
+<TableHead className="w-[100px] text-right">Items</TableHead>
+
+// ✅ CORRECT - No widths, responsive hiding
+<TableHead>Transfer #</TableHead>
+<TableHead>From</TableHead>
+<TableHead className="text-right hidden md:table-cell">Items</TableHead>
+```
+
+**Exception:** Only use fixed widths for action columns with icons:
+```tsx
+// ✅ ACCEPTABLE - Fixed width for icon-only column
+<TableHead className="w-[80px] text-right">Actions</TableHead>
+```
+
+---
+
+### Search Component Patterns
+
+#### Global Search Implementation
+
+**Pattern:** Search component uses global filtering to search across ALL table columns.
+
+**Data Table Toolbar:**
+```tsx
+{searchKey && (
+  <div className="relative">
+    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+    <Input
+      placeholder={searchPlaceholder}
+      value={(table.getState().globalFilter as string) ?? ""}
+      onChange={(event) => table.setGlobalFilter(event.target.value)}
+      className="pl-8 w-[200px] md:w-[200px] lg:w-[250px]"
+    />
+  </div>
+)}
+```
+
+**Data Table Component:**
+```tsx
+// 1. Add globalFilter state
+const [globalFilter, setGlobalFilter] = useState<string>("");
+
+// 2. Configure table with global filter
+const table = useReactTable({
+  data,
+  columns,
+  getCoreRowModel: getCoreRowModel(),
+  getFilteredRowModel: getFilteredRowModel(),
+  onGlobalFilterChange: setGlobalFilter,
+  globalFilterFn: "includesString",  // Built-in case-insensitive search
+  state: {
+    globalFilter,
+    // ... other state
+  },
+});
+```
+
+---
+
+#### Search Input Width
+
+**Pattern:** Compact width on all screen sizes (no full-width on mobile).
+
+```tsx
+// ✅ CORRECT - Compact on mobile, slightly wider on desktop
+className="pl-8 w-[200px] md:w-[200px] lg:w-[250px]"
+
+// ❌ WRONG - Full width on mobile
+className="pl-8 w-full md:w-[200px] lg:w-[250px]"
+```
+
+**Responsive Width:**
+
+| Screen Size | Width | Reasoning |
+|-------------|-------|-----------|
+| **Mobile** (< 768px) | 200px | Compact, aesthetic, doesn't dominate UI |
+| **Tablet** (768-1023px) | 200px | Consistent sizing |
+| **Desktop** (≥ 1024px) | 250px | Slightly wider for comfort |
+
+---
+
+#### Search Placeholder Pattern
+
+**Pattern:** Clearly indicate what fields can be searched.
+
+```tsx
+// ❌ WRONG - Vague placeholder
+searchPlaceholder="Search..."
+searchPlaceholder="Search products..."
+
+// ✅ CORRECT - Specific, helpful placeholder
+searchPlaceholder="Search by name, barcode, SKU, price..."
+searchPlaceholder="Search by name, code, location..."
+```
+
+**Placeholder Examples by Page:**
+
+| Page | Placeholder |
+|------|-------------|
+| Products | `"Search by name, barcode, SKU, price..."` |
+| Bundles | `"Search by name, SKU, price..."` |
+| Variants | `"Search by product, variant, SKU..."` |
+| Categories | `"Search by name, description..."` |
+| Warehouses | `"Search by name, code, location..."` |
+| UOM | `"Search by name, abbreviation..."` |
+
+---
+
+#### View Column Toggle Button
+
+**Pattern:** Compact auto-width button, not full-width on mobile.
+
+```tsx
+{enableColumnVisibility && (
+  <DropdownMenu>
+    <DropdownMenuTrigger asChild>
+      <Button
+        variant="outline"
+        size="sm"
+        className="md:ml-auto h-8"  // ✅ Auto-width, right-aligned on md+
+      >
+        <SlidersHorizontal className="mr-2 h-4 w-4" />
+        View
+      </Button>
+    </DropdownMenuTrigger>
+    {/* ... */}
+  </DropdownMenu>
+)}
+```
+
+---
+
+### Form Layout Patterns
+
+#### Form Field Grids in Drawers
+
+**Pattern:** Single column on mobile, 2 columns on tablet+ for side-by-side fields.
+
+```tsx
+{/* Two-column form layout */}
+<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+  <form.Field name="firstName">
+    {(field) => (
+      <div>
+        <Label htmlFor={field.name}>First Name</Label>
+        <Input
+          id={field.name}
+          value={field.state.value}
+          onChange={(e) => field.handleChange(e.target.value)}
+        />
+      </div>
+    )}
+  </form.Field>
+
+  <form.Field name="lastName">
+    {(field) => (
+      <div>
+        <Label htmlFor={field.name}>Last Name</Label>
+        <Input
+          id={field.name}
+          value={field.state.value}
+          onChange={(e) => field.handleChange(e.target.value)}
+        />
+      </div>
+    )}
+  </form.Field>
+</div>
+```
+
+**When to Use:**
+- ✅ Short related fields (First Name / Last Name)
+- ✅ City / Province, Postal Code / Country
+- ✅ Contact Name / Contact Phone
+- ❌ Long text fields or textareas (always full-width)
+- ❌ Complex fields with lots of validation messages
+
+---
+
+#### Full-Width Form Fields
+
+**Pattern:** Some fields should always be full-width.
+
+```tsx
+{/* Single full-width field - no grid */}
+<form.Field name="description">
+  {(field) => (
+    <div>
+      <Label htmlFor={field.name}>Description</Label>
+      <Textarea
+        id={field.name}
+        value={field.state.value}
+        onChange={(e) => field.handleChange(e.target.value)}
+        rows={4}
+      />
+    </div>
+  )}
+</form.Field>
+```
+
+**Always Full-Width Fields:**
+- Textareas
+- Rich text editors
+- Long text inputs (email, URL, full address)
+- File upload areas
+- Multi-select with tags
+
+---
+
+### Drawer Component Patterns
+
+#### Drawer Positioning
+
+**Pattern:** Consistent drawer side usage for different purposes.
+
+| Purpose | Side | Reasoning |
+|---------|------|-----------|
+| **Forms** (Add/Edit) | `side="left"` | Standard UX pattern |
+| **Details** (View/Read-only) | `side="right"` | Separate from forms |
+| **Filters/Settings** | `side="right"` | Secondary actions |
+
+```tsx
+{/* Form Drawer - Left Side */}
+<Drawer open={formDrawerOpen} onOpenChange={setFormDrawerOpen}>
+  <DrawerContent side="left">
+    <DrawerHeader>
+      <DrawerTitle>
+        {formMode === 'add' ? 'Add New Item' : 'Edit Item'}
+      </DrawerTitle>
+    </DrawerHeader>
+    {/* Form content */}
+    <DrawerFooter className="px-0">
+      <div className="flex flex-col sm:flex-row gap-2 w-full">
+        <Button type="submit" className="w-full sm:w-auto">Save</Button>
+        <DrawerClose asChild>
+          <Button variant="outline" className="w-full sm:w-auto">Cancel</Button>
+        </DrawerClose>
+      </div>
+    </DrawerFooter>
+  </DrawerContent>
+</Drawer>
+
+{/* View Drawer - Right Side */}
+<Drawer open={viewDrawerOpen} onOpenChange={setViewDrawerOpen}>
+  <DrawerContent side="right">
+    <DrawerHeader>
+      <DrawerTitle>{selectedItem?.name}</DrawerTitle>
+      <DrawerDescription>Item Details</DrawerDescription>
+    </DrawerHeader>
+    {/* Read-only content */}
+    <DrawerFooter>
+      <div className="flex flex-col sm:flex-row gap-2 w-full">
+        <Button onClick={handleEdit} className="w-full sm:w-auto">Edit</Button>
+        <DrawerClose asChild>
+          <Button variant="outline" className="w-full sm:w-auto">Close</Button>
+        </DrawerClose>
+      </div>
+    </DrawerFooter>
+  </DrawerContent>
+</Drawer>
+```
+
+---
+
+#### Drawer Detail Grids
+
+**Pattern:** Information display grids should be responsive.
+
+```tsx
+{/* Detail Information Grid */}
+<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+  <div>
+    <p className="text-sm text-muted-foreground">Product Name</p>
+    <p className="font-medium">{product.name}</p>
+  </div>
+  <div>
+    <p className="text-sm text-muted-foreground">SKU</p>
+    <p className="font-mono text-sm">{product.sku}</p>
+  </div>
+</div>
+```
+
+---
 
 ### Touch Targets
 
@@ -677,6 +1216,342 @@ className="animate-in slide-in-from-bottom duration-500"
   Add to Cart
 </Button>
 ```
+
+---
+
+### Quick Reference Checklist
+
+#### When Creating a New Page
+
+- [ ] Use standard Tailwind breakpoints (`sm:`, `md:`, `lg:`, `xl:`)
+- [ ] Page header button uses `self-start sm:self-auto`
+- [ ] Stat cards use `grid-cols-1 sm:grid-cols-2 lg:grid-cols-X`
+- [ ] Search placeholder describes searchable fields
+- [ ] Search input width is `w-[200px] md:w-[200px] lg:w-[250px]`
+- [ ] Table columns hide non-essential info with `hidden lg:table-cell`
+- [ ] No hardcoded table column widths (unless action column)
+- [ ] Form grids use `grid-cols-1 sm:grid-cols-2`
+- [ ] Drawer buttons use `flex flex-col sm:flex-row gap-2 w-full`
+- [ ] Individual buttons use `w-full sm:w-auto`
+
+#### When Creating Table Columns
+
+- [ ] Essential columns are always visible
+- [ ] SKU/secondary IDs use `hidden lg:table-cell`
+- [ ] Both header AND cell have same visibility class
+- [ ] No custom breakpoints (`desktop:`, `tablet:`)
+- [ ] Global search is enabled in DataTable
+- [ ] Helpful search placeholder provided
+
+#### When Creating Drawers
+
+- [ ] Forms open on left (`side="left"`)
+- [ ] View/Details open on right (`side="right"`)
+- [ ] Footer buttons responsive (`flex flex-col sm:flex-row`)
+- [ ] Buttons use `w-full sm:w-auto`
+- [ ] Detail grids use `grid-cols-1 sm:grid-cols-2`
+
+---
+
+### Testing Guidelines
+
+**Test on Multiple Breakpoints:**
+
+Always test your UI at these widths:
+
+1. **320px** - Small mobile (iPhone SE)
+2. **375px** - Standard mobile (iPhone 12)
+3. **768px** - Tablet portrait
+4. **1024px** - Tablet landscape / Small desktop
+5. **1440px** - Desktop
+
+**Test Checklist:**
+
+- [ ] Buttons don't stretch full-width on mobile (unless intended)
+- [ ] Cards don't look sparse or cramped
+- [ ] Tables don't require horizontal scrolling
+- [ ] Forms are easy to fill on mobile
+- [ ] No text is cut off or truncated unexpectedly
+- [ ] Spacing looks balanced at all breakpoints
+- [ ] Interactive elements are easy to tap on mobile (min 44x44px)
+
+---
+
+### Migration Guide
+
+**Updating Existing Code:**
+
+If you find code that doesn't follow these patterns:
+
+#### Replace Custom Breakpoints
+
+```bash
+# Find all uses of custom breakpoints
+grep -r "desktop:" apps/admin-dashboard/src/
+grep -r "tablet:" apps/admin-dashboard/src/
+
+# Replace with standard breakpoints
+desktop: → lg:
+tablet: → md:
+```
+
+#### Fix Button Patterns
+
+```tsx
+// Old pattern
+<Button className="w-full md:w-auto">Add Item</Button>
+
+// New pattern
+<Button className="self-start sm:self-auto">Add Item</Button>
+```
+
+#### Fix Grid Patterns
+
+```tsx
+// Old pattern
+<div className="grid gap-4 md:grid-cols-3">
+
+// New pattern
+<div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+```
+
+---
+
+## 🖥️ Dashboard Layout Patterns
+
+### Sidebar Dimensions
+
+**Desktop Sidebar (≥1024px):**
+```tsx
+// Compact sidebar for more content space
+<div className="hidden desktop:flex desktop:w-48 border-r border-border flex-col bg-card sticky top-0 h-screen">
+```
+
+**Tablet Sidebar (768-1023px):**
+```tsx
+// Collapsed icons-only sidebar
+<div className="hidden tablet:flex desktop:hidden tablet:w-16 border-r border-border flex-col bg-card sticky top-0 h-screen">
+```
+
+**Mobile:** No sidebar - uses drawer navigation triggered by hamburger menu.
+
+| Breakpoint | Sidebar Width | Style |
+|------------|---------------|-------|
+| Desktop (≥1024px) | 192px (`w-48`) | Full navigation with text |
+| Tablet (768-1023px) | 64px (`w-16`) | Icons only |
+| Mobile (<768px) | 0px | Drawer overlay |
+
+### Sticky Sidebar Pattern
+
+**Problem:** When table has lots of data, sidebar scrolls away with content.
+
+**Solution:** Use `sticky top-0 h-screen` on sidebar to keep it fixed while main content scrolls.
+
+```tsx
+{/* Desktop Sidebar - Sticky */}
+<div className="hidden desktop:flex desktop:w-48 ... sticky top-0 h-screen">
+  {/* Header */}
+  <div className="shrink-0">...</div>
+
+  {/* Navigation - Scrollable if needed */}
+  <nav className="flex-1 overflow-y-auto">...</nav>
+
+  {/* Footer - Always visible at bottom */}
+  <div className="shrink-0">
+    <Settings />
+    <UserProfile />
+  </div>
+</div>
+
+{/* Main Content - Natural scroll */}
+<div className="flex-1 flex flex-col">
+  <Outlet />
+</div>
+```
+
+**Key Classes:**
+- `sticky top-0` - Sidebar stays fixed at viewport top
+- `h-screen` - Full viewport height
+- `shrink-0` - Prevents header/footer from shrinking
+- `flex-1 overflow-y-auto` - Navigation scrolls if too long
+
+---
+
+## 📊 Table Cell Responsive Spacing
+
+### Cell Padding Pattern
+
+**Pattern:** Reduce table cell padding on mobile/tablet for more content space.
+
+The base `table.tsx` component uses custom breakpoints (`tablet:`, `desktop:`) for consistency with dashboard layout:
+
+```tsx
+// TableHead - Responsive height and padding
+<th className="h-10 px-2 tablet:px-3 desktop:h-12 desktop:px-4 ...">
+
+// TableCell - Responsive padding
+<td className="px-2 py-2 tablet:px-3 tablet:py-3 desktop:px-4 desktop:py-4 ...">
+```
+
+**Equivalent with standard breakpoints:**
+```tsx
+// If you need standard breakpoints in other contexts:
+<th className="h-10 px-2 md:px-3 lg:h-12 lg:px-4 ...">
+<td className="px-2 py-2 md:px-3 md:py-3 lg:px-4 lg:py-4 ...">
+```
+
+**Padding Breakdown:**
+
+| Breakpoint | Custom | Standard | Horizontal (px) | Vertical (py) |
+|------------|--------|----------|-----------------|---------------|
+| Mobile (<768px) | base | base | 8px (`px-2`) | 8px (`py-2`) |
+| Tablet (768-1023px) | `tablet:` | `md:` | 12px (`px-3`) | 12px (`py-3`) |
+| Desktop (≥1024px) | `desktop:` | `lg:` | 16px (`px-4`) | 16px (`py-4`) |
+
+**Benefits:**
+- More columns fit on mobile/tablet without horizontal scroll
+- Content remains readable with adequate spacing
+- Desktop users get comfortable, spacious layout
+
+---
+
+## 🔍 Faceted Filter Component
+
+### Overview
+
+The faceted filter (`DataTableFacetedFilter`) provides multi-select filtering for table columns with optional parent-child hierarchy support.
+
+### Basic Usage
+
+```tsx
+filterableColumns={[
+  {
+    id: "status",
+    title: "Status",
+    options: [
+      { label: "Active", value: "active" },
+      { label: "Inactive", value: "inactive" },
+    ],
+  },
+]}
+```
+
+### Parent-Child Hierarchy (Categories)
+
+**Pattern:** When selecting a parent, automatically select all children.
+
+```tsx
+{
+  id: "category",
+  title: "Category",
+  options: (() => {
+    const result = [];
+
+    // Get root categories (no parent)
+    const rootCategories = categories.filter((c) => !c.parentId);
+
+    rootCategories.forEach((parent) => {
+      // Find children
+      const children = categories.filter((c) => c.parentId === parent.id);
+      const childNames = children.map((c) => c.name);
+
+      // Add parent with children reference
+      result.push({
+        label: parent.name,
+        value: parent.name,
+        children: childNames.length > 0 ? childNames : undefined,
+      });
+
+      // Add children immediately after parent (indented in UI)
+      children.forEach((child) => {
+        result.push({
+          label: child.name,
+          value: child.name,
+          parentValue: parent.name,  // For visual indentation
+        });
+      });
+    });
+
+    return result;
+  })(),
+}
+```
+
+**Filter Option Interface:**
+```typescript
+interface FilterOption {
+  label: string;
+  value: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  /** Child values - selecting parent auto-selects these */
+  children?: string[];
+  /** Parent value - marks option as child (indented in UI) */
+  parentValue?: string;
+}
+```
+
+**Visual Result:**
+```
+☐ Mainan Plastik       (parent)
+   ☐ Pistol            (child, indented)
+   ☐ Pedang            (child, indented)
+☐ Mainan Baterai       (parent)
+☐ Action Figure        (parent)
+```
+
+**Behavior:**
+- Selecting "Mainan Plastik" → auto-selects "Pistol" and "Pedang"
+- Deselecting "Mainan Plastik" → auto-deselects all children
+- Children can be individually selected/deselected
+
+### View Column Toggle Visibility
+
+**Pattern:** Hide the "View" column toggle button on mobile/tablet.
+
+```tsx
+<Button
+  variant="outline"
+  size="sm"
+  className="hidden lg:inline-flex lg:ml-auto h-8"
+>
+  <SlidersHorizontal className="mr-2 h-4 w-4" />
+  View
+</Button>
+```
+
+**Reasoning:**
+- Column visibility is less useful on mobile (fewer columns shown anyway)
+- Saves horizontal space for search and filter buttons
+- Desktop users can toggle column visibility
+
+**Note:** This example uses standard `lg:` breakpoint. In the actual implementation, we use `desktop:` for consistency with dashboard layout.
+
+---
+
+## 🎯 Custom Breakpoints (Kidkazz-Specific)
+
+### Overview
+
+Kidkazz uses custom Tailwind breakpoints for precise responsive control:
+
+```javascript
+// tailwind.config.js
+screens: {
+  'tablet': '768px',   // Collapsed sidebar with icons
+  'desktop': '1024px', // Full sidebar with navigation
+}
+```
+
+### When to Use Custom vs Standard Breakpoints
+
+| Use Case | Breakpoint | Reasoning |
+|----------|------------|-----------|
+| Dashboard layout | `tablet:`, `desktop:` | Custom sidebar behavior |
+| Table columns | `lg:` (standard) | Consistent with Tailwind conventions |
+| Card grids | `sm:`, `lg:` (standard) | Works with existing patterns |
+| Form layouts | `sm:` (standard) | Two-column on small tablets |
+
+**Rule:** Use custom breakpoints (`tablet:`, `desktop:`) only for dashboard-specific layout. Use standard Tailwind breakpoints for content components.
 
 ---
 
@@ -1006,6 +1881,12 @@ pnpm dlx shadcn@latest add button card dialog select input label
 
 ---
 
-**Document Version:** 2.0.0
-**Last Updated:** December 29, 2025
+**Document Version:** 3.1.0
+**Last Updated:** December 31, 2025
 **Maintained by:** KidKazz Design Team
+
+**Changelog:**
+- **v3.1.0 (2025-12-31):** Added Dashboard Layout Patterns (sticky sidebar, responsive widths), Table Cell Responsive Spacing, Faceted Filter Component (parent-child hierarchy support), Custom Breakpoints documentation.
+- **v3.0.0 (2025-12-31):** Merged comprehensive responsive design patterns from UI-GUIDELINES.md. Added detailed sections on button patterns, card/grid layouts, table components, search components, form layouts, drawer patterns, testing guidelines, and migration guide.
+- **v2.0.0 (2025-12-29):** Reverted to Radix UI, updated shadcn preset configuration
+- **v1.0.0 (Initial):** Brand design system, colors, typography, icons, animations
