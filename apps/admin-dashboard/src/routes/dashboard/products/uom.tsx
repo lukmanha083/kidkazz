@@ -456,24 +456,20 @@ function UOMPage() {
       {/* Add/Edit UOM Form Drawer (Left Side) */}
       <Drawer open={formDrawerOpen} onOpenChange={setFormDrawerOpen}>
         <DrawerContent side="left">
-          <DrawerHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <DrawerTitle>
-                  {formMode === 'add' ? 'Add Custom Unit of Measure' : 'Edit Unit of Measure'}
-                </DrawerTitle>
-                <DrawerDescription>
-                  {formMode === 'add'
-                    ? 'Create a custom unit with conversion factor'
-                    : 'Update unit of measure information'}
-                </DrawerDescription>
-              </div>
-              <DrawerClose asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <X className="h-4 w-4" />
-                </Button>
-              </DrawerClose>
-            </div>
+          <DrawerHeader className="relative">
+            <DrawerClose asChild>
+              <Button variant="ghost" size="icon" className="absolute right-0 top-0 h-8 w-8">
+                <X className="h-4 w-4" />
+              </Button>
+            </DrawerClose>
+            <DrawerTitle>
+              {formMode === 'add' ? 'Add Custom Unit of Measure' : 'Edit Unit of Measure'}
+            </DrawerTitle>
+            <DrawerDescription>
+              {formMode === 'add'
+                ? 'Create a custom unit with conversion factor'
+                : 'Update unit of measure information'}
+            </DrawerDescription>
           </DrawerHeader>
 
           <form
