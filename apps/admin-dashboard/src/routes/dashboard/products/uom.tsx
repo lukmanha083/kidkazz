@@ -118,33 +118,56 @@ function UOMPage() {
 
   // Create UOM mutation
   const createUOMMutation = useMutation({
-    mutationFn: (data: UOMFormData) => uomApi.create(data),
+    mutationFn: (data: UOMFormData) => {
+      // Transform data for API: convert null to undefined, remove baseUnitCode for base units
+      const apiData = {
+        code: data.code,
+        name: data.name,
+        conversionFactor: data.conversionFactor,
+        isBaseUnit: data.isBaseUnit,
+        // Only include baseUnitCode if it's not a base unit and has a value
+        ...(data.isBaseUnit ? {} : { baseUnitCode: data.baseUnitCode || undefined }),
+      };
+      return uomApi.create(apiData);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['uoms'] });
       toast.success('UOM created successfully');
       setFormDrawerOpen(false);
       form.reset();
     },
-    onError: (error: Error) => {
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
       toast.error('Failed to create UOM', {
-        description: error.message,
+        description: message,
       });
     },
   });
 
   // Update UOM mutation
   const updateUOMMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UOMFormData }) =>
-      uomApi.update(id, data),
+    mutationFn: ({ id, data }: { id: string; data: UOMFormData }) => {
+      // Transform data for API: convert null to undefined, remove baseUnitCode for base units
+      const apiData = {
+        code: data.code,
+        name: data.name,
+        conversionFactor: data.conversionFactor,
+        isBaseUnit: data.isBaseUnit,
+        // Only include baseUnitCode if it's not a base unit and has a value
+        ...(data.isBaseUnit ? {} : { baseUnitCode: data.baseUnitCode || undefined }),
+      };
+      return uomApi.update(id, apiData);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['uoms'] });
       toast.success('UOM updated successfully');
       setFormDrawerOpen(false);
       form.reset();
     },
-    onError: (error: Error) => {
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
       toast.error('Failed to update UOM', {
-        description: error.message,
+        description: message,
       });
     },
   });
@@ -158,9 +181,10 @@ function UOMPage() {
       setDeleteDialogOpen(false);
       setUomToDelete(null);
     },
-    onError: (error: Error) => {
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
       toast.error('Failed to delete UOM', {
-        description: error.message,
+        description: message,
       });
     },
   });
