@@ -7,10 +7,10 @@ interface LogoProps {
 
 export function Logo({ size = 'md', showText = true, showTagline = false, className = '' }: LogoProps) {
   const sizes = {
-    sm: { width: 24, height: 24, text: 'text-sm', tagline: 'text-[8px]' },
-    md: { width: 32, height: 32, text: 'text-lg', tagline: 'text-[9px]' },
-    lg: { width: 48, height: 48, text: 'text-2xl', tagline: 'text-[10px]' },
-    xl: { width: 80, height: 80, text: 'text-4xl', tagline: 'text-xs' },
+    sm: { width: 24, height: 24, text: 'text-xl', tagline: 'text-[8px]' },
+    md: { width: 32, height: 32, text: 'text-2xl', tagline: 'text-[9px]' },
+    lg: { width: 48, height: 48, text: 'text-4xl', tagline: 'text-[10px]' },
+    xl: { width: 80, height: 80, text: 'text-6xl', tagline: 'text-xs' },
   };
 
   const { width, height, text: textSize, tagline: taglineSize } = sizes[size];
