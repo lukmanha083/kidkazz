@@ -375,14 +375,14 @@ function UOMConversionPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col desktop:flex-row items-start desktop:items-center justify-between gap-4">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Warehouse Inventory</h1>
           <p className="text-muted-foreground mt-1">
             Manage product inventory and perform UOM conversions
           </p>
         </div>
-        <Button onClick={() => setHistoryDrawerOpen(true)} variant="outline" className="w-full desktop:w-auto">
+        <Button onClick={() => setHistoryDrawerOpen(true)} variant="outline" className="w-full lg:w-auto">
           <History className="h-4 w-4 mr-2" />
           Conversion History
         </Button>
@@ -414,7 +414,7 @@ function UOMConversionPage() {
       </Card>
 
       {/* Summary Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Products</CardTitle>

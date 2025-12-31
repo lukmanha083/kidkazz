@@ -92,7 +92,7 @@ export function DataTableFacetedFilter<TData, TValue>({
 				</Button>
 			</PopoverTrigger>
 			<PopoverContent className="w-[200px] p-0" align="start">
-				<div className="max-h-[300px] overflow-y-auto p-1">
+				<div role="listbox" aria-label={title} className="max-h-[300px] overflow-y-auto p-1">
 					{options.map((option) => {
 						const isSelected = selectedValues.has(option.value);
 

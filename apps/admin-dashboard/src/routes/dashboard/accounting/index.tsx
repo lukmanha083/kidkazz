@@ -147,7 +147,7 @@ function AccountingDashboardPage() {
 
       {/* Quick Stats */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="bg-card rounded-lg shadow-sm border border-border p-6 animate-pulse">
               <div className="h-4 bg-muted rounded w-24 mb-2"></div>
@@ -156,7 +156,7 @@ function AccountingDashboardPage() {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-card rounded-lg shadow-sm border border-border p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -224,7 +224,7 @@ function AccountingDashboardPage() {
       {/* Quick Actions */}
       <div className="bg-card rounded-lg shadow-sm border border-border p-6">
         <h2 className="text-lg font-semibold text-foreground mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Link
             to="/dashboard/accounting/journal-entry"
             className="flex items-center gap-3 p-4 border-2 border-dashed border-border rounded-lg hover:border-primary hover:bg-muted/50 transition-colors group"
@@ -269,7 +269,7 @@ function AccountingDashboardPage() {
       {/* Navigation Cards */}
       <div className="bg-card rounded-lg shadow-sm border border-border p-6">
         <h2 className="text-lg font-semibold text-foreground mb-4">Accounting Modules</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {navigationCards.map((card) => {
             const Icon = card.icon;
             return (
@@ -298,7 +298,7 @@ function AccountingDashboardPage() {
       {/* Sales Reports */}
       <div className="bg-card rounded-lg shadow-sm border border-border p-6">
         <h2 className="text-lg font-semibold text-foreground mb-4">Sales Reports</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {reportCards.map((card) => {
             const Icon = card.icon;
             return (

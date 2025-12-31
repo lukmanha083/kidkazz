@@ -164,7 +164,7 @@ function SalesByPersonPage() {
           <CardDescription>Select the date range for the sales report</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="fromDate">From Date</Label>
               <Input
@@ -200,7 +200,7 @@ function SalesByPersonPage() {
 
       {/* Summary Stats */}
       {summary && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card className="bg-gradient-to-br from-white to-blue-50/50">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
@@ -299,7 +299,7 @@ function SalesByPersonPage() {
                 </div>
 
                 {/* Channel Breakdown */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {person.channels.map((channel: any, idx: number) => (
                     <div key={idx} className="border rounded-lg p-3">
                       <div className="flex items-center justify-between mb-2">

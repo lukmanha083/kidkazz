@@ -64,7 +64,7 @@ export function getBundleColumns(
 				/>
 			),
 			cell: ({ row }) => (
-				<span className="font-mono text-sm hidden lg:table-cell">
+				<span className="font-mono text-sm hidden lg:inline">
 					{row.getValue("bundleSKU")}
 				</span>
 			),

@@ -282,7 +282,7 @@ function ProductsReportPage() {
       </Card>
 
       {/* Overall Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Products</CardTitle>
@@ -329,7 +329,7 @@ function ProductsReportPage() {
       </div>
 
       {/* Alert Stats Row */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
@@ -515,7 +515,7 @@ function ProductsReportPage() {
       )}
 
       {/* Two Column Layout */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {/* Low Stock Products */}
         <Card>
           <CardHeader>
@@ -615,7 +615,7 @@ function ProductsReportPage() {
           <CardDescription>Common product management tasks</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-3 md:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Link to="/dashboard/products/all">
               <Button variant="outline" className="w-full justify-start gap-2">
                 <Package className="h-4 w-4" />
