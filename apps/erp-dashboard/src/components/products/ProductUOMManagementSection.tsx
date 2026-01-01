@@ -85,9 +85,12 @@ export function ProductUOMManagementSection({
 			return;
 		}
 
+		// Get the selected base unit code
+		const selectedBaseUnit = form.state.values.baseUnit || "PCS";
+
 		if (
 			uomManagement.uomBarcode === form.state.values.barcode &&
-			uom.code !== "PCS"
+			uom.code !== selectedBaseUnit
 		) {
 			toast.error("Duplicate barcode", {
 				description:
@@ -201,8 +204,8 @@ export function ProductUOMManagementSection({
 												Default
 											</label>
 										</div>
-										{/* Hide delete button for PCS (base unit) */}
-										{uom.uomCode !== "PCS" && (
+										{/* Hide delete button for base unit */}
+										{uom.uomCode !== (form.state.values.baseUnit || "PCS") && (
 											<Button
 												type="button"
 												variant="ghost"
@@ -241,101 +244,122 @@ export function ProductUOMManagementSection({
 			{/* Add UOM Form */}
 			<div className="space-y-4 border-t pt-4">
 				<Label className="text-sm font-medium">Add New UOM</Label>
-				<div className="grid grid-cols-1 tablet:grid-cols-2 desktop:grid-cols-3 gap-3">
-					<div className="space-y-2">
-						<Label htmlFor="uom-select" className="text-xs">
-							UOM Type
-						</Label>
-						<select
-							id="uom-select"
-							value={uomManagement.selectedUOM}
-							onChange={(e) => uomManagement.setSelectedUOM(e.target.value)}
-							className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
-						>
-							<option value="">Select UOM...</option>
-							{availableUOMs
-								.filter(
-									(u) =>
-										!u.isBaseUnit &&
-										u.baseUnitCode === (form.state.values.baseUnit || "PCS"),
-								)
-								.map((uom) => (
-									<option key={uom.id} value={uom.code}>
-										{uom.name} (1 = {uom.conversionFactor}{" "}
-										{form.state.values.baseUnit || "PCS"})
-									</option>
-								))}
-						</select>
-					</div>
+				{(() => {
+					const selectedBaseUnit = form.state.values.baseUnit || "PCS";
+					const customUOMs = availableUOMs.filter(
+						(u) => !u.isBaseUnit && u.baseUnitCode === selectedBaseUnit,
+					);
 
-					<div className="space-y-2">
-						<Label htmlFor="uom-barcode" className="text-xs">
-							Barcode
-						</Label>
-						<div className="flex gap-2">
-							<Input
-								id="uom-barcode"
-								placeholder="UOM Barcode"
-								value={uomManagement.uomBarcode}
-								onChange={(e) => uomManagement.setUomBarcode(e.target.value)}
-								className="flex-1"
-							/>
+					return (
+						<>
+							<div className="grid grid-cols-1 tablet:grid-cols-2 desktop:grid-cols-3 gap-3">
+								<div className="space-y-2">
+									<Label htmlFor="uom-select" className="text-xs">
+										UOM Type
+									</Label>
+									<select
+										id="uom-select"
+										value={uomManagement.selectedUOM}
+										onChange={(e) =>
+											uomManagement.setSelectedUOM(e.target.value)
+										}
+										className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+										disabled={customUOMs.length === 0}
+									>
+										<option value="">
+											{customUOMs.length === 0
+												? `No custom UOMs for ${selectedBaseUnit}`
+												: "Select UOM..."}
+										</option>
+										{customUOMs.map((uom) => (
+											<option key={uom.id} value={uom.code}>
+												{uom.name} (1 = {uom.conversionFactor}{" "}
+												{selectedBaseUnit})
+											</option>
+										))}
+									</select>
+									{customUOMs.length === 0 && (
+										<p className="text-xs text-muted-foreground">
+											Create custom UOMs with base unit {selectedBaseUnit} in
+											Products → Unit of Measure
+										</p>
+									)}
+								</div>
+
+								<div className="space-y-2">
+									<Label htmlFor="uom-barcode" className="text-xs">
+										Barcode
+									</Label>
+									<div className="flex gap-2">
+										<Input
+											id="uom-barcode"
+											placeholder="UOM Barcode"
+											value={uomManagement.uomBarcode}
+											onChange={(e) =>
+												uomManagement.setUomBarcode(e.target.value)
+											}
+											className="flex-1"
+										/>
+										<Button
+											type="button"
+											variant="outline"
+											size="icon"
+											onClick={() => {
+												const newBarcode = generateUniqueBarcode();
+												if (newBarcode) {
+													uomManagement.setUomBarcode(newBarcode);
+													toast.success("Barcode generated");
+												}
+											}}
+											title="Generate unique barcode"
+											className="h-9 w-9"
+										>
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												width="16"
+												height="16"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												strokeWidth="2"
+												strokeLinecap="round"
+												strokeLinejoin="round"
+											>
+												<path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+												<path d="M21 3v5h-5" />
+											</svg>
+										</Button>
+									</div>
+								</div>
+
+								<div className="space-y-2">
+									<Label htmlFor="uom-stock" className="text-xs">
+										Stock Quantity
+									</Label>
+									<Input
+										id="uom-stock"
+										type="number"
+										placeholder="Stock"
+										value={uomManagement.uomStock}
+										onChange={(e) => uomManagement.setUomStock(e.target.value)}
+									/>
+								</div>
+							</div>
+
 							<Button
 								type="button"
 								variant="outline"
-								size="icon"
-								onClick={() => {
-									const newBarcode = generateUniqueBarcode();
-									if (newBarcode) {
-										uomManagement.setUomBarcode(newBarcode);
-										toast.success("Barcode generated");
-									}
-								}}
-								title="Generate unique barcode"
-								className="h-9 w-9"
+								size="sm"
+								onClick={handleAddUOM}
+								className="w-full"
+								disabled={customUOMs.length === 0}
 							>
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									width="16"
-									height="16"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									strokeWidth="2"
-									strokeLinecap="round"
-									strokeLinejoin="round"
-								>
-									<path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
-									<path d="M21 3v5h-5" />
-								</svg>
+								<Plus className="h-4 w-4 mr-2" />
+								Add UOM
 							</Button>
-						</div>
-					</div>
-
-					<div className="space-y-2">
-						<Label htmlFor="uom-stock" className="text-xs">
-							Stock Quantity
-						</Label>
-						<Input
-							id="uom-stock"
-							type="number"
-							placeholder="Stock"
-							value={uomManagement.uomStock}
-							onChange={(e) => uomManagement.setUomStock(e.target.value)}
-						/>
-					</div>
-				</div>
-
-				<Button
-					type="button"
-					variant="outline"
-					size="sm"
-					onClick={handleAddUOM}
-					className="w-full"
-				>
-					<Plus className="h-4 w-4 mr-2" />
-					Add UOM
-				</Button>
+						</>
+					);
+				})()}
 			</div>
 		</div>
 	);

@@ -826,7 +826,7 @@ function AllProductsPage() {
 		uomManagement.resetAll();
 		setWarehouseAllocations([]); // Reset warehouse allocations
 
-		// Auto-create PCS as default base unit
+		// Auto-create PCS as default base unit (matches form schema default)
 		const pcsBaseUOM: ProductUOMWithStock = {
 			id: `uom-pcs-${Date.now()}`,
 			productId: "",
@@ -946,10 +946,11 @@ function AllProductsPage() {
 	};
 
 	const handleRemoveUOM = (uom: ProductUOM) => {
-		// Prevent deletion of PCS (base unit)
-		if (uom.uomCode === "PCS") {
+		// Prevent deletion of base unit
+		const selectedBaseUnit = form.state.values.baseUnit || "PCS";
+		if (uom.uomCode === selectedBaseUnit) {
 			toast.error("Cannot delete base unit", {
-				description: "PCS is the default base unit and cannot be removed",
+				description: `${selectedBaseUnit} is the base unit and cannot be removed`,
 			});
 			return;
 		}
@@ -960,12 +961,12 @@ function AllProductsPage() {
 
 	const handleSetDefaultUOM = (uomId: string) => {
 		const clickedUOM = uomManagement.productUOMs.find((u) => u.id === uomId);
+		const selectedBaseUnit = form.state.values.baseUnit || "PCS";
 
 		if (clickedUOM?.isDefault) {
 			uomManagement.toggleDefaultUOM(uomId);
 			toast.info("Default unchecked", {
-				description:
-					"Leave all unchecked to use PCS as default, or check another UOM",
+				description: `Leave all unchecked to use ${selectedBaseUnit} as default, or check another UOM`,
 			});
 		} else {
 			uomManagement.toggleDefaultUOM(uomId);
@@ -1321,7 +1322,11 @@ function AllProductsPage() {
 				<DrawerContent side="right">
 					<DrawerHeader className="relative">
 						<DrawerClose asChild>
-							<Button variant="ghost" size="icon" className="absolute right-0 top-0 h-8 w-8">
+							<Button
+								variant="ghost"
+								size="icon"
+								className="absolute right-0 top-0 h-8 w-8"
+							>
 								<X className="h-4 w-4" />
 							</Button>
 						</DrawerClose>
@@ -2040,7 +2045,11 @@ function AllProductsPage() {
 				<DrawerContent side="left">
 					<DrawerHeader className="relative">
 						<DrawerClose asChild>
-							<Button variant="ghost" size="icon" className="absolute right-0 top-0 h-8 w-8">
+							<Button
+								variant="ghost"
+								size="icon"
+								className="absolute right-0 top-0 h-8 w-8"
+							>
 								<X className="h-4 w-4" />
 							</Button>
 						</DrawerClose>
@@ -2425,10 +2434,40 @@ function AllProductsPage() {
 										<select
 											id={field.name}
 											value={field.state.value}
-											onChange={(e) => field.handleChange(e.target.value)}
+											onChange={(e) => {
+												const newBaseUnit = e.target.value;
+												const oldBaseUnit = field.state.value;
+												field.handleChange(newBaseUnit);
+
+												// Update the base unit UOM in productUOMs when base unit changes
+												if (newBaseUnit !== oldBaseUnit && formMode === "add") {
+													const newBaseUnitInfo = baseUnits.find(
+														(u) => u.code === newBaseUnit,
+													);
+													const newUOMName =
+														newBaseUnitInfo?.name || newBaseUnit;
+
+													// Replace the old base unit UOM with the new one
+													const updatedUOMs = uomManagement.productUOMs.map(
+														(uom) => {
+															if (uom.uomCode === oldBaseUnit) {
+																return {
+																	...uom,
+																	id: `uom-${newBaseUnit.toLowerCase()}-${Date.now()}`,
+																	uomCode: newBaseUnit,
+																	uomName: newUOMName,
+																};
+															}
+															return uom;
+														},
+													);
+													uomManagement.setProductUOMs(updatedUOMs);
+												}
+											}}
 											onBlur={field.handleBlur}
 											required
-											className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+											disabled={formMode === "edit"}
+											className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-50"
 										>
 											{baseUnits.length === 0 ? (
 												<option value="PCS">PCS (Default)</option>
@@ -2441,7 +2480,9 @@ function AllProductsPage() {
 											)}
 										</select>
 										<p className="text-xs text-muted-foreground">
-											Base unit for inventory tracking
+											{formMode === "edit"
+												? "Base unit cannot be changed after creation"
+												: "Base unit for inventory tracking"}
 										</p>
 										{field.state.meta.errors.length > 0 && (
 											<p className="text-sm text-destructive">
