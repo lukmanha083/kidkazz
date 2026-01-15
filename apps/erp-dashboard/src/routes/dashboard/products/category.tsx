@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "@tanstack/react-form";
 import { zodValidator } from "@tanstack/zod-form-adapter";
@@ -200,10 +200,10 @@ function CategoryPage() {
 		},
 	});
 
-	const handleDelete = (category: Category) => {
+	const handleDelete = useCallback((category: Category) => {
 		setCategoryToDelete(category);
 		setDeleteDialogOpen(true);
-	};
+	}, []);
 
 	const confirmDeleteCategory = () => {
 		if (categoryToDelete) {
@@ -217,26 +217,29 @@ function CategoryPage() {
 		setFormDrawerOpen(true);
 	};
 
-	const handleEditCategory = (category: Category) => {
-		setFormMode("edit");
-		setSelectedCategory(category);
-		form.setFieldValue("name", category.name);
-		form.setFieldValue("description", category.description || "");
-		form.setFieldValue("icon", category.icon || "");
-		form.setFieldValue("color", category.color || "");
-		form.setFieldValue("status", category.status);
-		form.setFieldValue("parentId", category.parentId || null);
-		setFormDrawerOpen(true);
-	};
+	const handleEditCategory = useCallback(
+		(category: Category) => {
+			setFormMode("edit");
+			setSelectedCategory(category);
+			form.setFieldValue("name", category.name);
+			form.setFieldValue("description", category.description || "");
+			form.setFieldValue("icon", category.icon || "");
+			form.setFieldValue("color", category.color || "");
+			form.setFieldValue("status", category.status);
+			form.setFieldValue("parentId", category.parentId || null);
+			setFormDrawerOpen(true);
+		},
+		[form],
+	);
 
-	// Memoize columns with callbacks
+	// Memoize columns with stable callbacks
 	const columns = useMemo(
 		() =>
 			getCategoryColumns({
 				onEdit: handleEditCategory,
 				onDelete: handleDelete,
 			}),
-		[],
+		[handleEditCategory, handleDelete],
 	);
 
 	if (error) {
