@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useForm } from '@tanstack/react-form';
-import { zodValidator } from '@tanstack/zod-form-adapter';
+import { useForm } from "@tanstack/react-form";
+import { zodValidator } from "@tanstack/zod-form-adapter";
 import { toast } from "sonner";
 import {
 	bundleApi,
@@ -15,7 +15,7 @@ import {
 	type Product,
 	type CreateBundleInput,
 } from "@/lib/api";
-import { bundleFormSchema, type BundleFormData } from '@/lib/form-schemas';
+import { bundleFormSchema, type BundleFormData } from "@/lib/form-schemas";
 import {
 	Card,
 	CardContent,
@@ -63,8 +63,8 @@ import {
  * Handles both string errors and Zod error objects with message property.
  */
 function getErrorMessage(error: unknown): string {
-	if (typeof error === 'string') return error;
-	if (error && typeof error === 'object' && 'message' in error) {
+	if (typeof error === "string") return error;
+	if (error && typeof error === "object" && "message" in error) {
 		return (error as { message: string }).message;
 	}
 	return String(error);
@@ -289,7 +289,7 @@ function ProductBundlePage() {
 
 	// Available products for combobox - only show products with base UOM (PCS) and allocated in selected warehouse
 	const availableProducts = useMemo(() => {
-		const selectedWarehouse = form.getFieldValue('warehouseId');
+		const selectedWarehouse = form.getFieldValue("warehouseId");
 
 		return products
 			.filter((p) => {
@@ -331,7 +331,7 @@ function ProductBundlePage() {
 					baseUnit: p.baseUnit,
 				};
 			});
-	}, [products, productLocations, form.getFieldValue('warehouseId')]);
+	}, [products, productLocations, form.getFieldValue("warehouseId")]);
 
 	const handleViewBundle = async (bundle: ProductBundle) => {
 		setSelectedBundle(bundle);
@@ -344,8 +344,7 @@ function ProductBundlePage() {
 		} catch (error) {
 			console.error("Failed to fetch bundle items:", error);
 			toast.error("Failed to load bundle details", {
-				description:
-					error instanceof Error ? error.message : "Unknown error",
+				description: error instanceof Error ? error.message : "Unknown error",
 			});
 			// Clear bundle items on error
 			setSelectedBundleItems([]);
@@ -356,7 +355,7 @@ function ProductBundlePage() {
 		setFormMode("add");
 		const newBarcode = generateBarcode();
 		form.reset();
-		form.setFieldValue('barcode', newBarcode);
+		form.setFieldValue("barcode", newBarcode);
 		setSelectedProducts([]);
 		setFormDrawerOpen(true);
 	};
@@ -364,14 +363,14 @@ function ProductBundlePage() {
 	const handleEditBundle = async (bundle: ProductBundle) => {
 		setFormMode("edit");
 		setSelectedBundle(bundle);
-		form.setFieldValue('bundleName', bundle.bundleName);
-		form.setFieldValue('bundleSKU', bundle.bundleSKU);
-		form.setFieldValue('barcode', (bundle as any).barcode || "");
-		form.setFieldValue('bundleDescription', bundle.bundleDescription || "");
-		form.setFieldValue('bundlePrice', bundle.bundlePrice);
-		form.setFieldValue('discountPercentage', bundle.discountPercentage);
-		form.setFieldValue('status', bundle.status);
-		form.setFieldValue('warehouseId', (bundle as any).warehouseId || null);
+		form.setFieldValue("bundleName", bundle.bundleName);
+		form.setFieldValue("bundleSKU", bundle.bundleSKU);
+		form.setFieldValue("barcode", (bundle as any).barcode || "");
+		form.setFieldValue("bundleDescription", bundle.bundleDescription || "");
+		form.setFieldValue("bundlePrice", bundle.bundlePrice);
+		form.setFieldValue("discountPercentage", bundle.discountPercentage);
+		form.setFieldValue("status", bundle.status);
+		form.setFieldValue("warehouseId", (bundle as any).warehouseId || null);
 
 		// Fetch bundle items with error handling
 		try {
@@ -382,8 +381,7 @@ function ProductBundlePage() {
 		} catch (error) {
 			console.error("Failed to fetch bundle items:", error);
 			toast.error("Failed to load bundle details", {
-				description:
-					error instanceof Error ? error.message : "Unknown error",
+				description: error instanceof Error ? error.message : "Unknown error",
 			});
 			// Keep drawer state consistent on error
 			setSelectedProducts([]);
@@ -436,7 +434,6 @@ function ProductBundlePage() {
 	const handleRemoveProductFromBundle = (index: number) => {
 		setSelectedProducts(selectedProducts.filter((_, i) => i !== index));
 	};
-
 
 	const handleDeleteBundle = () => {
 		if (bundleToDelete) {
@@ -523,7 +520,7 @@ function ProductBundlePage() {
 	// Update discount percentage when form field changes
 	useEffect(() => {
 		const unsubscribe = form.store.subscribe(() => {
-			const value = form.getFieldValue('discountPercentage');
+			const value = form.getFieldValue("discountPercentage");
 			setDiscountPercentage(value || 0);
 		});
 		return unsubscribe;
@@ -598,7 +595,10 @@ function ProductBundlePage() {
 						Create and manage product bundles with special pricing
 					</p>
 				</div>
-				<Button onClick={handleAddBundle} className="gap-2 self-start sm:self-auto">
+				<Button
+					onClick={handleAddBundle}
+					className="gap-2 self-start sm:self-auto"
+				>
 					<Plus className="h-4 w-4" />
 					Create Bundle
 				</Button>
@@ -800,14 +800,18 @@ function ProductBundlePage() {
 					<DrawerFooter>
 						<div className="flex flex-col sm:flex-row gap-2 w-full">
 							<Button
-								onClick={() => selectedBundle && handleEditBundle(selectedBundle)}
+								onClick={() =>
+									selectedBundle && handleEditBundle(selectedBundle)
+								}
 								className="w-full sm:w-auto"
 							>
 								<Edit className="mr-2 h-4 w-4" />
 								Edit Bundle
 							</Button>
 							<DrawerClose asChild>
-								<Button variant="outline" className="w-full sm:w-auto">Close</Button>
+								<Button variant="outline" className="w-full sm:w-auto">
+									Close
+								</Button>
 							</DrawerClose>
 						</div>
 					</DrawerFooter>
@@ -850,14 +854,16 @@ function ProductBundlePage() {
 											// Auto-generate SKU only when adding new bundle (not editing)
 											if (formMode === "add" && bundleName) {
 												const generatedSKU = generateBundleSKU(bundleName);
-												form.setFieldValue('bundleSKU', generatedSKU);
+												form.setFieldValue("bundleSKU", generatedSKU);
 											}
 										}}
 										onBlur={field.handleBlur}
 										required
 									/>
 									{field.state.meta.errors.length > 0 && (
-										<p className="text-xs text-destructive">{getErrorMessage(field.state.meta.errors[0])}</p>
+										<p className="text-xs text-destructive">
+											{getErrorMessage(field.state.meta.errors[0])}
+										</p>
 									)}
 								</div>
 							)}
@@ -867,35 +873,18 @@ function ProductBundlePage() {
 							{(field) => (
 								<div className="space-y-2">
 									<Label htmlFor="bundleSKU">Bundle SKU *</Label>
-									<div className="flex gap-2">
-										<Input
-											id="bundleSKU"
-											placeholder="BA-001"
-											value={field.state.value}
-											onChange={(e) => field.handleChange(e.target.value)}
-											onBlur={field.handleBlur}
-											required
-											className="flex-1"
-										/>
-										{formMode === "add" && (
-											<Button
-												type="button"
-												variant="outline"
-												onClick={() => {
-													const generatedSKU = generateBundleSKU(
-														form.getFieldValue('bundleName'),
-													);
-													field.handleChange(generatedSKU);
-													toast.success("SKU generated");
-												}}
-												disabled={!form.getFieldValue('bundleName')}
-											>
-												Generate
-											</Button>
-										)}
-									</div>
+									<Input
+										id="bundleSKU"
+										placeholder="BA-001"
+										value={field.state.value}
+										onChange={(e) => field.handleChange(e.target.value)}
+										onBlur={field.handleBlur}
+										required
+									/>
 									{field.state.meta.errors.length > 0 && (
-										<p className="text-xs text-destructive">{getErrorMessage(field.state.meta.errors[0])}</p>
+										<p className="text-xs text-destructive">
+											{getErrorMessage(field.state.meta.errors[0])}
+										</p>
 									)}
 									<p className="text-xs text-muted-foreground">
 										{formMode === "add"
@@ -960,7 +949,7 @@ function ProductBundlePage() {
 									<Label htmlFor="warehouseId">Assembly Warehouse *</Label>
 									<select
 										id="warehouseId"
-										value={field.state.value || ''}
+										value={field.state.value || ""}
 										onChange={(e) => field.handleChange(e.target.value || null)}
 										onBlur={field.handleBlur}
 										className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
@@ -974,11 +963,13 @@ function ProductBundlePage() {
 										))}
 									</select>
 									{field.state.meta.errors.length > 0 && (
-										<p className="text-xs text-destructive">{getErrorMessage(field.state.meta.errors[0])}</p>
+										<p className="text-xs text-destructive">
+											{getErrorMessage(field.state.meta.errors[0])}
+										</p>
 									)}
 									<p className="text-xs text-muted-foreground">
-										Select the warehouse where this bundle will be assembled. All
-										component products must be available in this warehouse.
+										Select the warehouse where this bundle will be assembled.
+										All component products must be available in this warehouse.
 									</p>
 								</div>
 							)}
@@ -1064,7 +1055,9 @@ function ProductBundlePage() {
 							<form.Field name="discountPercentage">
 								{(field) => (
 									<div className="space-y-2">
-										<Label htmlFor="discountPercentage">Discount Percentage</Label>
+										<Label htmlFor="discountPercentage">
+											Discount Percentage
+										</Label>
 										<Input
 											id="discountPercentage"
 											type="number"
@@ -1072,11 +1065,15 @@ function ProductBundlePage() {
 											max="100"
 											placeholder="0"
 											value={field.state.value}
-											onChange={(e) => field.handleChange(parseFloat(e.target.value) || 0)}
+											onChange={(e) =>
+												field.handleChange(parseFloat(e.target.value) || 0)
+											}
 											onBlur={field.handleBlur}
 										/>
 										{field.state.meta.errors.length > 0 && (
-											<p className="text-xs text-destructive">{getErrorMessage(field.state.meta.errors[0])}</p>
+											<p className="text-xs text-destructive">
+												{getErrorMessage(field.state.meta.errors[0])}
+											</p>
 										)}
 										<p className="text-xs text-muted-foreground">
 											Set discount percentage to calculate bundle price
@@ -1262,7 +1259,9 @@ function ProductBundlePage() {
 									)}
 								</Button>
 								<DrawerClose asChild>
-									<Button variant="outline" className="w-full sm:w-auto">Cancel</Button>
+									<Button variant="outline" className="w-full sm:w-auto">
+										Cancel
+									</Button>
 								</DrawerClose>
 							</div>
 						</DrawerFooter>

@@ -99,24 +99,6 @@ const navItems: NavItem[] = [
 		],
 	},
 	{
-		id: "customers",
-		title: "Customers",
-		href: "/dashboard/customers",
-		icon: Users,
-	},
-	{
-		id: "promotions",
-		title: "Promotions",
-		href: "/dashboard/promotions",
-		icon: Tag,
-	},
-	{
-		id: "price-lists",
-		title: "Price Lists",
-		href: "/dashboard/price-lists",
-		icon: DollarSign,
-	},
-	{
 		id: "accounting",
 		title: "Accounting",
 		href: "/dashboard/accounting",
@@ -143,6 +125,24 @@ const navItems: NavItem[] = [
 				href: "/dashboard/accounting/reports/sales-by-person",
 			},
 		],
+	},
+	{
+		id: "customers",
+		title: "Customers",
+		href: "/dashboard/customers",
+		icon: Users,
+	},
+	{
+		id: "promotions",
+		title: "Promotions",
+		href: "/dashboard/promotions",
+		icon: Tag,
+	},
+	{
+		id: "price-lists",
+		title: "Price Lists",
+		href: "/dashboard/price-lists",
+		icon: DollarSign,
 	},
 	{
 		id: "admin",
