@@ -4,6 +4,15 @@
 
 This document describes all business rules implemented in the system, where they're enforced, and how to work with them.
 
+> **Note**: Business rules are being organized by bounded context. For domain-specific rules, see:
+> - [Accounting Business Rules](../bounded-contexts/accounting/BUSINESS_RULES.md) - Double-entry bookkeeping, journal entries, chart of accounts
+> - [Inventory Business Rules](../bounded-contexts/inventory/BUSINESS_RULES.md) - Stock management, batch tracking, FEFO, multi-warehouse
+> - [Product Business Rules](../bounded-contexts/product/BUSINESS_RULES.md) - SKU, pricing, UOM, variants, bundles, categories
+> - [Business Partner Business Rules](../bounded-contexts/business-partner/BUSINESS_RULES.md) - Employees, suppliers, customers, RBAC
+> - [Procurement Business Rules](../bounded-contexts/procurement/BUSINESS_RULES.md) - Purchase orders, forecasting, seasonal analytics, market intelligence
+> - [Sales Business Rules](../bounded-contexts/sales/BUSINESS_RULES.md) - Multi-channel sales, POS, e-commerce, mobile, live streaming, Saga orchestration
+> - [Payment Business Rules](../bounded-contexts/payment/BUSINESS_RULES.md) - Payment methods, channels, refunds, settlements, fees, PCI compliance, sent.dm paperless receipts
+
 ---
 
 ## Inventory Management Rules

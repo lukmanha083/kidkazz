@@ -22,11 +22,11 @@
     "nanoid": "^5.0.0"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20251113.0",
+    "@cloudflare/workers-types": "^4.20260116.0",
+    "@vitest/coverage-v8": "^4.0.17",
     "drizzle-kit": "^0.31.7",
     "typescript": "^5.6.0",
-    "wrangler": "^4.49.0",
-    "vitest": "^2.1.8",
-    "@vitest/coverage-v8": "^2.1.8"
+    "vitest": "^4.0.17",
+    "wrangler": "^4.59.2"
   }
 }

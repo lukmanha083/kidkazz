@@ -7,13 +7,16 @@ The Accounting Service is a microservice responsible for managing financial acco
 ## Table of Contents
 
 1. [Bounded Context](#bounded-context)
-2. [Domain Model](#domain-model)
-3. [Architecture Layers](#architecture-layers)
-4. [Folder Structure](#folder-structure)
-5. [Entity Relationships](#entity-relationships)
-6. [Use Cases](#use-cases)
-7. [API Endpoints](#api-endpoints)
-8. [Event Publishing](#event-publishing)
+2. [Accounting Cycle Workflow](#accounting-cycle-workflow)
+3. [Cash Flow Management](#cash-flow-management)
+4. [Domain Model](#domain-model)
+5. [Architecture Layers](#architecture-layers)
+6. [Folder Structure](#folder-structure)
+7. [Entity Relationships](#entity-relationships)
+8. [Use Cases](#use-cases)
+9. [API Endpoints](#api-endpoints)
+10. [Event Publishing](#event-publishing)
+11. [Asset Accounting Module](#asset-accounting-module)
 
 ---
 
@@ -36,6 +39,533 @@ The Accounting Service manages the **Accounting Bounded Context**:
 3. Detail accounts can have transactions, header accounts cannot
 4. System accounts cannot be deleted
 5. Fiscal periods must be closed in sequence
+
+---
+
+## Accounting Cycle Workflow
+
+The Accounting Service implements the **complete accounting cycle** - the standardized process for recording and reporting financial transactions within a fiscal period.
+
+### Accounting Cycle Overview
+
+```
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│                         ACCOUNTING CYCLE (Monthly)                                │
+├──────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                   │
+│   ┌─────────────────┐                                                            │
+│   │  1. RECORD      │    Journal entries created from:                           │
+│   │  TRANSACTIONS   │    • Manual entries (user-created)                         │
+│   │                 │    • System entries (OrderCompleted, PurchaseReceived)     │
+│   └────────┬────────┘    • Recurring entries (rent, salaries)                    │
+│            │                                                                      │
+│            ▼                                                                      │
+│   ┌─────────────────┐                                                            │
+│   │  2. POST TO     │    Posted entries update:                                  │
+│   │  GENERAL LEDGER │    • Account balances                                      │
+│   │                 │    • Running ledger history                                │
+│   └────────┬────────┘                                                            │
+│            │                                                                      │
+│            ▼                                                                      │
+│   ┌─────────────────┐    Reconcile at month-end:                                 │
+│   │  3. RECONCILE   │    • Bank accounts vs statements                           │
+│   │  ACCOUNTS       │    • AR subsidiary vs GL control                           │
+│   │                 │    • AP subsidiary vs GL control                           │
+│   └────────┬────────┘    • Inventory vs GL                                       │
+│            │                                                                      │
+│            ▼                                                                      │
+│   ┌─────────────────┐                                                            │
+│   │  4. GENERATE    │    Verify: Debits = Credits                                │
+│   │  TRIAL BALANCE  │    Identify accounts that need adjustment                  │
+│   │                 │                                                            │
+│   └────────┬────────┘                                                            │
+│            │                                                                      │
+│            ▼                                                                      │
+│   ┌─────────────────┐    Record end-of-period adjustments:                       │
+│   │  5. ADJUSTING   │    • Prepaid expenses (insurance, rent)                    │
+│   │  JOURNAL        │    • Accrued expenses (salaries, interest)                 │
+│   │  ENTRIES        │    • Depreciation                                          │
+│   └────────┬────────┘    • Unearned revenue recognition                          │
+│            │                                                                      │
+│            ▼                                                                      │
+│   ┌─────────────────┐                                                            │
+│   │  6. GENERATE    │    Financial reports:                                      │
+│   │  FINANCIAL      │    • Income Statement (P&L)                                │
+│   │  STATEMENTS     │    • Balance Sheet                                         │
+│   └────────┬────────┘    • Cash Flow Statement                                   │
+│            │                                                                      │
+│            ▼                                                                      │
+│   ┌─────────────────┐    Year-end only:                                          │
+│   │  7. CLOSE THE   │    • Transfer Revenue/Expense to Retained Earnings         │
+│   │  BOOKS          │    • Reset temporary accounts to zero                      │
+│   │                 │    • Lock fiscal period                                    │
+│   └─────────────────┘                                                            │
+│                                                                                   │
+└──────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Step 1: Record Transactions
+
+Journal entries are the foundation of the accounting cycle.
+
+**Entry Sources:**
+```typescript
+entryType: 'Manual' | 'System' | 'Recurring' | 'Adjusting' | 'Closing'
+```
+
+| Entry Type | Source | Example |
+|------------|--------|---------|
+| Manual | User-created | Owner investment, corrections |
+| System | Event-driven | OrderCompleted → Revenue entry |
+| Recurring | Scheduled | Monthly rent, loan payments |
+| Adjusting | Month-end | Depreciation, prepaid expense allocation |
+| Closing | Year-end | Transfer net income to retained earnings |
+
+### Step 2: Post to General Ledger
+
+When entries are posted, account balances are updated.
+
+```typescript
+// Entry status flow
+Draft → Posted → (Voided if error)
+
+// On post:
+// 1. Validate debits = credits
+// 2. Update account_balances table
+// 3. Publish JournalEntryPosted event
+```
+
+### Step 3: Reconcile Accounts
+
+Monthly reconciliation ensures data integrity.
+
+**Reconciliation Types:**
+
+| Type | Process | Frequency |
+|------|---------|-----------|
+| Bank Reconciliation | Compare GL to bank statement | Monthly |
+| AR Reconciliation | Compare customer balances to GL control | Monthly |
+| AP Reconciliation | Compare vendor balances to GL control | Monthly |
+| Inventory Reconciliation | Compare Inventory Service to GL | Monthly |
+
+**Bank Reconciliation Workflow:**
+```
+Bank Statement Balance
+  + Deposits in Transit
+  - Outstanding Checks
+  ± Bank Errors
+  = Adjusted Bank Balance
+
+Book Balance (GL)
+  + Interest Income
+  - Bank Charges
+  - NSF Checks
+  ± Book Errors
+  = Adjusted Book Balance
+
+Adjusted Bank = Adjusted Book ✓
+```
+
+### Step 4: Generate Trial Balance
+
+The trial balance verifies that all entries are balanced.
+
+```typescript
+interface TrialBalance {
+  asOfDate: Date
+  accounts: TrialBalanceAccount[]
+  totalDebits: number
+  totalCredits: number
+  isBalanced: boolean  // Debits must equal Credits
+}
+
+interface TrialBalanceAccount {
+  accountCode: string
+  accountName: string
+  debitBalance: number
+  creditBalance: number
+}
+```
+
+**API Endpoint:** `GET /api/accounting/reports/trial-balance?asOfDate=2025-01-31`
+
+### Step 5: Adjusting Journal Entries
+
+Record accruals and deferrals that span periods.
+
+**Common Adjusting Entries:**
+
+```typescript
+// 1. Prepaid Expense Recognition (Monthly)
+// Insurance paid annually, recognized monthly
+// Debit: Insurance Expense         Rp 1,000,000
+// Credit: Prepaid Insurance        Rp 1,000,000
+
+// 2. Accrued Expense (Salaries earned but not yet paid)
+// Debit: Salary Expense            Rp 10,000,000
+// Credit: Salaries Payable         Rp 10,000,000
+
+// 3. Depreciation (Monthly)
+// Debit: Depreciation Expense      Rp 500,000
+// Credit: Accumulated Depreciation Rp 500,000
+
+// 4. Unearned Revenue Recognition
+// Debit: Unearned Revenue          Rp 2,000,000
+// Credit: Service Revenue          Rp 2,000,000
+```
+
+### Step 6: Generate Financial Statements
+
+**Income Statement (P&L):**
+```typescript
+interface IncomeStatement {
+  periodFrom: Date
+  periodTo: Date
+  revenue: RevenueSection
+  costOfGoodsSold: COGSSection
+  grossProfit: number
+  operatingExpenses: ExpenseSection
+  operatingIncome: number
+  otherIncome: number
+  otherExpenses: number
+  netIncome: number
+}
+```
+
+**Balance Sheet:**
+```typescript
+interface BalanceSheet {
+  asOfDate: Date
+  assets: AssetSection
+  liabilities: LiabilitySection
+  equity: EquitySection
+  totalAssets: number
+  totalLiabilitiesAndEquity: number
+  isBalanced: boolean  // Assets = Liabilities + Equity
+}
+```
+
+### Step 7: Close the Books
+
+**Monthly Close:**
+- Mark fiscal period as 'Closed'
+- Prevent backdated entries
+- Generate period-end reports
+
+**Year-End Close:**
+```typescript
+// Closing entries transfer temporary accounts to Retained Earnings
+
+// 1. Close Revenue accounts
+// Debit: Sales Revenue             Rp 100,000,000
+// Credit: Income Summary           Rp 100,000,000
+
+// 2. Close Expense accounts
+// Debit: Income Summary            Rp 80,000,000
+// Credit: Operating Expenses       Rp 80,000,000
+
+// 3. Close Income Summary (Net Income)
+// Debit: Income Summary            Rp 20,000,000
+// Credit: Retained Earnings        Rp 20,000,000
+```
+
+### Accounting Cycle API Endpoints
+
+```
+# Step 1 & 2: Record & Post Transactions
+POST   /api/accounting/journal-entries              # Create entry
+POST   /api/accounting/journal-entries/:id/post     # Post entry
+
+# Step 3: Reconciliation
+GET    /api/accounting/reconciliation/bank/:accountId     # Get bank reconciliation
+POST   /api/accounting/reconciliation/bank                # Create/update reconciliation
+POST   /api/accounting/reconciliation/bank/:id/approve    # Approve reconciliation
+GET    /api/accounting/reconciliation/ar                  # AR reconciliation report
+GET    /api/accounting/reconciliation/ap                  # AP reconciliation report
+GET    /api/accounting/reconciliation/inventory           # Inventory reconciliation
+
+# Step 4: Trial Balance
+GET    /api/accounting/reports/trial-balance        # Generate trial balance
+
+# Step 5: Adjusting Entries
+POST   /api/accounting/journal-entries              # With entryType: 'Adjusting'
+POST   /api/accounting/depreciation/run             # Run monthly depreciation
+
+# Step 6: Financial Statements
+GET    /api/accounting/reports/income-statement     # P&L report
+GET    /api/accounting/reports/balance-sheet        # Balance sheet
+GET    /api/accounting/reports/cash-flow            # Cash flow statement
+
+# Step 7: Close the Books
+POST   /api/accounting/fiscal-periods/:id/close     # Close fiscal period
+POST   /api/accounting/year-end/close               # Year-end closing process
+```
+
+### Accounting Cycle Checklist
+
+```
+□ Step 1: All transactions recorded (manual + system entries)
+□ Step 2: All entries posted to GL
+□ Step 3: Bank accounts reconciled
+□ Step 3: AR/AP subsidiary ledgers reconciled
+□ Step 3: Inventory reconciled with Inventory Service
+□ Step 4: Trial balance generated and balanced
+□ Step 5: Adjusting entries posted (depreciation, accruals, deferrals)
+□ Step 6: Adjusted trial balance balanced
+□ Step 6: Income Statement generated
+□ Step 6: Balance Sheet generated (Assets = Liabilities + Equity)
+□ Step 7: Fiscal period closed
+□ Step 7: (Year-end) Closing entries posted
+□ Step 7: (Year-end) Retained Earnings updated
+```
+
+---
+
+## Cash Flow Management
+
+Since we use **Accrual Accounting**, revenue and expenses are recorded when earned/incurred, not when cash changes hands. The Cash Flow Management module answers the critical question: **"How much cash do we actually have?"**
+
+### Why Cash Flow Management Matters
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    ACCRUAL vs CASH REALITY                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  INCOME STATEMENT (Accrual)           ACTUAL CASH                           │
+│  ─────────────────────────            ─────────────                         │
+│  Revenue:    Rp 100,000,000           Cash In:    Rp  60,000,000            │
+│  - COGS:     Rp  60,000,000           Cash Out:   Rp  80,000,000            │
+│  - Expenses: Rp  20,000,000           ─────────────                         │
+│  ─────────────────────────            Net Cash:   Rp (20,000,000)  ⚠️       │
+│  Net Profit: Rp  20,000,000  ✓                                              │
+│                                                                              │
+│  PROFITABLE but CASH NEGATIVE!                                               │
+│  Why? Customers haven't paid yet (AR up), but we paid suppliers (AP down)   │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Cash Flow Reports
+
+#### 1. Cash Flow Statement (Indirect Method)
+
+Reconciles accrual-based Net Income to actual cash generated.
+
+```
+                    CASH FLOW STATEMENT
+                    Period: January 2025
+────────────────────────────────────────────────────────
+OPERATING ACTIVITIES
+  Net Income                              Rp 20,000,000
+  + Depreciation                          Rp  5,000,000
+  - Increase in AR                        Rp(40,000,000)
+  + Increase in AP                        Rp 10,000,000
+  ──────────────────────────────────────────────────────
+  Net Cash from Operations                Rp (5,000,000)
+
+INVESTING ACTIVITIES
+  - Purchase of Equipment                 Rp(15,000,000)
+  ──────────────────────────────────────────────────────
+  Net Cash from Investing                 Rp(15,000,000)
+
+FINANCING ACTIVITIES
+  + Bank Loan                             Rp 30,000,000
+  ──────────────────────────────────────────────────────
+  Net Cash from Financing                 Rp 30,000,000
+
+════════════════════════════════════════════════════════
+NET INCREASE IN CASH                      Rp 10,000,000
+Cash at Beginning                         Rp 50,000,000
+────────────────────────────────────────────────────────
+CASH AT END OF PERIOD                     Rp 60,000,000
+```
+
+**API Endpoint:** `GET /api/accounting/reports/cash-flow?from=2025-01-01&to=2025-01-31`
+
+#### 2. Cash Position Report (Real-Time)
+
+Shows current cash across all accounts.
+
+```
+               CASH POSITION REPORT
+               As of: January 16, 2025 14:30
+─────────────────────────────────────────────────────────
+CASH ON HAND
+  Petty Cash - HQ                        Rp   5,000,000
+  POS Cash Drawer                        Rp   3,500,000
+  ───────────────────────────────────────────────────────
+  Total Cash on Hand                     Rp   8,500,000
+
+BANK ACCOUNTS
+  BCA - Operating (1234567890)           Rp 150,000,000
+  BRI - Savings (1122334455)             Rp  80,000,000
+  ───────────────────────────────────────────────────────
+  Total Bank Balances                    Rp 230,000,000
+
+═════════════════════════════════════════════════════════
+TOTAL CASH POSITION                      Rp 238,500,000
+
+Reconciliation Status:
+  BCA: Last reconciled Jan 15 ✓
+  BRI: Last reconciled Jan 10 ⚠️ (6 days ago)
+```
+
+**API Endpoint:** `GET /api/accounting/reports/cash-position`
+
+#### 3. Cash Forecast Report
+
+Projects future cash based on AR/AP aging and scheduled payments.
+
+```
+                CASH FORECAST (Next 4 Weeks)
+─────────────────────────────────────────────────────────
+Current Cash Position:                   Rp 238,500,000
+Minimum Threshold:                       Rp 100,000,000
+
+Week 1 (Jan 17-23):
+  + AR Collections                       Rp  45,000,000
+  + Expected Sales                       Rp  35,000,000
+  - AP Payments                          Rp (55,000,000)
+  - Loan Payment                         Rp  (5,000,000)
+  Ending Cash:                           Rp 258,500,000 ✓
+
+Week 2 (Jan 24-30):
+  + AR Collections                       Rp  38,000,000
+  + Expected Sales                       Rp  35,000,000
+  - AP Payments                          Rp (42,000,000)
+  - Payroll                              Rp (85,000,000)
+  Ending Cash:                           Rp 204,500,000 ✓
+
+Week 3 (Jan 31 - Feb 6):
+  + AR Collections                       Rp  52,000,000
+  + Expected Sales                       Rp  35,000,000
+  - AP Payments                          Rp (38,000,000)
+  - Rent                                 Rp (25,000,000)
+  Ending Cash:                           Rp 228,500,000 ✓
+
+Week 4 (Feb 7-13):
+  + AR Collections                       Rp  28,000,000
+  + Expected Sales                       Rp  35,000,000
+  - AP Payments                          Rp (30,000,000)
+  - Tax Payment                          Rp (15,000,000)
+  Ending Cash:                           Rp 246,500,000 ✓
+
+⚠️ ALERTS: None - All weeks above minimum threshold
+```
+
+**API Endpoint:** `GET /api/accounting/reports/cash-forecast?days=30`
+
+### Cash Flow Domain Model
+
+```typescript
+// Cash Position Aggregate
+interface CashPositionReport {
+  asOfDateTime: Date
+  cashOnHand: CashAccount[]
+  bankAccounts: BankAccount[]
+  totalCashPosition: number
+  reconciliationStatus: ReconciliationStatus[]
+}
+
+// Cash Flow Statement
+interface CashFlowStatement {
+  periodFrom: Date
+  periodTo: Date
+
+  // Operating Activities
+  netIncome: number
+  nonCashAdjustments: Adjustment[]  // Depreciation, amortization
+  workingCapitalChanges: WorkingCapitalChange[]  // AR, AP, Inventory
+  netCashFromOperating: number
+
+  // Investing Activities
+  investingItems: CashFlowItem[]
+  netCashFromInvesting: number
+
+  // Financing Activities
+  financingItems: CashFlowItem[]
+  netCashFromFinancing: number
+
+  // Summary
+  netIncreaseInCash: number
+  cashAtBeginning: number
+  cashAtEnd: number
+}
+
+// Cash Forecast
+interface CashForecast {
+  baseDate: Date
+  currentCashPosition: number
+  minimumThreshold: number
+  weeklyProjections: WeeklyProjection[]
+  alerts: CashAlert[]
+}
+```
+
+### Cash Flow API Endpoints
+
+```
+# Cash Flow Statement
+GET  /api/accounting/reports/cash-flow              # Generate cash flow statement
+     ?from=2025-01-01&to=2025-01-31
+
+# Cash Position
+GET  /api/accounting/reports/cash-position          # Real-time cash position
+
+# Cash Forecast
+GET  /api/accounting/reports/cash-forecast          # 30-day cash forecast
+     ?days=30
+
+# Cash Threshold Configuration
+GET  /api/accounting/cash-threshold                 # Get threshold config
+PUT  /api/accounting/cash-threshold                 # Update threshold
+
+# Cash Flow Activity Classification
+GET  /api/accounting/cash-flow/activity/:entryId   # Get activity classification
+```
+
+### Cash Threshold Alerts
+
+System monitors cash position and alerts when below thresholds:
+
+| Level | Threshold | Action |
+|-------|-----------|--------|
+| **Warning** | 120% of minimum | Monitor daily, review AR aging |
+| **Critical** | 110% of minimum | Prioritize payments, accelerate collections |
+| **Emergency** | Below minimum | Contact bank, delay non-critical payments |
+
+**Event Published:** `CashThresholdBreached`
+
+### Integration with Reconciliation
+
+Cash Position Report includes reconciliation status from Step 3 (Reconcile Accounts) of the Accounting Cycle:
+
+```typescript
+// After bank reconciliation is completed
+async function updateCashPosition(): Promise<void> {
+  // 1. Get adjusted book balance from latest reconciliation
+  const reconciledBalance = await getReconciledBankBalance(accountId);
+
+  // 2. Update cash position report
+  await refreshCashPosition();
+
+  // 3. Check thresholds
+  await checkCashThresholds();
+}
+```
+
+### Business Rules Reference
+
+See **Business Rules** document for detailed Cash Flow rules:
+- Rule 28: Cash Flow Statement Method (Indirect)
+- Rule 29: Cash Flow Activity Classification
+- Rule 30: Cash Position Report
+- Rule 31: Cash Forecast Report
+- Rule 32: Cash Account Identification
+- Rule 33: Working Capital Change Calculation
+- Rule 34: Cash Flow Reconciliation
+- Rule 35: Minimum Cash Threshold Alert
 
 ---
 
@@ -683,3 +1213,151 @@ This architecture provides:
 - ✅ Scalability via microservices
 - ✅ Event-driven communication
 - ✅ DDD best practices
+
+---
+
+## Asset Accounting Module
+
+The Accounting Service includes an **Asset Accounting Module** for managing fixed assets and their depreciation. This module is integrated within the Accounting Service rather than being a separate microservice to optimize database usage (considering Cloudflare D1's 10GB limit).
+
+### Module Overview
+
+The Asset Accounting Module handles:
+- **Fixed Asset Register**: Complete lifecycle management of company assets
+- **Depreciation Calculation**: Multiple methods (Straight-line, Declining Balance, SYD, Units of Production)
+- **Asset Categories**: POS equipment, warehouse equipment, vehicles, IT equipment, fixtures, furniture, building improvements
+- **Asset Movements**: Transfers between locations/departments
+- **Maintenance Tracking**: Scheduled and unscheduled maintenance records
+- **Financial Integration**: Automatic journal entries for depreciation and disposal
+
+### Key Features
+
+| Feature | Description |
+|---------|-------------|
+| Asset Numbering | Auto-generated format: `FA-{CATEGORY}-{YYYYMM}-{SEQ}` |
+| Capitalization Threshold | Rp 2,500,000 minimum to be classified as fixed asset |
+| Depreciation Methods | Straight-line, Declining Balance, Sum-of-Years-Digits, Units of Production |
+| Tax Compliance | Indonesian PSAK 16 and PMK 96/PMK.03/2009 |
+| Asset Lifecycle | DRAFT → ACTIVE → FULLY_DEPRECIATED / DISPOSED |
+
+### Data Separation Strategy
+
+To prevent database bloat, historical asset data is synchronized with the Reporting Service:
+
+```
+┌──────────────────────────────────────┐     Events      ┌──────────────────────────────────┐
+│       Accounting Service             │ ──────────────► │      Reporting Service           │
+│       (OLTP - Transactional)         │                 │      (OLAP - Analytical)         │
+├──────────────────────────────────────┤                 ├──────────────────────────────────┤
+│ • Active assets                      │                 │ • Full asset history             │
+│ • Current depreciation schedules     │                 │ • Historical depreciation        │
+│ • Recent movements (current + 1 yr)  │                 │ • All movements                  │
+│ • Active maintenance records         │                 │ • Complete maintenance history   │
+└──────────────────────────────────────┘                 └──────────────────────────────────┘
+```
+
+### Integration Points
+
+The Asset Accounting Module publishes events consumed by other services:
+
+| Event | Consumer | Action |
+|-------|----------|--------|
+| `AssetRegistered` | Reporting Service | Store asset snapshot |
+| `DepreciationPosted` | Reporting Service | Archive depreciation record |
+| `AssetDisposed` | Reporting Service | Archive with disposal details |
+| `AssetTransferred` | Inventory Service | Update location reference |
+
+### Detailed Documentation
+
+For complete implementation details, see:
+
+- **[Asset Accounting Architecture](./ASSET_ACCOUNTING_ARCHITECTURE.md)** - Full architecture design, domain model, database schema
+- **[Asset Accounting Business Rules](./ASSET_ACCOUNTING_BUSINESS_RULES.md)** - 34 business rules covering all asset operations
+- **[Asset Accounting Implementation Plan](./ASSET_ACCOUNTING_IMPLEMENTATION_PLAN.md)** - 8-phase implementation roadmap
+
+### Folder Structure Extension
+
+The Asset Accounting Module extends the Accounting Service structure:
+
+```
+services/accounting-service/
+├── src/
+│   ├── domain/
+│   │   ├── entities/
+│   │   │   ├── ... (existing)
+│   │   │   ├── fixed-asset.entity.ts
+│   │   │   ├── asset-category.entity.ts
+│   │   │   ├── depreciation-schedule.entity.ts
+│   │   │   ├── asset-movement.entity.ts
+│   │   │   └── asset-maintenance.entity.ts
+│   │   ├── services/
+│   │   │   ├── ... (existing)
+│   │   │   └── depreciation-calculator.service.ts
+│   │   └── repositories/
+│   │       ├── ... (existing)
+│   │       ├── fixed-asset.repository.ts
+│   │       ├── asset-category.repository.ts
+│   │       └── depreciation-schedule.repository.ts
+│   ├── application/
+│   │   ├── commands/
+│   │   │   ├── ... (existing)
+│   │   │   ├── register-asset.command.ts
+│   │   │   ├── activate-asset.command.ts
+│   │   │   ├── dispose-asset.command.ts
+│   │   │   ├── transfer-asset.command.ts
+│   │   │   └── run-depreciation.command.ts
+│   │   └── queries/
+│   │       ├── ... (existing)
+│   │       ├── get-asset-register.query.ts
+│   │       ├── get-depreciation-report.query.ts
+│   │       └── get-asset-schedule.query.ts
+│   └── infrastructure/
+│       ├── http/
+│       │   ├── routes/
+│       │   │   ├── ... (existing)
+│       │   │   └── assets.routes.ts
+│       │   └── controllers/
+│       │       ├── ... (existing)
+│       │       └── asset.controller.ts
+│       └── scheduled/
+│           └── depreciation-cron.ts  # Monthly depreciation trigger
+├── migrations/
+│   ├── ... (existing)
+│   ├── 0010_create_asset_categories.sql
+│   ├── 0011_create_fixed_assets.sql
+│   ├── 0012_create_depreciation_schedules.sql
+│   ├── 0013_create_asset_movements.sql
+│   └── 0014_create_asset_maintenance.sql
+└── ...
+```
+
+### API Endpoints (Asset Module)
+
+```
+# Asset Categories
+GET    /api/accounting/asset-categories              # List categories
+POST   /api/accounting/asset-categories              # Create category
+PUT    /api/accounting/asset-categories/:id          # Update category
+
+# Fixed Assets
+GET    /api/accounting/assets                        # List assets
+GET    /api/accounting/assets/:id                    # Get asset details
+POST   /api/accounting/assets                        # Register new asset
+PUT    /api/accounting/assets/:id                    # Update asset
+POST   /api/accounting/assets/:id/activate           # Activate asset
+POST   /api/accounting/assets/:id/dispose            # Dispose asset
+POST   /api/accounting/assets/:id/transfer           # Transfer asset
+
+# Depreciation
+GET    /api/accounting/assets/:id/depreciation       # Get depreciation schedule
+POST   /api/accounting/depreciation/run              # Run monthly depreciation
+
+# Maintenance
+GET    /api/accounting/assets/:id/maintenance        # List maintenance records
+POST   /api/accounting/assets/:id/maintenance        # Record maintenance
+
+# Reports
+GET    /api/accounting/reports/asset-register        # Asset register report
+GET    /api/accounting/reports/depreciation          # Depreciation report
+GET    /api/accounting/reports/asset-value           # Asset value summary
+```

@@ -3,6 +3,46 @@
 ## Overview
 Refactor existing product-service from basic implementation to full hexagonal architecture with DDD patterns, then wire frontend to use it via API Gateway.
 
+---
+
+## ⚠️ TDD Approach (MANDATORY)
+
+**This project uses Test-Driven Development (TDD).** All implementation MUST follow the Red-Green-Refactor cycle:
+
+### TDD Workflow for Each Step
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     TDD IMPLEMENTATION ORDER                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   1. Write Unit Tests (test/unit/)           ← Write FIRST, should FAIL    │
+│      ↓                                                                      │
+│   2. Implement Domain/Application Code       ← Minimal code to pass tests  │
+│      ↓                                                                      │
+│   3. Write Integration Tests (test/integration/)                            │
+│      ↓                                                                      │
+│   4. Implement Infrastructure Code           ← Repositories, handlers      │
+│      ↓                                                                      │
+│   5. Write E2E Tests (test/e2e/)                                           │
+│      ↓                                                                      │
+│   6. Implement Routes/Controllers            ← Wire everything together    │
+│      ↓                                                                      │
+│   7. Refactor (keep all tests green)                                       │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Test Coverage Requirements
+
+| Layer | Target | Enforcement |
+|-------|--------|-------------|
+| Domain (entities, value objects, services) | >90% | Required |
+| Application (commands, queries, handlers) | >80% | Required |
+| Infrastructure (repositories, controllers) | >70% | Required |
+
+---
+
 ## Current State
 - `services/product-service/` exists with basic scaffolding
 - Frontend uses mock data in `apps/erp-dashboard`

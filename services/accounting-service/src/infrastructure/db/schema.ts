@@ -17,6 +17,14 @@ export const chartOfAccounts = sqliteTable('chart_of_accounts', {
   normalBalance: text('normal_balance', {
     enum: ['Debit', 'Credit']
   }).notNull(),
+
+  // Financial Statement Classification
+  // BALANCE_SHEET: Assets (1000-1999), Liabilities (2000-2999), Equity (3000-3999)
+  // INCOME_STATEMENT: Revenue (4000-4999), COGS (5000-5999), Expenses (6000-8999)
+  financialStatementType: text('financial_statement_type', {
+    enum: ['BALANCE_SHEET', 'INCOME_STATEMENT']
+  }).notNull(),
+
   currency: text('currency').default('IDR').notNull(),
 
   // Hierarchy (for sub-accounts)

@@ -166,13 +166,13 @@ GROUP BY account_type
 ### Phase 2: Reports
 - [x] Income Statement
 - [x] Balance Sheet
-- [ ] Trial Balance
-- [ ] Cash Flow Statement
+- [x] Trial Balance
+- [x] Cash Flow Statement (Indirect Method)
 
 ### Phase 3: Advanced
 - [ ] Multi-currency support
-- [ ] Fiscal year/period management
-- [ ] Account reconciliation
+- [x] Fiscal year/period management
+- [x] Account reconciliation (Bank, AR, AP, Inventory)
 - [ ] Budget vs Actual
 - [ ] Inter-company transactions
 

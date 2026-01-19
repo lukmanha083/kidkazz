@@ -180,11 +180,35 @@ inventory.version  // Incremented on every update
 - Double-entry bookkeeping
 - Chart of accounts
 - Journal entries (automatic from sales/purchases)
-- Financial reports (balance sheet, P&L)
+- Financial reports (balance sheet, P&L, trial balance)
+- **Full Accounting Cycle** implementation:
+  1. Record Transactions (Manual, System, Recurring entries)
+  2. Post to General Ledger
+  3. Reconcile Accounts (Bank, AR, AP, Inventory)
+  4. Generate Trial Balance
+  5. Post Adjusting Entries (accruals, deferrals, depreciation)
+  6. Generate Financial Statements
+  7. Close the Books (monthly/year-end)
+- **Cash Flow Management** (for accrual accounting):
+  - Cash Flow Statement (Indirect Method)
+  - Cash Position Report (real-time)
+  - Cash Forecast (30-day projection)
+  - Cash Threshold Alerts
+- **Asset Accounting Module** (integrated, not separate service):
+  - Fixed asset register & lifecycle management
+  - Depreciation calculation (Straight-line, Declining Balance, SYD, Units of Production)
+  - Asset categories (POS, Warehouse, Vehicles, IT, Fixtures, Furniture, Building)
+  - Asset disposal with gain/loss calculation
+  - Maintenance tracking
 
 **Integration Points**:
 - Listens to OrderCompleted events → creates journal entries
 - Listens to PaymentReceived events → creates payment entries
+- Publishes AssetRegistered, DepreciationPosted, AssetDisposed events → Reporting Service
+
+**Data Separation Strategy** (D1 10GB limit):
+- Accounting Service: Active data (current + 1 year)
+- Reporting Service: Historical data archive (OLAP)
 
 **Key Files**:
 - Schema: `services/accounting-service/src/infrastructure/db/schema.ts`
@@ -281,32 +305,174 @@ inventory.version  // Incremented on every update
 
 ---
 
-## Testing Strategy
+## Testing Strategy - Test-Driven Development (TDD)
 
-### Unit Tests
-- **Location**: `services/{service}/test/unit/`
-- **Coverage**: Domain logic, business rules
-- **Run**: `pnpm test`
-- **Target**: >80% coverage
+### ⚠️ CRITICAL: We Use TDD Approach
 
-### Integration Tests
-- **Location**: `services/{service}/test/integration/`
-- **Coverage**: API endpoints, database operations
-- **Run**: `pnpm test:integration`
-- **Requires**: Local D1 database
+**ALWAYS write tests BEFORE implementation.** This is mandatory for all new features.
 
-### E2E Tests
-- **Location**: `services/{service}/test/e2e/`
-- **Coverage**: Full workflows (order → payment → fulfillment)
-- **Run**: `pnpm test:e2e`
+### TDD Workflow (Red-Green-Refactor)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        TDD CYCLE (MANDATORY)                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   1. RED: Write failing test first                                          │
+│      ↓                                                                      │
+│   2. GREEN: Write minimal code to pass test                                 │
+│      ↓                                                                      │
+│   3. REFACTOR: Improve code while keeping tests green                       │
+│      ↓                                                                      │
+│   4. REPEAT for next feature/requirement                                    │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Implementation Order (TDD)
+
+When implementing any feature, follow this order:
+
+1. **Write Unit Tests First**
+   ```typescript
+   // test/unit/domain/fixed-asset.test.ts
+   describe('FixedAsset', () => {
+     it('should calculate straight-line depreciation correctly', () => {
+       const asset = new FixedAsset({
+         acquisitionCost: 12000000,
+         salvageValue: 2000000,
+         usefulLifeMonths: 60
+       });
+       expect(asset.calculateMonthlyDepreciation()).toBe(166666.67);
+     });
+   });
+   ```
+
+2. **Run Test (Should FAIL - Red)**
+   ```bash
+   pnpm test -- --grep "FixedAsset"
+   # Expected: FAIL (class doesn't exist yet)
+   ```
+
+3. **Implement Minimal Code to Pass**
+   ```typescript
+   // src/domain/entities/fixed-asset.entity.ts
+   export class FixedAsset {
+     calculateMonthlyDepreciation(): number {
+       return (this.acquisitionCost - this.salvageValue) / this.usefulLifeMonths;
+     }
+   }
+   ```
+
+4. **Run Test (Should PASS - Green)**
+   ```bash
+   pnpm test -- --grep "FixedAsset"
+   # Expected: PASS
+   ```
+
+5. **Refactor if Needed (Keep Green)**
+
+### Test Types and Locations
+
+| Test Type | Location | When to Write | What to Test |
+|-----------|----------|---------------|--------------|
+| **Unit Tests** | `test/unit/` | FIRST - before any code | Domain logic, business rules, value objects |
+| **Integration Tests** | `test/integration/` | After unit tests pass | Repositories, database operations |
+| **E2E Tests** | `test/e2e/` | After integration tests | Full API workflows, user scenarios |
+
+### Test File Naming Convention
+
+```
+services/{service}/
+├── src/
+│   └── domain/
+│       └── entities/
+│           └── fixed-asset.entity.ts
+└── test/
+    ├── unit/
+    │   └── domain/
+    │       └── fixed-asset.test.ts        # Unit tests for entity
+    ├── integration/
+    │   └── repositories/
+    │       └── fixed-asset.repository.test.ts
+    └── e2e/
+        └── assets.e2e.test.ts             # Full API workflow tests
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+pnpm test
+
+# Run unit tests only
+pnpm test:unit
+
+# Run integration tests
+pnpm test:integration
+
+# Run E2E tests
+pnpm test:e2e
+
+# Run specific test file
+pnpm test -- --grep "FixedAsset"
+
+# Run with coverage
+pnpm test:coverage
+```
+
+### Test Coverage Targets
+
+| Layer | Target Coverage | Rationale |
+|-------|-----------------|-----------|
+| Domain | >90% | Core business logic must be thoroughly tested |
+| Application | >80% | Use cases should be well-covered |
+| Infrastructure | >70% | Integration points need testing |
+| Overall | >80% | Minimum acceptable coverage |
 
 ### Test Guidelines
+- ✅ Write test BEFORE implementation (TDD)
+- ✅ One assertion per test when possible
+- ✅ Use descriptive test names (should...when...)
 - ✅ Use `beforeAll` for database setup
 - ✅ Use `afterAll` for cleanup
 - ✅ Run migrations before tests
 - ✅ Seed data in fixtures
 - ❌ Don't share state between tests
 - ❌ Don't mock domain logic (only infrastructure)
+- ❌ Don't skip writing tests
+
+### Example TDD Session
+
+```typescript
+// Step 1: Write test FIRST (Red)
+describe('DepreciationCalculator', () => {
+  describe('straightLine', () => {
+    it('should return monthly depreciation amount', () => {
+      const result = DepreciationCalculator.straightLine({
+        cost: 10000000,
+        salvage: 1000000,
+        lifeMonths: 60
+      });
+      expect(result).toBe(150000);
+    });
+
+    it('should throw error if cost is less than salvage', () => {
+      expect(() => DepreciationCalculator.straightLine({
+        cost: 1000000,
+        salvage: 2000000,
+        lifeMonths: 60
+      })).toThrow('Cost must be greater than salvage value');
+    });
+  });
+});
+
+// Step 2: Run test - it FAILS (no implementation yet)
+// Step 3: Write minimal implementation
+// Step 4: Run test - it PASSES
+// Step 5: Refactor if needed
+// Step 6: Repeat for next test case
+```
 
 **Reference**: `docs/testing/DDD_REFACTORING_TESTING_GUIDE.md`
 
@@ -373,6 +539,14 @@ wrangler d1 execute kidkazz-db --file=services/inventory-service/migrations/0006
 1. **Double Entry**: Every transaction has debit and credit
 2. **Auto Journal Entries**: Created from order completion, not order creation
 3. **Payment Methods**: Cash/Bank affects different accounts (see `docs/bounded-contexts/accounting/PAYMENT_METHOD_AND_JOURNAL_ENTRY_LOGIC.md`)
+
+### Asset Accounting
+1. **Capitalization Threshold**: Rp 2,500,000 minimum to be classified as fixed asset
+2. **Depreciation Methods**: Straight-line (default), Declining Balance, Sum-of-Years-Digits, Units of Production
+3. **Asset Lifecycle**: DRAFT → ACTIVE → FULLY_DEPRECIATED / DISPOSED
+4. **Monthly Depreciation**: Scheduled cron runs on 1st of each month
+5. **Asset Numbering**: Auto-generated `FA-{CATEGORY}-{YYYYMM}-{SEQ}`
+6. **Tax Compliance**: Indonesian PSAK 16 and PMK 96/PMK.03/2009
 
 **Full Reference**: `docs/ddd/BUSINESS_RULES.md`
 
@@ -442,10 +616,67 @@ wrangler d1 execute kidkazz-db --file=services/inventory-service/migrations/0006
 - [Roadmap Section 8](ddd/DDD_REFACTORING_ROADMAP.md) - Lines 2400+
 - [Bundle Handling](bounded-contexts/inventory/PRODUCT_BUNDLES_STOCK_HANDLING.md)
 
+### For Inventory Work
+- [Inventory Business Rules](bounded-contexts/inventory/BUSINESS_RULES.md) - **Stock, batches, FEFO, multi-warehouse**
+- [UOM Conversion Procedure](bounded-contexts/inventory/UOM_CONVERSION_PROCEDURE.md)
+- [WebSocket Real-Time Inventory](bounded-contexts/inventory/WEBSOCKET_REALTIME_INVENTORY.md)
+- [Product Bundles Stock Handling](bounded-contexts/inventory/PRODUCT_BUNDLES_STOCK_HANDLING.md)
+
 ### For Testing
 - [Testing Guide](testing/DDD_REFACTORING_TESTING_GUIDE.md) - Comprehensive E2E scenarios
 - [Phase 1 Testing](implementation/phases/PHASE1_TESTING_GUIDE.md)
 - [Inventory Integration Testing](testing/INVENTORY_INTEGRATION_TESTING.md)
+
+### For Accounting Work
+- [Accounting Business Rules](bounded-contexts/accounting/BUSINESS_RULES.md) - **Double-entry bookkeeping rules, reconciliation, cash flow**
+- [Accounting Service Architecture](bounded-contexts/accounting/ACCOUNTING_SERVICE_ARCHITECTURE.md) - **Includes Accounting Cycle & Cash Flow Management**
+- [Accounting Tutorial](bounded-contexts/accounting/ACCOUNTING_TUTORIAL.md)
+- **Accounting Cycle** (7 steps documented in Architecture):
+  1. Record Transactions → 2. Post to GL → 3. Reconcile Accounts → 4. Trial Balance → 5. Adjusting Entries → 6. Financial Statements → 7. Close the Books
+- **Reconciliation** (Rules 20-25 in Business Rules):
+  - Bank reconciliation, AR/AP reconciliation, Inventory reconciliation
+- **Cash Flow Management** (Rules 28-35 in Business Rules):
+  - Cash Flow Statement (Indirect Method) - reconcile accrual profit to actual cash
+  - Cash Position Report - real-time cash across all accounts
+  - Cash Forecast - 30-day projection based on AR/AP aging
+  - Cash Threshold Alerts - Warning/Critical/Emergency levels
+- **Asset Accounting Module** (Fixed Assets & Depreciation):
+  - [Asset Accounting Architecture](bounded-contexts/accounting/ASSET_ACCOUNTING_ARCHITECTURE.md) - **Domain model, depreciation methods, asset lifecycle**
+  - [Asset Accounting Business Rules](bounded-contexts/accounting/ASSET_ACCOUNTING_BUSINESS_RULES.md) - **34 rules: capitalization, depreciation, disposal, tax compliance**
+  - [Asset Accounting Implementation Plan](bounded-contexts/accounting/ASSET_ACCOUNTING_IMPLEMENTATION_PLAN.md) - **8-phase implementation roadmap**
+
+### For Product Work
+- [Product Business Rules](bounded-contexts/product/BUSINESS_RULES.md) - **SKU, pricing, UOM, variants, bundles**
+- [Product Service Implementation Plan](bounded-contexts/product/PRODUCT_SERVICE_IMPLEMENTATION_PLAN.md)
+
+### For Business Partner Work (Employees, Suppliers, Customers)
+- [Business Partner Service Architecture](bounded-contexts/business-partner/BUSINESS_PARTNER_SERVICE_ARCHITECTURE.md) - **Service design & domain model**
+- [Business Partner Business Rules](bounded-contexts/business-partner/BUSINESS_RULES.md) - **RBAC, employee, supplier, customer rules**
+- [Business Partner Implementation Plan](bounded-contexts/business-partner/BUSINESS_PARTNER_IMPLEMENTATION_PLAN.md) - **Step-by-step implementation**
+- [RBAC Implementation Plan](integration/RBAC_IMPLEMENTATION_PLAN.md) - Detailed RBAC design
+
+### For Procurement Work (Purchase Orders, Forecasting, Market Intelligence)
+- [Procurement Service Architecture](bounded-contexts/procurement/PROCUREMENT_SERVICE_ARCHITECTURE.md) - **Service design & domain model**
+- [Procurement Business Rules](bounded-contexts/procurement/BUSINESS_RULES.md) - **PO lifecycle, forecasting, seasonal analytics, market intelligence**
+- [Procurement Implementation Plan](bounded-contexts/procurement/PROCUREMENT_IMPLEMENTATION_PLAN.md) - **12-phase implementation roadmap**
+
+### For Sales Work (Orders, POS, E-Commerce, Mobile, Live Streaming)
+- [Sales Service Architecture](bounded-contexts/sales/SALES_SERVICE_ARCHITECTURE.md) - **Multi-channel sales, Saga orchestration**
+- [Sales Business Rules](bounded-contexts/sales/BUSINESS_RULES.md) - **46 rules: channels, pricing, POS, fulfillment, i18n**
+- [Sales Implementation Plan](bounded-contexts/sales/SALES_IMPLEMENTATION_PLAN.md) - **14-phase implementation roadmap**
+
+### For Payment Work (Midtrans, QRIS, EDC, Cash, Refunds)
+- [Payment Service Architecture](bounded-contexts/payment/PAYMENT_SERVICE_ARCHITECTURE.md) - **Multi-provider integration, Saga compensation**
+- [Payment Business Rules](bounded-contexts/payment/BUSINESS_RULES.md) - **38 rules: methods, channels, refunds, fees, PCI compliance**
+- [Payment Implementation Plan](bounded-contexts/payment/PAYMENT_IMPLEMENTATION_PLAN.md) - **10-phase implementation roadmap**
+
+### For Notification Work (sent.dm, Paperless Receipts, OTP)
+- [Notification Service Architecture](bounded-contexts/notification/NOTIFICATION_SERVICE_ARCHITECTURE.md) - **sent.dm integration, channel auto-detection, templates**
+
+### For Reporting Work (OLAP, Analytics, Data Archival)
+- [Reporting Service Architecture](bounded-contexts/reporting/REPORTING_SERVICE_ARCHITECTURE.md) - **CQRS query side, data archival, aggregation pipeline**
+- [Reporting Business Rules](bounded-contexts/reporting/BUSINESS_RULES.md) - **64 rules: archival, purging (7-year retention), aggregation, export, caching**
+- [Reporting Implementation Plan](bounded-contexts/reporting/REPORTING_IMPLEMENTATION_PLAN.md) - **12-phase implementation roadmap**
 
 ### For Frontend Work
 - ⭐ [UI Design Guideline](guides/UI_DESIGN_GUIDELINE.md) - **MUST READ** for all frontend features
@@ -484,9 +715,15 @@ docs/
 │
 ├── bounded-contexts/            ← Domain boundaries
 │   ├── accounting/
+│   ├── business-partner/
+│   ├── frontend/
 │   ├── inventory/
+│   ├── notification/
+│   ├── payment/
+│   ├── procurement/
 │   ├── product/
-│   └── frontend/
+│   ├── reporting/
+│   └── sales/
 │
 ├── implementation/              ← Implementation tracking
 │   ├── phases/                  ← Phase 1-6 summaries
