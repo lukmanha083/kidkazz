@@ -2,44 +2,55 @@
 
 ## Overview
 
-This document outlines the step-by-step implementation plan for the Business Partner Service, which consolidates Employee (with RBAC), Supplier, and Customer management into a unified service.
+This document outlines the step-by-step implementation plan for the Business Partner Service, which manages **Customer**, **Supplier**, and **Employee** entities.
+
+**APPROACH**: Rename existing `user-service` to `business-partner-service` and add Customer/Supplier tables. No data migration needed.
+
+**RBAC**: Deferred to later phases (after all modules are created). This plan focuses on creating Customer and Supplier management first.
+
+---
+
+## Implementation Strategy
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    IMPLEMENTATION APPROACH                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  Step 1: RENAME user-service → business-partner-service                      │
+│  ═══════════════════════════════════════════════════════                     │
+│  • Rename folder: services/user-service → services/business-partner-service │
+│  • Update wrangler.toml, package.json                                        │
+│  • Update imports in other services                                          │
+│  • NO DATA MIGRATION - same database, same tables                            │
+│                                                                              │
+│  Step 2: ADD Customer & Supplier tables (NO Auth needed for these)           │
+│  ═══════════════════════════════════════════════════════════════            │
+│  • Customer CRUD                                                             │
+│  • Supplier CRUD                                                             │
+│  • Address Management (shared)                                               │
+│  • Frontend integration                                                      │
+│                                                                              │
+│  Step 3: RBAC Enhancement (LATER - after all modules exist)                  │
+│  ════════════════════════════════════════════════════════════════           │
+│  • Role & Permission tables                                                  │
+│  • Permission middleware for all services                                    │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ## ⚠️ TDD Approach (MANDATORY)
 
-**This project uses Test-Driven Development (TDD).** All implementation MUST follow the Red-Green-Refactor cycle:
-
-### TDD Workflow for Each Phase
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                     TDD IMPLEMENTATION ORDER                                │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│   1. Write Unit Tests (test/unit/)           ← Write FIRST, should FAIL    │
-│      ↓                                                                      │
-│   2. Implement Domain/Application Code       ← Minimal code to pass tests  │
-│      ↓                                                                      │
-│   3. Write Integration Tests (test/integration/)                            │
-│      ↓                                                                      │
-│   4. Implement Infrastructure Code           ← Repositories, handlers      │
-│      ↓                                                                      │
-│   5. Write E2E Tests (test/e2e/)                                           │
-│      ↓                                                                      │
-│   6. Implement Routes/Controllers            ← Wire everything together    │
-│      ↓                                                                      │
-│   7. Refactor (keep all tests green)                                       │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+**This project uses Test-Driven Development (TDD).** All implementation MUST follow the Red-Green-Refactor cycle.
 
 ### Test Coverage Requirements
 
 | Layer | Target | Enforcement |
 |-------|--------|-------------|
-| Domain (entities, value objects, services) | >90% | Required |
-| Application (commands, queries, handlers) | >80% | Required |
+| Domain (entities, value objects) | >90% | Required |
+| Application (commands, queries) | >80% | Required |
 | Infrastructure (repositories, controllers) | >70% | Required |
 
 ---
@@ -47,22 +58,22 @@ This document outlines the step-by-step implementation plan for the Business Par
 ## Current State
 
 - `services/user-service/` exists with basic authentication
-- RBAC design documented but not fully implemented
+- Users table with basic employee/user data
 - Customer data scattered or non-existent
 - No supplier management
-- Frontend uses basic auth with limited role support
 
-## Goal
+## Goal (This Plan)
 
-- Full DDD/hexagonal architecture Business Partner Service
-- Unified management of Employees, Suppliers, Customers
-- Complete RBAC implementation
-- Migration path from User Service
-- Frontend integration with all partner types
+- Rename user-service to business-partner-service
+- Add Customer table with full CRUD
+- Add Supplier table with full CRUD
+- Add shared Address table
+- Keep existing auth functionality (employees/users can still login)
+- RBAC enhancement will be added later when all modules exist
 
 ---
 
-## Phase 1: Service Setup & Domain Model (Steps 1-4)
+## Phase 1: Service Setup & Schema (Steps 1-3)
 
 ### Step 1: Create Service Scaffolding
 
@@ -85,7 +96,7 @@ pnpm init
 - `services/business-partner-service/wrangler.toml`
 - `services/business-partner-service/src/index.ts`
 
-**wrangler.toml**:
+**wrangler.toml** (Simple - no JWT yet):
 ```toml
 name = "business-partner-service"
 main = "src/index.ts"
@@ -95,561 +106,775 @@ compatibility_date = "2024-01-01"
 binding = "DB"
 database_name = "business-partner-db"
 database_id = "your-database-id"
-
-[vars]
-JWT_SECRET = "your-secret-key"
-JWT_ACCESS_EXPIRY = "1h"
-JWT_REFRESH_EXPIRY = "7d"
 ```
 
 **Deliverable**: Working service skeleton
 
 ---
 
-### Step 2: Design Domain Entities
+### Step 2: Create Database Schema
 
-**Task**: Create domain entity classes
+**Task**: Design tables for Customer, Supplier, Employee WITHOUT RBAC
+
+**File**: `services/business-partner-service/src/infrastructure/db/schema.ts`
+
+```typescript
+import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
+
+// ============================================================================
+// CUSTOMER TABLE
+// ============================================================================
+export const customers = sqliteTable('customers', {
+  id: text('id').primaryKey(),
+  code: text('code').notNull().unique(),           // CUS-0001
+
+  // Basic Info
+  name: text('name').notNull(),
+  email: text('email'),
+  phone: text('phone'),
+
+  // Customer Type
+  customerType: text('customer_type').notNull(),   // 'retail' | 'wholesale'
+
+  // B2B Fields (for wholesale)
+  companyName: text('company_name'),
+  npwp: text('npwp'),                              // Tax ID
+  creditLimit: integer('credit_limit').default(0),
+  creditUsed: integer('credit_used').default(0),
+  paymentTermDays: integer('payment_term_days').default(0),
+
+  // B2C Fields (for retail)
+  loyaltyPoints: integer('loyalty_points').default(0),
+  membershipTier: text('membership_tier'),         // 'bronze' | 'silver' | 'gold'
+
+  // Stats (updated by events)
+  totalOrders: integer('total_orders').default(0),
+  totalSpent: integer('total_spent').default(0),
+  lastOrderDate: integer('last_order_date'),
+
+  // Status
+  status: text('status').notNull().default('active'),  // 'active' | 'inactive' | 'blocked'
+
+  // Notes
+  notes: text('notes'),
+
+  // Audit
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+  createdBy: text('created_by'),
+  updatedBy: text('updated_by'),
+});
+
+// ============================================================================
+// SUPPLIER TABLE
+// ============================================================================
+export const suppliers = sqliteTable('suppliers', {
+  id: text('id').primaryKey(),
+  code: text('code').notNull().unique(),           // SUP-0001
+
+  // Basic Info
+  name: text('name').notNull(),
+  email: text('email'),
+  phone: text('phone'),
+
+  // Company Info
+  companyName: text('company_name'),
+  npwp: text('npwp'),
+
+  // Business Terms
+  paymentTermDays: integer('payment_term_days').default(30),
+  leadTimeDays: integer('lead_time_days').default(7),
+  minimumOrderAmount: integer('minimum_order_amount').default(0),
+
+  // Bank Info (for payment)
+  bankName: text('bank_name'),
+  bankAccountNumber: text('bank_account_number'),
+  bankAccountName: text('bank_account_name'),
+
+  // Rating & Stats
+  rating: real('rating'),                          // 1-5 stars
+  totalOrders: integer('total_orders').default(0),
+  totalPurchased: integer('total_purchased').default(0),
+  lastOrderDate: integer('last_order_date'),
+
+  // Status
+  status: text('status').notNull().default('active'),
+
+  // Notes
+  notes: text('notes'),
+
+  // Audit
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+  createdBy: text('created_by'),
+  updatedBy: text('updated_by'),
+});
+
+// ============================================================================
+// EMPLOYEE TABLE (Data only - NO auth fields yet)
+// ============================================================================
+export const employees = sqliteTable('employees', {
+  id: text('id').primaryKey(),
+  code: text('code').notNull().unique(),           // EMP-0001
+
+  // Basic Info
+  name: text('name').notNull(),
+  email: text('email').unique(),
+  phone: text('phone'),
+
+  // Employment Info
+  employeeNumber: text('employee_number').unique(),
+  department: text('department'),
+  position: text('position'),
+  managerId: text('manager_id'),                   // Self-reference for org chart
+
+  // Personal Info
+  dateOfBirth: integer('date_of_birth'),
+  gender: text('gender'),                          // 'male' | 'female'
+  nationalId: text('national_id'),                 // KTP number
+  npwp: text('npwp'),
+
+  // Employment Dates
+  joinDate: integer('join_date'),
+  endDate: integer('end_date'),
+
+  // Status
+  employmentStatus: text('employment_status').notNull().default('active'),
+  // 'active' | 'on_leave' | 'terminated' | 'resigned'
+
+  // Salary (basic info, detailed in HRM module)
+  baseSalary: integer('base_salary'),
+
+  // Notes
+  notes: text('notes'),
+
+  // Audit
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+  createdBy: text('created_by'),
+  updatedBy: text('updated_by'),
+});
+
+// ============================================================================
+// ADDRESS TABLE (Shared by all partner types)
+// ============================================================================
+export const addresses = sqliteTable('addresses', {
+  id: text('id').primaryKey(),
+
+  // Owner (polymorphic)
+  ownerType: text('owner_type').notNull(),         // 'customer' | 'supplier' | 'employee'
+  ownerId: text('owner_id').notNull(),
+
+  // Address Type
+  addressType: text('address_type').notNull(),     // 'billing' | 'shipping' | 'home' | 'office'
+  isPrimary: integer('is_primary').default(0),
+
+  // Address Fields
+  label: text('label'),                            // "Kantor Pusat", "Rumah", etc.
+  recipientName: text('recipient_name'),
+  phone: text('phone'),
+
+  addressLine1: text('address_line_1').notNull(),
+  addressLine2: text('address_line_2'),
+
+  subdistrict: text('subdistrict'),                // Kelurahan
+  district: text('district'),                      // Kecamatan
+  city: text('city').notNull(),
+  province: text('province').notNull(),
+  postalCode: text('postal_code'),
+  country: text('country').default('Indonesia'),
+
+  // Coordinates (for delivery)
+  latitude: real('latitude'),
+  longitude: real('longitude'),
+
+  // Notes
+  notes: text('notes'),
+
+  // Audit
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+});
+
+// Indexes
+// CREATE INDEX idx_addresses_owner ON addresses(owner_type, owner_id);
+// CREATE INDEX idx_customers_status ON customers(status);
+// CREATE INDEX idx_suppliers_status ON suppliers(status);
+// CREATE INDEX idx_employees_status ON employees(employment_status);
+// CREATE INDEX idx_employees_department ON employees(department);
+```
+
+**Deliverable**: Complete database schema
+
+---
+
+### Step 3: Create Migrations
+
+**Task**: Create SQL migration files
+
+**File**: `services/business-partner-service/migrations/0001_customers.sql`
+
+```sql
+-- Customer table
+CREATE TABLE customers (
+  id TEXT PRIMARY KEY,
+  code TEXT NOT NULL UNIQUE,
+
+  name TEXT NOT NULL,
+  email TEXT,
+  phone TEXT,
+
+  customer_type TEXT NOT NULL,
+
+  company_name TEXT,
+  npwp TEXT,
+  credit_limit INTEGER DEFAULT 0,
+  credit_used INTEGER DEFAULT 0,
+  payment_term_days INTEGER DEFAULT 0,
+
+  loyalty_points INTEGER DEFAULT 0,
+  membership_tier TEXT,
+
+  total_orders INTEGER DEFAULT 0,
+  total_spent INTEGER DEFAULT 0,
+  last_order_date INTEGER,
+
+  status TEXT NOT NULL DEFAULT 'active',
+  notes TEXT,
+
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  created_by TEXT,
+  updated_by TEXT
+);
+
+CREATE INDEX idx_customers_code ON customers(code);
+CREATE INDEX idx_customers_email ON customers(email);
+CREATE INDEX idx_customers_status ON customers(status);
+CREATE INDEX idx_customers_type ON customers(customer_type);
+```
+
+**File**: `services/business-partner-service/migrations/0002_suppliers.sql`
+
+```sql
+-- Supplier table
+CREATE TABLE suppliers (
+  id TEXT PRIMARY KEY,
+  code TEXT NOT NULL UNIQUE,
+
+  name TEXT NOT NULL,
+  email TEXT,
+  phone TEXT,
+
+  company_name TEXT,
+  npwp TEXT,
+
+  payment_term_days INTEGER DEFAULT 30,
+  lead_time_days INTEGER DEFAULT 7,
+  minimum_order_amount INTEGER DEFAULT 0,
+
+  bank_name TEXT,
+  bank_account_number TEXT,
+  bank_account_name TEXT,
+
+  rating REAL,
+  total_orders INTEGER DEFAULT 0,
+  total_purchased INTEGER DEFAULT 0,
+  last_order_date INTEGER,
+
+  status TEXT NOT NULL DEFAULT 'active',
+  notes TEXT,
+
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  created_by TEXT,
+  updated_by TEXT
+);
+
+CREATE INDEX idx_suppliers_code ON suppliers(code);
+CREATE INDEX idx_suppliers_status ON suppliers(status);
+```
+
+**File**: `services/business-partner-service/migrations/0003_employees.sql`
+
+```sql
+-- Employee table (data only, no auth)
+CREATE TABLE employees (
+  id TEXT PRIMARY KEY,
+  code TEXT NOT NULL UNIQUE,
+
+  name TEXT NOT NULL,
+  email TEXT UNIQUE,
+  phone TEXT,
+
+  employee_number TEXT UNIQUE,
+  department TEXT,
+  position TEXT,
+  manager_id TEXT,
+
+  date_of_birth INTEGER,
+  gender TEXT,
+  national_id TEXT,
+  npwp TEXT,
+
+  join_date INTEGER,
+  end_date INTEGER,
+
+  employment_status TEXT NOT NULL DEFAULT 'active',
+  base_salary INTEGER,
+  notes TEXT,
+
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  created_by TEXT,
+  updated_by TEXT,
+
+  FOREIGN KEY (manager_id) REFERENCES employees(id)
+);
+
+CREATE INDEX idx_employees_code ON employees(code);
+CREATE INDEX idx_employees_email ON employees(email);
+CREATE INDEX idx_employees_status ON employees(employment_status);
+CREATE INDEX idx_employees_department ON employees(department);
+CREATE INDEX idx_employees_manager ON employees(manager_id);
+```
+
+**File**: `services/business-partner-service/migrations/0004_addresses.sql`
+
+```sql
+-- Address table (shared)
+CREATE TABLE addresses (
+  id TEXT PRIMARY KEY,
+
+  owner_type TEXT NOT NULL,
+  owner_id TEXT NOT NULL,
+
+  address_type TEXT NOT NULL,
+  is_primary INTEGER DEFAULT 0,
+
+  label TEXT,
+  recipient_name TEXT,
+  phone TEXT,
+
+  address_line_1 TEXT NOT NULL,
+  address_line_2 TEXT,
+
+  subdistrict TEXT,
+  district TEXT,
+  city TEXT NOT NULL,
+  province TEXT NOT NULL,
+  postal_code TEXT,
+  country TEXT DEFAULT 'Indonesia',
+
+  latitude REAL,
+  longitude REAL,
+
+  notes TEXT,
+
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE INDEX idx_addresses_owner ON addresses(owner_type, owner_id);
+CREATE INDEX idx_addresses_primary ON addresses(owner_type, owner_id, is_primary);
+```
+
+**Deliverable**: Migration files ready to run
+
+---
+
+## Phase 2: Customer Management (Steps 4-6)
+
+### Step 4: Customer Domain & Repository
+
+**Task**: Create Customer entity and repository
 
 **Files to Create**:
 ```
 services/business-partner-service/src/domain/
 ├── entities/
-│   ├── BusinessPartner.ts      # Base entity
-│   ├── Employee.ts             # Employee with auth
-│   ├── Supplier.ts             # Supplier entity
-│   ├── Customer.ts             # Customer entity
-│   ├── Address.ts              # Address entity
-│   ├── Role.ts                 # RBAC Role
-│   └── Permission.ts           # RBAC Permission
+│   └── Customer.ts
 ├── value-objects/
-│   ├── PartnerCode.ts          # EMP-001, SUP-001, CUS-001
-│   ├── Email.ts                # Email validation
-│   ├── Phone.ts                # Phone validation
-│   ├── TaxId.ts                # NPWP validation
-│   ├── Password.ts             # Password requirements
-│   └── Money.ts                # Currency amounts
-├── enums/
-│   ├── PartnerType.ts
-│   ├── PartnerStatus.ts
-│   ├── CustomerType.ts
-│   ├── EmploymentStatus.ts
-│   └── AddressType.ts
-└── events/
-    ├── EmployeeCreated.ts
-    ├── EmployeeTerminated.ts
-    ├── RoleAssigned.ts
-    ├── SupplierCreated.ts
-    ├── CustomerCreated.ts
-    └── CreditLimitChanged.ts
+│   ├── PartnerCode.ts
+│   ├── Email.ts
+│   └── Phone.ts
+└── repositories/
+    └── ICustomerRepository.ts
 ```
 
-**Example Entity**:
+**Customer Entity** (simplified - no auth):
 ```typescript
-// src/domain/entities/Employee.ts
-import { BusinessPartner } from './BusinessPartner';
-import { Role } from './Role';
-import { Password } from '../value-objects/Password';
+// src/domain/entities/Customer.ts
+export class Customer {
+  private _id: string;
+  private _code: string;
+  private _name: string;
+  private _email: string | null;
+  private _phone: string | null;
+  private _customerType: 'retail' | 'wholesale';
 
-export class Employee extends BusinessPartner {
-  private _employeeNumber: string;
-  private _department: string;
-  private _position: string;
-  private _managerId: string | null;
-  private _employmentStatus: EmploymentStatus;
-  private _passwordHash: string;
-  private _roles: Role[];
-  private _failedLoginAttempts: number;
-  private _lockedUntil: Date | null;
+  // B2B fields
+  private _companyName: string | null;
+  private _npwp: string | null;
+  private _creditLimit: number;
+  private _creditUsed: number;
+  private _paymentTermDays: number;
 
-  public static create(props: CreateEmployeeProps): Employee {
-    // Validation
-    Password.validate(props.password);
+  // B2C fields
+  private _loyaltyPoints: number;
+  private _membershipTier: string | null;
 
-    const employee = new Employee();
-    employee._id = generateId();
-    employee._code = props.code;
-    employee._partnerType = 'employee';
-    employee._name = props.name;
-    employee._email = props.email;
-    employee._employeeNumber = props.employeeNumber;
-    employee._department = props.department;
-    employee._position = props.position;
-    employee._employmentStatus = 'active';
-    employee._passwordHash = hashPassword(props.password);
-    employee._roles = [];
-    employee._failedLoginAttempts = 0;
-    employee._status = 'pending'; // Until email verified
+  // Stats
+  private _totalOrders: number;
+  private _totalSpent: number;
 
-    employee.addDomainEvent(new EmployeeCreated(employee));
+  private _status: 'active' | 'inactive' | 'blocked';
 
-    return employee;
+  public static create(props: CreateCustomerProps): Customer {
+    const customer = new Customer();
+    customer._id = generateId();
+    customer._code = props.code || generateCode('CUS');
+    customer._name = props.name;
+    customer._email = props.email || null;
+    customer._phone = props.phone || null;
+    customer._customerType = props.customerType;
+    customer._status = 'active';
+
+    if (props.customerType === 'wholesale') {
+      customer._companyName = props.companyName || null;
+      customer._creditLimit = props.creditLimit || 0;
+      customer._paymentTermDays = props.paymentTermDays || 30;
+    }
+
+    return customer;
   }
 
-  public canLogin(): boolean {
-    if (this._status !== 'active') {
-      throw new Error('Account is not active');
-    }
-    if (this.isLocked()) {
-      throw new Error('Account is locked');
-    }
-    if (this._employmentStatus === 'terminated') {
-      throw new Error('Account has been terminated');
-    }
-    return true;
+  public hasAvailableCredit(amount: number): boolean {
+    if (this._customerType !== 'wholesale') return true;
+    return (this._creditLimit - this._creditUsed) >= amount;
   }
 
-  public hasPermission(module: Module, action: Action): boolean {
-    if (this._roles.some(r => r.name === 'admin')) {
-      return true; // Admin has all permissions
-    }
-    return this.getEffectivePermissions().some(
-      p => p.module === module && p.action === action
-    );
+  public addLoyaltyPoints(points: number): void {
+    this._loyaltyPoints += points;
+    this.updateMembershipTier();
   }
 
-  // ... more methods
+  // ... getters and other methods
 }
 ```
 
-**Deliverable**: Complete domain model
+**Deliverable**: Customer domain model
 
 ---
 
-### Step 3: Create Repository Interfaces (Ports)
+### Step 5: Customer Application Layer
 
-**Task**: Define data access contracts
-
-**Files to Create**:
-```
-services/business-partner-service/src/domain/repositories/
-├── IBusinessPartnerRepository.ts
-├── IEmployeeRepository.ts
-├── ISupplierRepository.ts
-├── ICustomerRepository.ts
-├── IAddressRepository.ts
-├── IRoleRepository.ts
-└── IPermissionRepository.ts
-```
-
-**Example Interface**:
-```typescript
-// src/domain/repositories/IEmployeeRepository.ts
-export interface IEmployeeRepository {
-  findById(id: string): Promise<Employee | null>;
-  findByEmail(email: string): Promise<Employee | null>;
-  findByEmployeeNumber(number: string): Promise<Employee | null>;
-  findAll(filters: EmployeeFilters): Promise<PaginatedResult<Employee>>;
-  save(employee: Employee): Promise<void>;
-  delete(id: string): Promise<void>;
-
-  // RBAC
-  findWithRoles(id: string): Promise<Employee | null>;
-  assignRole(employeeId: string, roleId: string): Promise<void>;
-  revokeRole(employeeId: string, roleId: string): Promise<void>;
-  countByRole(roleName: string): Promise<number>;
-}
-```
-
-**Deliverable**: Repository interfaces for all entities
-
----
-
-### Step 4: Implement Database Schema
-
-**Task**: Create Drizzle schema and migrations
-
-**Files to Create**:
-- `services/business-partner-service/src/infrastructure/db/schema.ts`
-- `services/business-partner-service/migrations/0001_business_partners.sql`
-- `services/business-partner-service/migrations/0002_employees.sql`
-- `services/business-partner-service/migrations/0003_suppliers.sql`
-- `services/business-partner-service/migrations/0004_customers.sql`
-- `services/business-partner-service/migrations/0005_addresses.sql`
-- `services/business-partner-service/migrations/0006_rbac.sql`
-- `services/business-partner-service/migrations/0007_seed_data.sql`
-
-**Deliverable**: Complete database schema with migrations
-
----
-
-## Phase 2: Repository & Application Layer (Steps 5-8)
-
-### Step 5: Implement Repository Adapters
-
-**Task**: Create concrete repository implementations
+**Task**: Create customer commands and queries
 
 **Files to Create**:
 ```
-services/business-partner-service/src/infrastructure/db/repositories/
-├── EmployeeRepository.ts
-├── SupplierRepository.ts
-├── CustomerRepository.ts
-├── AddressRepository.ts
-├── RoleRepository.ts
-└── PermissionRepository.ts
-```
-
-**Deliverable**: Working repository implementations
-
----
-
-### Step 6: Implement Authentication Services
-
-**Task**: Create JWT and password services
-
-**Files to Create**:
-```
-services/business-partner-service/src/infrastructure/auth/
-├── JWTService.ts           # Token generation/validation
-├── PasswordService.ts      # Hashing/verification
-├── AuthorizationService.ts # Permission checking
-└── middleware.ts           # Auth middleware
-```
-
-**JWT Payload**:
-```typescript
-interface JWTPayload {
-  sub: string;          // Employee ID
-  email: string;
-  name: string;
-  roles: string[];
-  permissions: string[];  // ['orders:read', 'products:create']
-  iat: number;
-  exp: number;
-}
-```
-
-**Deliverable**: Complete authentication infrastructure
-
----
-
-### Step 7: Implement Application Commands
-
-**Task**: Create command handlers (write operations)
-
-**Files to Create**:
-```
-services/business-partner-service/src/application/commands/
-├── employees/
-│   ├── CreateEmployee.ts
-│   ├── UpdateEmployee.ts
-│   ├── TerminateEmployee.ts
-│   ├── AssignRole.ts
-│   ├── RevokeRole.ts
-│   └── ResetPassword.ts
-├── suppliers/
-│   ├── CreateSupplier.ts
-│   ├── UpdateSupplier.ts
-│   └── UpdateSupplierRating.ts
-├── customers/
+services/business-partner-service/src/application/
+├── commands/customers/
 │   ├── CreateCustomer.ts
 │   ├── UpdateCustomer.ts
-│   ├── UpdateCreditLimit.ts
-│   └── RedeemLoyaltyPoints.ts
-└── addresses/
-    ├── AddAddress.ts
-    ├── UpdateAddress.ts
-    └── SetPrimaryAddress.ts
+│   └── UpdateCreditLimit.ts
+└── queries/customers/
+    ├── GetCustomer.ts
+    ├── ListCustomers.ts
+    └── GetCustomerStats.ts
 ```
 
-**Deliverable**: All command handlers
+**Deliverable**: Customer application layer
 
 ---
 
-### Step 8: Implement Application Queries
+### Step 6: Customer Routes
 
-**Task**: Create query handlers (read operations)
-
-**Files to Create**:
-```
-services/business-partner-service/src/application/queries/
-├── employees/
-│   ├── GetEmployee.ts
-│   ├── ListEmployees.ts
-│   ├── GetEmployeePermissions.ts
-│   └── GetOrgChart.ts
-├── suppliers/
-│   ├── GetSupplier.ts
-│   ├── ListSuppliers.ts
-│   └── GetSupplierStats.ts
-├── customers/
-│   ├── GetCustomer.ts
-│   ├── ListCustomers.ts
-│   ├── GetCustomerStats.ts
-│   └── GetCreditStatus.ts
-└── roles/
-    ├── ListRoles.ts
-    └── ListPermissions.ts
-```
-
-**Deliverable**: All query handlers
-
----
-
-## Phase 3: HTTP API Layer (Steps 9-12)
-
-### Step 9: Implement Auth Routes
-
-**Task**: Create authentication endpoints
-
-**File**: `services/business-partner-service/src/infrastructure/http/routes/auth.routes.ts`
-
-**Endpoints**:
-```typescript
-// Public routes
-POST   /api/auth/login              # Employee login
-POST   /api/auth/refresh            # Refresh access token
-POST   /api/auth/forgot-password    # Request password reset
-POST   /api/auth/reset-password     # Reset with token
-
-// Protected routes
-POST   /api/auth/logout             # Revoke refresh token
-GET    /api/auth/me                 # Get current user + permissions
-POST   /api/auth/change-password    # Change own password
-```
-
-**Deliverable**: Working authentication API
-
----
-
-### Step 10: Implement Employee Routes
-
-**Task**: Create employee management endpoints
-
-**File**: `services/business-partner-service/src/infrastructure/http/routes/employee.routes.ts`
-
-**Endpoints**:
-```typescript
-// Employee CRUD
-GET    /api/employees               # List (paginated, filtered)
-GET    /api/employees/:id           # Get by ID
-POST   /api/employees               # Create (admin only)
-PUT    /api/employees/:id           # Update
-PATCH  /api/employees/:id/status    # Change status
-DELETE /api/employees/:id           # Soft delete
-
-// RBAC
-GET    /api/employees/:id/roles     # Get roles
-POST   /api/employees/:id/roles     # Assign role
-DELETE /api/employees/:id/roles/:roleId  # Revoke role
-
-// Organization
-GET    /api/employees/:id/subordinates
-GET    /api/employees/org-chart
-```
-
-**Deliverable**: Working employee API
-
----
-
-### Step 11: Implement Supplier Routes
-
-**Task**: Create supplier management endpoints
-
-**File**: `services/business-partner-service/src/infrastructure/http/routes/supplier.routes.ts`
-
-**Endpoints**:
-```typescript
-GET    /api/suppliers
-GET    /api/suppliers/:id
-POST   /api/suppliers
-PUT    /api/suppliers/:id
-PATCH  /api/suppliers/:id/status
-DELETE /api/suppliers/:id
-
-GET    /api/suppliers/:id/products
-POST   /api/suppliers/:id/products
-GET    /api/suppliers/:id/stats
-```
-
-**Deliverable**: Working supplier API
-
----
-
-### Step 12: Implement Customer Routes
-
-**Task**: Create customer management endpoints
+**Task**: Create customer API endpoints (NO AUTH)
 
 **File**: `services/business-partner-service/src/infrastructure/http/routes/customer.routes.ts`
 
-**Endpoints**:
 ```typescript
-GET    /api/customers
-GET    /api/customers/:id
-POST   /api/customers
-PUT    /api/customers/:id
-PATCH  /api/customers/:id/status
-DELETE /api/customers/:id
+import { Hono } from 'hono';
 
-// B2B
-PATCH  /api/customers/:id/credit-limit
-GET    /api/customers/:id/credit-status
+const customerRoutes = new Hono();
 
-// Loyalty (B2C)
-GET    /api/customers/:id/loyalty
-POST   /api/customers/:id/loyalty/redeem
+// NOTE: No authentication middleware - will be added in Phase 7+
 
-// Stats
-GET    /api/customers/:id/stats
+// List customers (paginated)
+customerRoutes.get('/', async (c) => {
+  const { page, limit, status, type, search } = c.req.query();
+  // ... implementation
+});
+
+// Get customer by ID
+customerRoutes.get('/:id', async (c) => {
+  const { id } = c.req.param();
+  // ... implementation
+});
+
+// Create customer
+customerRoutes.post('/', async (c) => {
+  const body = await c.req.json();
+  // ... implementation
+});
+
+// Update customer
+customerRoutes.put('/:id', async (c) => {
+  const { id } = c.req.param();
+  const body = await c.req.json();
+  // ... implementation
+});
+
+// Update credit limit (B2B)
+customerRoutes.patch('/:id/credit-limit', async (c) => {
+  const { id } = c.req.param();
+  const { creditLimit } = await c.req.json();
+  // ... implementation
+});
+
+// Get credit status (B2B)
+customerRoutes.get('/:id/credit-status', async (c) => {
+  const { id } = c.req.param();
+  // ... implementation
+});
+
+// Delete (soft delete)
+customerRoutes.delete('/:id', async (c) => {
+  const { id } = c.req.param();
+  // ... implementation
+});
+
+export default customerRoutes;
 ```
 
-**Deliverable**: Working customer API
+**Endpoints Summary**:
+```
+GET    /api/customers              # List (paginated, filtered)
+GET    /api/customers/:id          # Get by ID
+POST   /api/customers              # Create
+PUT    /api/customers/:id          # Update
+PATCH  /api/customers/:id/credit-limit  # Update credit (B2B)
+GET    /api/customers/:id/credit-status # Get credit status
+DELETE /api/customers/:id          # Soft delete
+```
+
+**Deliverable**: Working customer API (no auth)
 
 ---
 
-## Phase 4: Admin & Address Routes (Steps 13-14)
+## Phase 3: Supplier Management (Steps 7-9)
 
-### Step 13: Implement Admin Routes
+### Step 7: Supplier Domain & Repository
 
-**Task**: Create role and permission management
+**Task**: Create Supplier entity and repository
 
-**File**: `services/business-partner-service/src/infrastructure/http/routes/admin.routes.ts`
-
-**Endpoints**:
-```typescript
-// Roles
-GET    /api/admin/roles
-GET    /api/admin/roles/:id
-POST   /api/admin/roles
-PUT    /api/admin/roles/:id
-DELETE /api/admin/roles/:id
-PUT    /api/admin/roles/:id/permissions
-
-// Permissions
-GET    /api/admin/permissions
-
-// Users overview
-GET    /api/admin/users             # All partners summary
+**Files to Create**:
+```
+services/business-partner-service/src/domain/
+├── entities/
+│   └── Supplier.ts
+└── repositories/
+    └── ISupplierRepository.ts
 ```
 
-**Deliverable**: Working admin API
+**Deliverable**: Supplier domain model
 
 ---
 
-### Step 14: Implement Address Routes
+### Step 8: Supplier Application Layer
 
-**Task**: Create shared address management
+**Task**: Create supplier commands and queries
 
-**File**: `services/business-partner-service/src/infrastructure/http/routes/address.routes.ts`
+**Files to Create**:
+```
+services/business-partner-service/src/application/
+├── commands/suppliers/
+│   ├── CreateSupplier.ts
+│   ├── UpdateSupplier.ts
+│   └── UpdateSupplierRating.ts
+└── queries/suppliers/
+    ├── GetSupplier.ts
+    ├── ListSuppliers.ts
+    └── GetSupplierStats.ts
+```
+
+**Deliverable**: Supplier application layer
+
+---
+
+### Step 9: Supplier Routes
+
+**Task**: Create supplier API endpoints (NO AUTH)
 
 **Endpoints**:
+```
+GET    /api/suppliers              # List (paginated, filtered)
+GET    /api/suppliers/:id          # Get by ID
+POST   /api/suppliers              # Create
+PUT    /api/suppliers/:id          # Update
+PATCH  /api/suppliers/:id/rating   # Update rating
+GET    /api/suppliers/:id/stats    # Get stats
+DELETE /api/suppliers/:id          # Soft delete
+```
+
+**Deliverable**: Working supplier API (no auth)
+
+---
+
+## Phase 4: Employee Management (Steps 10-12)
+
+### Step 10: Employee Domain & Repository
+
+**Task**: Create Employee entity (DATA ONLY - no auth fields)
+
+**Files to Create**:
+```
+services/business-partner-service/src/domain/
+├── entities/
+│   └── Employee.ts
+└── repositories/
+    └── IEmployeeRepository.ts
+```
+
+**Employee Entity** (NO auth fields):
 ```typescript
-GET    /api/partners/:partnerId/addresses
-POST   /api/partners/:partnerId/addresses
-PUT    /api/partners/:partnerId/addresses/:id
-DELETE /api/partners/:partnerId/addresses/:id
-PATCH  /api/partners/:partnerId/addresses/:id/primary
+// src/domain/entities/Employee.ts
+export class Employee {
+  private _id: string;
+  private _code: string;
+  private _name: string;
+  private _email: string | null;
+  private _phone: string | null;
+
+  // Employment info
+  private _employeeNumber: string;
+  private _department: string | null;
+  private _position: string | null;
+  private _managerId: string | null;
+
+  // Personal info
+  private _dateOfBirth: Date | null;
+  private _gender: 'male' | 'female' | null;
+  private _nationalId: string | null;
+  private _npwp: string | null;
+
+  // Employment dates
+  private _joinDate: Date | null;
+  private _endDate: Date | null;
+
+  private _employmentStatus: 'active' | 'on_leave' | 'terminated' | 'resigned';
+  private _baseSalary: number | null;
+
+  // NOTE: No password, no roles, no auth fields
+  // These will be added in Phase 7+ (RBAC Implementation)
+
+  public static create(props: CreateEmployeeProps): Employee {
+    const employee = new Employee();
+    employee._id = generateId();
+    employee._code = props.code || generateCode('EMP');
+    employee._name = props.name;
+    employee._email = props.email || null;
+    employee._employeeNumber = props.employeeNumber;
+    employee._department = props.department || null;
+    employee._position = props.position || null;
+    employee._employmentStatus = 'active';
+    return employee;
+  }
+
+  public terminate(endDate: Date): void {
+    this._employmentStatus = 'terminated';
+    this._endDate = endDate;
+  }
+
+  public getSubordinates(): Employee[] {
+    // Will be implemented via repository
+    return [];
+  }
+
+  // ... getters and other methods
+}
+```
+
+**Deliverable**: Employee domain model (no auth)
+
+---
+
+### Step 11: Employee Application Layer
+
+**Task**: Create employee commands and queries
+
+**Files to Create**:
+```
+services/business-partner-service/src/application/
+├── commands/employees/
+│   ├── CreateEmployee.ts
+│   ├── UpdateEmployee.ts
+│   ├── TerminateEmployee.ts
+│   └── ChangeEmploymentStatus.ts
+└── queries/employees/
+    ├── GetEmployee.ts
+    ├── ListEmployees.ts
+    ├── GetOrgChart.ts
+    └── GetEmployeesByDepartment.ts
+```
+
+**Deliverable**: Employee application layer
+
+---
+
+### Step 12: Employee Routes
+
+**Task**: Create employee API endpoints (NO AUTH)
+
+**Endpoints**:
+```
+GET    /api/employees                    # List (paginated, filtered)
+GET    /api/employees/:id                # Get by ID
+POST   /api/employees                    # Create
+PUT    /api/employees/:id                # Update
+PATCH  /api/employees/:id/status         # Change employment status
+DELETE /api/employees/:id                # Soft delete (terminate)
+
+GET    /api/employees/:id/subordinates   # Get direct reports
+GET    /api/employees/org-chart          # Get organization chart
+GET    /api/employees/by-department/:dept # List by department
+```
+
+**Deliverable**: Working employee API (no auth)
+
+---
+
+## Phase 5: Address Management (Steps 13-14)
+
+### Step 13: Address Domain & Repository
+
+**Task**: Create Address entity (shared by all partner types)
+
+**Deliverable**: Address domain model
+
+---
+
+### Step 14: Address Routes
+
+**Task**: Create address API endpoints
+
+**Endpoints**:
+```
+GET    /api/partners/:type/:id/addresses          # List addresses
+POST   /api/partners/:type/:id/addresses          # Add address
+PUT    /api/partners/:type/:id/addresses/:addrId  # Update address
+DELETE /api/partners/:type/:id/addresses/:addrId  # Delete address
+PATCH  /api/partners/:type/:id/addresses/:addrId/primary  # Set as primary
 ```
 
 **Deliverable**: Working address API
 
 ---
 
-## Phase 5: Service Entry Point & DI (Steps 15-16)
+## Phase 6: Testing & Frontend (Steps 15-18)
 
-### Step 15: Wire Dependencies
-
-**Task**: Create main entry point with dependency injection
-
-**File**: `services/business-partner-service/src/index.ts`
-
-```typescript
-import { Hono } from 'hono';
-import { cors } from 'hono/cors';
-import { drizzle } from 'drizzle-orm/d1';
-
-// Routes
-import authRoutes from './infrastructure/http/routes/auth.routes';
-import employeeRoutes from './infrastructure/http/routes/employee.routes';
-import supplierRoutes from './infrastructure/http/routes/supplier.routes';
-import customerRoutes from './infrastructure/http/routes/customer.routes';
-import addressRoutes from './infrastructure/http/routes/address.routes';
-import adminRoutes from './infrastructure/http/routes/admin.routes';
-
-// Middleware
-import { authMiddleware } from './infrastructure/auth/middleware';
-
-type Bindings = {
-  DB: D1Database;
-  JWT_SECRET: string;
-};
-
-const app = new Hono<{ Bindings: Bindings }>();
-
-// CORS
-app.use('*', cors());
-
-// Health check
-app.get('/health', (c) => c.json({ status: 'ok' }));
-
-// Public routes
-app.route('/api/auth', authRoutes);
-
-// Protected routes
-app.use('/api/*', authMiddleware);
-app.route('/api/employees', employeeRoutes);
-app.route('/api/suppliers', supplierRoutes);
-app.route('/api/customers', customerRoutes);
-app.route('/api/partners', addressRoutes);
-app.route('/api/admin', adminRoutes);
-
-export default app;
-```
-
-**Deliverable**: Working service with all routes
-
----
-
-### Step 16: Create Seed Data
-
-**Task**: Seed default roles, permissions, and admin user
-
-**File**: `services/business-partner-service/src/infrastructure/db/seed.ts`
-
-**Seed Data**:
-- 9 modules × 6 actions = 54 permissions
-- 4 default roles (admin, inventory_manager, sales_staff, product_manager)
-- 1 default admin user
-
-**Deliverable**: Seed script and migration
-
----
-
-## Phase 6: Event Handling (Steps 17-18)
-
-### Step 17: Implement Event Publisher
-
-**Task**: Publish domain events to queue
-
-**Files to Create**:
-```
-services/business-partner-service/src/infrastructure/events/
-├── publisher.ts
-└── EventTypes.ts
-```
-
-**Deliverable**: Event publishing infrastructure
-
----
-
-### Step 18: Implement Event Handlers
-
-**Task**: Handle events from other services
-
-**Files to Create**:
-```
-services/business-partner-service/src/application/event-handlers/
-├── OrderCompletedHandler.ts     # Update customer stats
-└── PaymentReceivedHandler.ts    # Update customer balance
-```
-
-**Deliverable**: Event consumption handlers
-
----
-
-## Phase 7: Testing (Steps 19-21)
-
-### Step 19: Unit Tests
+### Step 15: Unit Tests
 
 **Task**: Test domain logic
 
@@ -657,14 +882,13 @@ services/business-partner-service/src/application/event-handlers/
 ```
 services/business-partner-service/test/unit/
 ├── domain/
-│   ├── Employee.test.ts
-│   ├── Supplier.test.ts
 │   ├── Customer.test.ts
-│   └── value-objects/
-│       ├── Password.test.ts
-│       └── TaxId.test.ts
+│   ├── Supplier.test.ts
+│   └── Employee.test.ts
 └── application/
     └── commands/
+        ├── CreateCustomer.test.ts
+        ├── CreateSupplier.test.ts
         └── CreateEmployee.test.ts
 ```
 
@@ -672,244 +896,339 @@ services/business-partner-service/test/unit/
 
 ---
 
-### Step 20: Integration Tests
+### Step 16: Integration Tests
 
 **Task**: Test API endpoints
 
 **Files to Create**:
 ```
 services/business-partner-service/test/integration/
-├── auth.test.ts
-├── employee.test.ts
-├── supplier.test.ts
 ├── customer.test.ts
-└── rbac.test.ts
+├── supplier.test.ts
+├── employee.test.ts
+└── address.test.ts
 ```
 
 **Deliverable**: Integration test suite
 
 ---
 
-### Step 21: E2E Tests
+### Step 17: Service Entry Point
 
-**Task**: Test complete workflows
+**Task**: Wire all routes together
 
-**Test Scenarios**:
-1. Employee onboarding (create → verify email → assign role → login)
-2. Supplier lifecycle (create → update → rate → deactivate)
-3. Customer journey (create → place orders → earn loyalty → redeem)
-4. RBAC enforcement (verify permissions work correctly)
-5. Credit limit enforcement for B2B customers
+**File**: `services/business-partner-service/src/index.ts`
 
-**Deliverable**: E2E test suite
+```typescript
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+
+import customerRoutes from './infrastructure/http/routes/customer.routes';
+import supplierRoutes from './infrastructure/http/routes/supplier.routes';
+import employeeRoutes from './infrastructure/http/routes/employee.routes';
+import addressRoutes from './infrastructure/http/routes/address.routes';
+
+const app = new Hono();
+
+// CORS
+app.use('*', cors());
+
+// Health check
+app.get('/health', (c) => c.json({ status: 'ok' }));
+
+// NOTE: No auth middleware - will be added in Phase 7+
+// All routes are currently open
+
+app.route('/api/customers', customerRoutes);
+app.route('/api/suppliers', supplierRoutes);
+app.route('/api/employees', employeeRoutes);
+app.route('/api/partners', addressRoutes);
+
+export default app;
+```
+
+**Deliverable**: Working service
 
 ---
 
-## Phase 8: Migration from User Service (Steps 22-24)
+### Step 18: Frontend Integration (Basic)
 
-### Step 22: Data Migration Script
+**Task**: Create basic management pages
 
-**Task**: Migrate existing user data
+**Files to Create**:
+```
+apps/erp-dashboard/src/routes/dashboard/
+├── customers/
+│   ├── index.tsx           # Customer list
+│   ├── $customerId.tsx     # Customer detail
+│   └── new.tsx             # Create customer
+├── suppliers/
+│   ├── index.tsx           # Supplier list
+│   ├── $supplierId.tsx     # Supplier detail
+│   └── new.tsx             # Create supplier
+└── employees/
+    ├── index.tsx           # Employee list
+    ├── $employeeId.tsx     # Employee detail
+    └── new.tsx             # Create employee
+```
 
-**Steps**:
-1. Export users from user-service database
-2. Transform to business_partners + employees format
-3. Map existing userType to roles
-4. Import to new database
-5. Verify data integrity
+**Deliverable**: Basic CRUD UI for all partner types
 
-**File**: `services/business-partner-service/scripts/migrate-users.ts`
+---
+
+## Phase 7: RBAC Implementation (Steps 19-23) - LATER
+
+> **NOTE**: This phase should be implemented AFTER all other services/modules exist.
+
+### Step 19: Create RBAC Schema
+
+**Task**: Add Role and Permission tables
+
+**File**: `services/business-partner-service/migrations/0005_rbac.sql`
+
+```sql
+-- Roles table
+CREATE TABLE roles (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  display_name TEXT NOT NULL,
+  description TEXT,
+  is_system INTEGER DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+-- Permissions table
+CREATE TABLE permissions (
+  id TEXT PRIMARY KEY,
+  module TEXT NOT NULL,      -- 'products', 'orders', 'inventory', etc.
+  action TEXT NOT NULL,      -- 'create', 'read', 'update', 'delete', 'export', 'approve'
+  description TEXT,
+  UNIQUE(module, action)
+);
+
+-- Role-Permission mapping
+CREATE TABLE role_permissions (
+  role_id TEXT NOT NULL,
+  permission_id TEXT NOT NULL,
+  PRIMARY KEY (role_id, permission_id),
+  FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+  FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE
+);
+
+-- Employee-Role mapping
+CREATE TABLE employee_roles (
+  employee_id TEXT NOT NULL,
+  role_id TEXT NOT NULL,
+  assigned_at INTEGER NOT NULL,
+  assigned_by TEXT,
+  PRIMARY KEY (employee_id, role_id),
+  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+  FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
+);
+```
+
+**Deliverable**: RBAC schema
+
+---
+
+### Step 20: Add Auth Fields to Employee
+
+**Task**: Add password and auth-related fields
+
+**File**: `services/business-partner-service/migrations/0006_employee_auth.sql`
+
+```sql
+-- Add auth fields to employees
+ALTER TABLE employees ADD COLUMN password_hash TEXT;
+ALTER TABLE employees ADD COLUMN failed_login_attempts INTEGER DEFAULT 0;
+ALTER TABLE employees ADD COLUMN locked_until INTEGER;
+ALTER TABLE employees ADD COLUMN last_login_at INTEGER;
+ALTER TABLE employees ADD COLUMN password_changed_at INTEGER;
+ALTER TABLE employees ADD COLUMN must_change_password INTEGER DEFAULT 0;
+
+-- Refresh tokens table
+CREATE TABLE refresh_tokens (
+  id TEXT PRIMARY KEY,
+  employee_id TEXT NOT NULL,
+  token_hash TEXT NOT NULL,
+  expires_at INTEGER NOT NULL,
+  created_at INTEGER NOT NULL,
+  revoked_at INTEGER,
+  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_refresh_tokens_employee ON refresh_tokens(employee_id);
+CREATE INDEX idx_refresh_tokens_hash ON refresh_tokens(token_hash);
+```
+
+**Deliverable**: Auth fields added
+
+---
+
+### Step 21: Implement Authentication Services
+
+**Task**: Create JWT and password services
+
+**Files to Create**:
+```
+services/business-partner-service/src/infrastructure/auth/
+├── JWTService.ts
+├── PasswordService.ts
+├── AuthorizationService.ts
+└── middleware.ts
+```
+
+**Deliverable**: Authentication infrastructure
+
+---
+
+### Step 22: Implement Auth Routes
+
+**Task**: Create authentication endpoints
+
+**Endpoints**:
+```
+POST   /api/auth/login              # Employee login
+POST   /api/auth/refresh            # Refresh token
+POST   /api/auth/logout             # Revoke token
+GET    /api/auth/me                 # Current user + permissions
+POST   /api/auth/change-password    # Change password
+POST   /api/auth/forgot-password    # Request reset
+POST   /api/auth/reset-password     # Reset with token
+```
+
+**Deliverable**: Authentication API
+
+---
+
+### Step 23: Implement RBAC Routes
+
+**Task**: Create role and permission management
+
+**Endpoints**:
+```
+GET    /api/admin/roles
+POST   /api/admin/roles
+PUT    /api/admin/roles/:id
+DELETE /api/admin/roles/:id
+PUT    /api/admin/roles/:id/permissions
+
+GET    /api/admin/permissions
+
+POST   /api/employees/:id/roles     # Assign role
+DELETE /api/employees/:id/roles/:roleId  # Revoke role
+```
+
+**Deliverable**: RBAC management API
+
+---
+
+## Phase 8: Add Auth Middleware (Steps 24-25)
+
+### Step 24: Apply Auth Middleware
+
+**Task**: Protect all routes with authentication
+
+**Update**: `services/business-partner-service/src/index.ts`
+
+```typescript
+import { authMiddleware, requirePermission } from './infrastructure/auth/middleware';
+
+// Public routes
+app.route('/api/auth', authRoutes);
+
+// Protected routes - require authentication
+app.use('/api/*', authMiddleware);
+
+// Permission-protected routes
+app.use('/api/admin/*', requirePermission('admin', 'manage'));
+```
+
+**Deliverable**: All routes protected
+
+---
+
+### Step 25: Seed Default Roles
+
+**Task**: Create default roles and permissions
+
+**Seed Data**:
+```typescript
+const DEFAULT_ROLES = [
+  { name: 'admin', displayName: 'Administrator', permissions: ['*'] },
+  { name: 'inventory_manager', displayName: 'Inventory Manager', permissions: ['inventory:*', 'products:read'] },
+  { name: 'sales_staff', displayName: 'Sales Staff', permissions: ['orders:*', 'customers:read', 'products:read'] },
+  { name: 'product_manager', displayName: 'Product Manager', permissions: ['products:*', 'inventory:read'] },
+  { name: 'accountant', displayName: 'Accountant', permissions: ['accounting:*', 'reports:*'] },
+];
+```
+
+**Deliverable**: Default roles seeded
+
+---
+
+## Phase 9: Migration from User Service (Steps 26-28)
+
+### Step 26: Data Migration Script
+
+**Task**: Migrate existing users to employees
 
 **Deliverable**: Migration script
 
 ---
 
-### Step 23: Update API Gateway
+### Step 27: Update API Gateway
 
-**Task**: Route requests to new service
+**Task**: Route auth requests to Business Partner Service
 
-**Update**: `services/api-gateway/wrangler.toml`
-```toml
-[[services]]
-binding = "BUSINESS_PARTNER_SERVICE"
-service = "business-partner-service"
-```
-
-**Update**: `services/api-gateway/src/index.ts`
-```typescript
-// Route all auth and partner requests to new service
-app.all('/api/auth/*', async (c) => c.env.BUSINESS_PARTNER_SERVICE.fetch(c.req.raw));
-app.all('/api/employees/*', async (c) => c.env.BUSINESS_PARTNER_SERVICE.fetch(c.req.raw));
-app.all('/api/suppliers/*', async (c) => c.env.BUSINESS_PARTNER_SERVICE.fetch(c.req.raw));
-app.all('/api/customers/*', async (c) => c.env.BUSINESS_PARTNER_SERVICE.fetch(c.req.raw));
-```
-
-**Deliverable**: Updated API Gateway
+**Deliverable**: Updated routing
 
 ---
 
-### Step 24: Update Other Services
+### Step 28: Deprecate User Service
 
-**Task**: Update service bindings in other services
-
-**Services to Update**:
-- Order Service → Call Business Partner for customer validation
-- Product Service → Call Business Partner for supplier info
-- Inventory Service → Call Business Partner for supplier lead times
-- Accounting Service → Call Business Partner for customer/supplier data
-
-**Deliverable**: Updated service integrations
-
----
-
-## Phase 9: Frontend Integration (Steps 25-28)
-
-### Step 25: Update API Client
-
-**Task**: Add Business Partner API methods
-
-**File**: `apps/erp-dashboard/src/lib/api/business-partner.ts`
-
-```typescript
-export const employeeApi = {
-  getAll: (filters) => apiRequest('/api/employees', { params: filters }),
-  getById: (id) => apiRequest(`/api/employees/${id}`),
-  create: (data) => apiRequest('/api/employees', { method: 'POST', body: data }),
-  update: (id, data) => apiRequest(`/api/employees/${id}`, { method: 'PUT', body: data }),
-  assignRole: (id, roleId) => apiRequest(`/api/employees/${id}/roles`, { method: 'POST', body: { roleId } }),
-  // ...
-};
-
-export const supplierApi = { /* ... */ };
-export const customerApi = { /* ... */ };
-```
-
-**Deliverable**: Updated API client
-
----
-
-### Step 26: Employee Management UI
-
-**Task**: Create employee management pages
-
-**Files to Create**:
-```
-apps/erp-dashboard/src/routes/dashboard/employees/
-├── index.tsx           # Employee list
-├── $employeeId.tsx     # Employee detail
-└── new.tsx             # Create employee form
-```
-
-**Deliverable**: Employee management UI
-
----
-
-### Step 27: Supplier Management UI
-
-**Task**: Create supplier management pages
-
-**Files to Create**:
-```
-apps/erp-dashboard/src/routes/dashboard/suppliers/
-├── index.tsx
-├── $supplierId.tsx
-└── new.tsx
-```
-
-**Deliverable**: Supplier management UI
-
----
-
-### Step 28: Customer Management UI
-
-**Task**: Update existing customer pages
-
-**Files to Update**:
-```
-apps/erp-dashboard/src/routes/dashboard/customers/
-├── index.tsx           # Update to use new API
-├── $customerId.tsx     # Add B2B features
-└── new.tsx             # Add customer type selection
-```
-
-**Deliverable**: Updated customer management UI
-
----
-
-## Phase 10: Cleanup & Documentation (Steps 29-30)
-
-### Step 29: Deprecate User Service
-
-**Task**: Remove old user service
-
-**Steps**:
-1. Verify all functionality migrated
-2. Run parallel for 2 weeks
-3. Monitor for issues
-4. Remove service bindings
-5. Delete user-service folder
+**Task**: Remove old user service after verification
 
 **Deliverable**: Clean codebase
 
 ---
 
-### Step 30: Update Documentation
-
-**Task**: Create/update documentation
-
-**Files to Create/Update**:
-- `services/business-partner-service/README.md`
-- `docs/bounded-contexts/business-partner/API_REFERENCE.md`
-- `docs/CLAUDE.md` - Add Business Partner section
-- Update architecture diagrams
-
-**Deliverable**: Complete documentation
-
----
-
 ## Summary
 
-### Total Steps: 30
+### Total Steps: 28
 
-| Phase | Steps | Description |
-|-------|-------|-------------|
-| 1 | 1-4 | Service Setup & Domain Model |
-| 2 | 5-8 | Repository & Application Layer |
-| 3 | 9-12 | HTTP API Layer |
-| 4 | 13-14 | Admin & Address Routes |
-| 5 | 15-16 | Service Entry Point & DI |
-| 6 | 17-18 | Event Handling |
-| 7 | 19-21 | Testing |
-| 8 | 22-24 | Migration from User Service |
-| 9 | 25-28 | Frontend Integration |
-| 10 | 29-30 | Cleanup & Documentation |
+| Phase | Steps | Description | Auth Required |
+|-------|-------|-------------|---------------|
+| 1 | 1-3 | Service Setup & Schema | ❌ No |
+| 2 | 4-6 | Customer Management | ❌ No |
+| 3 | 7-9 | Supplier Management | ❌ No |
+| 4 | 10-12 | Employee Management (data only) | ❌ No |
+| 5 | 13-14 | Address Management | ❌ No |
+| 6 | 15-18 | Testing & Frontend | ❌ No |
+| 7 | 19-23 | RBAC Implementation | ✅ Yes |
+| 8 | 24-25 | Apply Auth Middleware | ✅ Yes |
+| 9 | 26-28 | Migration from User Service | ✅ Yes |
 
-### Key Deliverables
+### Key Points
 
-1. ✅ Business Partner Service with hexagonal architecture
-2. ✅ Complete RBAC implementation
-3. ✅ Unified Employee, Supplier, Customer management
-4. ✅ Migration path from User Service
-5. ✅ Full test coverage
-6. ✅ Frontend integration
-7. ✅ Complete documentation
+1. **Phases 1-6**: Build Customer, Supplier, Employee CRUD without authentication
+2. **Phase 7+**: Add RBAC after all modules exist
+3. **TDD**: Write tests before implementation
+4. **Incremental**: Each phase delivers working functionality
 
-### Dependencies
+### What's NOT in Early Phases
 
-- Existing: Hono, Drizzle ORM, JWT library, bcrypt
-- No new dependencies required
+- ❌ Password fields on Employee
+- ❌ JWT authentication
+- ❌ Role/Permission tables
+- ❌ Auth middleware
+- ❌ Login/logout endpoints
 
-### Risk Mitigation
-
-| Risk | Mitigation |
-|------|------------|
-| Data migration issues | Run parallel services, verify data before cutover |
-| Breaking existing auth | Maintain API compatibility during transition |
-| Performance impact | Profile and optimize queries, add caching |
-| Permission errors | Extensive testing, fallback to admin override |
+These are all added in Phase 7+ after the basic data management is working.
 
 ---
 
-**Document Version**: 1.0
+**Document Version**: 2.0
 **Last Updated**: January 2025
 **Status**: Ready for Implementation
