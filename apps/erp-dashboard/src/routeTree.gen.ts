@@ -17,6 +17,7 @@ import { Route as DashboardOrdersRouteImport } from './routes/dashboard/orders'
 import { Route as DashboardCustomersRouteImport } from './routes/dashboard/customers'
 import { Route as DashboardProductsIndexRouteImport } from './routes/dashboard/products/index'
 import { Route as DashboardInventoryIndexRouteImport } from './routes/dashboard/inventory/index'
+import { Route as DashboardBusinessPartnerIndexRouteImport } from './routes/dashboard/business-partner/index'
 import { Route as DashboardAccountingIndexRouteImport } from './routes/dashboard/accounting/index'
 import { Route as DashboardProductsVariantRouteImport } from './routes/dashboard/products/variant'
 import { Route as DashboardProductsUomRouteImport } from './routes/dashboard/products/uom'
@@ -30,6 +31,9 @@ import { Route as DashboardInventoryProductLocationsRouteImport } from './routes
 import { Route as DashboardInventoryLowStockRouteImport } from './routes/dashboard/inventory/low-stock'
 import { Route as DashboardInventoryExpiredStockRouteImport } from './routes/dashboard/inventory/expired-stock'
 import { Route as DashboardInventoryBatchesRouteImport } from './routes/dashboard/inventory/batches'
+import { Route as DashboardBusinessPartnerSuppliersRouteImport } from './routes/dashboard/business-partner/suppliers'
+import { Route as DashboardBusinessPartnerEmployeesRouteImport } from './routes/dashboard/business-partner/employees'
+import { Route as DashboardBusinessPartnerCustomersRouteImport } from './routes/dashboard/business-partner/customers'
 import { Route as DashboardAdminMaintenanceRouteImport } from './routes/dashboard/admin/maintenance'
 import { Route as DashboardAccountingJournalEntryRouteImport } from './routes/dashboard/accounting/journal-entry'
 import { Route as DashboardAccountingIncomeStatementRouteImport } from './routes/dashboard/accounting/income-statement'
@@ -79,6 +83,12 @@ const DashboardInventoryIndexRoute = DashboardInventoryIndexRouteImport.update({
   path: '/inventory/',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardBusinessPartnerIndexRoute =
+  DashboardBusinessPartnerIndexRouteImport.update({
+    id: '/business-partner/',
+    path: '/business-partner/',
+    getParentRoute: () => DashboardRoute,
+  } as any)
 const DashboardAccountingIndexRoute =
   DashboardAccountingIndexRouteImport.update({
     id: '/accounting/',
@@ -154,6 +164,24 @@ const DashboardInventoryBatchesRoute =
     path: '/inventory/batches',
     getParentRoute: () => DashboardRoute,
   } as any)
+const DashboardBusinessPartnerSuppliersRoute =
+  DashboardBusinessPartnerSuppliersRouteImport.update({
+    id: '/business-partner/suppliers',
+    path: '/business-partner/suppliers',
+    getParentRoute: () => DashboardRoute,
+  } as any)
+const DashboardBusinessPartnerEmployeesRoute =
+  DashboardBusinessPartnerEmployeesRouteImport.update({
+    id: '/business-partner/employees',
+    path: '/business-partner/employees',
+    getParentRoute: () => DashboardRoute,
+  } as any)
+const DashboardBusinessPartnerCustomersRoute =
+  DashboardBusinessPartnerCustomersRouteImport.update({
+    id: '/business-partner/customers',
+    path: '/business-partner/customers',
+    getParentRoute: () => DashboardRoute,
+  } as any)
 const DashboardAdminMaintenanceRoute =
   DashboardAdminMaintenanceRouteImport.update({
     id: '/admin/maintenance',
@@ -216,6 +244,9 @@ export interface FileRoutesByFullPath {
   '/dashboard/accounting/income-statement': typeof DashboardAccountingIncomeStatementRoute
   '/dashboard/accounting/journal-entry': typeof DashboardAccountingJournalEntryRoute
   '/dashboard/admin/maintenance': typeof DashboardAdminMaintenanceRoute
+  '/dashboard/business-partner/customers': typeof DashboardBusinessPartnerCustomersRoute
+  '/dashboard/business-partner/employees': typeof DashboardBusinessPartnerEmployeesRoute
+  '/dashboard/business-partner/suppliers': typeof DashboardBusinessPartnerSuppliersRoute
   '/dashboard/inventory/batches': typeof DashboardInventoryBatchesRoute
   '/dashboard/inventory/expired-stock': typeof DashboardInventoryExpiredStockRoute
   '/dashboard/inventory/low-stock': typeof DashboardInventoryLowStockRoute
@@ -229,6 +260,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/products/uom': typeof DashboardProductsUomRoute
   '/dashboard/products/variant': typeof DashboardProductsVariantRoute
   '/dashboard/accounting': typeof DashboardAccountingIndexRoute
+  '/dashboard/business-partner': typeof DashboardBusinessPartnerIndexRoute
   '/dashboard/inventory': typeof DashboardInventoryIndexRoute
   '/dashboard/products': typeof DashboardProductsIndexRoute
   '/dashboard/accounting/reports/sales-by-person': typeof DashboardAccountingReportsSalesByPersonRoute
@@ -246,6 +278,9 @@ export interface FileRoutesByTo {
   '/dashboard/accounting/income-statement': typeof DashboardAccountingIncomeStatementRoute
   '/dashboard/accounting/journal-entry': typeof DashboardAccountingJournalEntryRoute
   '/dashboard/admin/maintenance': typeof DashboardAdminMaintenanceRoute
+  '/dashboard/business-partner/customers': typeof DashboardBusinessPartnerCustomersRoute
+  '/dashboard/business-partner/employees': typeof DashboardBusinessPartnerEmployeesRoute
+  '/dashboard/business-partner/suppliers': typeof DashboardBusinessPartnerSuppliersRoute
   '/dashboard/inventory/batches': typeof DashboardInventoryBatchesRoute
   '/dashboard/inventory/expired-stock': typeof DashboardInventoryExpiredStockRoute
   '/dashboard/inventory/low-stock': typeof DashboardInventoryLowStockRoute
@@ -259,6 +294,7 @@ export interface FileRoutesByTo {
   '/dashboard/products/uom': typeof DashboardProductsUomRoute
   '/dashboard/products/variant': typeof DashboardProductsVariantRoute
   '/dashboard/accounting': typeof DashboardAccountingIndexRoute
+  '/dashboard/business-partner': typeof DashboardBusinessPartnerIndexRoute
   '/dashboard/inventory': typeof DashboardInventoryIndexRoute
   '/dashboard/products': typeof DashboardProductsIndexRoute
   '/dashboard/accounting/reports/sales-by-person': typeof DashboardAccountingReportsSalesByPersonRoute
@@ -278,6 +314,9 @@ export interface FileRoutesById {
   '/dashboard/accounting/income-statement': typeof DashboardAccountingIncomeStatementRoute
   '/dashboard/accounting/journal-entry': typeof DashboardAccountingJournalEntryRoute
   '/dashboard/admin/maintenance': typeof DashboardAdminMaintenanceRoute
+  '/dashboard/business-partner/customers': typeof DashboardBusinessPartnerCustomersRoute
+  '/dashboard/business-partner/employees': typeof DashboardBusinessPartnerEmployeesRoute
+  '/dashboard/business-partner/suppliers': typeof DashboardBusinessPartnerSuppliersRoute
   '/dashboard/inventory/batches': typeof DashboardInventoryBatchesRoute
   '/dashboard/inventory/expired-stock': typeof DashboardInventoryExpiredStockRoute
   '/dashboard/inventory/low-stock': typeof DashboardInventoryLowStockRoute
@@ -291,6 +330,7 @@ export interface FileRoutesById {
   '/dashboard/products/uom': typeof DashboardProductsUomRoute
   '/dashboard/products/variant': typeof DashboardProductsVariantRoute
   '/dashboard/accounting/': typeof DashboardAccountingIndexRoute
+  '/dashboard/business-partner/': typeof DashboardBusinessPartnerIndexRoute
   '/dashboard/inventory/': typeof DashboardInventoryIndexRoute
   '/dashboard/products/': typeof DashboardProductsIndexRoute
   '/dashboard/accounting/reports/sales-by-person': typeof DashboardAccountingReportsSalesByPersonRoute
@@ -311,6 +351,9 @@ export interface FileRouteTypes {
     | '/dashboard/accounting/income-statement'
     | '/dashboard/accounting/journal-entry'
     | '/dashboard/admin/maintenance'
+    | '/dashboard/business-partner/customers'
+    | '/dashboard/business-partner/employees'
+    | '/dashboard/business-partner/suppliers'
     | '/dashboard/inventory/batches'
     | '/dashboard/inventory/expired-stock'
     | '/dashboard/inventory/low-stock'
@@ -324,6 +367,7 @@ export interface FileRouteTypes {
     | '/dashboard/products/uom'
     | '/dashboard/products/variant'
     | '/dashboard/accounting'
+    | '/dashboard/business-partner'
     | '/dashboard/inventory'
     | '/dashboard/products'
     | '/dashboard/accounting/reports/sales-by-person'
@@ -341,6 +385,9 @@ export interface FileRouteTypes {
     | '/dashboard/accounting/income-statement'
     | '/dashboard/accounting/journal-entry'
     | '/dashboard/admin/maintenance'
+    | '/dashboard/business-partner/customers'
+    | '/dashboard/business-partner/employees'
+    | '/dashboard/business-partner/suppliers'
     | '/dashboard/inventory/batches'
     | '/dashboard/inventory/expired-stock'
     | '/dashboard/inventory/low-stock'
@@ -354,6 +401,7 @@ export interface FileRouteTypes {
     | '/dashboard/products/uom'
     | '/dashboard/products/variant'
     | '/dashboard/accounting'
+    | '/dashboard/business-partner'
     | '/dashboard/inventory'
     | '/dashboard/products'
     | '/dashboard/accounting/reports/sales-by-person'
@@ -372,6 +420,9 @@ export interface FileRouteTypes {
     | '/dashboard/accounting/income-statement'
     | '/dashboard/accounting/journal-entry'
     | '/dashboard/admin/maintenance'
+    | '/dashboard/business-partner/customers'
+    | '/dashboard/business-partner/employees'
+    | '/dashboard/business-partner/suppliers'
     | '/dashboard/inventory/batches'
     | '/dashboard/inventory/expired-stock'
     | '/dashboard/inventory/low-stock'
@@ -385,6 +436,7 @@ export interface FileRouteTypes {
     | '/dashboard/products/uom'
     | '/dashboard/products/variant'
     | '/dashboard/accounting/'
+    | '/dashboard/business-partner/'
     | '/dashboard/inventory/'
     | '/dashboard/products/'
     | '/dashboard/accounting/reports/sales-by-person'
@@ -452,6 +504,13 @@ declare module '@tanstack/react-router' {
       path: '/inventory'
       fullPath: '/dashboard/inventory'
       preLoaderRoute: typeof DashboardInventoryIndexRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/business-partner/': {
+      id: '/dashboard/business-partner/'
+      path: '/business-partner'
+      fullPath: '/dashboard/business-partner'
+      preLoaderRoute: typeof DashboardBusinessPartnerIndexRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/accounting/': {
@@ -545,6 +604,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardInventoryBatchesRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/business-partner/suppliers': {
+      id: '/dashboard/business-partner/suppliers'
+      path: '/business-partner/suppliers'
+      fullPath: '/dashboard/business-partner/suppliers'
+      preLoaderRoute: typeof DashboardBusinessPartnerSuppliersRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/business-partner/employees': {
+      id: '/dashboard/business-partner/employees'
+      path: '/business-partner/employees'
+      fullPath: '/dashboard/business-partner/employees'
+      preLoaderRoute: typeof DashboardBusinessPartnerEmployeesRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/business-partner/customers': {
+      id: '/dashboard/business-partner/customers'
+      path: '/business-partner/customers'
+      fullPath: '/dashboard/business-partner/customers'
+      preLoaderRoute: typeof DashboardBusinessPartnerCustomersRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/admin/maintenance': {
       id: '/dashboard/admin/maintenance'
       path: '/admin/maintenance'
@@ -615,6 +695,9 @@ interface DashboardRouteChildren {
   DashboardAccountingIncomeStatementRoute: typeof DashboardAccountingIncomeStatementRoute
   DashboardAccountingJournalEntryRoute: typeof DashboardAccountingJournalEntryRoute
   DashboardAdminMaintenanceRoute: typeof DashboardAdminMaintenanceRoute
+  DashboardBusinessPartnerCustomersRoute: typeof DashboardBusinessPartnerCustomersRoute
+  DashboardBusinessPartnerEmployeesRoute: typeof DashboardBusinessPartnerEmployeesRoute
+  DashboardBusinessPartnerSuppliersRoute: typeof DashboardBusinessPartnerSuppliersRoute
   DashboardInventoryBatchesRoute: typeof DashboardInventoryBatchesRoute
   DashboardInventoryExpiredStockRoute: typeof DashboardInventoryExpiredStockRoute
   DashboardInventoryLowStockRoute: typeof DashboardInventoryLowStockRoute
@@ -628,6 +711,7 @@ interface DashboardRouteChildren {
   DashboardProductsUomRoute: typeof DashboardProductsUomRoute
   DashboardProductsVariantRoute: typeof DashboardProductsVariantRoute
   DashboardAccountingIndexRoute: typeof DashboardAccountingIndexRoute
+  DashboardBusinessPartnerIndexRoute: typeof DashboardBusinessPartnerIndexRoute
   DashboardInventoryIndexRoute: typeof DashboardInventoryIndexRoute
   DashboardProductsIndexRoute: typeof DashboardProductsIndexRoute
   DashboardAccountingReportsSalesByPersonRoute: typeof DashboardAccountingReportsSalesByPersonRoute
@@ -647,6 +731,12 @@ const DashboardRouteChildren: DashboardRouteChildren = {
     DashboardAccountingIncomeStatementRoute,
   DashboardAccountingJournalEntryRoute: DashboardAccountingJournalEntryRoute,
   DashboardAdminMaintenanceRoute: DashboardAdminMaintenanceRoute,
+  DashboardBusinessPartnerCustomersRoute:
+    DashboardBusinessPartnerCustomersRoute,
+  DashboardBusinessPartnerEmployeesRoute:
+    DashboardBusinessPartnerEmployeesRoute,
+  DashboardBusinessPartnerSuppliersRoute:
+    DashboardBusinessPartnerSuppliersRoute,
   DashboardInventoryBatchesRoute: DashboardInventoryBatchesRoute,
   DashboardInventoryExpiredStockRoute: DashboardInventoryExpiredStockRoute,
   DashboardInventoryLowStockRoute: DashboardInventoryLowStockRoute,
@@ -661,6 +751,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardProductsUomRoute: DashboardProductsUomRoute,
   DashboardProductsVariantRoute: DashboardProductsVariantRoute,
   DashboardAccountingIndexRoute: DashboardAccountingIndexRoute,
+  DashboardBusinessPartnerIndexRoute: DashboardBusinessPartnerIndexRoute,
   DashboardInventoryIndexRoute: DashboardInventoryIndexRoute,
   DashboardProductsIndexRoute: DashboardProductsIndexRoute,
   DashboardAccountingReportsSalesByPersonRoute:
