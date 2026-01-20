@@ -67,6 +67,26 @@ describe('Employee Entity', () => {
         })
       ).toThrow('Gender must be either male or female');
     });
+
+    it('should throw error if base salary is negative', () => {
+      expect(() =>
+        Employee.create({
+          name: 'John Doe',
+          employeeNumber: 'EMP001',
+          baseSalary: -1000000,
+        })
+      ).toThrow('Base salary cannot be negative');
+    });
+
+    it('should allow zero base salary', () => {
+      const employee = Employee.create({
+        name: 'John Doe',
+        employeeNumber: 'EMP001',
+        baseSalary: 0,
+      });
+
+      expect(employee.getBaseSalary()).toBe(0);
+    });
   });
 
   describe('employment status management', () => {
@@ -106,7 +126,7 @@ describe('Employee Entity', () => {
       expect(employee.getEndDate()).toEqual(endDate);
     });
 
-    it('should reactivate an employee', () => {
+    it('should reactivate an employee from on_leave', () => {
       const employee = Employee.create({
         name: 'John Doe',
         employeeNumber: 'EMP001',
@@ -115,6 +135,36 @@ describe('Employee Entity', () => {
       employee.putOnLeave();
       employee.activate();
       expect(employee.getEmploymentStatus()).toBe('active');
+    });
+
+    it('should reactivate a terminated employee and clear endDate', () => {
+      const employee = Employee.create({
+        name: 'John Doe',
+        employeeNumber: 'EMP001',
+      });
+
+      const endDate = new Date('2024-06-30');
+      employee.terminate(endDate);
+      expect(employee.getEndDate()).toEqual(endDate);
+
+      employee.activate();
+      expect(employee.getEmploymentStatus()).toBe('active');
+      expect(employee.getEndDate()).toBeNull();
+    });
+
+    it('should reactivate a resigned employee and clear endDate', () => {
+      const employee = Employee.create({
+        name: 'John Doe',
+        employeeNumber: 'EMP001',
+      });
+
+      const endDate = new Date('2024-06-30');
+      employee.resign(endDate);
+      expect(employee.getEndDate()).toEqual(endDate);
+
+      employee.activate();
+      expect(employee.getEmploymentStatus()).toBe('active');
+      expect(employee.getEndDate()).toBeNull();
     });
 
     it('should check if employee is active', () => {
@@ -226,6 +276,27 @@ describe('Employee Entity', () => {
       expect(employee.getName()).toBe('John Doe Updated');
       expect(employee.getEmail()).toBe('john.doe@company.com');
       expect(employee.getPhone()).toBe('+62812345678');
+    });
+
+    it('should throw error when updating with invalid gender', () => {
+      const employee = Employee.create({
+        name: 'John Doe',
+        employeeNumber: 'EMP001',
+      });
+
+      expect(() => employee.update({ gender: 'invalid' as any })).toThrow(
+        'Gender must be either male or female'
+      );
+    });
+
+    it('should allow updating gender to valid value', () => {
+      const employee = Employee.create({
+        name: 'John Doe',
+        employeeNumber: 'EMP001',
+      });
+
+      employee.update({ gender: 'female' });
+      expect(employee.getGender()).toBe('female');
     });
   });
 

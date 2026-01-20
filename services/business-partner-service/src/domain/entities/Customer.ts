@@ -206,6 +206,9 @@ export class Customer extends AggregateRoot {
     if (this.props.customerType !== 'retail') {
       throw new Error('Loyalty points only apply to retail customers');
     }
+    if (!Number.isFinite(points) || points <= 0) {
+      throw new RangeError('Points must be a positive number');
+    }
     this.props.loyaltyPoints += points;
     this.updateMembershipTier();
     this.props.updatedAt = new Date();

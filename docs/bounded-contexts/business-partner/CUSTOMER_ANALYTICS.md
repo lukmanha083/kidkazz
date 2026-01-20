@@ -970,9 +970,9 @@ WHERE ST_Contains(d.geometry, c.geometry)
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 1.0 | 2024-01-20 | Initial geospatial fields |
-| 1.1 | 2024-01-20 | Added analytics fields (engagement, social, predictive) |
-| 1.2 | 2024-01-20 | Added face recognition integration |
+| 1.0 | 2026-01-20 | Initial geospatial fields |
+| 1.1 | 2026-01-20 | Added analytics fields (engagement, social, predictive) |
+| 1.2 | 2026-01-20 | Added face recognition integration |
 
 ---
 

@@ -45,6 +45,7 @@ export class Employee extends AggregateRoot {
     name: string;
     employeeNumber: string;
     gender?: Gender;
+    baseSalary?: number;
   }): void {
     if (!input.name || input.name.trim().length === 0) {
       throw new Error('Employee name is required');
@@ -54,6 +55,9 @@ export class Employee extends AggregateRoot {
     }
     if (input.gender && !['male', 'female'].includes(input.gender)) {
       throw new Error('Gender must be either male or female');
+    }
+    if (input.baseSalary !== undefined && input.baseSalary < 0) {
+      throw new Error('Base salary cannot be negative');
     }
   }
 
@@ -197,6 +201,7 @@ export class Employee extends AggregateRoot {
 
   public activate(): void {
     this.props.employmentStatus = 'active';
+    this.props.endDate = null;
     this.props.updatedAt = new Date();
   }
 
@@ -254,7 +259,12 @@ export class Employee extends AggregateRoot {
     if (input.email !== undefined) this.props.email = input.email || null;
     if (input.phone !== undefined) this.props.phone = input.phone || null;
     if (input.dateOfBirth !== undefined) this.props.dateOfBirth = input.dateOfBirth;
-    if (input.gender !== undefined) this.props.gender = input.gender;
+    if (input.gender !== undefined) {
+      if (input.gender && !['male', 'female'].includes(input.gender)) {
+        throw new Error('Gender must be either male or female');
+      }
+      this.props.gender = input.gender;
+    }
     if (input.nationalId !== undefined) this.props.nationalId = input.nationalId || null;
     if (input.npwp !== undefined) this.props.npwp = input.npwp || null;
     if (input.notes !== undefined) this.props.notes = input.notes || null;

@@ -153,6 +153,24 @@ describe('Customer Entity', () => {
         'Loyalty points only apply to retail customers'
       );
     });
+
+    it('should throw error when adding zero points', () => {
+      const customer = Customer.create({
+        name: 'John Doe',
+        customerType: 'retail',
+      });
+
+      expect(() => customer.addLoyaltyPoints(0)).toThrow('Points must be a positive number');
+    });
+
+    it('should throw error when adding negative points', () => {
+      const customer = Customer.create({
+        name: 'John Doe',
+        customerType: 'retail',
+      });
+
+      expect(() => customer.addLoyaltyPoints(-100)).toThrow('Points must be a positive number');
+    });
   });
 
   describe('status management', () => {

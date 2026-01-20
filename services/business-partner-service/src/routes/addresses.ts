@@ -77,15 +77,6 @@ app.post('/', zValidator('json', createAddressSchema), async (c) => {
   const data = c.req.valid('json');
   const db = drizzle(c.env.DB);
 
-  // If this is marked as primary, unset other primary addresses for this owner
-  if (data.isPrimary) {
-    await db
-      .update(addresses)
-      .set({ isPrimary: 0, updatedAt: Date.now() })
-      .where(and(eq(addresses.ownerType, data.ownerType), eq(addresses.ownerId, data.ownerId)))
-      .run();
-  }
-
   // Use domain value object to create address
   const address = Address.create({
     ownerType: data.ownerType,
@@ -110,9 +101,21 @@ app.post('/', zValidator('json', createAddressSchema), async (c) => {
 
   const addressData = address.toData();
 
-  await db
-    .insert(addresses)
-    .values({
+  // Use batch to ensure atomicity: unset existing primary + insert new address
+  const statements: Parameters<typeof c.env.DB.batch>[0] = [];
+
+  // If this is marked as primary, unset other primary addresses for this owner
+  if (data.isPrimary) {
+    statements.push(
+      db
+        .update(addresses)
+        .set({ isPrimary: 0, updatedAt: Date.now() })
+        .where(and(eq(addresses.ownerType, data.ownerType), eq(addresses.ownerId, data.ownerId)))
+    );
+  }
+
+  statements.push(
+    db.insert(addresses).values({
       id: addressData.id,
       ownerType: addressData.ownerType,
       ownerId: addressData.ownerId,
@@ -135,7 +138,9 @@ app.post('/', zValidator('json', createAddressSchema), async (c) => {
       createdAt: addressData.createdAt.getTime(),
       updatedAt: addressData.updatedAt.getTime(),
     })
-    .run();
+  );
+
+  await c.env.DB.batch(statements as Parameters<typeof c.env.DB.batch>[0]);
 
   return c.json(addressData, 201);
 });
@@ -150,17 +155,6 @@ app.put('/:id', zValidator('json', updateAddressSchema), async (c) => {
 
   if (!existing) {
     return c.json({ error: 'Address not found' }, 404);
-  }
-
-  // If this is marked as primary, unset other primary addresses for this owner
-  if (data.isPrimary) {
-    await db
-      .update(addresses)
-      .set({ isPrimary: 0, updatedAt: Date.now() })
-      .where(
-        and(eq(addresses.ownerType, existing.ownerType), eq(addresses.ownerId, existing.ownerId))
-      )
-      .run();
   }
 
   const updateData: Record<string, unknown> = { updatedAt: Date.now() };
@@ -181,7 +175,24 @@ app.put('/:id', zValidator('json', updateAddressSchema), async (c) => {
   if (data.longitude !== undefined) updateData.longitude = data.longitude;
   if (data.notes !== undefined) updateData.notes = data.notes;
 
-  await db.update(addresses).set(updateData).where(eq(addresses.id, id)).run();
+  // Use batch to ensure atomicity when setting primary
+  const statements: Parameters<typeof c.env.DB.batch>[0] = [];
+
+  // If this is marked as primary, unset other primary addresses for this owner
+  if (data.isPrimary) {
+    statements.push(
+      db
+        .update(addresses)
+        .set({ isPrimary: 0, updatedAt: Date.now() })
+        .where(
+          and(eq(addresses.ownerType, existing.ownerType), eq(addresses.ownerId, existing.ownerId))
+        )
+    );
+  }
+
+  statements.push(db.update(addresses).set(updateData).where(eq(addresses.id, id)));
+
+  await c.env.DB.batch(statements as Parameters<typeof c.env.DB.batch>[0]);
 
   const updated = await db.select().from(addresses).where(eq(addresses.id, id)).get();
 
@@ -215,21 +226,16 @@ app.post('/:id/set-primary', async (c) => {
     return c.json({ error: 'Address not found' }, 404);
   }
 
-  // Unset other primary addresses for this owner
-  await db
-    .update(addresses)
-    .set({ isPrimary: 0, updatedAt: Date.now() })
-    .where(
-      and(eq(addresses.ownerType, existing.ownerType), eq(addresses.ownerId, existing.ownerId))
-    )
-    .run();
-
-  // Set this address as primary
-  await db
-    .update(addresses)
-    .set({ isPrimary: 1, updatedAt: Date.now() })
-    .where(eq(addresses.id, id))
-    .run();
+  // Use batch for atomicity: unset other primary addresses + set this one as primary
+  await c.env.DB.batch([
+    db
+      .update(addresses)
+      .set({ isPrimary: 0, updatedAt: Date.now() })
+      .where(
+        and(eq(addresses.ownerType, existing.ownerType), eq(addresses.ownerId, existing.ownerId))
+      ),
+    db.update(addresses).set({ isPrimary: 1, updatedAt: Date.now() }).where(eq(addresses.id, id)),
+  ]);
 
   const updated = await db.select().from(addresses).where(eq(addresses.id, id)).get();
 

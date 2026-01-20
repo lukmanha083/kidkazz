@@ -46,6 +46,9 @@ export class Address {
     if (!props.province || props.province.trim().length === 0) {
       throw new Error('Province is required');
     }
+    if (!props.ownerId || props.ownerId.trim().length === 0) {
+      throw new Error('Owner ID is required');
+    }
 
     const validOwnerTypes: OwnerType[] = ['customer', 'supplier', 'employee'];
     if (!validOwnerTypes.includes(props.ownerType as OwnerType)) {
@@ -81,7 +84,7 @@ export class Address {
     Address.validate(input);
 
     const now = new Date();
-    const id = `addr-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const id = `addr-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
     return new Address({
       id,
