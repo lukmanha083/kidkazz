@@ -53,6 +53,18 @@ export class Address {
       throw new Error('Postal code is required');
     }
 
+    // Validate coordinates if provided
+    if (props.latitude !== undefined) {
+      if (!Number.isFinite(props.latitude) || props.latitude < -90 || props.latitude > 90) {
+        throw new Error('Latitude must be between -90 and 90');
+      }
+    }
+    if (props.longitude !== undefined) {
+      if (!Number.isFinite(props.longitude) || props.longitude < -180 || props.longitude > 180) {
+        throw new Error('Longitude must be between -180 and 180');
+      }
+    }
+
     const validOwnerTypes: OwnerType[] = ['customer', 'supplier', 'employee'];
     if (!validOwnerTypes.includes(props.ownerType as OwnerType)) {
       throw new Error('Owner type must be customer, supplier, or employee');

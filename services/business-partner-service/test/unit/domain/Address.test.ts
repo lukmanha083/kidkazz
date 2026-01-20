@@ -156,6 +156,103 @@ describe('Address Value Object', () => {
         })
       ).toThrow('Address type must be billing, shipping, home, or office');
     });
+
+    it('should throw error if latitude is out of range (too low)', () => {
+      expect(() =>
+        Address.create({
+          ownerType: 'customer',
+          ownerId: 'cust-123',
+          addressType: 'shipping',
+          addressLine1: 'Jl. Sudirman No. 123',
+          city: 'Jakarta',
+          province: 'DKI Jakarta',
+          postalCode: '12345',
+          latitude: -91,
+          longitude: 106.8456,
+        })
+      ).toThrow('Latitude must be between -90 and 90');
+    });
+
+    it('should throw error if latitude is out of range (too high)', () => {
+      expect(() =>
+        Address.create({
+          ownerType: 'customer',
+          ownerId: 'cust-123',
+          addressType: 'shipping',
+          addressLine1: 'Jl. Sudirman No. 123',
+          city: 'Jakarta',
+          province: 'DKI Jakarta',
+          postalCode: '12345',
+          latitude: 91,
+          longitude: 106.8456,
+        })
+      ).toThrow('Latitude must be between -90 and 90');
+    });
+
+    it('should throw error if longitude is out of range (too low)', () => {
+      expect(() =>
+        Address.create({
+          ownerType: 'customer',
+          ownerId: 'cust-123',
+          addressType: 'shipping',
+          addressLine1: 'Jl. Sudirman No. 123',
+          city: 'Jakarta',
+          province: 'DKI Jakarta',
+          postalCode: '12345',
+          latitude: -6.2088,
+          longitude: -181,
+        })
+      ).toThrow('Longitude must be between -180 and 180');
+    });
+
+    it('should throw error if longitude is out of range (too high)', () => {
+      expect(() =>
+        Address.create({
+          ownerType: 'customer',
+          ownerId: 'cust-123',
+          addressType: 'shipping',
+          addressLine1: 'Jl. Sudirman No. 123',
+          city: 'Jakarta',
+          province: 'DKI Jakarta',
+          postalCode: '12345',
+          latitude: -6.2088,
+          longitude: 181,
+        })
+      ).toThrow('Longitude must be between -180 and 180');
+    });
+
+    it('should throw error if latitude is not a finite number', () => {
+      expect(() =>
+        Address.create({
+          ownerType: 'customer',
+          ownerId: 'cust-123',
+          addressType: 'shipping',
+          addressLine1: 'Jl. Sudirman No. 123',
+          city: 'Jakarta',
+          province: 'DKI Jakarta',
+          postalCode: '12345',
+          latitude: Number.NaN,
+          longitude: 106.8456,
+        })
+      ).toThrow('Latitude must be between -90 and 90');
+    });
+
+    it('should accept valid coordinates at boundary values', () => {
+      const address = Address.create({
+        ownerType: 'customer',
+        ownerId: 'cust-123',
+        addressType: 'shipping',
+        addressLine1: 'Jl. Sudirman No. 123',
+        city: 'Jakarta',
+        province: 'DKI Jakarta',
+        postalCode: '12345',
+        latitude: -90,
+        longitude: 180,
+      });
+
+      expect(address.getLatitude()).toBe(-90);
+      expect(address.getLongitude()).toBe(180);
+    });
   });
 
   describe('getFullAddress', () => {
