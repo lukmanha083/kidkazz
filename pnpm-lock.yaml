@@ -275,6 +275,46 @@ importers:
         specifier: ^4.59.2
         version: 4.59.2(@cloudflare/workers-types@4.20260116.0)
 
+  services/business-partner-service:
+    dependencies:
+      '@hono/zod-validator':
+        specifier: ^0.2.2
+        version: 0.2.2(hono@4.10.5)(zod@3.25.76)
+      '@kidkazz/ddd-core':
+        specifier: workspace:*
+        version: link:../../packages/ddd-core
+      drizzle-orm:
+        specifier: ^0.33.0
+        version: 0.33.0(@cloudflare/workers-types@4.20260116.0)(@types/better-sqlite3@7.6.13)(@types/react@18.3.26)(better-sqlite3@12.4.6)(react@18.3.1)
+      hono:
+        specifier: ^4.6.0
+        version: 4.10.5
+      nanoid:
+        specifier: ^5.0.0
+        version: 5.1.6
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20260116.0
+        version: 4.20260116.0
+      '@vitest/coverage-v8':
+        specifier: ^4.0.17
+        version: 4.0.17(vitest@4.0.17)
+      drizzle-kit:
+        specifier: ^0.31.7
+        version: 0.31.7
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.17
+        version: 4.0.17(@types/node@24.10.1)(@vitest/ui@4.0.17)(jiti@2.6.1)(jsdom@23.2.0)(msw@2.12.4(@types/node@24.10.1)(typescript@5.9.3))(terser@5.44.1)(tsx@4.20.6)
+      wrangler:
+        specifier: ^4.59.2
+        version: 4.59.2(@cloudflare/workers-types@4.20260116.0)
+
   services/inventory-service:
     dependencies:
       '@hono/zod-validator':
@@ -6801,7 +6841,7 @@ snapshots:
       sirv: 3.0.2
       tinyglobby: 0.2.15
       tinyrainbow: 3.0.3
-      vitest: 4.0.17(@types/node@24.10.1)(@vitest/ui@4.0.17)(jiti@1.21.7)(jsdom@23.2.0)(msw@2.12.4(@types/node@24.10.1)(typescript@5.9.3))(terser@5.44.1)(tsx@4.20.6)
+      vitest: 4.0.17(@types/node@24.10.1)(@vitest/ui@4.0.17)(jiti@2.6.1)(jsdom@23.2.0)(msw@2.12.4(@types/node@24.10.1)(typescript@5.9.3))(terser@5.44.1)(tsx@4.20.6)
 
   '@vitest/utils@4.0.17':
     dependencies:
