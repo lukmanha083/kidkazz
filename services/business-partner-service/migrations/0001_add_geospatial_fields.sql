@@ -52,7 +52,7 @@ CREATE INDEX `idx_addresses_coords` ON `addresses` (`latitude`, `longitude`);
 -- ============================================================================
 CREATE TABLE `customer_location_history` (
 	`id` text PRIMARY KEY NOT NULL,
-	`customer_id` text NOT NULL REFERENCES `customers`(`id`),
+	`customer_id` text NOT NULL REFERENCES `customers`(`id`) ON DELETE CASCADE,
 	`latitude` real NOT NULL,
 	`longitude` real NOT NULL,
 	`geohash` text NOT NULL,

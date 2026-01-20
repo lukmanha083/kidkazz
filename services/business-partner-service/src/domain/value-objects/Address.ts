@@ -49,6 +49,9 @@ export class Address {
     if (!props.ownerId || props.ownerId.trim().length === 0) {
       throw new Error('Owner ID is required');
     }
+    if (!props.postalCode || props.postalCode.trim().length === 0) {
+      throw new Error('Postal code is required');
+    }
 
     const validOwnerTypes: OwnerType[] = ['customer', 'supplier', 'employee'];
     if (!validOwnerTypes.includes(props.ownerType as OwnerType)) {

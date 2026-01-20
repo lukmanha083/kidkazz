@@ -101,6 +101,34 @@ describe('Address Value Object', () => {
       ).toThrow('Province is required');
     });
 
+    it('should throw error if owner id is empty', () => {
+      expect(() =>
+        Address.create({
+          ownerType: 'customer',
+          ownerId: '',
+          addressType: 'shipping',
+          addressLine1: 'Jl. Sudirman No. 123',
+          city: 'Jakarta',
+          province: 'DKI Jakarta',
+          postalCode: '12345',
+        })
+      ).toThrow('Owner ID is required');
+    });
+
+    it('should throw error if postal code is empty', () => {
+      expect(() =>
+        Address.create({
+          ownerType: 'customer',
+          ownerId: 'cust-123',
+          addressType: 'shipping',
+          addressLine1: 'Jl. Sudirman No. 123',
+          city: 'Jakarta',
+          province: 'DKI Jakarta',
+          postalCode: '',
+        })
+      ).toThrow('Postal code is required');
+    });
+
     it('should throw error if owner type is invalid', () => {
       expect(() =>
         Address.create({
