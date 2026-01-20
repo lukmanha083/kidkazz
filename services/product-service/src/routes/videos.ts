@@ -7,11 +7,11 @@
  * 2. Stream Mode: Full optimization with adaptive streaming (recommended)
  */
 
-import { Hono } from 'hono';
-import { VideoService } from '../infrastructure/video-service';
-import { drizzle } from 'drizzle-orm/d1';
-import { productVideos } from '../infrastructure/db/schema';
 import { eq } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/d1';
+import { Hono } from 'hono';
+import { productVideos } from '../infrastructure/db/schema';
+import { VideoService } from '../infrastructure/video-service';
 
 type Bindings = {
   DB: D1Database;
@@ -62,7 +62,7 @@ app.post('/upload', async (c) => {
 
     // Parse optional parameters
     const isPrimary = isPrimaryStr === 'true';
-    const sortOrder = sortOrderStr ? parseInt(sortOrderStr, 10) : undefined;
+    const sortOrder = sortOrderStr ? Number.parseInt(sortOrderStr, 10) : undefined;
 
     // Initialize database
     const db = drizzle(c.env.DB);
@@ -79,7 +79,8 @@ app.post('/upload', async (c) => {
 
     // If this is set as primary, unset all other primary videos for this product
     if (isPrimary) {
-      await db.update(productVideos)
+      await db
+        .update(productVideos)
         .set({ isPrimary: false })
         .where(eq(productVideos.productId, productId));
     }
@@ -87,13 +88,16 @@ app.post('/upload', async (c) => {
     // Get the next sort order if not provided
     let finalSortOrder = sortOrder;
     if (finalSortOrder === undefined) {
-      const existingVideos = await db.select()
+      const existingVideos = await db
+        .select()
         .from(productVideos)
         .where(eq(productVideos.productId, productId));
       finalSortOrder = existingVideos.length;
     }
 
-    let result;
+    let result: Awaited<
+      ReturnType<typeof videoService.uploadToStream | typeof videoService.uploadToR2>
+    >;
 
     if (uploadMode === 'stream') {
       if (!c.env.CLOUDFLARE_STREAM_API_TOKEN) {
@@ -106,16 +110,10 @@ app.post('/upload', async (c) => {
       }
 
       // Upload to Stream (recommended)
-      result = await videoService.uploadToStream(
-        productId,
-        file,
-        file.type,
-        file.name,
-        {
-          isPrimary,
-          sortOrder: finalSortOrder,
-        }
-      );
+      result = await videoService.uploadToStream(productId, file, file.type, file.name, {
+        isPrimary,
+        sortOrder: finalSortOrder,
+      });
 
       // Save video metadata to database
       const videoId = `vid-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
@@ -162,63 +160,56 @@ app.post('/upload', async (c) => {
         },
         201
       );
-    } else {
-      // Upload to R2 (basic)
-      result = await videoService.uploadToR2(
-        productId,
-        file,
-        file.type,
-        file.name,
-        {
-          isPrimary,
-          sortOrder: finalSortOrder,
-        }
-      );
-
-      // Save video metadata to database
-      const videoId = `vid-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-      const now = new Date();
-
-      await db.insert(productVideos).values({
-        id: videoId,
-        productId,
-        filename: result.filename,
-        originalName: file.name,
-        mimeType: file.type,
-        size: file.size,
-        isPrimary,
-        sortOrder: finalSortOrder,
-        storageMode: 'r2',
-        streamId: null,
-        streamStatus: null,
-        originalUrl: result.urls.original,
-        hlsUrl: null,
-        dashUrl: null,
-        thumbnailUrl: null,
-        downloadUrl: result.urls.download,
-        uploadedAt: now,
-        createdAt: now,
-        updatedAt: now,
-      });
-
-      return c.json(
-        {
-          success: true,
-          message: 'Video uploaded to R2 successfully',
-          mode: 'r2',
-          video: {
-            id: videoId,
-            filename: result.filename,
-            urls: result.urls,
-            metadata: result.metadata,
-          },
-          info: {
-            note: 'Using basic R2 storage. For optimized streaming, enable Cloudflare Stream.',
-          },
-        },
-        201
-      );
     }
+    // Upload to R2 (basic)
+    result = await videoService.uploadToR2(productId, file, file.type, file.name, {
+      isPrimary,
+      sortOrder: finalSortOrder,
+    });
+
+    // Save video metadata to database
+    const videoId = `vid-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const now = new Date();
+
+    await db.insert(productVideos).values({
+      id: videoId,
+      productId,
+      filename: result.filename,
+      originalName: file.name,
+      mimeType: file.type,
+      size: file.size,
+      isPrimary,
+      sortOrder: finalSortOrder,
+      storageMode: 'r2',
+      streamId: null,
+      streamStatus: null,
+      originalUrl: result.urls.original,
+      hlsUrl: null,
+      dashUrl: null,
+      thumbnailUrl: null,
+      downloadUrl: result.urls.download,
+      uploadedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return c.json(
+      {
+        success: true,
+        message: 'Video uploaded to R2 successfully',
+        mode: 'r2',
+        video: {
+          id: videoId,
+          filename: result.filename,
+          urls: result.urls,
+          metadata: result.metadata,
+        },
+        info: {
+          note: 'Using basic R2 storage. For optimized streaming, enable Cloudflare Stream.',
+        },
+      },
+      201
+    );
   } catch (error) {
     console.error('Video upload error:', error);
 
@@ -241,14 +232,15 @@ app.get('/product/:productId', async (c) => {
     const db = drizzle(c.env.DB);
 
     // Fetch all videos for the product, ordered by sortOrder
-    const videos = await db.select()
+    const videos = await db
+      .select()
       .from(productVideos)
       .where(eq(productVideos.productId, productId))
       .orderBy(productVideos.sortOrder);
 
     return c.json({
       success: true,
-      videos: videos.map(vid => ({
+      videos: videos.map((vid) => ({
         id: vid.id,
         productId: vid.productId,
         filename: vid.filename,
@@ -373,9 +365,7 @@ app.delete('/video/:videoId', async (c) => {
     const db = drizzle(c.env.DB);
 
     // Get video metadata from database
-    const videos = await db.select()
-      .from(productVideos)
-      .where(eq(productVideos.id, videoId));
+    const videos = await db.select().from(productVideos).where(eq(productVideos.id, videoId));
 
     if (videos.length === 0) {
       return c.json({ error: 'Video not found' }, 404);
@@ -398,8 +388,7 @@ app.delete('/video/:videoId', async (c) => {
     }
 
     // Delete from database
-    await db.delete(productVideos)
-      .where(eq(productVideos.id, videoId));
+    await db.delete(productVideos).where(eq(productVideos.id, videoId));
 
     return c.json({
       success: true,
@@ -456,7 +445,8 @@ app.delete('/product/delete/:productId', async (c) => {
     const db = drizzle(c.env.DB);
 
     // Get all videos for this product
-    const videos = await db.select()
+    const videos = await db
+      .select()
       .from(productVideos)
       .where(eq(productVideos.productId, productId));
 
@@ -477,8 +467,7 @@ app.delete('/product/delete/:productId', async (c) => {
     }
 
     // Delete all videos from database
-    await db.delete(productVideos)
-      .where(eq(productVideos.productId, productId));
+    await db.delete(productVideos).where(eq(productVideos.productId, productId));
 
     return c.json({
       success: true,

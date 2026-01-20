@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Hono } from 'hono';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
  * Unit tests for UOM validation functions (per-warehouse)
@@ -57,9 +57,7 @@ describe('UOM Validation - Per Warehouse', () => {
     it('should validate successfully when UOM stock matches product location stock', async () => {
       // Arrange
       const db = createMockDb();
-      db._mockData.products = [
-        { id: 'prod-1', baseUnit: 'PCS', stock: 100 },
-      ];
+      db._mockData.products = [{ id: 'prod-1', baseUnit: 'PCS', stock: 100 }];
       db._mockData.productLocations = [
         { id: 'loc-1', productId: 'prod-1', warehouseId: 'wh-jakarta', quantity: 60 },
       ];
@@ -84,9 +82,7 @@ describe('UOM Validation - Per Warehouse', () => {
     it('should fail validation when UOM stock exceeds product location stock', async () => {
       // Arrange
       const db = createMockDb();
-      db._mockData.products = [
-        { id: 'prod-1', baseUnit: 'PCS', stock: 100 },
-      ];
+      db._mockData.products = [{ id: 'prod-1', baseUnit: 'PCS', stock: 100 }];
       db._mockData.productLocations = [
         { id: 'loc-1', productId: 'prod-1', warehouseId: 'wh-jakarta', quantity: 60 },
       ];
@@ -110,9 +106,7 @@ describe('UOM Validation - Per Warehouse', () => {
     it('should handle multiple UOMs at the same warehouse', async () => {
       // Arrange
       const db = createMockDb();
-      db._mockData.products = [
-        { id: 'prod-1', baseUnit: 'PCS', stock: 200 },
-      ];
+      db._mockData.products = [{ id: 'prod-1', baseUnit: 'PCS', stock: 200 }];
       db._mockData.productLocations = [
         { id: 'loc-1', productId: 'prod-1', warehouseId: 'wh-jakarta', quantity: 100 },
       ];
@@ -131,21 +125,25 @@ describe('UOM Validation - Per Warehouse', () => {
       // Validation should pass: 96 <= 100
 
       const warehouseStock = 100;
-      const uomStock = (10 * 6) + (2 * 18); // 96
+      const uomStock = 10 * 6 + 2 * 18; // 96
       expect(uomStock).toBeLessThanOrEqual(warehouseStock);
     });
 
     it('should support dynamic base units (e.g., KG instead of PCS)', async () => {
       // Arrange
       const db = createMockDb();
-      db._mockData.products = [
-        { id: 'prod-1', baseUnit: 'KG', stock: 100 },
-      ];
+      db._mockData.products = [{ id: 'prod-1', baseUnit: 'KG', stock: 100 }];
       db._mockData.productLocations = [
         { id: 'loc-1', productId: 'prod-1', warehouseId: 'wh-jakarta', quantity: 50 },
       ];
       db._mockData.productUOMs = [
-        { id: 'puom-1', productId: 'prod-1', uomCode: 'BOX500G', conversionFactor: 0.5, stock: 100 },
+        {
+          id: 'puom-1',
+          productId: 'prod-1',
+          uomCode: 'BOX500G',
+          conversionFactor: 0.5,
+          stock: 100,
+        },
       ];
       db._mockData.productUOMLocations = [
         { id: 'puomloc-1', productUOMId: 'puom-1', warehouseId: 'wh-jakarta', quantity: 100 },
@@ -165,9 +163,7 @@ describe('UOM Validation - Per Warehouse', () => {
     it('should return error when product location does not exist', async () => {
       // Arrange
       const db = createMockDb();
-      db._mockData.products = [
-        { id: 'prod-1', baseUnit: 'PCS', stock: 100 },
-      ];
+      db._mockData.products = [{ id: 'prod-1', baseUnit: 'PCS', stock: 100 }];
       db._mockData.productLocations = []; // No location for this warehouse
 
       // Expected behavior:
@@ -180,9 +176,7 @@ describe('UOM Validation - Per Warehouse', () => {
     it('should handle warehouse-specific validation (not global)', async () => {
       // Arrange - Product exists in two warehouses with different stock levels
       const db = createMockDb();
-      db._mockData.products = [
-        { id: 'prod-1', baseUnit: 'PCS', stock: 200 },
-      ];
+      db._mockData.products = [{ id: 'prod-1', baseUnit: 'PCS', stock: 200 }];
       db._mockData.productLocations = [
         { id: 'loc-1', productId: 'prod-1', warehouseId: 'wh-jakarta', quantity: 100 },
         { id: 'loc-2', productId: 'prod-1', warehouseId: 'wh-cilangkap', quantity: 100 },
@@ -232,7 +226,7 @@ describe('UOM Validation - Per Warehouse', () => {
     it('should support different base units in messages', () => {
       const baseUnits = ['PCS', 'KG', 'L', 'M'];
 
-      baseUnits.forEach(baseUnit => {
+      baseUnits.forEach((baseUnit) => {
         const message = `Total: 100 ${baseUnit}`;
         expect(message).toContain(baseUnit);
       });
@@ -285,11 +279,11 @@ describe('Stock Consistency Validation - Per Warehouse', () => {
     ];
 
     // Overall validation should fail if ANY warehouse is invalid
-    const overallValid = warehouses.every(w => w.isValid);
+    const overallValid = warehouses.every((w) => w.isValid);
     expect(overallValid).toBe(false);
 
     // Response should show per-warehouse breakdown
-    const invalidWarehouses = warehouses.filter(w => !w.isValid);
+    const invalidWarehouses = warehouses.filter((w) => !w.isValid);
     expect(invalidWarehouses).toHaveLength(1);
     expect(invalidWarehouses[0].warehouseId).toBe('wh-cilangkap');
   });

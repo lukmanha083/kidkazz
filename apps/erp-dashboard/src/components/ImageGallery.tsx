@@ -11,25 +11,6 @@
  * - Drag & drop upload
  */
 
-import { useState, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  Upload,
-  Star,
-  Trash2,
-  Eye,
-  Loader2,
-  Image as ImageIcon,
-} from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,10 +21,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Eye, Image as ImageIcon, Loader2, Star, Trash2, Upload } from 'lucide-react';
+import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 
-const PRODUCT_SERVICE_URL =
-  import.meta.env.VITE_PRODUCT_SERVICE_URL || 'http://localhost:8788';
+const PRODUCT_SERVICE_URL = import.meta.env.VITE_PRODUCT_SERVICE_URL || 'http://localhost:8788';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -132,7 +119,7 @@ export function ImageGallery({ productId, maxImages = 10, readOnly = false }: Im
   });
 
   // Validate file
-  const validateFile = (file: File): string | null => {
+  const validateFile = useCallback((file: File): string | null => {
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
       return 'Invalid file type. Please upload JPEG, PNG, WebP, or GIF.';
@@ -143,10 +130,10 @@ export function ImageGallery({ productId, maxImages = 10, readOnly = false }: Im
     }
 
     return null;
-  };
+  }, []);
 
   // Compress image before upload
-  const compressImage = async (file: File): Promise<Blob> => {
+  const compressImage = useCallback(async (file: File): Promise<Blob> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
 
@@ -200,7 +187,7 @@ export function ImageGallery({ productId, maxImages = 10, readOnly = false }: Im
       reader.onerror = () => reject(new Error('Failed to read file'));
       reader.readAsDataURL(file);
     });
-  };
+  }, []);
 
   // Handle file upload
   const handleFileSelect = useCallback(
@@ -261,7 +248,7 @@ export function ImageGallery({ productId, maxImages = 10, readOnly = false }: Im
         setIsUploading(false);
       }
     },
-    [productId, images, maxImages, queryClient]
+    [productId, images, maxImages, queryClient, validateFile, compressImage]
   );
 
   // Handle drag events
@@ -352,11 +339,21 @@ export function ImageGallery({ productId, maxImages = 10, readOnly = false }: Im
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={!isUploading && images.length < maxImages ? handleClick : undefined}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !isUploading && images.length < maxImages) {
+                  handleClick();
+                }
+              }}
+              // biome-ignore lint/a11y/useSemanticElements lint/a11y/noNoninteractiveTabindex: drag-drop area
+              role="button"
+              tabIndex={0}
             >
               {isUploading ? (
                 <div className="flex flex-col items-center gap-3">
                   <Loader2 className="w-12 h-12 text-primary animate-spin" />
-                  <p className="text-sm text-muted-foreground">Uploading to R2 and saving to database...</p>
+                  <p className="text-sm text-muted-foreground">
+                    Uploading to R2 and saving to database...
+                  </p>
                 </div>
               ) : images.length >= maxImages ? (
                 <div className="flex flex-col items-center gap-3">
@@ -380,7 +377,8 @@ export function ImageGallery({ productId, maxImages = 10, readOnly = false }: Im
                       {isDragging ? 'Drop image here' : 'Click to upload or drag & drop'}
                     </p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      JPEG, PNG, WebP, or GIF (max {MAX_FILE_SIZE / (1024 * 1024)}MB) • {images.length}/{maxImages} images
+                      JPEG, PNG, WebP, or GIF (max {MAX_FILE_SIZE / (1024 * 1024)}MB) •{' '}
+                      {images.length}/{maxImages} images
                     </p>
                   </div>
                 </div>
@@ -396,9 +394,7 @@ export function ImageGallery({ productId, maxImages = 10, readOnly = false }: Im
           {images.map((image) => (
             <Card
               key={image.id}
-              className={`relative group ${
-                image.isPrimary ? 'ring-2 ring-primary' : ''
-              }`}
+              className={`relative group ${image.isPrimary ? 'ring-2 ring-primary' : ''}`}
             >
               <CardContent className="p-2">
                 {/* Image */}
@@ -411,10 +407,7 @@ export function ImageGallery({ productId, maxImages = 10, readOnly = false }: Im
 
                   {/* Primary Badge */}
                   {image.isPrimary && (
-                    <Badge
-                      variant="default"
-                      className="absolute top-1 left-1 gap-1"
-                    >
+                    <Badge variant="default" className="absolute top-1 left-1 gap-1">
                       <Star className="w-3 h-3 fill-current" />
                       Primary
                     </Badge>
@@ -458,9 +451,7 @@ export function ImageGallery({ productId, maxImages = 10, readOnly = false }: Im
                 </div>
 
                 {/* File name */}
-                <p className="text-xs text-muted-foreground mt-2 truncate">
-                  {image.originalName}
-                </p>
+                <p className="text-xs text-muted-foreground mt-2 truncate">{image.originalName}</p>
               </CardContent>
             </Card>
           ))}
@@ -529,15 +520,17 @@ export function ImageGallery({ productId, maxImages = 10, readOnly = false }: Im
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the image
-              from R2 storage and remove it from the database.
+              This action cannot be undone. This will permanently delete the image from R2 storage
+              and remove it from the database.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              setDeleteDialogOpen(false);
-              setImageToDelete(null);
-            }}>
+            <AlertDialogCancel
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setImageToDelete(null);
+              }}
+            >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction

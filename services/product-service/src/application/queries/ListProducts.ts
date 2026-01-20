@@ -1,4 +1,4 @@
-import { IProductRepository } from '../../domain/repositories/IProductRepository';
+import type { IProductRepository } from '../../domain/repositories/IProductRepository';
 
 interface ListProductsInput {
   status?: string;
@@ -17,7 +17,7 @@ export class ListProducts {
     const products = await this.repository.findAll(filters);
 
     return {
-      products: products.map(p => p.toData()),
+      products: products.map((p) => p.toData()),
       total: products.length,
     };
   }

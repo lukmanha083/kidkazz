@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SystemStatus } from './SystemStatus';
 
 // Mock fetch globally
@@ -30,7 +30,7 @@ describe('SystemStatus', () => {
       });
 
       render(<SystemStatus />);
-      
+
       expect(screen.getByRole('button', { name: /system status/i })).toBeInTheDocument();
     });
 
@@ -45,7 +45,7 @@ describe('SystemStatus', () => {
       });
 
       render(<SystemStatus />);
-      
+
       expect(screen.getByText('System Status')).toBeInTheDocument();
     });
 
@@ -60,7 +60,7 @@ describe('SystemStatus', () => {
       });
 
       const { container } = render(<SystemStatus />);
-      
+
       const circle = container.querySelector('svg');
       expect(circle).toBeInTheDocument();
     });
@@ -96,12 +96,10 @@ describe('SystemStatus', () => {
     });
 
     it('should display checking status initially', () => {
-      mockFetch.mockImplementationOnce(
-        () => new Promise((resolve) => setTimeout(resolve, 1000))
-      );
+      mockFetch.mockImplementationOnce(() => new Promise((resolve) => setTimeout(resolve, 1000)));
 
       render(<SystemStatus />);
-      
+
       const button = screen.getByRole('button', { name: /system status/i });
       fireEvent.click(button);
 
@@ -380,7 +378,7 @@ describe('SystemStatus', () => {
 
       await waitFor(() => {
         const buttons = screen.getAllByRole('button');
-        const refreshButton = buttons.find(btn => btn.querySelector('svg'));
+        const refreshButton = buttons.find((btn) => btn.querySelector('svg'));
         if (refreshButton) {
           fireEvent.click(refreshButton);
         }
@@ -393,14 +391,21 @@ describe('SystemStatus', () => {
 
     it('should disable refresh button while refreshing', async () => {
       mockFetch.mockImplementationOnce(
-        () => new Promise((resolve) => setTimeout(() => resolve({
-          ok: true,
-          json: async () => ({
-            overall: 'operational',
-            services: [],
-            timestamp: new Date().toISOString(),
-          }),
-        }), 100))
+        () =>
+          new Promise((resolve) =>
+            setTimeout(
+              () =>
+                resolve({
+                  ok: true,
+                  json: async () => ({
+                    overall: 'operational',
+                    services: [],
+                    timestamp: new Date().toISOString(),
+                  }),
+                }),
+              100
+            )
+          )
       );
 
       render(<SystemStatus />);
@@ -410,7 +415,7 @@ describe('SystemStatus', () => {
 
       await waitFor(() => {
         const buttons = screen.getAllByRole('button');
-        const refreshButton = buttons.find(btn => btn.querySelector('svg'));
+        const refreshButton = buttons.find((btn) => btn.querySelector('svg'));
         expect(refreshButton).toBeDisabled();
       });
     });
@@ -490,9 +495,10 @@ describe('SystemStatus', () => {
 
     it('should display timeout error when request times out', async () => {
       mockFetch.mockImplementationOnce(
-        () => new Promise((_, reject) => {
-          setTimeout(() => reject(new DOMException('Aborted', 'AbortError')), 11000);
-        })
+        () =>
+          new Promise((_, reject) => {
+            setTimeout(() => reject(new DOMException('Aborted', 'AbortError')), 11000);
+          })
       );
 
       render(<SystemStatus />);
@@ -552,7 +558,7 @@ describe('SystemStatus', () => {
 
       await waitFor(() => {
         const buttons = screen.getAllByRole('button');
-        const refreshButton = buttons.find(btn => btn.querySelector('svg'));
+        const refreshButton = buttons.find((btn) => btn.querySelector('svg'));
         if (refreshButton) {
           fireEvent.click(refreshButton);
         }
@@ -635,7 +641,7 @@ describe('SystemStatus', () => {
       });
 
       const buttons = screen.getAllByRole('button');
-      const refreshButton = buttons.find(btn => btn.querySelector('svg'));
+      const refreshButton = buttons.find((btn) => btn.querySelector('svg'));
       if (refreshButton) {
         fireEvent.click(refreshButton);
       }

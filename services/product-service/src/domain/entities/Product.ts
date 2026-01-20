@@ -1,12 +1,12 @@
 import { AggregateRoot } from '@kidkazz/ddd-core';
+import { PriceChanged } from '../events/PriceChanged';
+import { ProductCreated } from '../events/ProductCreated';
+import { ProductDiscontinued } from '../events/ProductDiscontinued';
+import { StockAdjusted } from '../events/StockAdjusted';
 import { Money } from '../value-objects/Money';
+import { PhysicalAttributes } from '../value-objects/PhysicalAttributes';
 import { SKU } from '../value-objects/SKU';
 import { Stock } from '../value-objects/Stock';
-import { PhysicalAttributes } from '../value-objects/PhysicalAttributes';
-import { ProductCreated } from '../events/ProductCreated';
-import { StockAdjusted } from '../events/StockAdjusted';
-import { PriceChanged } from '../events/PriceChanged';
-import { ProductDiscontinued } from '../events/ProductDiscontinued';
 
 export type ProductStatus =
   | 'online sales'
@@ -126,9 +126,7 @@ export class Product extends AggregateRoot {
     });
 
     // Raise domain event
-    product.addDomainEvent(
-      new ProductCreated(id, input.name, input.sku, input.price)
-    );
+    product.addDomainEvent(new ProductCreated(id, input.name, input.sku, input.price));
 
     return product;
   }
@@ -169,8 +167,13 @@ export class Product extends AggregateRoot {
   }): Product {
     // Reconstitute physical attributes if data is present
     let physicalAttributes: PhysicalAttributes | undefined;
-    if (data.weight !== null && data.weight !== undefined &&
-        data.length && data.width && data.height) {
+    if (
+      data.weight !== null &&
+      data.weight !== undefined &&
+      data.length &&
+      data.width &&
+      data.height
+    ) {
       physicalAttributes = PhysicalAttributes.create({
         weight: data.weight,
         length: data.length,
@@ -300,9 +303,7 @@ export class Product extends AggregateRoot {
     this.props.updatedBy = performedByUser;
 
     // Raise domain event
-    this.addDomainEvent(
-      new PriceChanged(this.props.id, priceType, oldPrice, newPrice)
-    );
+    this.addDomainEvent(new PriceChanged(this.props.id, priceType, oldPrice, newPrice));
   }
 
   /**
@@ -330,7 +331,9 @@ export class Product extends AggregateRoot {
   public changeStatus(newStatus: ProductStatus, performedBy?: string): void {
     // Business rule: Cannot change status from discontinued to any other status
     if (this.props.status === 'discontinued' && newStatus !== 'discontinued') {
-      throw new Error('Cannot change status of discontinued product. Product is permanently discontinued.');
+      throw new Error(
+        'Cannot change status of discontinued product. Product is permanently discontinued.'
+      );
     }
 
     this.props.status = newStatus;
@@ -396,10 +399,9 @@ export class Product extends AggregateRoot {
     // Check availability based on sales channel
     if (type === 'retail') {
       return this.props.status === 'online sales' || this.props.status === 'omnichannel sales';
-    } else {
-      // Wholesale
-      return this.props.status === 'offline sales' || this.props.status === 'omnichannel sales';
     }
+    // Wholesale
+    return this.props.status === 'offline sales' || this.props.status === 'omnichannel sales';
   }
 
   /**
@@ -417,30 +419,74 @@ export class Product extends AggregateRoot {
   }
 
   // Getters
-  public getName(): string { return this.props.name; }
-  public getSKU(): string { return this.props.sku.getValue(); }
-  public getStock(): number { return this.props.stock.getValue(); }
-  public getPrice(): number { return this.props.price.getValue(); }
-  public getRetailPrice(): number { return this.props.retailPrice.getValue(); }
-  public getWholesalePrice(): number { return this.props.wholesalePrice.getValue(); }
-  public getStatus(): ProductStatus { return this.props.status; }
-  public getBarcode(): string { return this.props.barcode; }
-  public getCategoryId(): string | undefined { return this.props.categoryId; }
-  public getMinimumStock(): number | undefined { return this.props.minimumStock; }
+  public getName(): string {
+    return this.props.name;
+  }
+  public getSKU(): string {
+    return this.props.sku.getValue();
+  }
+  public getStock(): number {
+    return this.props.stock.getValue();
+  }
+  public getPrice(): number {
+    return this.props.price.getValue();
+  }
+  public getRetailPrice(): number {
+    return this.props.retailPrice.getValue();
+  }
+  public getWholesalePrice(): number {
+    return this.props.wholesalePrice.getValue();
+  }
+  public getStatus(): ProductStatus {
+    return this.props.status;
+  }
+  public getBarcode(): string {
+    return this.props.barcode;
+  }
+  public getCategoryId(): string | undefined {
+    return this.props.categoryId;
+  }
+  public getMinimumStock(): number | undefined {
+    return this.props.minimumStock;
+  }
 
   // Property getters for direct access (used by tests and external code)
-  get name(): string { return this.props.name; }
-  get barcode(): string { return this.props.barcode; }
-  get baseUnit(): string { return this.props.baseUnit; }
-  get price(): Money { return this.props.price; }
-  get retailPrice(): Money { return this.props.retailPrice; }
-  get wholesalePrice(): Money { return this.props.wholesalePrice; }
-  get stock(): Stock { return this.props.stock; }
-  get physicalAttributes(): PhysicalAttributes | undefined { return this.props.physicalAttributes; }
-  get status(): ProductStatus { return this.props.status; }
-  get availableForRetail(): boolean { return this.props.availableForRetail; }
-  get availableForWholesale(): boolean { return this.props.availableForWholesale; }
-  get updatedBy(): string | undefined { return this.props.updatedBy; }
+  get name(): string {
+    return this.props.name;
+  }
+  get barcode(): string {
+    return this.props.barcode;
+  }
+  get baseUnit(): string {
+    return this.props.baseUnit;
+  }
+  get price(): Money {
+    return this.props.price;
+  }
+  get retailPrice(): Money {
+    return this.props.retailPrice;
+  }
+  get wholesalePrice(): Money {
+    return this.props.wholesalePrice;
+  }
+  get stock(): Stock {
+    return this.props.stock;
+  }
+  get physicalAttributes(): PhysicalAttributes | undefined {
+    return this.props.physicalAttributes;
+  }
+  get status(): ProductStatus {
+    return this.props.status;
+  }
+  get availableForRetail(): boolean {
+    return this.props.availableForRetail;
+  }
+  get availableForWholesale(): boolean {
+    return this.props.availableForWholesale;
+  }
+  get updatedBy(): string | undefined {
+    return this.props.updatedBy;
+  }
 
   /**
    * Get physical attributes (weight and dimensions)
@@ -452,7 +498,10 @@ export class Product extends AggregateRoot {
   /**
    * Set or update physical attributes
    */
-  public setPhysicalAttributes(attrs: { weight: number; length: number; width: number; height: number }, performedBy?: string): void {
+  public setPhysicalAttributes(
+    attrs: { weight: number; length: number; width: number; height: number },
+    performedBy?: string
+  ): void {
     this.props.physicalAttributes = PhysicalAttributes.create(attrs);
     this.props.updatedAt = new Date();
     if (performedBy) {

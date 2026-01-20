@@ -1,5 +1,5 @@
-import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 import type { AnyRouter } from '@trpc/server';
+import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
 import type { BaseContext } from './context';
 
 /**

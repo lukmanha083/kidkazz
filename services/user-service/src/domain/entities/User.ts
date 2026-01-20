@@ -1,5 +1,11 @@
-import { UserId, Email, Result, ResultFactory, InvalidOperationError } from '@kidkazz/types';
-import { UserRegistered, UserStatusChanged } from '@kidkazz/domain-events';
+import type { UserRegistered, UserStatusChanged } from '@kidkazz/domain-events';
+import {
+  Email,
+  InvalidOperationError,
+  type Result,
+  ResultFactory,
+  type UserId,
+} from '@kidkazz/types';
 import { generateId, generateTimestamp } from '@kidkazz/utils';
 
 export type UserType = 'retail' | 'wholesale' | 'admin';
@@ -99,9 +105,7 @@ export class User {
    */
   suspend(reason: string): Result<void> {
     if (this.status === 'suspended') {
-      return ResultFactory.fail(
-        new InvalidOperationError('User is already suspended')
-      );
+      return ResultFactory.fail(new InvalidOperationError('User is already suspended'));
     }
 
     const previousStatus = this.status;
@@ -127,9 +131,7 @@ export class User {
    */
   activate(): Result<void> {
     if (this.status === 'active') {
-      return ResultFactory.fail(
-        new InvalidOperationError('User is already active')
-      );
+      return ResultFactory.fail(new InvalidOperationError('User is already active'));
     }
 
     const previousStatus = this.status;

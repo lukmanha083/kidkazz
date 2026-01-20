@@ -1,7 +1,7 @@
+import { type Result, ResultFactory, UnauthorizedError, ValidationError } from '@kidkazz/types';
 import { compare } from 'bcryptjs';
-import { IUserRepository } from './RegisterUser';
-import { JWTService } from '../../infrastructure/auth/JWTService';
-import { Result, ResultFactory, ValidationError, UnauthorizedError } from '@kidkazz/types';
+import type { JWTService } from '../../infrastructure/auth/JWTService';
+import type { IUserRepository } from './RegisterUser';
 
 /**
  * Login User Use Case
@@ -16,9 +16,7 @@ export class LoginUserUseCase {
   async execute(input: LoginUserInput): Promise<Result<LoginUserOutput>> {
     // Validate input
     if (!input.email || !input.password) {
-      return ResultFactory.fail(
-        new ValidationError('Email and password are required')
-      );
+      return ResultFactory.fail(new ValidationError('Email and password are required'));
     }
 
     // Find user by email
@@ -29,27 +27,21 @@ export class LoginUserUseCase {
     }
 
     if (!userResult.value) {
-      return ResultFactory.fail(
-        new UnauthorizedError('Invalid email or password')
-      );
+      return ResultFactory.fail(new UnauthorizedError('Invalid email or password'));
     }
 
     const user = userResult.value;
 
     // Check if user is active
     if (!user.isActive()) {
-      return ResultFactory.fail(
-        new UnauthorizedError('Account is not active')
-      );
+      return ResultFactory.fail(new UnauthorizedError('Account is not active'));
     }
 
     // Verify password
     const isPasswordValid = await compare(input.password, user.getPasswordHash());
     if (!isPasswordValid) {
       // TODO: Increment failed login attempts
-      return ResultFactory.fail(
-        new UnauthorizedError('Invalid email or password')
-      );
+      return ResultFactory.fail(new UnauthorizedError('Invalid email or password'));
     }
 
     // Generate JWT tokens

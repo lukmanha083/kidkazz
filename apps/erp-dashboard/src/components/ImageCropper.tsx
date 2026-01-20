@@ -9,8 +9,8 @@
  * - Touch and mouse support
  */
 
-import { useCallback, useState, useRef, useEffect } from 'react';
-import { Crop, RotateCcw, Check, X } from 'lucide-react';
+import { Check, Crop, RotateCcw, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export interface CropArea {
   x: number;
@@ -110,14 +110,11 @@ export function ImageCropper({
   /**
    * Resize crop area
    */
-  const _handleResize = useCallback(
-    (_corner: 'nw' | 'ne' | 'sw' | 'se', e: React.MouseEvent) => {
-      e.stopPropagation();
-      // Implement resize logic here if needed
-      // For simplicity, using fixed size or slider
-    },
-    []
-  );
+  const _handleResize = useCallback((_corner: 'nw' | 'ne' | 'sw' | 'se', e: React.MouseEvent) => {
+    e.stopPropagation();
+    // Implement resize logic here if needed
+    // For simplicity, using fixed size or slider
+  }, []);
 
   /**
    * Reset crop to center
@@ -153,7 +150,7 @@ export function ImageCropper({
   useEffect(() => {
     if (isDragging) {
       const handleGlobalMouseMove = (e: MouseEvent) => {
-        handleMouseMove(e as any);
+        handleMouseMove(e as unknown as React.MouseEvent);
       };
       const handleGlobalMouseUp = () => {
         handleMouseUp();
@@ -179,6 +176,7 @@ export function ImageCropper({
             <h2 className="text-lg font-semibold">Crop Image</h2>
           </div>
           <button
+            type="button"
             onClick={onCancel}
             className="p-2 hover:bg-gray-100 rounded-full transition"
           >
@@ -239,8 +237,11 @@ export function ImageCropper({
 
                   {/* Grid lines */}
                   <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none">
-                    {[...Array(9)].map((_, i) => (
-                      <div key={i} className="border border-white border-opacity-30" />
+                    {['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'].map((id) => (
+                      <div
+                        key={`grid-cell-${id}`}
+                        className="border border-white border-opacity-30"
+                      />
                     ))}
                   </div>
                 </div>
@@ -266,6 +267,7 @@ export function ImageCropper({
         {/* Actions */}
         <div className="p-4 border-t flex items-center justify-between">
           <button
+            type="button"
             onClick={handleReset}
             className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition"
           >
@@ -275,12 +277,14 @@ export function ImageCropper({
 
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={onCancel}
               className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition"
             >
               Cancel
             </button>
             <button
+              type="button"
               onClick={handleComplete}
               className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
             >

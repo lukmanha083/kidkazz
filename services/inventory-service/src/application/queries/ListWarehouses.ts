@@ -1,4 +1,4 @@
-import { IWarehouseRepository } from '../../domain/repositories/IWarehouseRepository';
+import type { IWarehouseRepository } from '../../domain/repositories/IWarehouseRepository';
 
 /**
  * Query: List Warehouses
@@ -10,7 +10,7 @@ export class ListWarehouses {
     const warehouses = await this.repository.findAll(status);
 
     return {
-      warehouses: warehouses.map(w => w.toData()),
+      warehouses: warehouses.map((w) => w.toData()),
       total: warehouses.length,
     };
   }

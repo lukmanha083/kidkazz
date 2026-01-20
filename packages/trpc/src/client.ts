@@ -8,13 +8,13 @@ import type { AnyRouter } from '@trpc/server';
 export function createTRPCClient<TRouter extends AnyRouter>(serviceBinding: Fetcher) {
   return createTRPCClientBase<TRouter>({
     links: [
-      (httpBatchLink({
+      httpBatchLink({
         url: '/trpc',
         fetch: (url: any, options: any) => {
           // Use service binding instead of HTTP
           return serviceBinding.fetch(url, options);
         },
-      }) as any),
+      }) as any,
     ],
   });
 }
@@ -25,9 +25,9 @@ export function createTRPCClient<TRouter extends AnyRouter>(serviceBinding: Fetc
 export function createTRPCClientHTTP<TRouter extends AnyRouter>(baseUrl: string) {
   return createTRPCClientBase<TRouter>({
     links: [
-      (httpBatchLink({
+      httpBatchLink({
         url: `${baseUrl}/trpc`,
-      }) as any),
+      }) as any,
     ],
   });
 }

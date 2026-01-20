@@ -1,22 +1,22 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { createFileRoute } from '@tanstack/react-router';
 import {
-  Database,
+  AlertCircle,
   AlertTriangle,
   CheckCircle2,
-  Trash2,
-  RefreshCw,
+  Database,
+  Loader2,
   Package,
+  RefreshCw,
+  Trash2,
   Warehouse,
-  AlertCircle,
-  Loader2
 } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface OrphanCheckResult {
   totalOrphaned: number;
@@ -305,7 +305,9 @@ function DatabaseMaintenancePage() {
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Orphaned Inventory Found</AlertTitle>
                 <AlertDescription>
-                  {inventoryCheck.warning || inventoryCheck.message || 'Orphaned inventory detected'}
+                  {inventoryCheck.warning ||
+                    inventoryCheck.message ||
+                    'Orphaned inventory detected'}
                 </AlertDescription>
               </Alert>
 

@@ -141,10 +141,7 @@ export class WarehouseUpdatesBroadcaster extends DurableObject {
   /**
    * Subscribe to warehouse updates
    */
-  private handleSubscribe(
-    session: WebSocketSession,
-    payload: { warehouseId?: string }
-  ): void {
+  private handleSubscribe(session: WebSocketSession, payload: { warehouseId?: string }): void {
     const subscriptionKey = payload.warehouseId || '*';
     session.subscriptions.add(subscriptionKey);
 
@@ -161,10 +158,7 @@ export class WarehouseUpdatesBroadcaster extends DurableObject {
   /**
    * Unsubscribe from warehouse updates
    */
-  private handleUnsubscribe(
-    session: WebSocketSession,
-    payload: { warehouseId?: string }
-  ): void {
+  private handleUnsubscribe(session: WebSocketSession, payload: { warehouseId?: string }): void {
     const subscriptionKey = payload.warehouseId || '*';
     session.subscriptions.delete(subscriptionKey);
 
@@ -199,9 +193,7 @@ export class WarehouseUpdatesBroadcaster extends DurableObject {
       }
     }
 
-    console.log(
-      `Broadcasted warehouse update to ${count} clients for warehouse: ${warehouseId}`
-    );
+    console.log(`Broadcasted warehouse update to ${count} clients for warehouse: ${warehouseId}`);
   }
 
   /**
@@ -215,8 +207,7 @@ export class WarehouseUpdatesBroadcaster extends DurableObject {
 
     for (const session of this.sessions.values()) {
       for (const subscriptionKey of session.subscriptions) {
-        subscriptionCounts[subscriptionKey] =
-          (subscriptionCounts[subscriptionKey] || 0) + 1;
+        subscriptionCounts[subscriptionKey] = (subscriptionCounts[subscriptionKey] || 0) + 1;
       }
     }
 

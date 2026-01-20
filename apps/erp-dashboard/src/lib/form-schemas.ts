@@ -32,94 +32,109 @@ export type WarehouseFormData = z.infer<typeof warehouseFormSchema>;
 // PRODUCT FORM SCHEMA (DDD Compliant - NO Stock Fields)
 // ============================================================================
 
-export const productFormSchema = z.object({
-  barcode: z.string().min(1, 'Barcode is required'),
-  name: z.string().min(1, 'Product name is required'),
-  sku: z.string().min(1, 'SKU is required'),
-  description: z.string().optional(),
-  image: z.string().optional(),
-  categoryId: z.string().optional().nullable(),
-  price: z.coerce.number().positive('Price must be positive'),
-  retailPrice: z.coerce.number().positive('Retail price must be positive').optional().nullable(),
-  wholesalePrice: z.coerce.number().positive('Wholesale price must be positive').optional().nullable(),
-  baseUnit: z.string().min(1, 'Base unit is required').default('PCS'),
-  wholesaleThreshold: z.coerce.number().int().positive('Wholesale threshold must be positive').default(10),
-  minimumOrderQuantity: z.coerce.number().int().positive('Minimum order quantity must be positive').default(1),
-  weight: z.coerce.number().positive('Weight must be positive').optional().nullable(),
-  length: z.coerce.number().positive('Length must be positive').optional().nullable(),
-  width: z.coerce.number().positive('Width must be positive').optional().nullable(),
-  height: z.coerce.number().positive('Height must be positive').optional().nullable(),
-  rating: z.coerce.number().min(0).max(5).default(0),
-  reviews: z.coerce.number().int().nonnegative().default(0),
-  availableForRetail: z.boolean().default(true),
-  availableForWholesale: z.boolean().default(false),
-  // Phase 3: Fixed to match ProductStatus type in api.ts:305
-  status: z.enum(['online sales', 'offline sales', 'omnichannel sales', 'inactive', 'discontinued']).default('offline sales'),
-  isBundle: z.boolean().default(false),
-  // Expiration & Alert dates
-  expirationDate: z.string().optional().nullable(),
-  alertDate: z.string().optional().nullable(),
-  // Location fields (warehouse physical location)
-  rack: z.string().optional().default(''),
-  bin: z.string().optional().default(''),
-  zone: z.string().optional().default(''),
-  aisle: z.string().optional().default(''),
-  // NOTE: NO stock fields - stock is managed via Inventory Service
-})
-// Phase 4: Business Rule 1 - Wholesale price required when available for wholesale
-.refine(
-  (data) => {
-    if (data.availableForWholesale && !data.wholesalePrice) {
-      return false;
+export const productFormSchema = z
+  .object({
+    barcode: z.string().min(1, 'Barcode is required'),
+    name: z.string().min(1, 'Product name is required'),
+    sku: z.string().min(1, 'SKU is required'),
+    description: z.string().optional(),
+    image: z.string().optional(),
+    categoryId: z.string().optional().nullable(),
+    price: z.coerce.number().positive('Price must be positive'),
+    retailPrice: z.coerce.number().positive('Retail price must be positive').optional().nullable(),
+    wholesalePrice: z.coerce
+      .number()
+      .positive('Wholesale price must be positive')
+      .optional()
+      .nullable(),
+    baseUnit: z.string().min(1, 'Base unit is required').default('PCS'),
+    wholesaleThreshold: z.coerce
+      .number()
+      .int()
+      .positive('Wholesale threshold must be positive')
+      .default(10),
+    minimumOrderQuantity: z.coerce
+      .number()
+      .int()
+      .positive('Minimum order quantity must be positive')
+      .default(1),
+    weight: z.coerce.number().positive('Weight must be positive').optional().nullable(),
+    length: z.coerce.number().positive('Length must be positive').optional().nullable(),
+    width: z.coerce.number().positive('Width must be positive').optional().nullable(),
+    height: z.coerce.number().positive('Height must be positive').optional().nullable(),
+    rating: z.coerce.number().min(0).max(5).default(0),
+    reviews: z.coerce.number().int().nonnegative().default(0),
+    availableForRetail: z.boolean().default(true),
+    availableForWholesale: z.boolean().default(false),
+    // Phase 3: Fixed to match ProductStatus type in api.ts:305
+    status: z
+      .enum(['online sales', 'offline sales', 'omnichannel sales', 'inactive', 'discontinued'])
+      .default('offline sales'),
+    isBundle: z.boolean().default(false),
+    // Expiration & Alert dates
+    expirationDate: z.string().optional().nullable(),
+    alertDate: z.string().optional().nullable(),
+    // Location fields (warehouse physical location)
+    rack: z.string().optional().default(''),
+    bin: z.string().optional().default(''),
+    zone: z.string().optional().default(''),
+    aisle: z.string().optional().default(''),
+    // NOTE: NO stock fields - stock is managed via Inventory Service
+  })
+  // Phase 4: Business Rule 1 - Wholesale price required when available for wholesale
+  .refine(
+    (data) => {
+      if (data.availableForWholesale && !data.wholesalePrice) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'Wholesale price is required when product is available for wholesale',
+      path: ['wholesalePrice'],
     }
-    return true;
-  },
-  {
-    message: 'Wholesale price is required when product is available for wholesale',
-    path: ['wholesalePrice'],
-  }
-)
-// Phase 4: Business Rule 2 - Wholesale price must be less than or equal to retail price
-.refine(
-  (data) => {
-    if (data.wholesalePrice && data.retailPrice && data.wholesalePrice > data.retailPrice) {
-      return false;
+  )
+  // Phase 4: Business Rule 2 - Wholesale price must be less than or equal to retail price
+  .refine(
+    (data) => {
+      if (data.wholesalePrice && data.retailPrice && data.wholesalePrice > data.retailPrice) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'Wholesale price must be less than or equal to retail price',
+      path: ['wholesalePrice'],
     }
-    return true;
-  },
-  {
-    message: 'Wholesale price must be less than or equal to retail price',
-    path: ['wholesalePrice'],
-  }
-)
-// Phase 4: Business Rule 3 - Wholesale threshold must be greater than minimum order quantity
-.refine(
-  (data) => {
-    if (data.availableForWholesale && data.wholesaleThreshold <= data.minimumOrderQuantity) {
-      return false;
+  )
+  // Phase 4: Business Rule 3 - Wholesale threshold must be greater than minimum order quantity
+  .refine(
+    (data) => {
+      if (data.availableForWholesale && data.wholesaleThreshold <= data.minimumOrderQuantity) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'Wholesale threshold must be greater than minimum order quantity',
+      path: ['wholesaleThreshold'],
     }
-    return true;
-  },
-  {
-    message: 'Wholesale threshold must be greater than minimum order quantity',
-    path: ['wholesaleThreshold'],
-  }
-)
-// Phase 4: Date Validation - Alert date must be before expiration date
-.refine(
-  (data) => {
-    if (data.alertDate && data.expirationDate) {
-      const alertDate = new Date(data.alertDate);
-      const expirationDate = new Date(data.expirationDate);
-      return alertDate < expirationDate;
+  )
+  // Phase 4: Date Validation - Alert date must be before expiration date
+  .refine(
+    (data) => {
+      if (data.alertDate && data.expirationDate) {
+        const alertDate = new Date(data.alertDate);
+        const expirationDate = new Date(data.expirationDate);
+        return alertDate < expirationDate;
+      }
+      return true;
+    },
+    {
+      message: 'Alert date must be before expiration date',
+      path: ['alertDate'],
     }
-    return true;
-  },
-  {
-    message: 'Alert date must be before expiration date',
-    path: ['alertDate'],
-  }
-);
+  );
 
 export type ProductFormData = z.infer<typeof productFormSchema>;
 
@@ -167,7 +182,11 @@ export const uomFormSchema = z.object({
   name: z.string().min(1, 'UOM name is required'),
   isBaseUnit: z.boolean().default(false),
   baseUnitCode: z.string().optional().nullable(),
-  conversionFactor: z.coerce.number().int('Conversion factor must be a whole number').positive('Conversion factor must be positive').default(1),
+  conversionFactor: z.coerce
+    .number()
+    .int('Conversion factor must be a whole number')
+    .positive('Conversion factor must be positive')
+    .default(1),
 });
 // Note: Conditional validation for baseUnitCode (required only when isBaseUnit=false)
 // is handled in the form component's onSubmit handler
@@ -220,7 +239,11 @@ export const batchFormSchema = z.object({
   expirationDate: z.date().nullable().optional(),
   alertDate: z.date().nullable().optional(),
   quantityAvailable: z.coerce.number().int().nonnegative('Quantity must be non-negative'),
-  quantityReserved: z.coerce.number().int().nonnegative('Reserved quantity must be non-negative').default(0),
+  quantityReserved: z.coerce
+    .number()
+    .int()
+    .nonnegative('Reserved quantity must be non-negative')
+    .default(0),
   status: z.enum(['active', 'expired', 'depleted', 'quarantined', 'recalled']).default('active'),
 });
 
@@ -235,7 +258,11 @@ export const batchCreationFormSchema = z.object({
   lotNumber: z.string().optional(),
   expirationDate: z.date().nullable().optional(),
   manufactureDate: z.date().nullable().optional(),
-  quantityAvailable: z.coerce.number().int().nonnegative('Quantity must be non-negative').default(0),
+  quantityAvailable: z.coerce
+    .number()
+    .int()
+    .nonnegative('Quantity must be non-negative')
+    .default(0),
   supplier: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -252,7 +279,11 @@ export const bundleFormSchema = z.object({
   barcode: z.string().optional(),
   bundleDescription: z.string().optional(),
   bundlePrice: z.coerce.number().positive('Bundle price must be positive'),
-  discountPercentage: z.coerce.number().min(0).max(100, 'Discount must be between 0-100').optional(),
+  discountPercentage: z.coerce
+    .number()
+    .min(0)
+    .max(100, 'Discount must be between 0-100')
+    .optional(),
   status: z.enum(['active', 'inactive']).default('active'),
   warehouseId: z.string().optional().nullable(),
   // Bundle items array will be handled separately in the form
@@ -309,7 +340,10 @@ export type BatchStatusUpdateFormData = z.infer<typeof batchStatusUpdateFormSche
 // ============================================================================
 
 export const batchQuantityAdjustmentFormSchema = z.object({
-  quantity: z.coerce.number().int('Quantity must be an integer').nonnegative('Quantity cannot be negative'),
+  quantity: z.coerce
+    .number()
+    .int('Quantity must be an integer')
+    .nonnegative('Quantity cannot be negative'),
   reason: z.string().min(1, 'Reason is required'),
 });
 
@@ -319,16 +353,15 @@ export type BatchQuantityAdjustmentFormData = z.infer<typeof batchQuantityAdjust
 // TRANSFER STOCK FORM SCHEMA
 // ============================================================================
 
-export const transferStockFormSchema = z.object({
-  sourceWarehouseId: z.string().min(1, 'Source warehouse is required'),
-  destinationWarehouseId: z.string().min(1, 'Destination warehouse is required'),
-  notes: z.string().optional(),
-}).refine(
-  (data) => data.sourceWarehouseId !== data.destinationWarehouseId,
-  {
+export const transferStockFormSchema = z
+  .object({
+    sourceWarehouseId: z.string().min(1, 'Source warehouse is required'),
+    destinationWarehouseId: z.string().min(1, 'Destination warehouse is required'),
+    notes: z.string().optional(),
+  })
+  .refine((data) => data.sourceWarehouseId !== data.destinationWarehouseId, {
     message: 'Source and destination warehouse must be different',
     path: ['destinationWarehouseId'],
-  }
-);
+  });
 
 export type TransferStockFormData = z.infer<typeof transferStockFormSchema>;

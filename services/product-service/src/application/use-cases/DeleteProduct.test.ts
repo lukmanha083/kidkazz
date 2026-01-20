@@ -4,19 +4,19 @@
  * Tests cascade delete behavior and validation logic
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { DeleteProductUseCase } from './DeleteProduct';
+import { eq } from 'drizzle-orm';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '../../infrastructure/db';
 import {
-  products,
-  productUOMs,
-  productVariants,
-  productImages,
-  productBundles,
   bundleItems,
   customPricing,
+  productBundles,
+  productImages,
+  productUOMs,
+  productVariants,
+  products,
 } from '../../infrastructure/db/schema';
-import { eq } from 'drizzle-orm';
+import { DeleteProductUseCase } from './DeleteProduct';
 
 describe('DeleteProduct Use Case', () => {
   let deleteProductUseCase: DeleteProductUseCase;
@@ -78,14 +78,10 @@ describe('DeleteProduct Use Case', () => {
 
       expect(result.success).toBe(false);
       expect(result.cannotDeleteReasons).toHaveLength(1);
-      expect(result.cannotDeleteReasons![0]).toContain('active bundle');
+      expect(result.cannotDeleteReasons?.[0]).toContain('active bundle');
 
       // Verify product still exists
-      const product = await db
-        .select()
-        .from(products)
-        .where(eq(products.id, testProductId))
-        .get();
+      const product = await db.select().from(products).where(eq(products.id, testProductId)).get();
 
       expect(product).toBeDefined();
 
@@ -114,14 +110,10 @@ describe('DeleteProduct Use Case', () => {
 
       expect(result.success).toBe(false);
       expect(result.cannotDeleteReasons).toHaveLength(1);
-      expect(result.cannotDeleteReasons![0]).toContain('custom pricing');
+      expect(result.cannotDeleteReasons?.[0]).toContain('custom pricing');
 
       // Verify product still exists
-      const product = await db
-        .select()
-        .from(products)
-        .where(eq(products.id, testProductId))
-        .get();
+      const product = await db.select().from(products).where(eq(products.id, testProductId)).get();
 
       expect(product).toBeDefined();
 
@@ -174,8 +166,8 @@ describe('DeleteProduct Use Case', () => {
 
       expect(result.success).toBe(false);
       expect(result.cannotDeleteReasons).toHaveLength(2);
-      expect(result.cannotDeleteReasons![0]).toContain('active bundle');
-      expect(result.cannotDeleteReasons![1]).toContain('custom pricing');
+      expect(result.cannotDeleteReasons?.[0]).toContain('active bundle');
+      expect(result.cannotDeleteReasons?.[1]).toContain('custom pricing');
 
       // Cleanup
       await db.delete(bundleItems).where(eq(bundleItems.bundleId, bundleId));
@@ -196,11 +188,7 @@ describe('DeleteProduct Use Case', () => {
       expect(result.message).toContain('deleted successfully');
 
       // Verify product is deleted
-      const product = await db
-        .select()
-        .from(products)
-        .where(eq(products.id, testProductId))
-        .get();
+      const product = await db.select().from(products).where(eq(products.id, testProductId)).get();
 
       expect(product).toBeUndefined();
     });

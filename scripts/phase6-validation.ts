@@ -264,7 +264,8 @@ async function runWebSocketTest(wsUrl: string): Promise<ValidationResult[]> {
       results.push({
         name: 'WebSocket Event Types',
         status: 'PASS',
-        message: 'Event types verified: inventory.updated, inventory.low_stock, inventory.out_of_stock',
+        message:
+          'Event types verified: inventory.updated, inventory.low_stock, inventory.out_of_stock',
       });
 
       results.push({
@@ -291,9 +292,7 @@ async function runWebSocketTest(wsUrl: string): Promise<ValidationResult[]> {
 // 6.3 Optimistic Locking Test
 // ============================================
 
-async function runOptimisticLockingTest(
-  inventoryServiceUrl: string
-): Promise<ValidationResult[]> {
+async function runOptimisticLockingTest(inventoryServiceUrl: string): Promise<ValidationResult[]> {
   const results: ValidationResult[] = [];
 
   console.log('\n🔒 Running Optimistic Locking Tests...\n');
@@ -371,9 +370,7 @@ async function runOptimisticLockingTest(
 // 6.4 Data Integrity Verification
 // ============================================
 
-async function runDataIntegrityTest(
-  inventoryServiceUrl: string
-): Promise<ValidationResult[]> {
+async function runDataIntegrityTest(inventoryServiceUrl: string): Promise<ValidationResult[]> {
   const results: ValidationResult[] = [];
 
   console.log('\n✅ Running Data Integrity Verification...\n');
@@ -399,9 +396,7 @@ async function runDataIntegrityTest(
       const inventoryRecords = data.inventory || [];
 
       // Check for records with valid warehouse references
-      const recordsWithWarehouse = inventoryRecords.filter(
-        (inv: any) => inv.warehouseId
-      );
+      const recordsWithWarehouse = inventoryRecords.filter((inv: any) => inv.warehouseId);
 
       if (recordsWithWarehouse.length === inventoryRecords.length) {
         results.push({
@@ -478,10 +473,10 @@ function generateReport(results: ValidationResult[]): ValidationReport {
 }
 
 function printReport(report: ValidationReport): void {
-  console.log('\n' + '='.repeat(60));
+  console.log(`\n${'='.repeat(60)}`);
   console.log(`📋 ${report.phase}`);
   console.log(`📅 ${report.timestamp}`);
-  console.log('='.repeat(60) + '\n');
+  console.log(`${'='.repeat(60)}\n`);
 
   for (const result of report.results) {
     const icon =
@@ -520,7 +515,7 @@ function printReport(report: ValidationReport): void {
       : '❌ SOME TESTS FAILED';
 
   console.log(`🎯 Overall: ${overallStatus}`);
-  console.log('='.repeat(60) + '\n');
+  console.log(`${'='.repeat(60)}\n`);
 }
 
 // ============================================
@@ -563,7 +558,7 @@ async function main(): Promise<void> {
   const productServiceUrl = productUrl;
 
   console.log('\n🚀 Phase 6: DDD Refactoring Validation');
-  console.log('=' .repeat(60));
+  console.log('='.repeat(60));
   console.log(`Inventory Service: ${inventoryServiceUrl}`);
   console.log(`Product Service: ${productServiceUrl}`);
   console.log(`WebSocket URL: ${wsUrl}`);
@@ -589,15 +584,14 @@ async function main(): Promise<void> {
     case 'integrity':
       allResults = await runDataIntegrityTest(inventoryServiceUrl);
       break;
-
-    case 'all':
-    default:
+    default: {
       const dataResults = await runDataValidation(inventoryServiceUrl, productServiceUrl);
       const wsResults = await runWebSocketTest(wsUrl);
       const lockResults = await runOptimisticLockingTest(inventoryServiceUrl);
       const integrityResults = await runDataIntegrityTest(inventoryServiceUrl);
       allResults = [...dataResults, ...wsResults, ...lockResults, ...integrityResults];
       break;
+    }
   }
 
   const report = generateReport(allResults);

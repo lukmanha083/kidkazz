@@ -1,8 +1,13 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
-import { useState, useMemo } from 'react';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -11,16 +16,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Calendar, Search, Loader2, Package, Warehouse, AlertTriangle } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { inventoryApi, warehouseApi, productApi } from '@/lib/api';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { inventoryApi, productApi, warehouseApi } from '@/lib/api';
+import { useQuery } from '@tanstack/react-query';
+import { createFileRoute } from '@tanstack/react-router';
+import { AlertTriangle, Calendar, Loader2, Package, Search, Warehouse } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
 export const Route = createFileRoute('/dashboard/inventory/expired-stock')({
   component: ExpiredStockPage,
@@ -44,7 +44,9 @@ function ExpiredStockPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedWarehouse, setSelectedWarehouse] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [sortField, setSortField] = useState<'daysUntilExpiration' | 'productName' | 'warehouseName'>('daysUntilExpiration');
+  const [sortField, setSortField] = useState<
+    'daysUntilExpiration' | 'productName' | 'warehouseName'
+  >('daysUntilExpiration');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   // Rupiah currency formatter
@@ -101,14 +103,15 @@ function ExpiredStockPage() {
   const isLoading = inventoryLoading || warehousesLoading || productsLoading;
 
   // Calculate expired and expiring stock items
+  // biome-ignore lint/correctness/useExhaustiveDependencies: calculateDaysUntilExpiration is a stable helper function
   const expiredStockItems = useMemo((): ExpiredStockItem[] => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     return inventory
-      .map(inv => {
-        const product = products.find(p => p.id === inv.productId);
-        const warehouse = warehouses.find(w => w.id === inv.warehouseId);
+      .map((inv) => {
+        const product = products.find((p) => p.id === inv.productId);
+        const warehouse = warehouses.find((w) => w.id === inv.warehouseId);
 
         // Skip if no expiration date
         if (!product || !product.expirationDate) return null;
@@ -116,14 +119,16 @@ function ExpiredStockPage() {
         const daysUntilExpiration = calculateDaysUntilExpiration(product.expirationDate);
 
         // Determine status
-        let status: ExpiredStockItem['status'];
+        let status: ExpiredStockItem['status'] | null = null;
         if (daysUntilExpiration < 0) {
           status = 'expired';
         } else if (daysUntilExpiration <= 30) {
           status = 'expiring-soon';
         } else if (product.alertDate && calculateDaysUntilExpiration(product.alertDate) <= 0) {
           status = 'alert';
-        } else {
+        }
+
+        if (status === null) {
           return null; // Not expired or expiring soon
         }
 
@@ -150,21 +155,22 @@ function ExpiredStockPage() {
 
     // Filter by warehouse
     if (selectedWarehouse !== 'all') {
-      filtered = filtered.filter(item => item.warehouseId === selectedWarehouse);
+      filtered = filtered.filter((item) => item.warehouseId === selectedWarehouse);
     }
 
     // Filter by status
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(item => item.status === statusFilter);
+      filtered = filtered.filter((item) => item.status === statusFilter);
     }
 
     // Filter by search term
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
-      filtered = filtered.filter(item =>
-        item.productName.toLowerCase().includes(search) ||
-        item.productSKU.toLowerCase().includes(search) ||
-        item.warehouseName.toLowerCase().includes(search)
+      filtered = filtered.filter(
+        (item) =>
+          item.productName.toLowerCase().includes(search) ||
+          item.productSKU.toLowerCase().includes(search) ||
+          item.warehouseName.toLowerCase().includes(search)
       );
     }
 
@@ -180,19 +186,20 @@ function ExpiredStockPage() {
 
       if (sortOrder === 'asc') {
         return compareA > compareB ? 1 : -1;
-      } else {
-        return compareA < compareB ? 1 : -1;
       }
+      return compareA < compareB ? 1 : -1;
     });
 
     return filtered;
   }, [expiredStockItems, selectedWarehouse, statusFilter, searchTerm, sortField, sortOrder]);
 
   // Calculate summary stats
-  const expiredCount = expiredStockItems.filter(item => item.status === 'expired').length;
-  const expiringSoonCount = expiredStockItems.filter(item => item.status === 'expiring-soon').length;
+  const expiredCount = expiredStockItems.filter((item) => item.status === 'expired').length;
+  const expiringSoonCount = expiredStockItems.filter(
+    (item) => item.status === 'expiring-soon'
+  ).length;
   const totalExpiredStock = expiredStockItems
-    .filter(item => item.status === 'expired')
+    .filter((item) => item.status === 'expired')
     .reduce((sum, item) => sum + item.stock, 0);
 
   const handleSort = (field: typeof sortField) => {
@@ -209,9 +216,17 @@ function ExpiredStockPage() {
       case 'expired':
         return <Badge variant="destructive">Expired</Badge>;
       case 'expiring-soon':
-        return <Badge variant="secondary" className="bg-orange-100 text-orange-700">Expiring Soon</Badge>;
+        return (
+          <Badge variant="secondary" className="bg-orange-100 text-orange-700">
+            Expiring Soon
+          </Badge>
+        );
       case 'alert':
-        return <Badge variant="outline" className="text-yellow-700 border-yellow-700">Alert</Badge>;
+        return (
+          <Badge variant="outline" className="text-yellow-700 border-yellow-700">
+            Alert
+          </Badge>
+        );
     }
   };
 
@@ -257,9 +272,7 @@ function ExpiredStockPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{expiredCount}</div>
-            <p className="text-xs text-muted-foreground">
-              Products past expiration date
-            </p>
+            <p className="text-xs text-muted-foreground">Products past expiration date</p>
           </CardContent>
         </Card>
 
@@ -270,9 +283,7 @@ function ExpiredStockPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{expiringSoonCount}</div>
-            <p className="text-xs text-muted-foreground">
-              Within 30 days
-            </p>
+            <p className="text-xs text-muted-foreground">Within 30 days</p>
           </CardContent>
         </Card>
 
@@ -283,9 +294,7 @@ function ExpiredStockPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalExpiredStock}</div>
-            <p className="text-xs text-muted-foreground">
-              Total units expired
-            </p>
+            <p className="text-xs text-muted-foreground">Total units expired</p>
           </CardContent>
         </Card>
       </div>
@@ -315,7 +324,7 @@ function ExpiredStockPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Warehouses</SelectItem>
-                {warehouses.map(warehouse => (
+                {warehouses.map((warehouse) => (
                   <SelectItem key={warehouse.id} value={warehouse.id}>
                     {warehouse.name}
                   </SelectItem>
@@ -368,7 +377,8 @@ function ExpiredStockPage() {
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => handleSort('daysUntilExpiration')}
                     >
-                      Expiration Date {sortField === 'daysUntilExpiration' && (sortOrder === 'asc' ? '↑' : '↓')}
+                      Expiration Date{' '}
+                      {sortField === 'daysUntilExpiration' && (sortOrder === 'asc' ? '↑' : '↓')}
                     </TableHead>
                     <TableHead>Days Until Expiry</TableHead>
                     <TableHead>Status</TableHead>
@@ -384,7 +394,9 @@ function ExpiredStockPage() {
                       <TableCell className="text-right font-mono">{item.stock}</TableCell>
                       <TableCell>{formatDate(item.expirationDate)}</TableCell>
                       <TableCell>
-                        <span className={`font-mono ${item.daysUntilExpiration < 0 ? 'text-red-600 font-bold' : item.daysUntilExpiration <= 7 ? 'text-orange-600' : 'text-yellow-600'}`}>
+                        <span
+                          className={`font-mono ${item.daysUntilExpiration < 0 ? 'text-red-600 font-bold' : item.daysUntilExpiration <= 7 ? 'text-orange-600' : 'text-yellow-600'}`}
+                        >
                           {item.daysUntilExpiration < 0
                             ? `${Math.abs(item.daysUntilExpiration)} days ago`
                             : `${item.daysUntilExpiration} days`}

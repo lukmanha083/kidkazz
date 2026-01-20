@@ -1,8 +1,8 @@
-import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { z } from 'zod';
+import { and, asc, desc, eq, gte, isNotNull, lt } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, and, lt, gte, desc, asc, isNotNull } from 'drizzle-orm';
+import { Hono } from 'hono';
+import { z } from 'zod';
 import { inventory, inventoryBatches, inventoryMovements } from '../infrastructure/db/schema';
 
 type Bindings = {
@@ -58,7 +58,7 @@ app.get('/', async (c) => {
   const warehouseId = c.req.query('warehouseId');
   const status = c.req.query('status');
 
-  let query = db.select().from(inventoryBatches);
+  const query = db.select().from(inventoryBatches);
 
   const conditions = [];
   if (productId) {
@@ -71,9 +71,8 @@ app.get('/', async (c) => {
     conditions.push(eq(inventoryBatches.status, status));
   }
 
-  const batches = conditions.length > 0
-    ? await query.where(and(...conditions)).all()
-    : await query.all();
+  const batches =
+    conditions.length > 0 ? await query.where(and(...conditions)).all() : await query.all();
 
   return c.json({
     batches,
@@ -84,7 +83,7 @@ app.get('/', async (c) => {
 // GET /api/batches/expiring - Get batches expiring within X days
 // NOTE: This must come BEFORE /:id route to avoid "expiring" being treated as an ID
 app.get('/expiring', async (c) => {
-  const days = parseInt(c.req.query('days') || '30');
+  const days = Number.parseInt(c.req.query('days') || '30');
   const db = drizzle(c.env.DB);
 
   const now = new Date();
@@ -94,12 +93,14 @@ app.get('/expiring', async (c) => {
   const expiringBatches = await db
     .select()
     .from(inventoryBatches)
-    .where(and(
-      eq(inventoryBatches.status, 'active'),
-      isNotNull(inventoryBatches.expirationDate),
-      gte(inventoryBatches.expirationDate, now.toISOString()),
-      lt(inventoryBatches.expirationDate, futureDate.toISOString())
-    ))
+    .where(
+      and(
+        eq(inventoryBatches.status, 'active'),
+        isNotNull(inventoryBatches.expirationDate),
+        gte(inventoryBatches.expirationDate, now.toISOString()),
+        lt(inventoryBatches.expirationDate, futureDate.toISOString())
+      )
+    )
     .orderBy(asc(inventoryBatches.expirationDate))
     .all();
 
@@ -118,11 +119,13 @@ app.get('/expired', async (c) => {
   const expiredBatches = await db
     .select()
     .from(inventoryBatches)
-    .where(and(
-      eq(inventoryBatches.status, 'active'), // Still marked as active but expired
-      isNotNull(inventoryBatches.expirationDate),
-      lt(inventoryBatches.expirationDate, now)
-    ))
+    .where(
+      and(
+        eq(inventoryBatches.status, 'active'), // Still marked as active but expired
+        isNotNull(inventoryBatches.expirationDate),
+        lt(inventoryBatches.expirationDate, now)
+      )
+    )
     .orderBy(asc(inventoryBatches.expirationDate))
     .all();
 
@@ -142,17 +145,19 @@ app.get('/product/:productId/warehouse/:warehouseId', async (c) => {
   const batches = await db
     .select()
     .from(inventoryBatches)
-    .where(and(
-      eq(inventoryBatches.productId, productId),
-      eq(inventoryBatches.warehouseId, warehouseId),
-      eq(inventoryBatches.status, 'active')
-    ))
+    .where(
+      and(
+        eq(inventoryBatches.productId, productId),
+        eq(inventoryBatches.warehouseId, warehouseId),
+        eq(inventoryBatches.status, 'active')
+      )
+    )
     .orderBy(asc(inventoryBatches.expirationDate))
     .all();
 
   // Separate batches with and without expiration dates
-  const batchesWithExpiration = batches.filter(b => b.expirationDate);
-  const batchesWithoutExpiration = batches.filter(b => !b.expirationDate);
+  const batchesWithExpiration = batches.filter((b) => b.expirationDate);
+  const batchesWithoutExpiration = batches.filter((b) => !b.expirationDate);
 
   // FEFO: Expired first, then by expiration date, then non-expiring
   const orderedBatches = [...batchesWithExpiration, ...batchesWithoutExpiration];
@@ -169,11 +174,7 @@ app.get('/:id', async (c) => {
   const id = c.req.param('id');
   const db = drizzle(c.env.DB);
 
-  const batch = await db
-    .select()
-    .from(inventoryBatches)
-    .where(eq(inventoryBatches.id, id))
-    .get();
+  const batch = await db.select().from(inventoryBatches).where(eq(inventoryBatches.id, id)).get();
 
   if (!batch) {
     return c.json({ error: 'Batch not found' }, 404);
@@ -231,28 +232,34 @@ app.post('/', zValidator('json', createBatchSchema), async (c) => {
 
   // Create inventory movement record
   const movementId = generateId();
-  await db.insert(inventoryMovements).values({
-    id: movementId,
-    inventoryId: data.inventoryId,
-    productId: data.productId,
-    warehouseId: data.warehouseId,
-    movementType: 'in',
-    quantity: data.quantityAvailable,
-    source: 'warehouse',
-    referenceType: 'batch',
-    referenceId: batchId,
-    reason: 'Batch received',
-    notes: `Batch ${data.batchNumber} received`,
-    performedBy: data.createdBy || null,
-    deletedAt: null,
-    deletedBy: null,
-    createdAt: now,
-  }).run();
+  await db
+    .insert(inventoryMovements)
+    .values({
+      id: movementId,
+      inventoryId: data.inventoryId,
+      productId: data.productId,
+      warehouseId: data.warehouseId,
+      movementType: 'in',
+      quantity: data.quantityAvailable,
+      source: 'warehouse',
+      referenceType: 'batch',
+      referenceId: batchId,
+      reason: 'Batch received',
+      notes: `Batch ${data.batchNumber} received`,
+      performedBy: data.createdBy || null,
+      deletedAt: null,
+      deletedBy: null,
+      createdAt: now,
+    })
+    .run();
 
-  return c.json({
-    batch: newBatch,
-    message: 'Batch created successfully',
-  }, 201);
+  return c.json(
+    {
+      batch: newBatch,
+      message: 'Batch created successfully',
+    },
+    201
+  );
 });
 
 // PUT /api/batches/:id - Update batch
@@ -284,161 +291,154 @@ app.put('/:id', zValidator('json', updateBatchSchema), async (c) => {
 });
 
 // PATCH /api/batches/:id/adjust - Adjust batch quantity
-app.patch('/:id/adjust', zValidator('json', z.object({
-  quantity: z.number().int(),
-  reason: z.string(),
-  notes: z.string().optional(),
-  performedBy: z.string().optional(),
-})), async (c) => {
-  const id = c.req.param('id');
-  const { quantity, reason, notes, performedBy } = c.req.valid('json');
-  const db = drizzle(c.env.DB);
-
-  const batch = await db
-    .select()
-    .from(inventoryBatches)
-    .where(eq(inventoryBatches.id, id))
-    .get();
-
-  if (!batch) {
-    return c.json({ error: 'Batch not found' }, 404);
-  }
-
-  const newQuantity = batch.quantityAvailable + quantity;
-
-  if (newQuantity < 0) {
-    return c.json({ error: 'Insufficient quantity in batch' }, 400);
-  }
-
-  // Update batch quantity
-  await db
-    .update(inventoryBatches)
-    .set({
-      quantityAvailable: newQuantity,
-      updatedAt: new Date(),
+app.patch(
+  '/:id/adjust',
+  zValidator(
+    'json',
+    z.object({
+      quantity: z.number().int(),
+      reason: z.string(),
+      notes: z.string().optional(),
+      performedBy: z.string().optional(),
     })
-    .where(eq(inventoryBatches.id, id))
-    .run();
+  ),
+  async (c) => {
+    const id = c.req.param('id');
+    const { quantity, reason, notes, performedBy } = c.req.valid('json');
+    const db = drizzle(c.env.DB);
 
-  // Update parent inventory
-  const inv = await db
-    .select()
-    .from(inventory)
-    .where(eq(inventory.id, batch.inventoryId))
-    .get();
+    const batch = await db.select().from(inventoryBatches).where(eq(inventoryBatches.id, id)).get();
 
-  if (inv) {
+    if (!batch) {
+      return c.json({ error: 'Batch not found' }, 404);
+    }
+
+    const newQuantity = batch.quantityAvailable + quantity;
+
+    if (newQuantity < 0) {
+      return c.json({ error: 'Insufficient quantity in batch' }, 400);
+    }
+
+    // Update batch quantity
     await db
-      .update(inventory)
+      .update(inventoryBatches)
       .set({
-        quantityAvailable: inv.quantityAvailable + quantity,
+        quantityAvailable: newQuantity,
         updatedAt: new Date(),
       })
-      .where(eq(inventory.id, batch.inventoryId))
+      .where(eq(inventoryBatches.id, id))
       .run();
+
+    // Update parent inventory
+    const inv = await db.select().from(inventory).where(eq(inventory.id, batch.inventoryId)).get();
+
+    if (inv) {
+      await db
+        .update(inventory)
+        .set({
+          quantityAvailable: inv.quantityAvailable + quantity,
+          updatedAt: new Date(),
+        })
+        .where(eq(inventory.id, batch.inventoryId))
+        .run();
+    }
+
+    // Create movement record
+    const movementId = generateId();
+    await db
+      .insert(inventoryMovements)
+      .values({
+        id: movementId,
+        inventoryId: batch.inventoryId,
+        productId: batch.productId,
+        warehouseId: batch.warehouseId,
+        movementType: quantity > 0 ? 'in' : 'out',
+        quantity,
+        source: 'warehouse',
+        referenceType: 'batch',
+        referenceId: id,
+        reason,
+        notes: notes || null,
+        performedBy: performedBy || null,
+        deletedAt: null,
+        deletedBy: null,
+        createdAt: new Date(),
+      })
+      .run();
+
+    return c.json({
+      message: 'Batch quantity adjusted',
+      batch: {
+        id,
+        previousQuantity: batch.quantityAvailable,
+        newQuantity,
+        adjustment: quantity,
+      },
+    });
   }
-
-  // Create movement record
-  const movementId = generateId();
-  await db.insert(inventoryMovements).values({
-    id: movementId,
-    inventoryId: batch.inventoryId,
-    productId: batch.productId,
-    warehouseId: batch.warehouseId,
-    movementType: quantity > 0 ? 'in' : 'out',
-    quantity,
-    source: 'warehouse',
-    referenceType: 'batch',
-    referenceId: id,
-    reason,
-    notes: notes || null,
-    performedBy: performedBy || null,
-    deletedAt: null,
-    deletedBy: null,
-    createdAt: new Date(),
-  }).run();
-
-  return c.json({
-    message: 'Batch quantity adjusted',
-    batch: {
-      id,
-      previousQuantity: batch.quantityAvailable,
-      newQuantity,
-      adjustment: quantity,
-    },
-  });
-});
+);
 
 // PATCH /api/batches/:id/status - Update batch status
-app.patch('/:id/status', zValidator('json', z.object({
-  status: z.enum(['active', 'expired', 'quarantined', 'recalled']),
-  reason: z.string().optional(),
-  updatedBy: z.string().optional(),
-})), async (c) => {
-  const id = c.req.param('id');
-  const { status, reason, updatedBy } = c.req.valid('json');
-  const db = drizzle(c.env.DB);
+app.patch(
+  '/:id/status',
+  zValidator(
+    'json',
+    z.object({
+      status: z.enum(['active', 'expired', 'quarantined', 'recalled']),
+      reason: z.string().optional(),
+      updatedBy: z.string().optional(),
+    })
+  ),
+  async (c) => {
+    const id = c.req.param('id');
+    const { status, reason, updatedBy } = c.req.valid('json');
+    const db = drizzle(c.env.DB);
 
-  const batch = await db
-    .select()
-    .from(inventoryBatches)
-    .where(eq(inventoryBatches.id, id))
-    .get();
+    const batch = await db.select().from(inventoryBatches).where(eq(inventoryBatches.id, id)).get();
 
-  if (!batch) {
-    return c.json({ error: 'Batch not found' }, 404);
+    if (!batch) {
+      return c.json({ error: 'Batch not found' }, 404);
+    }
+
+    const updateData: any = {
+      status,
+      updatedAt: new Date(),
+      updatedBy: updatedBy || null,
+    };
+
+    if (status === 'quarantined') {
+      updateData.quarantineReason = reason || null;
+    } else if (status === 'recalled') {
+      updateData.recallReason = reason || null;
+    }
+
+    await db.update(inventoryBatches).set(updateData).where(eq(inventoryBatches.id, id)).run();
+
+    return c.json({
+      message: `Batch status updated to ${status}`,
+      batch: {
+        id,
+        previousStatus: batch.status,
+        newStatus: status,
+        reason: reason || null,
+      },
+    });
   }
-
-  const updateData: any = {
-    status,
-    updatedAt: new Date(),
-    updatedBy: updatedBy || null,
-  };
-
-  if (status === 'quarantined') {
-    updateData.quarantineReason = reason || null;
-  } else if (status === 'recalled') {
-    updateData.recallReason = reason || null;
-  }
-
-  await db
-    .update(inventoryBatches)
-    .set(updateData)
-    .where(eq(inventoryBatches.id, id))
-    .run();
-
-  return c.json({
-    message: `Batch status updated to ${status}`,
-    batch: {
-      id,
-      previousStatus: batch.status,
-      newStatus: status,
-      reason: reason || null,
-    },
-  });
-});
+);
 
 // DELETE /api/batches/:id - Delete batch
 app.delete('/:id', async (c) => {
   const id = c.req.param('id');
   const db = drizzle(c.env.DB);
 
-  const batch = await db
-    .select()
-    .from(inventoryBatches)
-    .where(eq(inventoryBatches.id, id))
-    .get();
+  const batch = await db.select().from(inventoryBatches).where(eq(inventoryBatches.id, id)).get();
 
   if (!batch) {
     return c.json({ error: 'Batch not found' }, 404);
   }
 
   // Update parent inventory to deduct this batch's quantity
-  const inv = await db
-    .select()
-    .from(inventory)
-    .where(eq(inventory.id, batch.inventoryId))
-    .get();
+  const inv = await db.select().from(inventory).where(eq(inventory.id, batch.inventoryId)).get();
 
   if (inv) {
     await db

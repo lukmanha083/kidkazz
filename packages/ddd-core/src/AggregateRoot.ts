@@ -1,5 +1,5 @@
+import type { DomainEvent } from './DomainEvent';
 import { Entity } from './Entity';
-import { DomainEvent } from './DomainEvent';
 
 /**
  * AggregateRoot is the entry point to an aggregate

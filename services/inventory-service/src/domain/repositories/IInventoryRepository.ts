@@ -1,5 +1,5 @@
 import type { IRepository } from '@kidkazz/ddd-core';
-import { Inventory } from '../entities/Inventory';
+import type { Inventory } from '../entities/Inventory';
 
 /**
  * Inventory Repository Interface
@@ -8,10 +8,7 @@ export interface IInventoryRepository extends IRepository<Inventory> {
   /**
    * Find inventory by product and warehouse
    */
-  findByProductAndWarehouse(
-    productId: string,
-    warehouseId: string
-  ): Promise<Inventory | null>;
+  findByProductAndWarehouse(productId: string, warehouseId: string): Promise<Inventory | null>;
 
   /**
    * Find all inventory for a product across warehouses

@@ -1,21 +1,21 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { useState, useEffect } from 'react';
-import { Plus, Trash2, AlertCircle, CheckCircle2, Save } from 'lucide-react';
-import { accountingApi, type ChartOfAccount, type JournalLine, type JournalEntry } from '@/lib/api';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
-  TableFooter,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+import { type ChartOfAccount, type JournalEntry, type JournalLine, accountingApi } from '@/lib/api';
+import { createFileRoute } from '@tanstack/react-router';
+import { AlertCircle, CheckCircle2, Plus, Save, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 export const Route = createFileRoute('/dashboard/accounting/journal-entry')({
   component: JournalEntryPage,
@@ -34,7 +34,9 @@ function JournalEntryPage() {
   const [entryDate, setEntryDate] = useState(new Date().toISOString().split('T')[0]);
   const [description, setDescription] = useState('');
   const [reference, setReference] = useState('');
-  const [entryType, setEntryType] = useState<'Manual' | 'System' | 'Recurring' | 'Adjusting' | 'Closing'>('Manual');
+  const [entryType, setEntryType] = useState<
+    'Manual' | 'System' | 'Recurring' | 'Adjusting' | 'Closing'
+  >('Manual');
   const [notes, setNotes] = useState('');
   const [lines, setLines] = useState<JournalLineForm[]>([
     { tempId: crypto.randomUUID(), accountId: '', direction: 'Debit', amount: 0 },
@@ -43,11 +45,11 @@ function JournalEntryPage() {
 
   // Calculated values
   const totalDebits = lines
-    .filter(l => l.direction === 'Debit')
+    .filter((l) => l.direction === 'Debit')
     .reduce((sum, l) => sum + (l.amount || 0), 0);
 
   const totalCredits = lines
-    .filter(l => l.direction === 'Credit')
+    .filter((l) => l.direction === 'Credit')
     .reduce((sum, l) => sum + (l.amount || 0), 0);
 
   const difference = totalDebits - totalCredits;
@@ -65,7 +67,7 @@ function JournalEntryPage() {
         accountingApi.journalEntries.getAll({ limit: 50 }),
       ]);
 
-      setAccounts(accountsData.accounts.filter(a => a.isDetailAccount)); // Only detail accounts
+      setAccounts(accountsData.accounts.filter((a) => a.isDetailAccount)); // Only detail accounts
       setJournalEntries(entriesData.journalEntries);
     } catch (error) {
       console.error('Failed to load data:', error);
@@ -84,12 +86,12 @@ function JournalEntryPage() {
 
   const removeLine = (tempId: string) => {
     if (lines.length > 2) {
-      setLines(lines.filter(l => l.tempId !== tempId));
+      setLines(lines.filter((l) => l.tempId !== tempId));
     }
   };
 
   const updateLine = (tempId: string, field: keyof JournalLineForm, value: any) => {
-    setLines(lines.map(l => l.tempId === tempId ? { ...l, [field]: value } : l));
+    setLines(lines.map((l) => (l.tempId === tempId ? { ...l, [field]: value } : l)));
   };
 
   const handleSave = async (status: 'Draft' | 'Posted') => {
@@ -99,7 +101,7 @@ function JournalEntryPage() {
       return;
     }
 
-    if (lines.some(l => !l.accountId)) {
+    if (lines.some((l) => !l.accountId)) {
       alert('Please select an account for all lines');
       return;
     }
@@ -263,12 +265,12 @@ function JournalEntryPage() {
                     <TableHead className="w-32">Type</TableHead>
                     <TableHead className="text-right w-40">Debit</TableHead>
                     <TableHead className="text-right w-40">Credit</TableHead>
-                    <TableHead className="w-12"></TableHead>
+                    <TableHead className="w-12" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {lines.map((line) => {
-                    const account = accounts.find(a => a.id === line.accountId);
+                    const account = accounts.find((a) => a.id === line.accountId);
                     return (
                       <TableRow key={line.tempId}>
                         <TableCell>
@@ -278,7 +280,7 @@ function JournalEntryPage() {
                             className="w-full px-2 py-1.5 border border-input rounded text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                           >
                             <option value="">Select account...</option>
-                            {accounts.map(acc => (
+                            {accounts.map((acc) => (
                               <option key={acc.id} value={acc.id}>
                                 {acc.code} - {acc.name}
                               </option>
@@ -302,7 +304,13 @@ function JournalEntryPage() {
                               step="0.01"
                               min="0"
                               value={line.amount || ''}
-                              onChange={(e) => updateLine(line.tempId, 'amount', parseFloat(e.target.value) || 0)}
+                              onChange={(e) =>
+                                updateLine(
+                                  line.tempId,
+                                  'amount',
+                                  Number.parseFloat(e.target.value) || 0
+                                )
+                              }
                               className="text-right h-8"
                             />
                           ) : (
@@ -316,7 +324,13 @@ function JournalEntryPage() {
                               step="0.01"
                               min="0"
                               value={line.amount || ''}
-                              onChange={(e) => updateLine(line.tempId, 'amount', parseFloat(e.target.value) || 0)}
+                              onChange={(e) =>
+                                updateLine(
+                                  line.tempId,
+                                  'amount',
+                                  Number.parseFloat(e.target.value) || 0
+                                )
+                              }
                               className="text-right h-8"
                             />
                           ) : (
@@ -349,7 +363,7 @@ function JournalEntryPage() {
                     <TableCell className="text-right font-semibold">
                       ${totalCredits.toFixed(2)}
                     </TableCell>
-                    <TableCell></TableCell>
+                    <TableCell />
                   </TableRow>
                   <TableRow>
                     <TableCell colSpan={2} className="text-right">
@@ -369,7 +383,7 @@ function JournalEntryPage() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell colSpan={3}></TableCell>
+                    <TableCell colSpan={3} />
                   </TableRow>
                 </TableFooter>
               </Table>
@@ -432,26 +446,20 @@ function JournalEntryPage() {
                 ) : (
                   journalEntries.map((entry) => (
                     <TableRow key={entry.id}>
-                      <TableCell className="font-medium">
-                        {entry.entryNumber}
-                      </TableCell>
+                      <TableCell className="font-medium">{entry.entryNumber}</TableCell>
                       <TableCell className="text-muted-foreground">
                         {new Date(entry.entryDate).toLocaleDateString()}
                       </TableCell>
-                      <TableCell>
-                        {entry.description}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {entry.entryType}
-                      </TableCell>
+                      <TableCell>{entry.description}</TableCell>
+                      <TableCell className="text-muted-foreground">{entry.entryType}</TableCell>
                       <TableCell>
                         <Badge
                           variant={
                             entry.status === 'Posted'
                               ? 'default'
                               : entry.status === 'Draft'
-                              ? 'secondary'
-                              : 'destructive'
+                                ? 'secondary'
+                                : 'destructive'
                           }
                           className={
                             entry.status === 'Posted'

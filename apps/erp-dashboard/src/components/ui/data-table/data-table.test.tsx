@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { ColumnDef } from '@tanstack/react-table';
 import { render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DataTable } from './data-table';
-import { ColumnDef } from '@tanstack/react-table';
 
 // Mock child components
 vi.mock('./data-table-toolbar', () => ({
@@ -56,7 +56,7 @@ describe('DataTable', () => {
   describe('basic rendering', () => {
     it('should render table with data', () => {
       render(<DataTable columns={mockColumns} data={mockData} />);
-      
+
       expect(screen.getByTestId('table')).toBeInTheDocument();
       expect(screen.getByTestId('toolbar')).toBeInTheDocument();
       expect(screen.getByTestId('pagination')).toBeInTheDocument();
@@ -64,14 +64,14 @@ describe('DataTable', () => {
 
     it('should render without data', () => {
       render(<DataTable columns={mockColumns} data={[]} />);
-      
+
       expect(screen.getByTestId('table')).toBeInTheDocument();
       expect(screen.getByText('No results found.')).toBeInTheDocument();
     });
 
     it('should show loading state', () => {
       render(<DataTable columns={mockColumns} data={[]} isLoading={true} />);
-      
+
       expect(screen.getByTestId('loader')).toBeInTheDocument();
       expect(screen.getByText('Loading...')).toBeInTheDocument();
     });
@@ -80,13 +80,13 @@ describe('DataTable', () => {
   describe('pagination configuration', () => {
     it('should support client-side pagination by default', () => {
       render(<DataTable columns={mockColumns} data={mockData} />);
-      
+
       expect(screen.getByTestId('pagination')).toBeInTheDocument();
     });
 
     it('should support manual pagination with pageCount', () => {
       const onPaginationChange = vi.fn();
-      
+
       render(
         <DataTable
           columns={mockColumns}
@@ -96,13 +96,13 @@ describe('DataTable', () => {
           onPaginationChange={onPaginationChange}
         />
       );
-      
+
       expect(screen.getByTestId('table')).toBeInTheDocument();
     });
 
     it('should warn when manual pagination is missing pageCount', () => {
       const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      
+
       render(
         <DataTable
           columns={mockColumns}
@@ -111,35 +111,21 @@ describe('DataTable', () => {
           pageCount={undefined as any}
         />
       );
-      
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('pageCount is required')
-      );
-      
+
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('pageCount is required'));
+
       consoleSpy.mockRestore();
     });
 
     it('should disable pagination when enablePagination is false', () => {
-      render(
-        <DataTable
-          columns={mockColumns}
-          data={mockData}
-          enablePagination={false}
-        />
-      );
-      
+      render(<DataTable columns={mockColumns} data={mockData} enablePagination={false} />);
+
       expect(screen.queryByTestId('pagination')).not.toBeInTheDocument();
     });
 
     it('should use custom page size', () => {
-      render(
-        <DataTable
-          columns={mockColumns}
-          data={mockData}
-          pageSize={5}
-        />
-      );
-      
+      render(<DataTable columns={mockColumns} data={mockData} pageSize={5} />);
+
       expect(screen.getByTestId('table')).toBeInTheDocument();
     });
   });
@@ -148,7 +134,7 @@ describe('DataTable', () => {
     it('should use controlled pagination state', () => {
       const pagination = { pageIndex: 0, pageSize: 10 };
       const onPaginationChange = vi.fn();
-      
+
       render(
         <DataTable
           columns={mockColumns}
@@ -157,65 +143,41 @@ describe('DataTable', () => {
           onPaginationChange={onPaginationChange}
         />
       );
-      
+
       expect(screen.getByTestId('table')).toBeInTheDocument();
     });
 
     it('should fall back to internal pagination when not controlled', () => {
       render(<DataTable columns={mockColumns} data={mockData} />);
-      
+
       expect(screen.getByTestId('table')).toBeInTheDocument();
     });
   });
 
   describe('optional features', () => {
     it('should support row selection when enabled', () => {
-      render(
-        <DataTable
-          columns={mockColumns}
-          data={mockData}
-          enableRowSelection={true}
-        />
-      );
-      
+      render(<DataTable columns={mockColumns} data={mockData} enableRowSelection={true} />);
+
       expect(screen.getByTestId('table')).toBeInTheDocument();
     });
 
     it('should support column visibility control', () => {
-      render(
-        <DataTable
-          columns={mockColumns}
-          data={mockData}
-          enableColumnVisibility={true}
-        />
-      );
-      
+      render(<DataTable columns={mockColumns} data={mockData} enableColumnVisibility={true} />);
+
       expect(screen.getByTestId('table')).toBeInTheDocument();
     });
 
     it('should disable column visibility when set to false', () => {
-      render(
-        <DataTable
-          columns={mockColumns}
-          data={mockData}
-          enableColumnVisibility={false}
-        />
-      );
-      
+      render(<DataTable columns={mockColumns} data={mockData} enableColumnVisibility={false} />);
+
       expect(screen.getByTestId('table')).toBeInTheDocument();
     });
 
     it('should support row click callback', () => {
       const onRowClick = vi.fn();
-      
-      render(
-        <DataTable
-          columns={mockColumns}
-          data={mockData}
-          onRowClick={onRowClick}
-        />
-      );
-      
+
+      render(<DataTable columns={mockColumns} data={mockData} onRowClick={onRowClick} />);
+
       expect(screen.getByTestId('table')).toBeInTheDocument();
     });
   });
@@ -230,7 +192,7 @@ describe('DataTable', () => {
           searchPlaceholder="Search by name..."
         />
       );
-      
+
       expect(screen.getByTestId('toolbar')).toBeInTheDocument();
     });
 
@@ -245,74 +207,46 @@ describe('DataTable', () => {
           ],
         },
       ];
-      
+
       render(
-        <DataTable
-          columns={mockColumns}
-          data={mockData}
-          filterableColumns={filterableColumns}
-        />
+        <DataTable columns={mockColumns} data={mockData} filterableColumns={filterableColumns} />
       );
-      
+
       expect(screen.getByTestId('toolbar')).toBeInTheDocument();
     });
 
     it('should work without search configuration', () => {
       render(<DataTable columns={mockColumns} data={mockData} />);
-      
+
       expect(screen.getByTestId('toolbar')).toBeInTheDocument();
     });
   });
 
   describe('loading states', () => {
     it('should show loading indicator when isLoading is true', () => {
-      render(
-        <DataTable
-          columns={mockColumns}
-          data={[]}
-          isLoading={true}
-        />
-      );
-      
+      render(<DataTable columns={mockColumns} data={[]} isLoading={true} />);
+
       expect(screen.getByTestId('loader')).toBeInTheDocument();
       expect(screen.queryByText('No results found.')).not.toBeInTheDocument();
     });
 
     it('should show data when not loading', () => {
-      render(
-        <DataTable
-          columns={mockColumns}
-          data={mockData}
-          isLoading={false}
-        />
-      );
-      
+      render(<DataTable columns={mockColumns} data={mockData} isLoading={false} />);
+
       expect(screen.queryByTestId('loader')).not.toBeInTheDocument();
     });
   });
 
   describe('empty states', () => {
     it('should show empty message when no data and not loading', () => {
-      render(
-        <DataTable
-          columns={mockColumns}
-          data={[]}
-          isLoading={false}
-        />
-      );
-      
+      render(<DataTable columns={mockColumns} data={[]} isLoading={false} />);
+
       expect(screen.getByText('No results found.')).toBeInTheDocument();
     });
 
     it('should not show empty message when loading', () => {
-      render(
-        <DataTable
-          columns={mockColumns}
-          data={[]}
-          isLoading={true}
-        />
-      );
-      
+      render(<DataTable columns={mockColumns} data={[]} isLoading={true} />);
+
       expect(screen.queryByText('No results found.')).not.toBeInTheDocument();
     });
   });
@@ -321,30 +255,21 @@ describe('DataTable', () => {
     it('should enforce pageCount when manualPagination is true at compile time', () => {
       // This test verifies TypeScript type checking
       // The actual type check happens at compile time
-      
+
       // Valid: manual pagination with pageCount
       const validManual = (
-        <DataTable
-          columns={mockColumns}
-          data={mockData}
-          manualPagination={true}
-          pageCount={10}
-        />
+        <DataTable columns={mockColumns} data={mockData} manualPagination={true} pageCount={10} />
       );
-      
+
       expect(validManual).toBeDefined();
     });
 
     it('should prevent pageCount when manualPagination is false', () => {
       // Valid: client-side pagination without pageCount
       const validClient = (
-        <DataTable
-          columns={mockColumns}
-          data={mockData}
-          manualPagination={false}
-        />
+        <DataTable columns={mockColumns} data={mockData} manualPagination={false} />
       );
-      
+
       expect(validClient).toBeDefined();
     });
   });
@@ -356,15 +281,15 @@ describe('DataTable', () => {
         name: `Item ${i}`,
         value: i * 100,
       }));
-      
+
       render(<DataTable columns={mockColumns} data={largeData} pageSize={10} />);
-      
+
       expect(screen.getByTestId('table')).toBeInTheDocument();
     });
 
     it('should handle empty columns array', () => {
       render(<DataTable columns={[]} data={mockData} />);
-      
+
       expect(screen.getByTestId('table')).toBeInTheDocument();
     });
 
@@ -378,7 +303,7 @@ describe('DataTable', () => {
           onRowClick={undefined}
         />
       );
-      
+
       expect(screen.getByTestId('table')).toBeInTheDocument();
     });
 
@@ -386,17 +311,13 @@ describe('DataTable', () => {
       const { rerender } = render(
         <DataTable columns={mockColumns} data={mockData} isLoading={false} />
       );
-      
-      rerender(
-        <DataTable columns={mockColumns} data={mockData} isLoading={true} />
-      );
-      
+
+      rerender(<DataTable columns={mockColumns} data={mockData} isLoading={true} />);
+
       expect(screen.getByTestId('loader')).toBeInTheDocument();
-      
-      rerender(
-        <DataTable columns={mockColumns} data={[]} isLoading={false} />
-      );
-      
+
+      rerender(<DataTable columns={mockColumns} data={[]} isLoading={false} />);
+
       expect(screen.getByText('No results found.')).toBeInTheDocument();
     });
   });
@@ -404,14 +325,14 @@ describe('DataTable', () => {
   describe('column configuration', () => {
     it('should render all column headers', () => {
       render(<DataTable columns={mockColumns} data={mockData} />);
-      
+
       // Headers are rendered but we need to check the table structure
       expect(screen.getByTestId('table')).toBeInTheDocument();
     });
 
     it('should handle columns without data', () => {
       render(<DataTable columns={mockColumns} data={[]} />);
-      
+
       expect(screen.getByText('No results found.')).toBeInTheDocument();
     });
   });

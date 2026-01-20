@@ -14,9 +14,9 @@
  */
 
 import {
+  MigrationResult,
   runFullMigration,
   validateMigration,
-  MigrationResult,
 } from './migrate-to-inventory-service';
 
 interface Env {
@@ -30,15 +30,18 @@ export default {
 
     // Health check
     if (url.pathname === '/') {
-      return new Response(JSON.stringify({
-        status: 'ok',
-        endpoints: {
-          '/migrate': 'Run full migration (use ?dryRun=true for dry run)',
-          '/validate': 'Validate migration results',
-        },
-      }), {
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({
+          status: 'ok',
+          endpoints: {
+            '/migrate': 'Run full migration (use ?dryRun=true for dry run)',
+            '/validate': 'Validate migration results',
+          },
+        }),
+        {
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     // Run migration
@@ -49,52 +52,68 @@ export default {
       console.log(`Starting migration (dryRun: ${dryRun}, verbose: ${verbose})`);
 
       try {
-        const result = await runFullMigration(
-          env.PRODUCT_DB,
-          env.INVENTORY_DB,
-          { dryRun, verbose }
-        );
-
-        return new Response(JSON.stringify({
-          success: true,
+        const result = await runFullMigration(env.PRODUCT_DB, env.INVENTORY_DB, {
           dryRun,
-          result,
-        }, null, 2), {
-          headers: { 'Content-Type': 'application/json' },
+          verbose,
         });
+
+        return new Response(
+          JSON.stringify(
+            {
+              success: true,
+              dryRun,
+              result,
+            },
+            null,
+            2
+          ),
+          {
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
       } catch (error) {
-        return new Response(JSON.stringify({
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        }), {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          }),
+          {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
       }
     }
 
     // Validate migration
     if (url.pathname === '/validate') {
       try {
-        const result = await validateMigration(
-          env.PRODUCT_DB,
-          env.INVENTORY_DB
-        );
+        const result = await validateMigration(env.PRODUCT_DB, env.INVENTORY_DB);
 
-        return new Response(JSON.stringify({
-          success: true,
-          validation: result,
-        }, null, 2), {
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return new Response(
+          JSON.stringify(
+            {
+              success: true,
+              validation: result,
+            },
+            null,
+            2
+          ),
+          {
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
       } catch (error) {
-        return new Response(JSON.stringify({
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        }), {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        });
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          }),
+          {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
       }
     }
 

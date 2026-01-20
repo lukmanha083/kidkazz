@@ -1,6 +1,6 @@
-import { Order, OrderItem, ShippingAddress } from '../../domain/entities/Order';
-import { IOrderRepository } from '../../domain/repositories/IOrderRepository';
-import { Result, ResultFactory, ValidationError } from '@kidkazz/types';
+import { type Result, ResultFactory, ValidationError } from '@kidkazz/types';
+import { Order, OrderItem, type ShippingAddress } from '../../domain/entities/Order';
+import type { IOrderRepository } from '../../domain/repositories/IOrderRepository';
 
 /**
  * Create Order Use Case

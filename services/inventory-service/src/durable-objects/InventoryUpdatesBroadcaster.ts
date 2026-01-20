@@ -190,7 +190,7 @@ export class InventoryUpdatesBroadcaster extends DurableObject {
   private handleSubscribe(
     webSocket: WebSocket,
     session: WebSocketSession,
-    channel: string = 'global'
+    channel = 'global'
   ): void {
     session.subscriptions.add(channel);
 
@@ -206,7 +206,7 @@ export class InventoryUpdatesBroadcaster extends DurableObject {
   private handleUnsubscribe(
     webSocket: WebSocket,
     session: WebSocketSession,
-    channel: string = 'global'
+    channel = 'global'
   ): void {
     session.subscriptions.delete(channel);
 

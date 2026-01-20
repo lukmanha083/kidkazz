@@ -1,30 +1,3 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { useState, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useForm } from '@tanstack/react-form';
-import { zodValidator } from '@tanstack/zod-form-adapter';
-import { toast } from 'sonner';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,13 +8,48 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Warehouse as WarehouseIcon, Plus, Edit, MapPin, Building2, Loader2, X } from 'lucide-react';
-import { warehouseApi, type Warehouse } from '@/lib/api';
-import { warehouseFormSchema, type WarehouseFormData } from '@/lib/form-schemas';
-import { warehouseListSearchSchema } from '@/lib/route-search-schemas';
-import { queryKeys } from '@/lib/query-client';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { getWarehouseColumns } from '@/components/ui/data-table/columns/warehouse-columns';
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { type Warehouse, warehouseApi } from '@/lib/api';
+import { type WarehouseFormData, warehouseFormSchema } from '@/lib/form-schemas';
+import { queryKeys } from '@/lib/query-client';
+import { warehouseListSearchSchema } from '@/lib/route-search-schemas';
+import { useForm } from '@tanstack/react-form';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { createFileRoute } from '@tanstack/react-router';
+import { zodValidator } from '@tanstack/zod-form-adapter';
+import {
+  Building2,
+  Edit,
+  Loader2,
+  MapPin,
+  Plus,
+  Warehouse as WarehouseIcon,
+  X,
+} from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 
 /**
  * Extract error message from TanStack Form / Zod validation errors.
@@ -122,7 +130,11 @@ function WarehouseManagementPage() {
   });
 
   // Fetch warehouses using centralized query keys
-  const { data: warehousesData, isLoading, error } = useQuery({
+  const {
+    data: warehousesData,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: queryKeys.warehouses.all,
     queryFn: () => warehouseApi.getAll(),
   });
@@ -220,6 +232,7 @@ function WarehouseManagementPage() {
   };
 
   // Memoize columns with callbacks
+  // biome-ignore lint/correctness/useExhaustiveDependencies: callbacks are stable within component lifecycle
   const columns = useMemo(
     () =>
       getWarehouseColumns({
@@ -253,7 +266,9 @@ function WarehouseManagementPage() {
               <p className="text-destructive font-medium">Error loading warehouses</p>
               <p className="text-sm text-muted-foreground mt-2">{error.message}</p>
               <Button
-                onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.warehouses.all })}
+                onClick={() =>
+                  queryClient.invalidateQueries({ queryKey: queryKeys.warehouses.all })
+                }
                 className="mt-4"
               >
                 Retry
@@ -301,7 +316,7 @@ function WarehouseManagementPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {warehouses.filter(w => w.status === 'active').length}
+              {warehouses.filter((w) => w.status === 'active').length}
             </div>
             <p className="text-xs text-muted-foreground">Currently operational</p>
           </CardContent>
@@ -313,9 +328,7 @@ function WarehouseManagementPage() {
             <MapPin className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {new Set(warehouses.map(w => w.city)).size}
-            </div>
+            <div className="text-2xl font-bold">{new Set(warehouses.map((w) => w.city)).size}</div>
             <p className="text-xs text-muted-foreground">Different cities</p>
           </CardContent>
         </Card>
@@ -358,7 +371,9 @@ function WarehouseManagementPage() {
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
               {/* Basic Information */}
               <div className="space-y-4">
-                <h3 className="font-semibold text-sm text-muted-foreground uppercase">Basic Information</h3>
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase">
+                  Basic Information
+                </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">Warehouse Code</p>
@@ -366,7 +381,9 @@ function WarehouseManagementPage() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Status</p>
-                    <Badge variant={selectedWarehouse.status === 'active' ? 'default' : 'secondary'}>
+                    <Badge
+                      variant={selectedWarehouse.status === 'active' ? 'default' : 'secondary'}
+                    >
                       {selectedWarehouse.status}
                     </Badge>
                   </div>
@@ -414,7 +431,9 @@ function WarehouseManagementPage() {
 
               {/* Contact Information */}
               <div className="space-y-4 border-t pt-4">
-                <h3 className="font-semibold text-sm text-muted-foreground uppercase">Contact Information</h3>
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase">
+                  Contact Information
+                </h3>
                 <div>
                   <p className="text-sm text-muted-foreground">Contact Name</p>
                   <p className="font-medium">{selectedWarehouse.contactName || '-'}</p>
@@ -433,12 +452,17 @@ function WarehouseManagementPage() {
 
           <DrawerFooter>
             <div className="flex flex-col sm:flex-row gap-2 w-full">
-              <Button onClick={() => selectedWarehouse && handleEditWarehouse(selectedWarehouse)} className="w-full sm:w-auto">
+              <Button
+                onClick={() => selectedWarehouse && handleEditWarehouse(selectedWarehouse)}
+                className="w-full sm:w-auto"
+              >
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Warehouse
               </Button>
               <DrawerClose asChild>
-                <Button variant="outline" className="w-full sm:w-auto">Close</Button>
+                <Button variant="outline" className="w-full sm:w-auto">
+                  Close
+                </Button>
               </DrawerClose>
             </div>
           </DrawerFooter>
@@ -449,9 +473,7 @@ function WarehouseManagementPage() {
       <Drawer open={formDrawerOpen} onOpenChange={setFormDrawerOpen}>
         <DrawerContent side="left">
           <DrawerHeader>
-            <DrawerTitle>
-              {formMode === 'add' ? 'Add New Warehouse' : 'Edit Warehouse'}
-            </DrawerTitle>
+            <DrawerTitle>{formMode === 'add' ? 'Add New Warehouse' : 'Edit Warehouse'}</DrawerTitle>
             <DrawerDescription>
               {formMode === 'add'
                 ? 'Create a new warehouse location'
@@ -711,8 +733,10 @@ function WarehouseManagementPage() {
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       {formMode === 'add' ? 'Creating...' : 'Updating...'}
                     </>
+                  ) : formMode === 'add' ? (
+                    'Create Warehouse'
                   ) : (
-                    formMode === 'add' ? 'Create Warehouse' : 'Update Warehouse'
+                    'Update Warehouse'
                   )}
                 </Button>
                 <DrawerClose asChild>
@@ -732,11 +756,14 @@ function WarehouseManagementPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Warehouse?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{warehouseToDelete?.name}"? This action cannot be undone.
+              Are you sure you want to delete "{warehouseToDelete?.name}"? This action cannot be
+              undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteWarehouseMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteWarehouseMutation.isPending}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               disabled={deleteWarehouseMutation.isPending}

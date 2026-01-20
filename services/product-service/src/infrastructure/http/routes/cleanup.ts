@@ -1,6 +1,6 @@
-import { Hono } from 'hono';
+import { eq, isNull, notInArray } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, notInArray, isNull } from 'drizzle-orm';
+import { Hono } from 'hono';
 import { productLocations, productUOMLocations, variantLocations } from '../../db/schema';
 
 type Bindings = {
@@ -66,17 +66,17 @@ app.post('/orphaned-locations', async (c) => {
     const activeWarehouseIds = warehouseData.warehouses.map((w: any) => w.id);
 
     if (activeWarehouseIds.length === 0) {
-      return c.json({
-        error: 'No active warehouses found',
-        suggestion: 'Cannot perform cleanup without active warehouses',
-      }, 400);
+      return c.json(
+        {
+          error: 'No active warehouses found',
+          suggestion: 'Cannot perform cleanup without active warehouses',
+        },
+        400
+      );
     }
 
     // 1. Clean up orphaned productLocations
-    const allProductLocations = await db
-      .select()
-      .from(productLocations)
-      .all();
+    const allProductLocations = await db.select().from(productLocations).all();
 
     results.productLocations.checked = allProductLocations.length;
 
@@ -85,22 +85,18 @@ app.post('/orphaned-locations', async (c) => {
         results.productLocations.orphaned++;
 
         // Delete orphaned location
-        await db
-          .delete(productLocations)
-          .where(eq(productLocations.id, location.id))
-          .run();
+        await db.delete(productLocations).where(eq(productLocations.id, location.id)).run();
 
         results.productLocations.deleted++;
 
-        console.log(`Deleted orphaned product location: ${location.id} (warehouse: ${location.warehouseId})`);
+        console.log(
+          `Deleted orphaned product location: ${location.id} (warehouse: ${location.warehouseId})`
+        );
       }
     }
 
     // 2. Clean up orphaned productUOMLocations
-    const allUOMLocations = await db
-      .select()
-      .from(productUOMLocations)
-      .all();
+    const allUOMLocations = await db.select().from(productUOMLocations).all();
 
     results.productUOMLocations.checked = allUOMLocations.length;
 
@@ -108,22 +104,18 @@ app.post('/orphaned-locations', async (c) => {
       if (!activeWarehouseIds.includes(location.warehouseId)) {
         results.productUOMLocations.orphaned++;
 
-        await db
-          .delete(productUOMLocations)
-          .where(eq(productUOMLocations.id, location.id))
-          .run();
+        await db.delete(productUOMLocations).where(eq(productUOMLocations.id, location.id)).run();
 
         results.productUOMLocations.deleted++;
 
-        console.log(`Deleted orphaned UOM location: ${location.id} (warehouse: ${location.warehouseId})`);
+        console.log(
+          `Deleted orphaned UOM location: ${location.id} (warehouse: ${location.warehouseId})`
+        );
       }
     }
 
     // 3. Clean up orphaned variantLocations
-    const allVariantLocations = await db
-      .select()
-      .from(variantLocations)
-      .all();
+    const allVariantLocations = await db.select().from(variantLocations).all();
 
     results.variantLocations.checked = allVariantLocations.length;
 
@@ -131,14 +123,13 @@ app.post('/orphaned-locations', async (c) => {
       if (!activeWarehouseIds.includes(location.warehouseId)) {
         results.variantLocations.orphaned++;
 
-        await db
-          .delete(variantLocations)
-          .where(eq(variantLocations.id, location.id))
-          .run();
+        await db.delete(variantLocations).where(eq(variantLocations.id, location.id)).run();
 
         results.variantLocations.deleted++;
 
-        console.log(`Deleted orphaned variant location: ${location.id} (warehouse: ${location.warehouseId})`);
+        console.log(
+          `Deleted orphaned variant location: ${location.id} (warehouse: ${location.warehouseId})`
+        );
       }
     }
 
@@ -225,10 +216,7 @@ app.get('/orphaned-locations/check', async (c) => {
     const activeWarehouseIds = warehouseData.warehouses.map((w: any) => w.id);
 
     // Check productLocations
-    const allProductLocations = await db
-      .select()
-      .from(productLocations)
-      .all();
+    const allProductLocations = await db.select().from(productLocations).all();
 
     for (const location of allProductLocations) {
       if (!activeWarehouseIds.includes(location.warehouseId)) {
@@ -242,10 +230,7 @@ app.get('/orphaned-locations/check', async (c) => {
     }
 
     // Check productUOMLocations
-    const allUOMLocations = await db
-      .select()
-      .from(productUOMLocations)
-      .all();
+    const allUOMLocations = await db.select().from(productUOMLocations).all();
 
     for (const location of allUOMLocations) {
       if (!activeWarehouseIds.includes(location.warehouseId)) {
@@ -259,10 +244,7 @@ app.get('/orphaned-locations/check', async (c) => {
     }
 
     // Check variantLocations
-    const allVariantLocations = await db
-      .select()
-      .from(variantLocations)
-      .all();
+    const allVariantLocations = await db.select().from(variantLocations).all();
 
     for (const location of allVariantLocations) {
       if (!activeWarehouseIds.includes(location.warehouseId)) {
@@ -284,7 +266,10 @@ app.get('/orphaned-locations/check', async (c) => {
       totalOrphaned,
       orphanedLocations,
       activeWarehouses: activeWarehouseIds.length,
-      warning: totalOrphaned > 0 ? 'Orphaned locations found! Run POST /api/cleanup/orphaned-locations to delete them.' : null,
+      warning:
+        totalOrphaned > 0
+          ? 'Orphaned locations found! Run POST /api/cleanup/orphaned-locations to delete them.'
+          : null,
     });
   } catch (error) {
     console.error('Cleanup check error:', error);

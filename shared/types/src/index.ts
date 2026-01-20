@@ -13,7 +13,13 @@ export type UserRole = 'admin' | 'supplier' | 'retail_buyer' | 'wholesale_buyer'
 export type OrderType = 'retail' | 'wholesale';
 export type PaymentMethod = 'qris' | 'virtual_account' | 'credit_card';
 export type PaymentStatus = 'pending' | 'succeeded' | 'failed' | 'refunded';
-export type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+export type OrderStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'processing'
+  | 'shipped'
+  | 'delivered'
+  | 'cancelled';
 export type UserStatus = 'active' | 'inactive' | 'suspended';
 
 // ========================================
@@ -26,21 +32,21 @@ export interface Result<T, E = DomainError> {
   error?: E;
 }
 
-export class ResultFactory {
-  static ok<T>(value: T): Result<T, never> {
+export const ResultFactory = {
+  ok<T>(value: T): Result<T, never> {
     return {
       isSuccess: true,
       value,
     };
-  }
+  },
 
-  static fail<E = DomainError>(error: E): Result<never, E> {
+  fail<E = DomainError>(error: E): Result<never, E> {
     return {
       isSuccess: false,
       error,
     };
-  }
-}
+  },
+};
 
 // ========================================
 // DOMAIN ERRORS
@@ -54,21 +60,21 @@ export class DomainError extends Error {
 }
 
 export class InvalidPriceError extends DomainError {
-  constructor(message: string = 'Invalid price value') {
+  constructor(message = 'Invalid price value') {
     super(message);
     this.name = 'InvalidPriceError';
   }
 }
 
 export class InvalidSKUError extends DomainError {
-  constructor(message: string = 'Invalid SKU format') {
+  constructor(message = 'Invalid SKU format') {
     super(message);
     this.name = 'InvalidSKUError';
   }
 }
 
 export class InsufficientInventoryError extends DomainError {
-  constructor(message: string = 'Insufficient inventory') {
+  constructor(message = 'Insufficient inventory') {
     super(message);
     this.name = 'InsufficientInventoryError';
   }

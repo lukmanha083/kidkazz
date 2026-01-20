@@ -1,19 +1,19 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { useState, useEffect } from 'react';
-import {
-  BookOpen,
-  FileText,
-  BarChart3,
-  Scale,
-  PlusCircle,
-  TrendingUp,
-  Layers,
-  Clock,
-  Receipt,
-  Warehouse,
-  Users,
-} from 'lucide-react';
 import { accountingApi } from '@/lib/api';
+import { Link, createFileRoute } from '@tanstack/react-router';
+import {
+  BarChart3,
+  BookOpen,
+  Clock,
+  FileText,
+  Layers,
+  PlusCircle,
+  Receipt,
+  Scale,
+  TrendingUp,
+  Users,
+  Warehouse,
+} from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 
 export const Route = createFileRoute('/dashboard/accounting/')({
   component: AccountingDashboardPage,
@@ -30,11 +30,7 @@ function AccountingDashboardPage() {
   const [recentEntries, setRecentEntries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
-
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -45,9 +41,9 @@ function AccountingDashboardPage() {
 
       // Calculate stats
       const totalAccounts = accountsData.accounts.length;
-      const activeAccounts = accountsData.accounts.filter(a => a.status === 'Active').length;
-      const draftEntries = entriesData.journalEntries.filter(e => e.status === 'Draft').length;
-      const postedEntries = entriesData.journalEntries.filter(e => e.status === 'Posted').length;
+      const activeAccounts = accountsData.accounts.filter((a) => a.status === 'Active').length;
+      const draftEntries = entriesData.journalEntries.filter((e) => e.status === 'Draft').length;
+      const postedEntries = entriesData.journalEntries.filter((e) => e.status === 'Posted').length;
 
       setStats({
         totalAccounts,
@@ -62,7 +58,11 @@ function AccountingDashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
 
   const navigationCards = [
     {
@@ -149,9 +149,13 @@ function AccountingDashboardPage() {
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-card rounded-lg shadow-sm border border-border p-6 animate-pulse">
-              <div className="h-4 bg-muted rounded w-24 mb-2"></div>
-              <div className="h-8 bg-muted rounded w-16"></div>
+            <div
+              // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton loaders
+              key={`stat-skeleton-${i}`}
+              className="bg-card rounded-lg shadow-sm border border-border p-6 animate-pulse"
+            >
+              <div className="h-4 bg-muted rounded w-24 mb-2" />
+              <div className="h-8 bg-muted rounded w-16" />
             </div>
           ))}
         </div>
@@ -167,9 +171,7 @@ function AccountingDashboardPage() {
                 <Layers className="h-6 w-6 text-primary" />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              {stats.activeAccounts} active
-            </p>
+            <p className="text-xs text-muted-foreground mt-2">{stats.activeAccounts} active</p>
           </div>
 
           <div className="bg-card rounded-lg shadow-sm border border-border p-6">
@@ -182,9 +184,7 @@ function AccountingDashboardPage() {
                 <FileText className="h-6 w-6 text-primary" />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              Finalized transactions
-            </p>
+            <p className="text-xs text-muted-foreground mt-2">Finalized transactions</p>
           </div>
 
           <div className="bg-card rounded-lg shadow-sm border border-border p-6">
@@ -197,9 +197,7 @@ function AccountingDashboardPage() {
                 <Clock className="h-6 w-6 text-primary" />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              Pending review
-            </p>
+            <p className="text-xs text-muted-foreground mt-2">Pending review</p>
           </div>
 
           <div className="bg-card rounded-lg shadow-sm border border-border p-6">
@@ -214,9 +212,7 @@ function AccountingDashboardPage() {
                 <BarChart3 className="h-6 w-6 text-primary" />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              All transactions
-            </p>
+            <p className="text-xs text-muted-foreground mt-2">All transactions</p>
           </div>
         </div>
       )}
@@ -339,10 +335,14 @@ function AccountingDashboardPage() {
         {loading ? (
           <div className="space-y-3">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="animate-pulse flex gap-4 p-4 border border-border rounded">
-                <div className="h-4 bg-muted rounded w-24"></div>
-                <div className="h-4 bg-muted rounded flex-1"></div>
-                <div className="h-4 bg-muted rounded w-16"></div>
+              <div
+                // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton loaders
+                key={`entry-skeleton-${i}`}
+                className="animate-pulse flex gap-4 p-4 border border-border rounded"
+              >
+                <div className="h-4 bg-muted rounded w-24" />
+                <div className="h-4 bg-muted rounded flex-1" />
+                <div className="h-4 bg-muted rounded w-16" />
               </div>
             ))}
           </div>
@@ -383,8 +383,8 @@ function AccountingDashboardPage() {
                       entry.status === 'Posted'
                         ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                         : entry.status === 'Draft'
-                        ? 'bg-muted text-muted-foreground'
-                        : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                          ? 'bg-muted text-muted-foreground'
+                          : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                     }`}
                   >
                     {entry.status}

@@ -5,11 +5,11 @@
  * Uses R2 for storage and KV for CDN caching.
  */
 
-import { Hono } from 'hono';
-import { ImageService } from '../infrastructure/image-service';
-import { drizzle } from 'drizzle-orm/d1';
-import { productImages } from '../infrastructure/db/schema';
 import { eq } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/d1';
+import { Hono } from 'hono';
+import { productImages } from '../infrastructure/db/schema';
+import { ImageService } from '../infrastructure/image-service';
 
 type Bindings = {
   DB: D1Database;
@@ -61,34 +61,26 @@ app.post('/upload', async (c) => {
     const cropArea = cropAreaStr ? JSON.parse(cropAreaStr) : undefined;
     const watermark = watermarkStr ? JSON.parse(watermarkStr) : undefined;
     const isPrimary = isPrimaryStr === 'true';
-    const sortOrder = sortOrderStr ? parseInt(sortOrderStr, 10) : undefined;
+    const sortOrder = sortOrderStr ? Number.parseInt(sortOrderStr, 10) : undefined;
 
     // Initialize database
     const db = drizzle(c.env.DB);
 
     // Initialize image service
-    const imageService = new ImageService(
-      c.env.PRODUCT_IMAGES,
-      c.env.IMAGE_CACHE
-    );
+    const imageService = new ImageService(c.env.PRODUCT_IMAGES, c.env.IMAGE_CACHE);
 
     // Upload image to R2
-    const result = await imageService.uploadImage(
-      productId,
-      file,
-      file.type,
-      file.name,
-      {
-        cropArea,
-        watermark,
-        isPrimary,
-        sortOrder,
-      }
-    );
+    const result = await imageService.uploadImage(productId, file, file.type, file.name, {
+      cropArea,
+      watermark,
+      isPrimary,
+      sortOrder,
+    });
 
     // If this is set as primary, unset all other primary images for this product
     if (isPrimary) {
-      await db.update(productImages)
+      await db
+        .update(productImages)
         .set({ isPrimary: false })
         .where(eq(productImages.productId, productId));
     }
@@ -96,7 +88,8 @@ app.post('/upload', async (c) => {
     // Get the next sort order if not provided
     let finalSortOrder = sortOrder;
     if (finalSortOrder === undefined) {
-      const existingImages = await db.select()
+      const existingImages = await db
+        .select()
         .from(productImages)
         .where(eq(productImages.productId, productId));
       finalSortOrder = existingImages.length;
@@ -125,16 +118,19 @@ app.post('/upload', async (c) => {
       updatedAt: now,
     });
 
-    return c.json({
-      success: true,
-      message: 'Image uploaded successfully',
-      image: {
-        id: imageId,
-        filename: result.filename,
-        urls: result.sizes,
-        metadata: result.metadata,
+    return c.json(
+      {
+        success: true,
+        message: 'Image uploaded successfully',
+        image: {
+          id: imageId,
+          filename: result.filename,
+          urls: result.sizes,
+          metadata: result.metadata,
+        },
       },
-    }, 201);
+      201
+    );
   } catch (error) {
     console.error('Image upload error:', error);
 
@@ -157,14 +153,15 @@ app.get('/product/:productId', async (c) => {
     const db = drizzle(c.env.DB);
 
     // Fetch all images for the product, ordered by sortOrder
-    const images = await db.select()
+    const images = await db
+      .select()
       .from(productImages)
       .where(eq(productImages.productId, productId))
       .orderBy(productImages.sortOrder);
 
     return c.json({
       success: true,
-      images: images.map(img => ({
+      images: images.map((img) => ({
         id: img.id,
         productId: img.productId,
         filename: img.filename,
@@ -209,10 +206,7 @@ app.get('/:filename{.+}', async (c) => {
     const size = c.req.query('size') as 'thumbnail' | 'medium' | 'large' | undefined;
 
     // Initialize image service
-    const imageService = new ImageService(
-      c.env.PRODUCT_IMAGES,
-      c.env.IMAGE_CACHE
-    );
+    const imageService = new ImageService(c.env.PRODUCT_IMAGES, c.env.IMAGE_CACHE);
 
     // Get image
     const result = await imageService.getImage(filename, size);
@@ -250,9 +244,7 @@ app.delete('/image/:imageId', async (c) => {
     const db = drizzle(c.env.DB);
 
     // Get image metadata from database
-    const images = await db.select()
-      .from(productImages)
-      .where(eq(productImages.id, imageId));
+    const images = await db.select().from(productImages).where(eq(productImages.id, imageId));
 
     if (images.length === 0) {
       return c.json({ error: 'Image not found' }, 404);
@@ -261,17 +253,13 @@ app.delete('/image/:imageId', async (c) => {
     const image = images[0];
 
     // Initialize image service
-    const imageService = new ImageService(
-      c.env.PRODUCT_IMAGES,
-      c.env.IMAGE_CACHE
-    );
+    const imageService = new ImageService(c.env.PRODUCT_IMAGES, c.env.IMAGE_CACHE);
 
     // Delete image from R2 and cache
     await imageService.deleteImage(image.filename);
 
     // Delete from database
-    await db.delete(productImages)
-      .where(eq(productImages.id, imageId));
+    await db.delete(productImages).where(eq(productImages.id, imageId));
 
     return c.json({
       success: true,
@@ -294,17 +282,13 @@ app.delete('/product/delete/:productId', async (c) => {
     const db = drizzle(c.env.DB);
 
     // Initialize image service
-    const imageService = new ImageService(
-      c.env.PRODUCT_IMAGES,
-      c.env.IMAGE_CACHE
-    );
+    const imageService = new ImageService(c.env.PRODUCT_IMAGES, c.env.IMAGE_CACHE);
 
     // Delete all product images from R2
     await imageService.deleteProductImages(productId);
 
     // Delete all product images from database
-    await db.delete(productImages)
-      .where(eq(productImages.productId, productId));
+    await db.delete(productImages).where(eq(productImages.productId, productId));
 
     return c.json({
       success: true,
@@ -326,10 +310,7 @@ app.get('/metadata/:filename{.+}', async (c) => {
     const filename = c.req.param('filename');
 
     // Initialize image service
-    const imageService = new ImageService(
-      c.env.PRODUCT_IMAGES,
-      c.env.IMAGE_CACHE
-    );
+    const imageService = new ImageService(c.env.PRODUCT_IMAGES, c.env.IMAGE_CACHE);
 
     // Get metadata
     const metadata = await imageService.getImageMetadata(filename);

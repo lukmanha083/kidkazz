@@ -104,12 +104,7 @@ export const batchStatusSchema = z.enum([
 /**
  * Batch expiration filter enum
  */
-export const batchExpirationFilterSchema = z.enum([
-  'all',
-  'expired',
-  'expiring-7',
-  'expiring-30',
-]);
+export const batchExpirationFilterSchema = z.enum(['all', 'expired', 'expiring-7', 'expiring-30']);
 
 /**
  * Batch list search parameters

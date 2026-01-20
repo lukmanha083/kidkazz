@@ -11,13 +11,13 @@
  * - Type-safe API calls
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  variantApi,
-  inventoryApi,
+  type CreateVariantInput,
   type ProductVariant,
   type VariantWithInventory,
-  type CreateVariantInput,
+  inventoryApi,
+  variantApi,
 } from '../../lib/api';
 import { queryKeys } from '../../lib/query-client';
 
@@ -27,10 +27,7 @@ import { queryKeys } from '../../lib/query-client';
  * @param productId - Optional product ID to filter variants
  * @param options.enabled - Enable/disable query (default: true)
  */
-export function useVariants(
-  productId?: string,
-  options?: { enabled?: boolean }
-) {
+export function useVariants(productId?: string, options?: { enabled?: boolean }) {
   const { enabled = true } = options || {};
 
   return useQuery({
@@ -46,10 +43,7 @@ export function useVariants(
  * @param productId - Optional product ID to filter variants
  * @param options.enabled - Enable/disable query (default: true)
  */
-export function useVariantsWithInventory(
-  productId?: string,
-  options?: { enabled?: boolean }
-) {
+export function useVariantsWithInventory(productId?: string, options?: { enabled?: boolean }) {
   const { enabled = true } = options || {};
 
   return useQuery({
@@ -165,37 +159,24 @@ export function useUpdateVariant() {
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.variants.all });
 
-      const previousVariants = queryClient.getQueryData(
-        queryKeys.variants.lists()
-      );
-      const previousVariant = queryClient.getQueryData(
-        queryKeys.variants.detail(id)
-      );
+      const previousVariants = queryClient.getQueryData(queryKeys.variants.lists());
+      const previousVariant = queryClient.getQueryData(queryKeys.variants.detail(id));
 
       // Update detail cache
-      queryClient.setQueryData(
-        queryKeys.variants.detail(id),
-        (old: ProductVariant | undefined) => {
-          if (!old) return old;
-          return { ...old, ...data, updatedAt: new Date() };
-        }
-      );
+      queryClient.setQueryData(queryKeys.variants.detail(id), (old: ProductVariant | undefined) => {
+        if (!old) return old;
+        return { ...old, ...data, updatedAt: new Date() };
+      });
 
       return { previousVariants, previousVariant };
     },
 
     onError: (err, { id }, context) => {
       if (context?.previousVariants) {
-        queryClient.setQueryData(
-          queryKeys.variants.lists(),
-          context.previousVariants
-        );
+        queryClient.setQueryData(queryKeys.variants.lists(), context.previousVariants);
       }
       if (context?.previousVariant) {
-        queryClient.setQueryData(
-          queryKeys.variants.detail(id),
-          context.previousVariant
-        );
+        queryClient.setQueryData(queryKeys.variants.detail(id), context.previousVariant);
       }
     },
 

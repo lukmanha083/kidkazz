@@ -1,6 +1,6 @@
+import { type Result, ResultFactory, ValidationError } from '@kidkazz/types';
 import { hash } from 'bcryptjs';
-import { User, UserType } from '../../domain/entities/User';
-import { Result, ResultFactory, ValidationError } from '@kidkazz/types';
+import { User, type UserType } from '../../domain/entities/User';
 
 export interface IUserRepository {
   save(user: User): Promise<Result<void>>;
@@ -86,9 +86,7 @@ export class RegisterUserUseCase {
     }
 
     if (!input.password || input.password.length < 8) {
-      return ResultFactory.fail(
-        new ValidationError('Password must be at least 8 characters')
-      );
+      return ResultFactory.fail(new ValidationError('Password must be at least 8 characters'));
     }
 
     if (!input.fullName || input.fullName.trim().length === 0) {

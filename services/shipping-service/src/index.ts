@@ -1,7 +1,7 @@
+import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
-import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { JETClient } from './infrastructure/integrations/JETClient';
 
@@ -17,11 +17,14 @@ const app = new Hono<{ Bindings: Bindings }>();
 
 // Middleware
 app.use('/*', logger());
-app.use('/*', cors({
-  origin: '*',
-  allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization'],
-}));
+app.use(
+  '/*',
+  cors({
+    origin: '*',
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+  })
+);
 
 // Health check
 app.get('/health', (c) => {
@@ -157,12 +160,15 @@ app.post('/api/shipping/shipments', zValidator('json', createShipmentSchema), as
 
     // TODO: Save shipment to database
 
-    return c.json({
-      success: true,
-      data: order,
-      mode: c.env.JET_MODE || 'sandbox',
-      note: 'Using placeholder data - waiting for JET sandbox credentials',
-    }, 201);
+    return c.json(
+      {
+        success: true,
+        data: order,
+        mode: c.env.JET_MODE || 'sandbox',
+        note: 'Using placeholder data - waiting for JET sandbox credentials',
+      },
+      201
+    );
   } catch (error) {
     console.error('Error creating shipment:', error);
     return c.json(
@@ -247,20 +253,26 @@ app.post('/api/shipping/shipments/:id/cancel', async (c) => {
 
 // 404 handler
 app.notFound((c) => {
-  return c.json({
-    error: 'Not Found',
-    message: 'The requested endpoint does not exist',
-    path: c.req.url,
-  }, 404);
+  return c.json(
+    {
+      error: 'Not Found',
+      message: 'The requested endpoint does not exist',
+      path: c.req.url,
+    },
+    404
+  );
 });
 
 // Error handler
 app.onError((err, c) => {
   console.error('Shipping Service Error:', err);
-  return c.json({
-    error: 'Internal Server Error',
-    message: err.message,
-  }, 500);
+  return c.json(
+    {
+      error: 'Internal Server Error',
+      message: err.message,
+    },
+    500
+  );
 });
 
 export default app;

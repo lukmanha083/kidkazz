@@ -267,9 +267,7 @@ async function seedBatches(
   }
 
   // Create batches for perishable products (formula milk)
-  const formulaInventory = inventoryRecords.filter((inv: any) =>
-    inv.productId === 'prod-002'
-  );
+  const formulaInventory = inventoryRecords.filter((inv: any) => inv.productId === 'prod-002');
 
   for (const inv of formulaInventory) {
     // Create batch expiring in 30 days
@@ -302,7 +300,9 @@ async function seedBatches(
 
       if (response.ok) {
         count++;
-        console.log(`   ✅ Created batch for product ${inv.productId} in warehouse ${inv.warehouseId}`);
+        console.log(
+          `   ✅ Created batch for product ${inv.productId} in warehouse ${inv.warehouseId}`
+        );
       } else {
         const error = await response.text();
         errors.push(`Failed to create batch: ${error}`);
@@ -341,10 +341,10 @@ async function seedBatches(
 
       if (response.ok) {
         count++;
-        console.log(`   ✅ Created expiring-soon batch for testing`);
+        console.log('   ✅ Created expiring-soon batch for testing');
       }
     } catch (error) {
-      console.log(`   ⚠️ Could not create expiring-soon batch`);
+      console.log('   ⚠️ Could not create expiring-soon batch');
     }
   }
 
@@ -357,7 +357,7 @@ async function main(): Promise<void> {
   const { inventoryUrl, clean } = parseArgs(args);
 
   console.log('\n🌱 Seed Test Data Script');
-  console.log('=' .repeat(60));
+  console.log('='.repeat(60));
   console.log(`Inventory Service: ${inventoryUrl}`);
   console.log('='.repeat(60));
 
@@ -401,7 +401,7 @@ async function main(): Promise<void> {
   }
 
   // Print summary
-  console.log('\n' + '='.repeat(60));
+  console.log(`\n${'='.repeat(60)}`);
   console.log('📋 SEED SUMMARY');
   console.log('='.repeat(60));
   console.log(`   Warehouses created: ${result.warehouses}`);

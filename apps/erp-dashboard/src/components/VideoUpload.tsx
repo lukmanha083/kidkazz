@@ -11,25 +11,24 @@
  * - Shadcn UI components with dark mode support
  */
 
-import { useCallback, useState, useRef } from 'react';
-import {
-  Upload,
-  X,
-  Film,
-  Loader2,
-  Cloud,
-  HardDrive,
-  AlertCircle,
-  CheckCircle2,
-} from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import {
+  AlertCircle,
+  CheckCircle2,
+  Cloud,
+  Film,
+  HardDrive,
+  Loader2,
+  Upload,
+  X,
+} from 'lucide-react';
+import { useCallback, useRef, useState } from 'react';
 
-const PRODUCT_SERVICE_URL =
-  import.meta.env.VITE_PRODUCT_SERVICE_URL || 'http://localhost:8788';
+const PRODUCT_SERVICE_URL = import.meta.env.VITE_PRODUCT_SERVICE_URL || 'http://localhost:8788';
 
 export interface VideoUploadResult {
   videoId?: string;
@@ -100,55 +99,59 @@ export function VideoUpload({
   /**
    * Validate file
    */
-  const validateFile = (file: File): string | null => {
-    // Check file type
-    const allowedTypes = [
-      'video/mp4',
-      'video/webm',
-      'video/quicktime',
-      'video/x-msvideo',
-      'video/x-matroska',
-    ];
-    if (!allowedTypes.includes(file.type)) {
-      return 'Invalid file type. Please upload MP4, WebM, MOV, AVI, or MKV.';
-    }
+  const validateFile = useCallback(
+    (file: File): string | null => {
+      // Check file type
+      const allowedTypes = [
+        'video/mp4',
+        'video/webm',
+        'video/quicktime',
+        'video/x-msvideo',
+        'video/x-matroska',
+      ];
+      if (!allowedTypes.includes(file.type)) {
+        return 'Invalid file type. Please upload MP4, WebM, MOV, AVI, or MKV.';
+      }
 
-    // Check file size
-    const maxSize = maxSizeMB * 1024 * 1024;
-    if (file.size > maxSize) {
-      return `File too large. Maximum size is ${maxSizeMB}MB.`;
-    }
+      // Check file size
+      const maxSize = maxSizeMB * 1024 * 1024;
+      if (file.size > maxSize) {
+        return `File too large. Maximum size is ${maxSizeMB}MB.`;
+      }
 
-    return null;
-  };
+      return null;
+    },
+    [maxSizeMB]
+  );
 
   /**
    * Get video metadata
    */
-  const getVideoMetadata = (
-    file: File
-  ): Promise<{ duration: number; width: number; height: number }> => {
-    return new Promise((resolve, reject) => {
-      const video = document.createElement('video');
-      video.preload = 'metadata';
+  const getVideoMetadata = useCallback(
+    (file: File): Promise<{ duration: number; width: number; height: number }> => {
+      return new Promise((resolve, reject) => {
+        const video = document.createElement('video');
+        video.preload = 'metadata';
 
-      video.onloadedmetadata = () => {
-        resolve({
-          duration: video.duration,
-          width: video.videoWidth,
-          height: video.videoHeight,
-        });
-        URL.revokeObjectURL(video.src);
-      };
+        video.onloadedmetadata = () => {
+          resolve({
+            duration: video.duration,
+            width: video.videoWidth,
+            height: video.videoHeight,
+          });
+          URL.revokeObjectURL(video.src);
+        };
 
-      video.onerror = () => {
-        reject(new Error('Failed to load video metadata'));
-        URL.revokeObjectURL(video.src);
-      };
+        video.onerror = () => {
+          reject(new Error('Failed to load video metadata'));
+          URL.revokeObjectURL(video.src);
+        };
 
-      video.src = URL.createObjectURL(file);
-    });
-  };
+        video.src = URL.createObjectURL(file);
+      });
+    },
+    []
+  );
 
   /**
    * Compress video (basic implementation)
@@ -197,7 +200,7 @@ export function VideoUpload({
 
       setSelectedFile(file);
     },
-    [maxSizeMB, onUploadError]
+    [onUploadError, getVideoMetadata, validateFile]
   );
 
   /**
@@ -378,6 +381,7 @@ export function VideoUpload({
             <span className="text-xs font-medium text-muted-foreground">Upload Mode</span>
             <div className="flex gap-2">
               <Button
+                type="button"
                 variant={uploadMode === 'stream' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => handleModeChange('stream')}
@@ -388,6 +392,7 @@ export function VideoUpload({
                 Stream
               </Button>
               <Button
+                type="button"
                 variant={uploadMode === 'r2' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => handleModeChange('r2')}
@@ -420,6 +425,14 @@ export function VideoUpload({
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             onClick={!isUploading && !preview ? handleClick : undefined}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !isUploading && !preview) {
+                handleClick();
+              }
+            }}
+            // biome-ignore lint/a11y/useSemanticElements lint/a11y/noNoninteractiveTabindex: drag-drop area
+            role="button"
+            tabIndex={0}
           >
             {isUploading ? (
               <div className="flex flex-col items-center gap-3">
@@ -429,6 +442,7 @@ export function VideoUpload({
                 </p>
                 <Progress value={uploadProgress} className="w-full max-w-xs" />
                 <Button
+                  type="button"
                   variant="outline"
                   size="sm"
                   onClick={(e: React.MouseEvent) => {
@@ -441,6 +455,7 @@ export function VideoUpload({
               </div>
             ) : preview ? (
               <div className="relative">
+                {/* biome-ignore lint/a11y/useMediaCaption: video preview before upload, no captions available */}
                 <video
                   ref={videoPreviewRef}
                   src={preview}
@@ -448,6 +463,7 @@ export function VideoUpload({
                   controls
                 />
                 <Button
+                  type="button"
                   variant="destructive"
                   size="icon"
                   className="absolute top-2 right-2 rounded-full"
@@ -466,13 +482,9 @@ export function VideoUpload({
                       <Badge variant="secondary">
                         {videoInfo.width} × {videoInfo.height}
                       </Badge>
-                      <Badge variant="secondary">
-                        {formatDuration(videoInfo.duration)}
-                      </Badge>
+                      <Badge variant="secondary">{formatDuration(videoInfo.duration)}</Badge>
                       {selectedFile && (
-                        <Badge variant="secondary">
-                          {formatFileSize(selectedFile.size)}
-                        </Badge>
+                        <Badge variant="secondary">{formatFileSize(selectedFile.size)}</Badge>
                       )}
                     </div>
                   </div>
@@ -489,6 +501,7 @@ export function VideoUpload({
                   </div>
                 ) : (
                   <Button
+                    type="button"
                     onClick={(e: React.MouseEvent) => {
                       e.stopPropagation();
                       uploadVideo();

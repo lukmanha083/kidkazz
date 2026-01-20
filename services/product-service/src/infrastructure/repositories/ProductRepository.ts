@@ -1,7 +1,7 @@
+import { and, eq, like, or } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, like, or, and } from 'drizzle-orm';
-import { IProductRepository } from '../../domain/repositories/IProductRepository';
 import { Product } from '../../domain/entities/Product';
+import type { IProductRepository } from '../../domain/repositories/IProductRepository';
 import { products } from '../db/schema';
 
 /**
@@ -15,11 +15,7 @@ export class ProductRepository implements IProductRepository {
   }
 
   async findById(id: string): Promise<Product | null> {
-    const result = await this.db
-      .select()
-      .from(products)
-      .where(eq(products.id, id))
-      .get();
+    const result = await this.db.select().from(products).where(eq(products.id, id)).get();
 
     if (!result) {
       return null;
@@ -29,11 +25,7 @@ export class ProductRepository implements IProductRepository {
   }
 
   async findBySKU(sku: string): Promise<Product | null> {
-    const result = await this.db
-      .select()
-      .from(products)
-      .where(eq(products.sku, sku))
-      .get();
+    const result = await this.db.select().from(products).where(eq(products.sku, sku)).get();
 
     if (!result) {
       return null;
@@ -43,11 +35,7 @@ export class ProductRepository implements IProductRepository {
   }
 
   async findByBarcode(barcode: string): Promise<Product | null> {
-    const result = await this.db
-      .select()
-      .from(products)
-      .where(eq(products.barcode, barcode))
-      .get();
+    const result = await this.db.select().from(products).where(eq(products.barcode, barcode)).get();
 
     if (!result) {
       return null;
@@ -89,7 +77,7 @@ export class ProductRepository implements IProductRepository {
 
     const results = await query.all();
 
-    return results.map(r => Product.reconstitute(r as any));
+    return results.map((r) => Product.reconstitute(r as any));
   }
 
   async findByCategory(categoryId: string): Promise<Product[]> {
@@ -99,18 +87,14 @@ export class ProductRepository implements IProductRepository {
       .where(eq(products.categoryId, categoryId))
       .all();
 
-    return results.map(r => Product.reconstitute(r as any));
+    return results.map((r) => Product.reconstitute(r as any));
   }
 
   async save(product: Product): Promise<void> {
     const data = product.toData();
 
     // Check if product exists
-    const existing = await this.db
-      .select()
-      .from(products)
-      .where(eq(products.id, data.id))
-      .get();
+    const existing = await this.db.select().from(products).where(eq(products.id, data.id)).get();
 
     if (existing) {
       // Update
@@ -124,7 +108,10 @@ export class ProductRepository implements IProductRepository {
         .run();
     } else {
       // Insert
-      await this.db.insert(products).values(data as any).run();
+      await this.db
+        .insert(products)
+        .values(data as any)
+        .run();
     }
   }
 

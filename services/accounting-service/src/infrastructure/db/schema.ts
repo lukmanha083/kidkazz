@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
+import { integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 /**
  * Chart of Accounts table
@@ -12,31 +12,35 @@ export const chartOfAccounts = sqliteTable('chart_of_accounts', {
 
   // Account Type and Classification
   accountType: text('account_type', {
-    enum: ['Asset', 'Liability', 'Equity', 'Revenue', 'COGS', 'Expense']
+    enum: ['Asset', 'Liability', 'Equity', 'Revenue', 'COGS', 'Expense'],
   }).notNull(),
   normalBalance: text('normal_balance', {
-    enum: ['Debit', 'Credit']
+    enum: ['Debit', 'Credit'],
   }).notNull(),
 
   // Financial Statement Classification
   // BALANCE_SHEET: Assets (1000-1999), Liabilities (2000-2999), Equity (3000-3999)
   // INCOME_STATEMENT: Revenue (4000-4999), COGS (5000-5999), Expenses (6000-8999)
   financialStatementType: text('financial_statement_type', {
-    enum: ['BALANCE_SHEET', 'INCOME_STATEMENT']
+    enum: ['BALANCE_SHEET', 'INCOME_STATEMENT'],
   }).notNull(),
 
   currency: text('currency').default('IDR').notNull(),
 
   // Hierarchy (for sub-accounts)
-  parentAccountId: text('parent_account_id').references((): any => chartOfAccounts.id, { onDelete: 'restrict' }),
+  parentAccountId: text('parent_account_id').references((): any => chartOfAccounts.id, {
+    onDelete: 'restrict',
+  }),
   level: integer('level').default(0).notNull(), // 0 = top level, 1 = sub, 2 = sub-sub
   isDetailAccount: integer('is_detail_account', { mode: 'boolean' }).default(true).notNull(), // Can post transactions?
   isSystemAccount: integer('is_system_account', { mode: 'boolean' }).default(false).notNull(), // Protected from deletion
 
   // Status
   status: text('status', {
-    enum: ['Active', 'Inactive', 'Archived']
-  }).default('Active').notNull(),
+    enum: ['Active', 'Inactive', 'Archived'],
+  })
+    .default('Active')
+    .notNull(),
 
   // Audit fields
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
@@ -61,11 +65,15 @@ export const journalEntries = sqliteTable('journal_entries', {
 
   // Type and Status
   entryType: text('entry_type', {
-    enum: ['Manual', 'System', 'Recurring', 'Adjusting', 'Closing']
-  }).default('Manual').notNull(),
+    enum: ['Manual', 'System', 'Recurring', 'Adjusting', 'Closing'],
+  })
+    .default('Manual')
+    .notNull(),
   status: text('status', {
-    enum: ['Draft', 'Posted', 'Voided']
-  }).default('Draft').notNull(),
+    enum: ['Draft', 'Posted', 'Voided'],
+  })
+    .default('Draft')
+    .notNull(),
 
   // Source tracking (which service/module created this entry)
   sourceService: text('source_service'), // 'order-service', 'inventory-service', 'manual'
@@ -102,7 +110,7 @@ export const journalLines = sqliteTable('journal_lines', {
 
   // Amount and Direction
   direction: text('direction', {
-    enum: ['Debit', 'Credit']
+    enum: ['Debit', 'Credit'],
   }).notNull(),
   amount: real('amount').notNull(), // Always positive, direction determines +/-
 
@@ -118,7 +126,7 @@ export const journalLines = sqliteTable('journal_lines', {
 
   // Segment 3: Sales Channel (POS, Online, B2B, Marketplace)
   salesChannel: text('sales_channel', {
-    enum: ['POS', 'Online', 'B2B', 'Marketplace', 'Wholesale']
+    enum: ['POS', 'Online', 'B2B', 'Marketplace', 'Wholesale'],
   }),
 
   // Additional tracking fields

@@ -3,7 +3,7 @@
  * Events represent things that have happened in the domain
  */
 
-import { ProductId } from '../types';
+import type { ProductId } from '../types';
 
 /**
  * Base Domain Event interface

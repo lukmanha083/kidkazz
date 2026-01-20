@@ -1,4 +1,4 @@
-import { DomainEvent } from '@kidkazz/ddd-core';
+import type { DomainEvent } from '@kidkazz/ddd-core';
 
 /**
  * Event Publisher for publishing domain events to Cloudflare Queue
@@ -33,7 +33,7 @@ export class EventPublisher {
 
     try {
       // Publish events in batch
-      await Promise.all(events.map(event => this.publish(event)));
+      await Promise.all(events.map((event) => this.publish(event)));
     } catch (error) {
       console.error('❌ Failed to publish events batch', error);
       throw error;

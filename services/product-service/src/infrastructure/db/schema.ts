@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
+import { integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 /**
  * Categories table
@@ -101,7 +101,7 @@ export const products = sqliteTable('products', {
   // Costing
   costPrice: real('cost_price'), // Actual cost (vs selling price)
   costingMethod: text('costing_method', {
-    enum: ['FIFO', 'LIFO', 'Average', 'Standard']
+    enum: ['FIFO', 'LIFO', 'Average', 'Standard'],
   }).default('Average'),
 
   // Tax

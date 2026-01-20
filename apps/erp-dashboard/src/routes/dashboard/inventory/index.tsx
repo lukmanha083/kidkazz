@@ -1,12 +1,23 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Warehouse, Package, AlertCircle, TrendingDown, Loader2, Calendar, FileText } from 'lucide-react';
+import {
+  WarehouseDetailModal,
+  type WarehouseStockDetail,
+} from '@/components/products/WarehouseDetailModal';
 import { Badge } from '@/components/ui/badge';
-import { inventoryApi, warehouseApi, productApi, productLocationApi } from '@/lib/api';
-import { WarehouseDetailModal, type WarehouseStockDetail } from '@/components/products/WarehouseDetailModal';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { inventoryApi, productApi, productLocationApi, warehouseApi } from '@/lib/api';
+import { useQuery } from '@tanstack/react-query';
+import { Link, createFileRoute } from '@tanstack/react-router';
+import {
+  AlertCircle,
+  Calendar,
+  FileText,
+  Loader2,
+  Package,
+  TrendingDown,
+  Warehouse,
+} from 'lucide-react';
+import { useState } from 'react';
 
 export const Route = createFileRoute('/dashboard/inventory/')({
   component: InventoryPage,
@@ -63,19 +74,21 @@ function InventoryPage() {
 
   // Helper function to get product details
   const getProduct = (productId: string) => {
-    return products.find(p => p.id === productId);
+    return products.find((p) => p.id === productId);
   };
 
   // Helper function to get warehouse details
   const getWarehouse = (warehouseId: string) => {
-    return warehouses.find(w => w.id === warehouseId);
+    return warehouses.find((w) => w.id === warehouseId);
   };
 
   // Calculate warehouse-specific inventory
-  const warehouseInventory = warehouses.map(warehouse => {
-    const warehouseItems = inventory.filter(inv => inv.warehouseId === warehouse.id);
+  const warehouseInventory = warehouses.map((warehouse) => {
+    const warehouseItems = inventory.filter((inv) => inv.warehouseId === warehouse.id);
     const totalItems = warehouseItems.reduce((sum, inv) => sum + inv.quantityAvailable, 0);
-    const lowStockCount = warehouseItems.filter(inv => inv.quantityAvailable < inv.minimumStock).length;
+    const lowStockCount = warehouseItems.filter(
+      (inv) => inv.quantityAvailable < inv.minimumStock
+    ).length;
 
     // Calculate total value
     const totalValue = warehouseItems.reduce((sum, inv) => {
@@ -86,7 +99,7 @@ function InventoryPage() {
     return {
       id: warehouse.id,
       name: warehouse.name,
-      location: `${warehouse.city}${warehouse.province ? ', ' + warehouse.province : ''}`,
+      location: `${warehouse.city}${warehouse.province ? `, ${warehouse.province}` : ''}`,
       totalItems,
       lowStock: lowStockCount,
       value: formatRupiah(totalValue),
@@ -99,15 +112,18 @@ function InventoryPage() {
     const product = getProduct(inv.productId);
     return sum + (product ? product.price * inv.quantityAvailable : 0);
   }, 0);
-  const lowStockItemsCount = inventory.filter(inv => inv.quantityAvailable < inv.minimumStock).length;
+  const lowStockItemsCount = inventory.filter(
+    (inv) => inv.quantityAvailable < inv.minimumStock
+  ).length;
 
   // Get low stock items with details
   const lowStockItems = inventory
-    .filter(inv => inv.quantityAvailable < inv.minimumStock)
-    .map(inv => {
+    .filter((inv) => inv.quantityAvailable < inv.minimumStock)
+    .map((inv) => {
       const product = getProduct(inv.productId);
       const warehouse = getWarehouse(inv.warehouseId);
-      const status = inv.quantityAvailable <= Math.floor(inv.minimumStock * 0.4) ? 'Critical' : 'Low';
+      const status =
+        inv.quantityAvailable <= Math.floor(inv.minimumStock * 0.4) ? 'Critical' : 'Low';
 
       return {
         productId: inv.productId,
@@ -134,7 +150,7 @@ function InventoryPage() {
 
   // Group expiring products by warehouse
   const expiringProductsByWarehouse = inventory
-    .map(inv => {
+    .map((inv) => {
       const product = getProduct(inv.productId);
       const warehouse = getWarehouse(inv.warehouseId);
 
@@ -145,7 +161,9 @@ function InventoryPage() {
 
       if (expirationDate < today || expirationDate > thirtyDaysFromNow) return null;
 
-      const daysUntilExpiration = Math.ceil((expirationDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      const daysUntilExpiration = Math.ceil(
+        (expirationDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+      );
 
       return {
         productId: inv.productId,
@@ -160,13 +178,13 @@ function InventoryPage() {
       };
     })
     .filter(Boolean)
-    .sort((a, b) => (a!.daysUntilExpiration - b!.daysUntilExpiration));
+    .sort((a, b) => a?.daysUntilExpiration - b?.daysUntilExpiration);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   };
 
@@ -219,7 +237,9 @@ function InventoryPage() {
                 Warehouse-Specific Inventory Data
               </h3>
               <p className="text-sm text-blue-800 dark:text-blue-200">
-                This <strong>Inventory Report</strong> shows detailed warehouse-specific data including stock levels, alerts, and expiration dates broken down by each warehouse location.
+                This <strong>Inventory Report</strong> shows detailed warehouse-specific data
+                including stock levels, alerts, and expiration dates broken down by each warehouse
+                location.
               </p>
             </div>
           </div>
@@ -275,26 +295,28 @@ function InventoryPage() {
                 const locationPromises = inventory.map(async (inv) => {
                   try {
                     const locations = await productLocationApi.getByProduct(inv.productId);
-                    return locations.locations.filter(loc => loc.quantity > 0);
+                    return locations.locations.filter((loc) => loc.quantity > 0);
                   } catch {
                     return [];
                   }
                 });
                 const allLocations = (await Promise.all(locationPromises)).flat();
 
-                const warehouseStocks: WarehouseStockDetail[] = warehouses.map(wh => {
-                  const whLocations = allLocations.filter(loc => loc.warehouseId === wh.id);
-                  const totalQty = whLocations.reduce((sum, loc) => sum + loc.quantity, 0);
-                  return {
-                    warehouseId: wh.id,
-                    warehouseName: wh.name,
-                    quantity: totalQty,
-                    rack: whLocations[0]?.rack,
-                    bin: whLocations[0]?.bin,
-                    zone: whLocations[0]?.zone,
-                    aisle: whLocations[0]?.aisle,
-                  };
-                }).filter(ws => ws.quantity > 0);
+                const warehouseStocks: WarehouseStockDetail[] = warehouses
+                  .map((wh) => {
+                    const whLocations = allLocations.filter((loc) => loc.warehouseId === wh.id);
+                    const totalQty = whLocations.reduce((sum, loc) => sum + loc.quantity, 0);
+                    return {
+                      warehouseId: wh.id,
+                      warehouseName: wh.name,
+                      quantity: totalQty,
+                      rack: whLocations[0]?.rack,
+                      bin: whLocations[0]?.bin,
+                      zone: whLocations[0]?.zone,
+                      aisle: whLocations[0]?.aisle,
+                    };
+                  })
+                  .filter((ws) => ws.quantity > 0);
 
                 setWarehouseModalData({
                   title: 'All Warehouses Stock Breakdown',
@@ -337,7 +359,9 @@ function InventoryPage() {
                 <CardContent className="space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Total Items</span>
-                    <span className="text-lg font-bold">{warehouse.totalItems.toLocaleString()}</span>
+                    <span className="text-lg font-bold">
+                      {warehouse.totalItems.toLocaleString()}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Inventory Value</span>
@@ -348,7 +372,9 @@ function InventoryPage() {
                       <TrendingDown className="h-3 w-3" />
                       Low Stock
                     </span>
-                    <span className="text-sm font-medium text-destructive">{warehouse.lowStock} items</span>
+                    <span className="text-sm font-medium text-destructive">
+                      {warehouse.lowStock} items
+                    </span>
                   </div>
                 </CardContent>
               </Card>
@@ -367,22 +393,25 @@ function InventoryPage() {
                   <Calendar className="h-5 w-5 text-orange-600" />
                   Products Expiring Soon (By Warehouse)
                 </CardTitle>
-                <CardDescription>Products expiring within the next 30 days, broken down by warehouse location</CardDescription>
+                <CardDescription>
+                  Products expiring within the next 30 days, broken down by warehouse location
+                </CardDescription>
               </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  const warehouseStocks: WarehouseStockDetail[] = expiringProductsByWarehouse
-                    .map(item => ({
-                      warehouseId: item!.warehouseId,
-                      warehouseName: item!.warehouse,
-                      quantity: item!.stock,
+                  const warehouseStocks: WarehouseStockDetail[] = expiringProductsByWarehouse.map(
+                    (item) => ({
+                      warehouseId: item?.warehouseId,
+                      warehouseName: item?.warehouse,
+                      quantity: item?.stock,
                       rack: null,
                       bin: null,
                       zone: null,
                       aisle: null,
-                    }));
+                    })
+                  );
 
                   setWarehouseModalData({
                     title: 'Expiring Products by Warehouse',
@@ -402,25 +431,25 @@ function InventoryPage() {
           <CardContent>
             <div className="space-y-2">
               {expiringProductsByWarehouse.map((item, index) => {
-                const isUrgent = item!.daysUntilExpiration <= 7;
-                const isWarning = item!.daysUntilExpiration <= 14 && item!.daysUntilExpiration > 7;
+                const isUrgent = item?.daysUntilExpiration <= 7;
+                const isWarning = item?.daysUntilExpiration <= 14 && item?.daysUntilExpiration > 7;
 
                 return (
                   <div
-                    key={`${item!.productId}-${item!.warehouseId}-${index}`}
+                    key={`${item?.productId}-${item?.warehouseId}-${index}`}
                     className={`flex items-center justify-between p-3 border rounded-md ${
                       isUrgent
                         ? 'bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-900'
                         : isWarning
-                        ? 'bg-orange-50 border-orange-200 dark:bg-orange-950/20 dark:border-orange-900'
-                        : 'bg-yellow-50 border-yellow-200 dark:bg-yellow-950/20 dark:border-yellow-900'
+                          ? 'bg-orange-50 border-orange-200 dark:bg-orange-950/20 dark:border-orange-900'
+                          : 'bg-yellow-50 border-yellow-200 dark:bg-yellow-950/20 dark:border-yellow-900'
                     }`}
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="font-medium text-sm">{item!.name}</p>
+                        <p className="font-medium text-sm">{item?.name}</p>
                         <Badge variant="outline" className="text-xs">
-                          {item!.warehouse}
+                          {item?.warehouse}
                         </Badge>
                         <Badge
                           variant="outline"
@@ -428,17 +457,18 @@ function InventoryPage() {
                             isUrgent
                               ? 'bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-400'
                               : isWarning
-                              ? 'bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-400'
-                              : 'bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                ? 'bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-400'
+                                : 'bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400'
                           }
                         >
-                          {item!.daysUntilExpiration} {item!.daysUntilExpiration === 1 ? 'day' : 'days'} left
+                          {item?.daysUntilExpiration}{' '}
+                          {item?.daysUntilExpiration === 1 ? 'day' : 'days'} left
                         </Badge>
                       </div>
                       <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                        <span className="font-mono">{item!.sku}</span>
-                        <span>Stock: {item!.stock}</span>
-                        <span>Expires: {formatDate(item!.expirationDate)}</span>
+                        <span className="font-mono">{item?.sku}</span>
+                        <span>Stock: {item?.stock}</span>
+                        <span>Expires: {formatDate(item?.expirationDate)}</span>
                       </div>
                     </div>
                   </div>
@@ -455,24 +485,31 @@ function InventoryPage() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Low Stock Items by Warehouse</CardTitle>
-              <CardDescription>Items that need restocking, organized by warehouse location</CardDescription>
+              <CardDescription>
+                Items that need restocking, organized by warehouse location
+              </CardDescription>
             </div>
             {lowStockItems.length > 0 && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  const warehouseGroups = lowStockItems.reduce((acc, item) => {
-                    if (!acc[item.warehouse]) {
-                      acc[item.warehouse] = { count: 0, stock: 0, warehouseId: '' };
-                    }
-                    acc[item.warehouse].count += 1;
-                    acc[item.warehouse].stock += item.currentStock;
-                    return acc;
-                  }, {} as Record<string, { count: number; stock: number; warehouseId: string }>);
+                  const warehouseGroups = lowStockItems.reduce(
+                    (acc, item) => {
+                      if (!acc[item.warehouse]) {
+                        acc[item.warehouse] = { count: 0, stock: 0, warehouseId: '' };
+                      }
+                      acc[item.warehouse].count += 1;
+                      acc[item.warehouse].stock += item.currentStock;
+                      return acc;
+                    },
+                    {} as Record<string, { count: number; stock: number; warehouseId: string }>
+                  );
 
-                  const warehouseStocks: WarehouseStockDetail[] = Object.entries(warehouseGroups).map(([whName, data]) => ({
-                    warehouseId: warehouses.find(w => w.name === whName)?.id || '',
+                  const warehouseStocks: WarehouseStockDetail[] = Object.entries(
+                    warehouseGroups
+                  ).map(([whName, data]) => ({
+                    warehouseId: warehouses.find((w) => w.name === whName)?.id || '',
                     warehouseName: whName,
                     quantity: data.stock,
                     rack: null,
@@ -531,7 +568,10 @@ function InventoryPage() {
                 </thead>
                 <tbody>
                   {lowStockItems.map((item, index) => (
-                    <tr key={`${item.productId}-${item.warehouse}-${index}`} className="border-b last:border-0 hover:bg-muted/50">
+                    <tr
+                      key={`${item.productId}-${item.warehouse}-${index}`}
+                      className="border-b last:border-0 hover:bg-muted/50"
+                    >
                       <td className="p-4 align-middle">
                         <span className="font-mono text-sm">{item.sku}</span>
                       </td>
@@ -542,13 +582,17 @@ function InventoryPage() {
                         {item.warehouse}
                       </td>
                       <td className="p-4 align-middle">
-                        <span className={item.currentStock <= Math.floor(item.minStock * 0.4) ? 'text-destructive font-medium' : ''}>
+                        <span
+                          className={
+                            item.currentStock <= Math.floor(item.minStock * 0.4)
+                              ? 'text-destructive font-medium'
+                              : ''
+                          }
+                        >
                           {item.currentStock}
                         </span>
                       </td>
-                      <td className="p-4 align-middle text-muted-foreground">
-                        {item.minStock}
-                      </td>
+                      <td className="p-4 align-middle text-muted-foreground">{item.minStock}</td>
                       <td className="p-4 align-middle">
                         <span
                           className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${

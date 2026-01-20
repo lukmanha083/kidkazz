@@ -13,7 +13,7 @@
  * @see Phase 6: Optimistic UI Updates with Rollback
  */
 
-import { QueryClient } from '@tanstack/react-query';
+import type { QueryClient } from '@tanstack/react-query';
 
 /**
  * Adds a new item to the query cache optimistically.
@@ -24,21 +24,21 @@ import { QueryClient } from '@tanstack/react-query';
  * @returns An object with a `rollback` method that restores the previous cached array if one was present
  */
 export function optimisticCreate<T extends { id: string }>(
-	queryClient: QueryClient,
-	queryKey: string[],
-	newItem: T
+  queryClient: QueryClient,
+  queryKey: string[],
+  newItem: T
 ) {
-	// Save previous state for rollback
-	const previousData = queryClient.getQueryData<T[]>(queryKey);
+  // Save previous state for rollback
+  const previousData = queryClient.getQueryData<T[]>(queryKey);
 
-	// Optimistically update the cache
-	queryClient.setQueryData<T[]>(queryKey, (old) => [...(old || []), newItem]);
+  // Optimistically update the cache
+  queryClient.setQueryData<T[]>(queryKey, (old) => [...(old || []), newItem]);
 
-	return {
-		rollback: () => {
-			queryClient.setQueryData(queryKey, previousData);
-		},
-	};
+  return {
+    rollback: () => {
+      queryClient.setQueryData(queryKey, previousData);
+    },
+  };
 }
 
 /**
@@ -50,24 +50,22 @@ export function optimisticCreate<T extends { id: string }>(
  * @returns An object with `rollback()` that restores the previous cached array if one was present.
  */
 export function optimisticUpdate<T extends { id: string }>(
-	queryClient: QueryClient,
-	queryKey: string[],
-	id: string,
-	updates: Partial<T>
+  queryClient: QueryClient,
+  queryKey: string[],
+  id: string,
+  updates: Partial<T>
 ) {
-	const previousData = queryClient.getQueryData<T[]>(queryKey);
+  const previousData = queryClient.getQueryData<T[]>(queryKey);
 
-	queryClient.setQueryData<T[]>(queryKey, (old) =>
-		(old || []).map((item) =>
-			item.id === id ? { ...item, ...updates } : item
-		)
-	);
+  queryClient.setQueryData<T[]>(queryKey, (old) =>
+    (old || []).map((item) => (item.id === id ? { ...item, ...updates } : item))
+  );
 
-	return {
-		rollback: () => {
-			queryClient.setQueryData(queryKey, previousData);
-		},
-	};
+  return {
+    rollback: () => {
+      queryClient.setQueryData(queryKey, previousData);
+    },
+  };
 }
 
 /**
@@ -78,21 +76,19 @@ export function optimisticUpdate<T extends { id: string }>(
  * @returns An object with `rollback()` that restores the previous cached array if it existed
  */
 export function optimisticDelete<T extends { id: string }>(
-	queryClient: QueryClient,
-	queryKey: string[],
-	id: string
+  queryClient: QueryClient,
+  queryKey: string[],
+  id: string
 ) {
-	const previousData = queryClient.getQueryData<T[]>(queryKey);
+  const previousData = queryClient.getQueryData<T[]>(queryKey);
 
-	queryClient.setQueryData<T[]>(queryKey, (old) =>
-		(old || []).filter((item) => item.id !== id)
-	);
+  queryClient.setQueryData<T[]>(queryKey, (old) => (old || []).filter((item) => item.id !== id));
 
-	return {
-		rollback: () => {
-			queryClient.setQueryData(queryKey, previousData);
-		},
-	};
+  return {
+    rollback: () => {
+      queryClient.setQueryData(queryKey, previousData);
+    },
+  };
 }
 
 /**
@@ -105,22 +101,19 @@ export function optimisticDelete<T extends { id: string }>(
  * @returns An object with a `rollback()` method that restores the previous cached array value if one was captured
  */
 export function optimisticBatchCreate<T extends { id: string }>(
-	queryClient: QueryClient,
-	queryKey: string[],
-	newItems: T[]
+  queryClient: QueryClient,
+  queryKey: string[],
+  newItems: T[]
 ) {
-	const previousData = queryClient.getQueryData<T[]>(queryKey);
+  const previousData = queryClient.getQueryData<T[]>(queryKey);
 
-	queryClient.setQueryData<T[]>(queryKey, (old) => [
-		...(old || []),
-		...newItems,
-	]);
+  queryClient.setQueryData<T[]>(queryKey, (old) => [...(old || []), ...newItems]);
 
-	return {
-		rollback: () => {
-			queryClient.setQueryData(queryKey, previousData);
-		},
-	};
+  return {
+    rollback: () => {
+      queryClient.setQueryData(queryKey, previousData);
+    },
+  };
 }
 
 /**
@@ -132,23 +125,21 @@ export function optimisticBatchCreate<T extends { id: string }>(
  * @returns An object with `rollback()` that restores the previous cached array if it was present
  */
 export function optimisticBatchUpdate<T extends { id: string }>(
-	queryClient: QueryClient,
-	queryKey: string[],
-	updates: Record<string, Partial<T>>
+  queryClient: QueryClient,
+  queryKey: string[],
+  updates: Record<string, Partial<T>>
 ) {
-	const previousData = queryClient.getQueryData<T[]>(queryKey);
+  const previousData = queryClient.getQueryData<T[]>(queryKey);
 
-	queryClient.setQueryData<T[]>(queryKey, (old) =>
-		(old || []).map((item) =>
-			updates[item.id] ? { ...item, ...updates[item.id] } : item
-		)
-	);
+  queryClient.setQueryData<T[]>(queryKey, (old) =>
+    (old || []).map((item) => (updates[item.id] ? { ...item, ...updates[item.id] } : item))
+  );
 
-	return {
-		rollback: () => {
-			queryClient.setQueryData(queryKey, previousData);
-		},
-	};
+  return {
+    rollback: () => {
+      queryClient.setQueryData(queryKey, previousData);
+    },
+  };
 }
 
 /**
@@ -160,19 +151,19 @@ export function optimisticBatchUpdate<T extends { id: string }>(
  * @returns An object with `rollback()` that restores the previous cached array if it was present
  */
 export function optimisticBatchDelete<T extends { id: string }>(
-	queryClient: QueryClient,
-	queryKey: string[],
-	ids: string[]
+  queryClient: QueryClient,
+  queryKey: string[],
+  ids: string[]
 ) {
-	const previousData = queryClient.getQueryData<T[]>(queryKey);
+  const previousData = queryClient.getQueryData<T[]>(queryKey);
 
-	queryClient.setQueryData<T[]>(queryKey, (old) =>
-		(old || []).filter((item) => !ids.includes(item.id))
-	);
+  queryClient.setQueryData<T[]>(queryKey, (old) =>
+    (old || []).filter((item) => !ids.includes(item.id))
+  );
 
-	return {
-		rollback: () => {
-			queryClient.setQueryData(queryKey, previousData);
-		},
-	};
+  return {
+    rollback: () => {
+      queryClient.setQueryData(queryKey, previousData);
+    },
+  };
 }

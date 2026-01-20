@@ -3,7 +3,7 @@
 **Project**: Kidkazz - Real-Time Omnichannel ERP
 **Architecture**: Microservices + DDD + Hexagonal + Event-Driven (Cloudflare Workers)
 **Status**: Phases 1-6 Complete | Phases 7-8 Pending
-**Last Updated**: 2025-12-13
+**Last Updated**: 2026-01-20
 
 ---
 
@@ -741,7 +741,132 @@ docs/
 
 ---
 
-## When Working on a New Task
+## Development Workflow (TDD + Biome)
+
+### ⚠️ MANDATORY: Test-Driven Development (TDD)
+
+Every feature MUST follow TDD workflow. No exceptions.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     FEATURE DEVELOPMENT WORKFLOW                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   1. PLAN      → Read docs, understand requirements                         │
+│      ↓                                                                      │
+│   2. TEST      → Write failing tests FIRST (Red)                            │
+│      ↓                                                                      │
+│   3. CODE      → Write minimal code to pass (Green)                         │
+│      ↓                                                                      │
+│   4. REFACTOR  → Improve code, keep tests green                             │
+│      ↓                                                                      │
+│   5. REVIEW    → Code review (PR or self-review)                            │
+│      ↓                                                                      │
+│   6. FORMAT    → Run `pnpm check:fix` (Biome)                               │
+│      ↓                                                                      │
+│   7. COMMIT    → Commit with meaningful message                             │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Step 1: Plan - Read Relevant Documentation
+- Check `docs/ddd/DDD_REFACTORING_ROADMAP.md` for context
+- Review `docs/ddd/BUSINESS_RULES.md` for constraints
+- Read bounded context docs for affected services
+- Check git status and recent commits
+- Review existing schemas and migrations
+
+### Step 2: Test First (TDD Red Phase)
+```bash
+# Write test BEFORE implementation
+# test/unit/domain/your-feature.test.ts
+
+describe('YourFeature', () => {
+  it('should do something specific', () => {
+    // Arrange
+    // Act
+    // Assert
+  });
+});
+
+# Run test - it MUST FAIL (no implementation yet)
+pnpm test -- --grep "YourFeature"
+```
+
+### Step 3: Code (TDD Green Phase)
+- Write MINIMAL code to make the test pass
+- Follow hexagonal architecture: Domain → Application → Infrastructure
+- Create migration files if needed
+- Update schemas if needed
+
+```bash
+# Run test - it MUST PASS now
+pnpm test -- --grep "YourFeature"
+```
+
+### Step 4: Refactor (TDD Refactor Phase)
+- Improve code quality while keeping tests green
+- Extract common logic
+- Improve naming
+- Remove duplication
+
+```bash
+# Tests must still pass after refactoring
+pnpm test
+```
+
+### Step 5: Review
+- Self-review or PR review
+- Check business rules compliance
+- Verify no DDD violations
+- Ensure all tests pass
+
+```bash
+# Run all tests
+pnpm test
+
+# Run type checking
+pnpm type-check
+```
+
+### Step 6: Format with Biome (Post-Review)
+**IMPORTANT**: Always run Biome AFTER code review to ensure consistent formatting.
+
+```bash
+# Auto-fix all linting, formatting, and import issues
+pnpm check:fix
+
+# Verify no issues remain
+pnpm check
+```
+
+### Step 7: Commit
+```bash
+# Stage changes
+git add .
+
+# Commit with meaningful message
+git commit -m "feat(service): add feature description"
+```
+
+### Quick Reference Commands
+```bash
+# TDD Cycle
+pnpm test -- --grep "FeatureName"  # Run specific tests
+pnpm test                           # Run all tests
+pnpm test:coverage                  # Run with coverage
+
+# Code Quality (AFTER review)
+pnpm check:fix                      # Fix all issues
+pnpm check                          # Verify no issues
+
+# Type Safety
+pnpm type-check                     # TypeScript validation
+```
+
+---
+
+## When Working on a New Task (Detailed)
 
 ### Step 1: Read Relevant Documentation
 - Check `docs/ddd/DDD_REFACTORING_ROADMAP.md` for context
@@ -753,41 +878,107 @@ docs/
 - Review existing schemas and migrations
 - Run tests to ensure clean baseline
 
-### Step 3: Plan Implementation
-- Follow DDD Roadmap structure
-- Create migration files
-- Update schemas
-- Implement domain logic → application logic → infrastructure
-- Add tests
+### Step 3: Implement with TDD
+- Write failing test FIRST
+- Implement minimal code to pass
+- Refactor while keeping tests green
+- Repeat for each requirement
 
 ### Step 4: Validate
-- Run unit tests
-- Run integration tests
+- Run unit tests: `pnpm test`
+- Run integration tests: `pnpm test:integration`
 - Check business rules compliance
 - Verify no DDD violations
 
-### Step 5: Document
+### Step 5: Format & Lint (Post-Review)
+- Run `pnpm check:fix` to auto-fix all issues
+- Verify with `pnpm check`
+
+### Step 6: Document
 - Update relevant docs (if needed)
 - Add inline comments for complex logic
 - Update CHANGELOG (if exists)
 
 ---
 
+## Code Quality & Tooling
+
+### Biome - Linting, Formatting & Import Sorting
+
+We use **Biome** (not ESLint + Prettier) for all code quality tasks. Biome is a fast, Rust-based toolchain that combines linting, formatting, and import sorting in a single tool.
+
+**Why Biome?**
+- 10-100x faster than ESLint + Prettier (Rust-based)
+- Single config file (`biome.json` in root)
+- Built-in TypeScript support (no plugins needed)
+- Unified toolchain: lint + format + import sorting
+
+**Commands**:
+```bash
+# Run all checks (lint + format + imports)
+pnpm check
+
+# Auto-fix all issues
+pnpm check:fix
+
+# Lint only
+pnpm lint
+pnpm lint:fix
+
+# Format only
+pnpm format
+pnpm format:check
+```
+
+**Configuration**: `biome.json` at project root
+```json
+{
+  "linter": { "enabled": true, "rules": { "recommended": true } },
+  "formatter": { "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },
+  "javascript": { "formatter": { "quoteStyle": "single", "semicolons": "always" } },
+  "organizeImports": { "enabled": true }
+}
+```
+
+**Key Rules**:
+- Single quotes for strings
+- Semicolons always
+- 2-space indentation
+- 100 character line width
+- ES5 trailing commas
+- Auto-sorted imports
+
+**Before Committing**:
+```bash
+pnpm check:fix  # Auto-fix all issues
+```
+
+---
+
 ## Final Reminders
 
-1. **Always use TodoWrite** to track multi-step tasks
-2. **Read documentation BEFORE coding** - avoid reinventing wheels
-3. **Test incrementally** - don't batch tests at the end
-4. **Follow hexagonal architecture** - keep domain pure
-5. **Respect bounded contexts** - no cross-service data duplication
-6. **Version everything** - optimistic locking for inventory
-7. **Document business rules** - update BUSINESS_RULES.md when adding constraints
-8. **Git hygiene** - meaningful commits, clear messages
+1. **TDD is MANDATORY** - Write tests BEFORE implementation (Red → Green → Refactor)
+2. **Format with Biome AFTER review** - Run `pnpm check:fix` before committing
+3. **Always use TodoWrite** to track multi-step tasks
+4. **Read documentation BEFORE coding** - avoid reinventing wheels
+5. **Follow hexagonal architecture** - keep domain pure
+6. **Respect bounded contexts** - no cross-service data duplication
+7. **Version everything** - optimistic locking for inventory
+8. **Document business rules** - update BUSINESS_RULES.md when adding constraints
+9. **Git hygiene** - meaningful commits, clear messages
+
+### Pre-Commit Checklist
+```bash
+pnpm test          # All tests pass
+pnpm type-check    # No TypeScript errors
+pnpm check:fix     # Format & lint (AFTER review)
+pnpm check         # Verify no issues
+```
 
 ---
 
 **Version**: 1.0
 **Maintained by**: Claude AI Assistant
-**Last Sync**: 2025-12-13
+**Last Sync**: 2026-01-20
 
 For navigation help, see: [README.md](README.md)

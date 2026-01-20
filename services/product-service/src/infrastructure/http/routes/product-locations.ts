@@ -1,10 +1,10 @@
-import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { z } from 'zod';
+import { and, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, and } from 'drizzle-orm';
-import { productLocations } from '../../db/schema';
+import { Hono } from 'hono';
+import { z } from 'zod';
 import { generateId } from '../../../shared/utils/helpers';
+import { productLocations } from '../../db/schema';
 
 /**
  * Product Locations Routes - DDD Phase 5 Refactored
@@ -43,7 +43,7 @@ app.get('/', async (c) => {
   const productId = c.req.query('productId');
   const warehouseId = c.req.query('warehouseId');
 
-  let query = db.select().from(productLocations);
+  const query = db.select().from(productLocations);
 
   // Apply filters
   const conditions = [];
@@ -54,9 +54,8 @@ app.get('/', async (c) => {
     conditions.push(eq(productLocations.warehouseId, warehouseId));
   }
 
-  const locations = conditions.length > 0
-    ? await query.where(and(...conditions)).all()
-    : await query.all();
+  const locations =
+    conditions.length > 0 ? await query.where(and(...conditions)).all() : await query.all();
 
   return c.json({
     locations,
@@ -131,9 +130,7 @@ app.get('/product/:productId/with-stock', async (c) => {
 
   // Merge location data with stock data
   const locationsWithStock = locations.map((location) => {
-    const inventory = inventoryData.find(
-      (inv: any) => inv.warehouseId === location.warehouseId
-    );
+    const inventory = inventoryData.find((inv: any) => inv.warehouseId === location.warehouseId);
     return {
       ...location,
       quantity: inventory?.quantity || 0,
@@ -246,17 +243,9 @@ app.put('/:id', zValidator('json', updateLocationSchema), async (c) => {
     updatedAt: new Date(),
   };
 
-  await db
-    .update(productLocations)
-    .set(updateData)
-    .where(eq(productLocations.id, id))
-    .run();
+  await db.update(productLocations).set(updateData).where(eq(productLocations.id, id)).run();
 
-  const updated = await db
-    .select()
-    .from(productLocations)
-    .where(eq(productLocations.id, id))
-    .get();
+  const updated = await db.select().from(productLocations).where(eq(productLocations.id, id)).get();
 
   // DDD Phase 5: No longer syncing inventory here
   // Stock management is the responsibility of Inventory Service
@@ -285,15 +274,14 @@ app.delete('/warehouse/:warehouseId', async (c) => {
     });
   }
 
-  const productIds = [...new Set(locations.map(loc => loc.productId))];
+  const productIds = [...new Set(locations.map((loc) => loc.productId))];
 
   // 2. Delete all product locations for this warehouse
-  await db
-    .delete(productLocations)
-    .where(eq(productLocations.warehouseId, warehouseId))
-    .run();
+  await db.delete(productLocations).where(eq(productLocations.warehouseId, warehouseId)).run();
 
-  console.log(`Cascade delete - Warehouse ${warehouseId}: Deleted ${locations.length} product locations (${productIds.length} unique products)`);
+  console.log(
+    `Cascade delete - Warehouse ${warehouseId}: Deleted ${locations.length} product locations (${productIds.length} unique products)`
+  );
 
   return c.json({
     message: 'Warehouse product locations deleted successfully',

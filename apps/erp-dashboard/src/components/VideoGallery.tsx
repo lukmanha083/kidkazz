@@ -11,27 +11,6 @@
  * - Drag & drop upload
  */
 
-import { useState, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  Upload,
-  Star,
-  Trash2,
-  Play,
-  Loader2,
-  Film,
-  Cloud,
-  HardDrive,
-} from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,6 +21,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
@@ -49,10 +32,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Cloud, Film, HardDrive, Loader2, Play, Star, Trash2, Upload } from 'lucide-react';
+import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 
-const PRODUCT_SERVICE_URL =
-  import.meta.env.VITE_PRODUCT_SERVICE_URL || 'http://localhost:8788';
+const PRODUCT_SERVICE_URL = import.meta.env.VITE_PRODUCT_SERVICE_URL || 'http://localhost:8788';
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
@@ -106,7 +91,7 @@ export function VideoGallery({
   productId,
   maxVideos = 5,
   defaultMode = 'r2', // Default to R2 mode since Stream requires API token
-  readOnly = false
+  readOnly = false,
 }: VideoGalleryProps) {
   const queryClient = useQueryClient();
   const [isUploading, setIsUploading] = useState(false);
@@ -155,7 +140,7 @@ export function VideoGallery({
   });
 
   // Validate file
-  const validateFile = (file: File): string | null => {
+  const validateFile = useCallback((file: File): string | null => {
     const allowedTypes = [
       'video/mp4',
       'video/webm',
@@ -172,7 +157,7 @@ export function VideoGallery({
     }
 
     return null;
-  };
+  }, []);
 
   // Handle file upload
   const handleFileSelect = useCallback(
@@ -220,9 +205,10 @@ export function VideoGallery({
         await queryClient.invalidateQueries({ queryKey: ['product-videos', productId] });
 
         toast.success('Video uploaded successfully', {
-          description: uploadMode === 'stream'
-            ? 'Video uploaded to Cloudflare Stream and saved to database'
-            : 'Video uploaded to R2 and saved to database',
+          description:
+            uploadMode === 'stream'
+              ? 'Video uploaded to Cloudflare Stream and saved to database'
+              : 'Video uploaded to R2 and saved to database',
         });
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Upload failed';
@@ -233,7 +219,7 @@ export function VideoGallery({
         setIsUploading(false);
       }
     },
-    [productId, videos, maxVideos, uploadMode, queryClient]
+    [productId, videos, maxVideos, uploadMode, queryClient, validateFile]
   );
 
   // Handle drag events
@@ -311,8 +297,11 @@ export function VideoGallery({
           <CardContent className="p-4">
             <div className="flex items-center gap-4">
               <div className="flex-1">
-                <label className="text-sm font-medium mb-2 block">Upload Mode</label>
-                <Select value={uploadMode} onValueChange={(value: 'r2' | 'stream') => setUploadMode(value)}>
+                <span className="text-sm font-medium mb-2 block">Upload Mode</span>
+                <Select
+                  value={uploadMode}
+                  onValueChange={(value: 'r2' | 'stream') => setUploadMode(value)}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -363,12 +352,21 @@ export function VideoGallery({
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={!isUploading && videos.length < maxVideos ? handleClick : undefined}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !isUploading && videos.length < maxVideos) {
+                  handleClick();
+                }
+              }}
+              // biome-ignore lint/a11y/useSemanticElements lint/a11y/noNoninteractiveTabindex: drag-drop area
+              role="button"
+              tabIndex={0}
             >
               {isUploading ? (
                 <div className="flex flex-col items-center gap-3">
                   <Loader2 className="w-12 h-12 text-primary animate-spin" />
                   <p className="text-sm text-muted-foreground">
-                    Uploading to {uploadMode === 'stream' ? 'Cloudflare Stream' : 'R2'} and saving to database...
+                    Uploading to {uploadMode === 'stream' ? 'Cloudflare Stream' : 'R2'} and saving
+                    to database...
                   </p>
                 </div>
               ) : videos.length >= maxVideos ? (
@@ -393,7 +391,8 @@ export function VideoGallery({
                       {isDragging ? 'Drop video here' : 'Click to upload or drag & drop'}
                     </p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      MP4, WebM, MOV, AVI, or MKV (max {MAX_FILE_SIZE / (1024 * 1024)}MB) • {videos.length}/{maxVideos} videos
+                      MP4, WebM, MOV, AVI, or MKV (max {MAX_FILE_SIZE / (1024 * 1024)}MB) •{' '}
+                      {videos.length}/{maxVideos} videos
                     </p>
                   </div>
                 </div>
@@ -409,9 +408,7 @@ export function VideoGallery({
           {videos.map((video) => (
             <Card
               key={video.id}
-              className={`relative group ${
-                video.isPrimary ? 'ring-2 ring-primary' : ''
-              }`}
+              className={`relative group ${video.isPrimary ? 'ring-2 ring-primary' : ''}`}
             >
               <CardContent className="p-2">
                 {/* Video Thumbnail */}
@@ -428,20 +425,14 @@ export function VideoGallery({
 
                   {/* Primary Badge */}
                   {video.isPrimary && (
-                    <Badge
-                      variant="default"
-                      className="absolute top-1 left-1 gap-1"
-                    >
+                    <Badge variant="default" className="absolute top-1 left-1 gap-1">
                       <Star className="w-3 h-3 fill-current" />
                       Primary
                     </Badge>
                   )}
 
                   {/* Mode Badge */}
-                  <Badge
-                    variant="secondary"
-                    className="absolute top-1 right-1 gap-1"
-                  >
+                  <Badge variant="secondary" className="absolute top-1 right-1 gap-1">
                     {video.storageMode === 'stream' ? (
                       <>
                         <Cloud className="w-3 h-3" />
@@ -494,12 +485,11 @@ export function VideoGallery({
 
                 {/* File name and info */}
                 <div className="mt-2">
-                  <p className="text-xs text-muted-foreground truncate">
-                    {video.originalName}
-                  </p>
+                  <p className="text-xs text-muted-foreground truncate">{video.originalName}</p>
                   {video.duration && (
                     <p className="text-xs text-muted-foreground">
-                      {Math.floor(video.duration / 60)}:{String(video.duration % 60).padStart(2, '0')}
+                      {Math.floor(video.duration / 60)}:
+                      {String(video.duration % 60).padStart(2, '0')}
                     </p>
                   )}
                 </div>
@@ -531,12 +521,10 @@ export function VideoGallery({
           {previewVideo && (
             <div className="relative">
               {previewVideo.storageMode === 'stream' && previewVideo.urls.hls ? (
-                <video
-                  className="w-full rounded-lg"
-                  controls
-                  src={previewVideo.urls.hls}
-                />
+                // biome-ignore lint/a11y/useMediaCaption: product videos may not have captions
+                <video className="w-full rounded-lg" controls src={previewVideo.urls.hls} />
               ) : previewVideo.urls.original ? (
+                // biome-ignore lint/a11y/useMediaCaption: product videos may not have captions
                 <video
                   className="w-full rounded-lg"
                   controls
@@ -579,15 +567,18 @@ export function VideoGallery({
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the video
-              from {uploadMode === 'stream' ? 'Cloudflare Stream' : 'R2 storage'} and remove it from the database.
+              This action cannot be undone. This will permanently delete the video from{' '}
+              {uploadMode === 'stream' ? 'Cloudflare Stream' : 'R2 storage'} and remove it from the
+              database.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              setDeleteDialogOpen(false);
-              setVideoToDelete(null);
-            }}>
+            <AlertDialogCancel
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setVideoToDelete(null);
+              }}
+            >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction

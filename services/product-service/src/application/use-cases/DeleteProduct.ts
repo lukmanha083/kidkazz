@@ -20,9 +20,14 @@
  * - BundleItems (if product is in bundles)
  */
 
+import { and, eq } from 'drizzle-orm';
 import { db } from '../../infrastructure/db';
-import { products, bundleItems, customPricing, productBundles } from '../../infrastructure/db/schema';
-import { eq, and } from 'drizzle-orm';
+import {
+  bundleItems,
+  customPricing,
+  productBundles,
+  products,
+} from '../../infrastructure/db/schema';
 
 export interface DeleteProductInput {
   productId: string;
@@ -48,12 +53,7 @@ export class DeleteProductUseCase {
       })
       .from(bundleItems)
       .innerJoin(productBundles, eq(bundleItems.bundleId, productBundles.id))
-      .where(
-        and(
-          eq(bundleItems.productId, productId),
-          eq(productBundles.status, 'active')
-        )
-      )
+      .where(and(eq(bundleItems.productId, productId), eq(productBundles.status, 'active')))
       .all();
   }
 
@@ -75,11 +75,7 @@ export class DeleteProductUseCase {
     const { productId, userId } = input;
 
     // 1. Check if product exists
-    const product = await db
-      .select()
-      .from(products)
-      .where(eq(products.id, productId))
-      .get();
+    const product = await db.select().from(products).where(eq(products.id, productId)).get();
 
     if (!product) {
       return {
@@ -106,7 +102,7 @@ export class DeleteProductUseCase {
 
     if (activeBundlesWithProduct.length > 0) {
       const bundleNames = activeBundlesWithProduct
-        .map(b => `"${b.bundleName}" (${b.bundleSKU})`)
+        .map((b) => `"${b.bundleName}" (${b.bundleSKU})`)
         .join(', ');
       cannotDeleteReasons.push(
         `Product is used in ${activeBundlesWithProduct.length} active bundle(s): ${bundleNames}`
@@ -151,12 +147,11 @@ export class DeleteProductUseCase {
 
     // 4. Safe to delete - will CASCADE to all dependent tables
     try {
-      await db
-        .delete(products)
-        .where(eq(products.id, productId))
-        .run();
+      await db.delete(products).where(eq(products.id, productId)).run();
 
-      console.log(`Product deleted: ${product.name} (${product.sku}) by user ${userId || 'system'}`);
+      console.log(
+        `Product deleted: ${product.name} (${product.sku}) by user ${userId || 'system'}`
+      );
 
       return {
         success: true,
@@ -195,11 +190,7 @@ export class DeleteProductUseCase {
       // Would include inventory, orders, journalEntries from other services
     };
   }> {
-    const product = await db
-      .select()
-      .from(products)
-      .where(eq(products.id, productId))
-      .get();
+    const product = await db.select().from(products).where(eq(products.id, productId)).get();
 
     if (!product) {
       throw new Error(`Product with ID "${productId}" not found`);

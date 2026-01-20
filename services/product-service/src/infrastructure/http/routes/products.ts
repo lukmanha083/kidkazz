@@ -1,10 +1,16 @@
-import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { z } from 'zod';
+import { and, eq, like } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, and, like } from 'drizzle-orm';
-import { products, productVariants, productUOMs, productLocations, productUOMLocations } from '../../db/schema';
+import { Hono } from 'hono';
+import { z } from 'zod';
 import { generateId } from '../../../shared/utils/helpers';
+import {
+  productLocations,
+  productUOMLocations,
+  productUOMs,
+  productVariants,
+  products,
+} from '../../db/schema';
 
 type Bindings = {
   DB: D1Database;
@@ -33,7 +39,9 @@ const createProductSchema = z.object({
   reviews: z.number().default(0),
   availableForRetail: z.boolean().default(true),
   availableForWholesale: z.boolean().default(true),
-  status: z.enum(['online sales', 'offline sales', 'omnichannel sales', 'inactive', 'discontinued']).default('offline sales'),
+  status: z
+    .enum(['online sales', 'offline sales', 'omnichannel sales', 'inactive', 'discontinued'])
+    .default('offline sales'),
   isBundle: z.boolean().default(false),
   // Physical attributes for shipping calculations
   weight: z.number().optional().nullable(),
@@ -54,7 +62,7 @@ app.get('/', async (c) => {
   const category = c.req.query('category');
   const search = c.req.query('search');
 
-  let query = db.select().from(products);
+  const query = db.select().from(products);
 
   // Apply filters
   const conditions = [];
@@ -68,9 +76,8 @@ app.get('/', async (c) => {
     conditions.push(like(products.name, `%${search}%`));
   }
 
-  const allProducts = conditions.length > 0
-    ? await query.where(and(...conditions)).all()
-    : await query.all();
+  const allProducts =
+    conditions.length > 0 ? await query.where(and(...conditions)).all() : await query.all();
 
   return c.json({
     products: allProducts,
@@ -83,11 +90,7 @@ app.get('/:id', async (c) => {
   const id = c.req.param('id');
   const db = drizzle(c.env.DB);
 
-  const product = await db
-    .select()
-    .from(products)
-    .where(eq(products.id, id))
-    .get();
+  const product = await db.select().from(products).where(eq(products.id, id)).get();
 
   if (!product) {
     return c.json({ error: 'Product not found' }, 404);
@@ -101,11 +104,7 @@ app.get('/:id', async (c) => {
     .all();
 
   // Get UOMs
-  const uoms = await db
-    .select()
-    .from(productUOMs)
-    .where(eq(productUOMs.productId, id))
-    .all();
+  const uoms = await db.select().from(productUOMs).where(eq(productUOMs.productId, id)).all();
 
   // Get locations
   const locations = await db
@@ -134,7 +133,8 @@ app.get('/:id/stock', async (c) => {
 
     if (response.ok) {
       return c.json(await response.json());
-    } else if (response.status === 404) {
+    }
+    if (response.status === 404) {
       // Product exists in Product Service but no inventory records yet
       return c.json({
         productId,
@@ -143,9 +143,8 @@ app.get('/:id/stock', async (c) => {
         totalAvailable: 0,
         warehouses: [],
       });
-    } else {
-      return c.json({ error: 'Failed to fetch stock from Inventory Service' }, 500);
     }
+    return c.json({ error: 'Failed to fetch stock from Inventory Service' }, 500);
   } catch (error) {
     console.error('Error fetching stock from Inventory Service:', error);
     return c.json({ error: 'Failed to fetch stock data' }, 500);
@@ -164,9 +163,8 @@ app.get('/:id/low-stock', async (c) => {
 
     if (response.ok) {
       return c.json(await response.json());
-    } else {
-      return c.json({ error: 'Failed to fetch low stock status from Inventory Service' }, 500);
     }
+    return c.json({ error: 'Failed to fetch low stock status from Inventory Service' }, 500);
   } catch (error) {
     console.error('Error fetching low stock status from Inventory Service:', error);
     return c.json({ error: 'Failed to fetch low stock status' }, 500);
@@ -178,11 +176,7 @@ app.get('/sku/:sku', async (c) => {
   const sku = c.req.param('sku');
   const db = drizzle(c.env.DB);
 
-  const product = await db
-    .select()
-    .from(products)
-    .where(eq(products.sku, sku))
-    .get();
+  const product = await db.select().from(products).where(eq(products.sku, sku)).get();
 
   if (!product) {
     return c.json({ error: 'Product not found' }, 404);
@@ -204,15 +198,18 @@ app.post('/', zValidator('json', createProductSchema), async (c) => {
     .get();
 
   if (existingProductWithSku) {
-    return c.json({
-      error: 'SKU_ALREADY_EXISTS',
-      message: `Product with SKU "${data.sku}" already exists. Product SKUs must be unique.`,
-      existingProduct: {
-        id: existingProductWithSku.id,
-        name: existingProductWithSku.name,
-        sku: existingProductWithSku.sku,
+    return c.json(
+      {
+        error: 'SKU_ALREADY_EXISTS',
+        message: `Product with SKU "${data.sku}" already exists. Product SKUs must be unique.`,
+        existingProduct: {
+          id: existingProductWithSku.id,
+          name: existingProductWithSku.name,
+          sku: existingProductWithSku.sku,
+        },
       },
-    }, 400);
+      400
+    );
   }
 
   // Check if barcode already exists
@@ -223,15 +220,18 @@ app.post('/', zValidator('json', createProductSchema), async (c) => {
     .get();
 
   if (existingProductWithBarcode) {
-    return c.json({
-      error: 'BARCODE_ALREADY_EXISTS',
-      message: `Product with barcode "${data.barcode}" already exists. Product barcodes must be unique.`,
-      existingProduct: {
-        id: existingProductWithBarcode.id,
-        name: existingProductWithBarcode.name,
-        barcode: existingProductWithBarcode.barcode,
+    return c.json(
+      {
+        error: 'BARCODE_ALREADY_EXISTS',
+        message: `Product with barcode "${data.barcode}" already exists. Product barcodes must be unique.`,
+        existingProduct: {
+          id: existingProductWithBarcode.id,
+          name: existingProductWithBarcode.name,
+          barcode: existingProductWithBarcode.barcode,
+        },
       },
-    }, 400);
+      400
+    );
   }
 
   const now = new Date();
@@ -252,11 +252,14 @@ app.post('/', zValidator('json', createProductSchema), async (c) => {
     return c.json(productResponse, 201);
   } catch (error) {
     console.error('Product Service Error:', error);
-    return c.json({
-      error: 'DATABASE_ERROR',
-      message: 'Failed to create product. Please try again.',
-      details: error instanceof Error ? error.message : 'Unknown error',
-    }, 500);
+    return c.json(
+      {
+        error: 'DATABASE_ERROR',
+        message: 'Failed to create product. Please try again.',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+      500
+    );
   }
 });
 
@@ -266,11 +269,7 @@ app.put('/:id', zValidator('json', updateProductSchema), async (c) => {
   const data = c.req.valid('json');
   const db = drizzle(c.env.DB);
 
-  const existing = await db
-    .select()
-    .from(products)
-    .where(eq(products.id, id))
-    .get();
+  const existing = await db.select().from(products).where(eq(products.id, id)).get();
 
   if (!existing) {
     return c.json({ error: 'Product not found' }, 404);
@@ -285,15 +284,18 @@ app.put('/:id', zValidator('json', updateProductSchema), async (c) => {
       .get();
 
     if (existingProductWithSku) {
-      return c.json({
-        error: 'SKU_ALREADY_EXISTS',
-        message: `Product with SKU "${data.sku}" already exists. Product SKUs must be unique.`,
-        existingProduct: {
-          id: existingProductWithSku.id,
-          name: existingProductWithSku.name,
-          sku: existingProductWithSku.sku,
+      return c.json(
+        {
+          error: 'SKU_ALREADY_EXISTS',
+          message: `Product with SKU "${data.sku}" already exists. Product SKUs must be unique.`,
+          existingProduct: {
+            id: existingProductWithSku.id,
+            name: existingProductWithSku.name,
+            sku: existingProductWithSku.sku,
+          },
         },
-      }, 400);
+        400
+      );
     }
   }
 
@@ -306,15 +308,18 @@ app.put('/:id', zValidator('json', updateProductSchema), async (c) => {
       .get();
 
     if (existingProductWithBarcode) {
-      return c.json({
-        error: 'BARCODE_ALREADY_EXISTS',
-        message: `Product with barcode "${data.barcode}" already exists. Product barcodes must be unique.`,
-        existingProduct: {
-          id: existingProductWithBarcode.id,
-          name: existingProductWithBarcode.name,
-          barcode: existingProductWithBarcode.barcode,
+      return c.json(
+        {
+          error: 'BARCODE_ALREADY_EXISTS',
+          message: `Product with barcode "${data.barcode}" already exists. Product barcodes must be unique.`,
+          existingProduct: {
+            id: existingProductWithBarcode.id,
+            name: existingProductWithBarcode.name,
+            barcode: existingProductWithBarcode.barcode,
+          },
         },
-      }, 400);
+        400
+      );
     }
   }
 
@@ -325,59 +330,57 @@ app.put('/:id', zValidator('json', updateProductSchema), async (c) => {
       .where(eq(products.id, id))
       .run();
 
-    const updated = await db
-      .select()
-      .from(products)
-      .where(eq(products.id, id))
-      .get();
+    const updated = await db.select().from(products).where(eq(products.id, id)).get();
 
     return c.json(updated);
   } catch (error) {
     console.error('Product Service Error:', error);
-    return c.json({
-      error: 'DATABASE_ERROR',
-      message: 'Failed to update product. Please try again.',
-      details: error instanceof Error ? error.message : 'Unknown error',
-    }, 500);
+    return c.json(
+      {
+        error: 'DATABASE_ERROR',
+        message: 'Failed to update product. Please try again.',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+      500
+    );
   }
 });
 
 // PATCH /api/products/:id/price - Update product price
-app.patch('/:id/price', zValidator('json', z.object({
-  priceType: z.enum(['retail', 'wholesale', 'base']),
-  newPrice: z.number(),
-})), async (c) => {
-  const id = c.req.param('id');
-  const { priceType, newPrice } = c.req.valid('json');
-  const db = drizzle(c.env.DB);
+app.patch(
+  '/:id/price',
+  zValidator(
+    'json',
+    z.object({
+      priceType: z.enum(['retail', 'wholesale', 'base']),
+      newPrice: z.number(),
+    })
+  ),
+  async (c) => {
+    const id = c.req.param('id');
+    const { priceType, newPrice } = c.req.valid('json');
+    const db = drizzle(c.env.DB);
 
-  const existing = await db
-    .select()
-    .from(products)
-    .where(eq(products.id, id))
-    .get();
+    const existing = await db.select().from(products).where(eq(products.id, id)).get();
 
-  if (!existing) {
-    return c.json({ error: 'Product not found' }, 404);
+    if (!existing) {
+      return c.json({ error: 'Product not found' }, 404);
+    }
+
+    const updateData: any = { updatedAt: new Date() };
+    if (priceType === 'retail') {
+      updateData.retailPrice = newPrice;
+    } else if (priceType === 'wholesale') {
+      updateData.wholesalePrice = newPrice;
+    } else {
+      updateData.price = newPrice;
+    }
+
+    await db.update(products).set(updateData).where(eq(products.id, id)).run();
+
+    return c.json({ message: 'Price updated successfully' });
   }
-
-  const updateData: any = { updatedAt: new Date() };
-  if (priceType === 'retail') {
-    updateData.retailPrice = newPrice;
-  } else if (priceType === 'wholesale') {
-    updateData.wholesalePrice = newPrice;
-  } else {
-    updateData.price = newPrice;
-  }
-
-  await db
-    .update(products)
-    .set(updateData)
-    .where(eq(products.id, id))
-    .run();
-
-  return c.json({ message: 'Price updated successfully' });
-});
+);
 
 // PATCH /api/products/:id/stock - Update product stock
 // NOTE: This route is deprecated after DDD Phase 4 refactoring
@@ -627,13 +630,15 @@ app.get('/:id/uom-warehouse-stock', async (c) => {
     .all();
 
   // DDD: Fetch stock data from Inventory Service
-  let inventoryData: { inventory?: Array<{ uomId?: string; quantityAvailable?: number; warehouseId?: string }> } = { inventory: [] };
+  let inventoryData: {
+    inventory?: Array<{ uomId?: string; quantityAvailable?: number; warehouseId?: string }>;
+  } = { inventory: [] };
   try {
     const inventoryResponse = await c.env.INVENTORY_SERVICE.fetch(
       new Request(`http://inventory-service/api/inventory?productId=${productId}`)
     );
     if (inventoryResponse.ok) {
-      inventoryData = await inventoryResponse.json() as typeof inventoryData;
+      inventoryData = (await inventoryResponse.json()) as typeof inventoryData;
     }
   } catch (error) {
     console.error('Failed to fetch inventory data:', error);
@@ -641,20 +646,15 @@ app.get('/:id/uom-warehouse-stock', async (c) => {
   }
 
   // Build UOM stocks from inventory data
-  const uomStocks = uoms.map(uom => {
+  const uomStocks = uoms.map((uom) => {
     // Filter inventory records for this UOM
-    const uomInventory = inventoryData.inventory?.filter(
-      inv => inv.uomId === uom.id
-    ) || [];
+    const uomInventory = inventoryData.inventory?.filter((inv) => inv.uomId === uom.id) || [];
 
     // Calculate total stock across warehouses
-    const totalStock = uomInventory.reduce(
-      (sum, inv) => sum + (inv.quantityAvailable || 0),
-      0
-    );
+    const totalStock = uomInventory.reduce((sum, inv) => sum + (inv.quantityAvailable || 0), 0);
 
     // Group by warehouse
-    const warehouseStocks = uomInventory.map(inv => ({
+    const warehouseStocks = uomInventory.map((inv) => ({
       warehouseId: inv.warehouseId || '',
       quantity: inv.quantityAvailable || 0,
     }));
@@ -669,20 +669,16 @@ app.get('/:id/uom-warehouse-stock', async (c) => {
   });
 
   // Get base unit inventory (no UOM specified)
-  const baseUnitInventory = inventoryData.inventory?.filter(
-    inv => !inv.uomId
-  ) || [];
+  const baseUnitInventory = inventoryData.inventory?.filter((inv) => !inv.uomId) || [];
 
-  const baseUnitLocations = baseUnitInventory.map(inv => ({
+  const baseUnitLocations = baseUnitInventory.map((inv) => ({
     warehouseId: inv.warehouseId || '',
     quantity: inv.quantityAvailable || 0,
   }));
 
   // Calculate total stock
-  const totalStock = inventoryData.inventory?.reduce(
-    (sum, inv) => sum + (inv.quantityAvailable || 0),
-    0
-  ) || 0;
+  const totalStock =
+    inventoryData.inventory?.reduce((sum, inv) => sum + (inv.quantityAvailable || 0), 0) || 0;
 
   return c.json({
     productId: product.id,
@@ -728,13 +724,15 @@ app.get('/:id/variant-warehouse-stock', async (c) => {
     .all();
 
   // DDD: Fetch stock data from Inventory Service
-  let inventoryData: { inventory?: Array<{ variantId?: string; quantityAvailable?: number; warehouseId?: string }> } = { inventory: [] };
+  let inventoryData: {
+    inventory?: Array<{ variantId?: string; quantityAvailable?: number; warehouseId?: string }>;
+  } = { inventory: [] };
   try {
     const inventoryResponse = await c.env.INVENTORY_SERVICE.fetch(
       new Request(`http://inventory-service/api/inventory?productId=${productId}`)
     );
     if (inventoryResponse.ok) {
-      inventoryData = await inventoryResponse.json() as typeof inventoryData;
+      inventoryData = (await inventoryResponse.json()) as typeof inventoryData;
     }
   } catch (error) {
     console.error('Failed to fetch inventory data:', error);
@@ -742,20 +740,16 @@ app.get('/:id/variant-warehouse-stock', async (c) => {
   }
 
   // Build variant stocks from inventory data
-  const variantStocks = variants.map(variant => {
+  const variantStocks = variants.map((variant) => {
     // Filter inventory records for this variant
-    const variantInventory = inventoryData.inventory?.filter(
-      inv => inv.variantId === variant.id
-    ) || [];
+    const variantInventory =
+      inventoryData.inventory?.filter((inv) => inv.variantId === variant.id) || [];
 
     // Calculate total stock across warehouses
-    const totalStock = variantInventory.reduce(
-      (sum, inv) => sum + (inv.quantityAvailable || 0),
-      0
-    );
+    const totalStock = variantInventory.reduce((sum, inv) => sum + (inv.quantityAvailable || 0), 0);
 
     // Group by warehouse
-    const warehouseStocks = variantInventory.map(inv => ({
+    const warehouseStocks = variantInventory.map((inv) => ({
       warehouseId: inv.warehouseId || '',
       quantity: inv.quantityAvailable || 0,
     }));
@@ -921,11 +915,7 @@ app.delete('/:id', async (c) => {
   const db = drizzle(c.env.DB);
 
   // Get product info for error messages
-  const product = await db
-    .select()
-    .from(products)
-    .where(eq(products.id, id))
-    .get();
+  const product = await db.select().from(products).where(eq(products.id, id)).get();
 
   if (!product) {
     return c.json({ error: 'Product not found' }, 404);
@@ -939,13 +929,14 @@ app.delete('/:id', async (c) => {
     );
 
     if (inventoryResponse.ok) {
-      const inventoryData = await inventoryResponse.json() as {
+      const inventoryData = (await inventoryResponse.json()) as {
         inventory?: Array<{ quantityAvailable?: number; [key: string]: any }>;
       };
-      const totalStock = inventoryData.inventory?.reduce(
-        (sum: number, inv) => sum + (inv.quantityAvailable || 0),
-        0
-      ) || 0;
+      const totalStock =
+        inventoryData.inventory?.reduce(
+          (sum: number, inv) => sum + (inv.quantityAvailable || 0),
+          0
+        ) || 0;
 
       if (totalStock > 0) {
         return c.json(
@@ -1028,14 +1019,11 @@ app.delete('/:id', async (c) => {
   let inventoryDeletedCount = 0;
   try {
     const deleteResponse = await c.env.INVENTORY_SERVICE.fetch(
-      new Request(
-        `http://inventory-service/api/inventory/product/${id}`,
-        { method: 'DELETE' }
-      )
+      new Request(`http://inventory-service/api/inventory/product/${id}`, { method: 'DELETE' })
     );
 
     if (deleteResponse.ok) {
-      const deleteResult = await deleteResponse.json() as {
+      const deleteResult = (await deleteResponse.json()) as {
         deletedInventoryRecords?: number;
       };
       inventoryDeleted = true;

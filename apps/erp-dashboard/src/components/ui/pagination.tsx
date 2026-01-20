@@ -84,27 +84,31 @@ export function Pagination({
 
         {/* Page numbers */}
         <div className="flex items-center gap-1">
-          {getPageNumbers().map((page, index) => {
-            if (page === '...') {
-              return (
-                <span key={`ellipsis-${index}`} className="px-2 text-muted-foreground">
-                  ...
-                </span>
-              );
-            }
+          {(() => {
+            let ellipsisCount = 0;
+            return getPageNumbers().map((page) => {
+              if (page === '...') {
+                ellipsisCount++;
+                return (
+                  <span key={`ellipsis-${ellipsisCount}`} className="px-2 text-muted-foreground">
+                    ...
+                  </span>
+                );
+              }
 
-            return (
-              <Button
-                key={page}
-                variant={currentPage === page ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => onPageChange(page as number)}
-                className="h-8 w-8 p-0"
-              >
-                {page}
-              </Button>
-            );
-          })}
+              return (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => onPageChange(page as number)}
+                  className="h-8 w-8 p-0"
+                >
+                  {page}
+                </Button>
+              );
+            });
+          })()}
         </div>
 
         {/* Next button */}

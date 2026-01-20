@@ -11,9 +11,10 @@
  * 4. Data Integrity Verification - No data loss
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
 import Database from 'better-sqlite3';
+import { and, eq, isNotNull, isNull, lt, sql } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   inventory,
   inventoryBatches,
@@ -21,7 +22,6 @@ import {
   inventoryReservations,
   warehouses,
 } from '../infrastructure/db/schema';
-import { eq, and, isNull, isNotNull, lt, sql } from 'drizzle-orm';
 
 // ============================================
 // Test Database Setup
@@ -934,11 +934,7 @@ describe('Phase 6.4: Data Integrity Verification', () => {
         updatedAt: new Date(),
       });
 
-      const record = await db
-        .select()
-        .from(inventory)
-        .where(eq(inventory.id, inventoryId))
-        .get();
+      const record = await db.select().from(inventory).where(eq(inventory.id, inventoryId)).get();
 
       expect(record).toBeDefined();
       expect(record?.warehouseId).toBe(testWarehouseId);
@@ -1080,11 +1076,7 @@ describe('Phase 6.4: Data Integrity Verification', () => {
           .run();
       }
 
-      const final = await db
-        .select()
-        .from(inventory)
-        .where(eq(inventory.id, inventoryId))
-        .get();
+      const final = await db.select().from(inventory).where(eq(inventory.id, inventoryId)).get();
 
       expect(final?.quantityAvailable).toBe(105); // 100 + 5
       expect(final?.version).toBe(6); // 1 + 5 updates
@@ -1123,11 +1115,7 @@ describe('Phase 6.4: Data Integrity Verification', () => {
         .where(eq(inventory.id, inventoryId))
         .run();
 
-      const inv = await db
-        .select()
-        .from(inventory)
-        .where(eq(inventory.id, inventoryId))
-        .get();
+      const inv = await db.select().from(inventory).where(eq(inventory.id, inventoryId)).get();
 
       expect(inv?.quantityAvailable).toBe(100);
       expect(inv?.quantityReserved).toBe(20);

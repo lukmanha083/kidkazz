@@ -52,7 +52,8 @@ function parseErrorMessage(message: string): ValidationError[] {
   if (message.includes('Insufficient stock')) {
     errors.push({
       field: 'quantity',
-      message: 'Insufficient stock for warehouse adjustment. Warehouse operations cannot create negative stock.',
+      message:
+        'Insufficient stock for warehouse adjustment. Warehouse operations cannot create negative stock.',
       type: 'error',
     });
     errors.push({
@@ -171,7 +172,11 @@ export const businessRules = {
 
       if (attrs.length !== undefined && attrs.width !== undefined && attrs.height !== undefined) {
         if (attrs.length <= 0 || attrs.width <= 0 || attrs.height <= 0) {
-          errors.push({ field: 'dimensions', message: 'Dimensions must be positive', type: 'error' });
+          errors.push({
+            field: 'dimensions',
+            message: 'Dimensions must be positive',
+            type: 'error',
+          });
         }
         if (attrs.length > 200 || attrs.width > 200 || attrs.height > 200) {
           errors.push({
@@ -217,7 +222,11 @@ export const businessRules = {
 
     validateMinimumStock: (minimumStock: number): ValidationError | null => {
       if (minimumStock < 0) {
-        return { field: 'minimumStock', message: 'Minimum stock cannot be negative', type: 'error' };
+        return {
+          field: 'minimumStock',
+          message: 'Minimum stock cannot be negative',
+          type: 'error',
+        };
       }
       return null;
     },

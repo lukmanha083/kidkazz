@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Circle, RefreshCw, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AlertCircle, Circle, RefreshCw } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface Service {
   name: string;
@@ -48,7 +48,7 @@ export function SystemStatus() {
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const checkServiceStatus = async () => {
+  const checkServiceStatus = useCallback(async () => {
     setIsRefreshing(true);
     setError(null);
 
@@ -87,13 +87,11 @@ export function SystemStatus() {
       }
 
       // Keep existing services or set to default offline state
-      setServices(prev =>
-        prev.map(service => ({ ...service, status: 'offline' as const }))
-      );
+      setServices((prev) => prev.map((service) => ({ ...service, status: 'offline' as const })));
     } finally {
       setIsRefreshing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     // Initial check
@@ -105,10 +103,10 @@ export function SystemStatus() {
     }, 30000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [checkServiceStatus]);
 
-  const allServicesOnline = services.every(s => s.status === 'online');
-  const anyServiceOffline = services.some(s => s.status === 'offline');
+  const allServicesOnline = services.every((s) => s.status === 'online');
+  const anyServiceOffline = services.some((s) => s.status === 'offline');
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -136,9 +134,7 @@ export function SystemStatus() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="sm" className="gap-2">
-          <Circle
-            className={cn('h-2 w-2 fill-current', overallStatus.color)}
-          />
+          <Circle className={cn('h-2 w-2 fill-current', overallStatus.color)} />
           <span className="hidden sm:inline text-xs">System Status</span>
         </Button>
       </DropdownMenuTrigger>
@@ -148,9 +144,7 @@ export function SystemStatus() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-semibold text-sm">System Status</h3>
-              <p className={cn('text-xs', overallStatus.color)}>
-                {overallStatus.text}
-              </p>
+              <p className={cn('text-xs', overallStatus.color)}>{overallStatus.text}</p>
             </div>
             <Button
               variant="ghost"
@@ -182,12 +176,7 @@ export function SystemStatus() {
                 className="flex items-center justify-between py-1.5 border-b last:border-0"
               >
                 <div className="flex items-center gap-2">
-                  <Circle
-                    className={cn(
-                      'h-2 w-2 fill-current',
-                      getStatusColor(service.status)
-                    )}
-                  />
+                  <Circle className={cn('h-2 w-2 fill-current', getStatusColor(service.status))} />
                   <span className="text-sm">{service.name}</span>
                 </div>
                 <span className={cn('text-xs capitalize', getStatusColor(service.status))}>

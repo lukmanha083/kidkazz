@@ -1,4 +1,4 @@
-import { IInventoryRepository } from '../../domain/repositories/IInventoryRepository';
+import type { IInventoryRepository } from '../../domain/repositories/IInventoryRepository';
 
 /**
  * Query: Get Inventory for Product across Warehouses
@@ -11,7 +11,7 @@ export class GetInventory {
 
     return {
       productId,
-      warehouses: inventories.map(inv => inv.toData()),
+      warehouses: inventories.map((inv) => inv.toData()),
       totalAvailable: inventories.reduce((sum, inv) => sum + inv.getAvailableQuantity(), 0),
     };
   }

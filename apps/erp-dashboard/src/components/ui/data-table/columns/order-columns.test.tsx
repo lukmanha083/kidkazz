@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { getOrderColumns, orderStatusOptions, type Order } from './order-columns';
+import { describe, expect, it, vi } from 'vitest';
+import { type Order, getOrderColumns, orderStatusOptions } from './order-columns';
 
 // Mock dependencies
 vi.mock('../../badge', () => ({
@@ -17,9 +17,21 @@ vi.mock('../data-table-column-header', () => ({
 vi.mock('../data-table-row-actions', () => ({
   DataTableRowActions: ({ onView, onEdit, onDelete }: any) => (
     <div data-testid="row-actions">
-      {onView && <button onClick={() => onView({})}>View</button>}
-      {onEdit && <button onClick={() => onEdit({})}>Edit</button>}
-      {onDelete && <button onClick={() => onDelete({})}>Delete</button>}
+      {onView && (
+        <button type="button" onClick={() => onView({})}>
+          View
+        </button>
+      )}
+      {onEdit && (
+        <button type="button" onClick={() => onEdit({})}>
+          Edit
+        </button>
+      )}
+      {onDelete && (
+        <button type="button" onClick={() => onDelete({})}>
+          Delete
+        </button>
+      )}
     </div>
   ),
 }));
@@ -52,10 +64,8 @@ describe('order-columns', () => {
 
     it('should include all required columns', () => {
       const columns = getOrderColumns();
-      const columnIds = columns.map(col => 
-        'accessorKey' in col ? col.accessorKey : col.id
-      );
-      
+      const columnIds = columns.map((col) => ('accessorKey' in col ? col.accessorKey : col.id));
+
       expect(columnIds).toContain('id');
       expect(columnIds).toContain('customer');
       expect(columnIds).toContain('product');
@@ -86,8 +96,8 @@ describe('order-columns', () => {
     it('should display order ID in monospace font', () => {
       const order = createMockOrder({ id: 'ORD-12345' });
       const columns = getOrderColumns();
-      const idColumn = columns.find(col => col.accessorKey === 'id');
-      
+      const idColumn = columns.find((col) => col.accessorKey === 'id');
+
       expect(idColumn).toBeDefined();
       if (idColumn && 'cell' in idColumn) {
         const mockRow = { getValue: (key: string) => order.id } as any;
@@ -101,12 +111,12 @@ describe('order-columns', () => {
     it('should display customer name and email', () => {
       const order = createMockOrder({
         customer: 'Jane Smith',
-        email: 'jane@example.com'
+        email: 'jane@example.com',
       });
-      
+
       const columns = getOrderColumns();
-      const customerColumn = columns.find(col => col.id === 'customer');
-      
+      const customerColumn = columns.find((col) => col.id === 'customer');
+
       expect(customerColumn).toBeDefined();
       if (customerColumn && 'cell' in customerColumn) {
         const mockRow = { original: order } as any;
@@ -118,8 +128,8 @@ describe('order-columns', () => {
     it('should use accessor function for sorting', () => {
       const order = createMockOrder({ customer: 'Test Customer' });
       const columns = getOrderColumns();
-      const customerColumn = columns.find(col => col.id === 'customer');
-      
+      const customerColumn = columns.find((col) => col.id === 'customer');
+
       if (customerColumn && 'accessorFn' in customerColumn && customerColumn.accessorFn) {
         const result = customerColumn.accessorFn(order, 0);
         expect(result).toBe('Test Customer');
@@ -131,8 +141,8 @@ describe('order-columns', () => {
     it('should format amount as currency with 2 decimals', () => {
       const order = createMockOrder({ amount: 123.45 });
       const columns = getOrderColumns();
-      const amountColumn = columns.find(col => col.accessorKey === 'amount');
-      
+      const amountColumn = columns.find((col) => col.accessorKey === 'amount');
+
       expect(amountColumn).toBeDefined();
       if (amountColumn && 'cell' in amountColumn) {
         const mockRow = { getValue: (key: string) => order.amount } as any;
@@ -144,16 +154,16 @@ describe('order-columns', () => {
     it('should handle zero amount', () => {
       const order = createMockOrder({ amount: 0 });
       const columns = getOrderColumns();
-      const amountColumn = columns.find(col => col.accessorKey === 'amount');
-      
+      const amountColumn = columns.find((col) => col.accessorKey === 'amount');
+
       expect(amountColumn).toBeDefined();
     });
 
     it('should handle large amounts', () => {
       const order = createMockOrder({ amount: 999999.99 });
       const columns = getOrderColumns();
-      const amountColumn = columns.find(col => col.accessorKey === 'amount');
-      
+      const amountColumn = columns.find((col) => col.accessorKey === 'amount');
+
       expect(amountColumn).toBeDefined();
     });
   });
@@ -162,8 +172,8 @@ describe('order-columns', () => {
     it('should format date correctly', () => {
       const order = createMockOrder({ date: '2024-06-15T14:30:00Z' });
       const columns = getOrderColumns();
-      const dateColumn = columns.find(col => col.accessorKey === 'date');
-      
+      const dateColumn = columns.find((col) => col.accessorKey === 'date');
+
       expect(dateColumn).toBeDefined();
       if (dateColumn && 'cell' in dateColumn) {
         const mockRow = { getValue: (key: string) => order.date } as any;
@@ -173,30 +183,32 @@ describe('order-columns', () => {
     });
 
     it('should handle different date formats', () => {
-      const dates = [
-        '2024-01-01T00:00:00Z',
-        '2024-12-31T23:59:59Z',
-        '2024-06-15T12:00:00Z'
-      ];
+      const dates = ['2024-01-01T00:00:00Z', '2024-12-31T23:59:59Z', '2024-06-15T12:00:00Z'];
 
-      dates.forEach(date => {
+      dates.forEach((date) => {
         const order = createMockOrder({ date });
         const columns = getOrderColumns();
-        const dateColumn = columns.find(col => col.accessorKey === 'date');
+        const dateColumn = columns.find((col) => col.accessorKey === 'date');
         expect(dateColumn).toBeDefined();
       });
     });
   });
 
   describe('status column', () => {
-    const statuses: Order['status'][] = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
+    const statuses: Order['status'][] = [
+      'Pending',
+      'Processing',
+      'Shipped',
+      'Delivered',
+      'Cancelled',
+    ];
 
-    statuses.forEach(status => {
+    statuses.forEach((status) => {
       it(`should display ${status} status correctly`, () => {
         const order = createMockOrder({ status });
         const columns = getOrderColumns();
-        const statusColumn = columns.find(col => col.accessorKey === 'status');
-        
+        const statusColumn = columns.find((col) => col.accessorKey === 'status');
+
         expect(statusColumn).toBeDefined();
         if (statusColumn && 'cell' in statusColumn) {
           const mockRow = { getValue: (key: string) => order.status } as any;
@@ -209,11 +221,11 @@ describe('order-columns', () => {
     it('should filter by status correctly', () => {
       const order = createMockOrder({ status: 'Shipped' });
       const columns = getOrderColumns();
-      const statusColumn = columns.find(col => col.accessorKey === 'status');
-      
+      const statusColumn = columns.find((col) => col.accessorKey === 'status');
+
       if (statusColumn && 'filterFn' in statusColumn && statusColumn.filterFn) {
         const mockRow = { getValue: (id: string) => order.status } as any;
-        
+
         expect(statusColumn.filterFn(mockRow, 'status', ['Shipped'])).toBe(true);
         expect(statusColumn.filterFn(mockRow, 'status', ['Pending'])).toBe(false);
         expect(statusColumn.filterFn(mockRow, 'status', ['Shipped', 'Delivered'])).toBe(true);
@@ -223,16 +235,16 @@ describe('order-columns', () => {
     it('should apply correct status colors', () => {
       const order = createMockOrder({ status: 'Delivered' });
       const columns = getOrderColumns();
-      const statusColumn = columns.find(col => col.accessorKey === 'status');
-      
+      const statusColumn = columns.find((col) => col.accessorKey === 'status');
+
       expect(statusColumn).toBeDefined();
     });
 
     it('should show correct status icons', () => {
       const order = createMockOrder({ status: 'Shipped' });
       const columns = getOrderColumns();
-      const statusColumn = columns.find(col => col.accessorKey === 'status');
-      
+      const statusColumn = columns.find((col) => col.accessorKey === 'status');
+
       expect(statusColumn).toBeDefined();
     });
   });
@@ -241,24 +253,24 @@ describe('order-columns', () => {
     it('should display quantity centered', () => {
       const order = createMockOrder({ quantity: 10 });
       const columns = getOrderColumns();
-      const quantityColumn = columns.find(col => col.accessorKey === 'quantity');
-      
+      const quantityColumn = columns.find((col) => col.accessorKey === 'quantity');
+
       expect(quantityColumn).toBeDefined();
     });
 
     it('should handle single quantity', () => {
       const order = createMockOrder({ quantity: 1 });
       const columns = getOrderColumns();
-      const quantityColumn = columns.find(col => col.accessorKey === 'quantity');
-      
+      const quantityColumn = columns.find((col) => col.accessorKey === 'quantity');
+
       expect(quantityColumn).toBeDefined();
     });
 
     it('should handle large quantities', () => {
       const order = createMockOrder({ quantity: 9999 });
       const columns = getOrderColumns();
-      const quantityColumn = columns.find(col => col.accessorKey === 'quantity');
-      
+      const quantityColumn = columns.find((col) => col.accessorKey === 'quantity');
+
       expect(quantityColumn).toBeDefined();
     });
   });
@@ -267,8 +279,8 @@ describe('order-columns', () => {
     it('should display product name', () => {
       const order = createMockOrder({ product: 'Premium Widget' });
       const columns = getOrderColumns();
-      const productColumn = columns.find(col => col.accessorKey === 'product');
-      
+      const productColumn = columns.find((col) => col.accessorKey === 'product');
+
       expect(productColumn).toBeDefined();
     });
 
@@ -276,8 +288,8 @@ describe('order-columns', () => {
       const longName = 'A'.repeat(100);
       const order = createMockOrder({ product: longName });
       const columns = getOrderColumns();
-      const productColumn = columns.find(col => col.accessorKey === 'product');
-      
+      const productColumn = columns.find((col) => col.accessorKey === 'product');
+
       expect(productColumn).toBeDefined();
     });
   });
@@ -289,15 +301,15 @@ describe('order-columns', () => {
       const onDelete = vi.fn();
 
       const columns = getOrderColumns({ onView, onEdit, onDelete });
-      const actionsColumn = columns.find(col => col.id === 'actions');
-      
+      const actionsColumn = columns.find((col) => col.id === 'actions');
+
       expect(actionsColumn).toBeDefined();
     });
 
     it('should work without callbacks', () => {
       const columns = getOrderColumns({});
-      const actionsColumn = columns.find(col => col.id === 'actions');
-      
+      const actionsColumn = columns.find((col) => col.id === 'actions');
+
       expect(actionsColumn).toBeDefined();
     });
   });
@@ -310,7 +322,7 @@ describe('order-columns', () => {
     });
 
     it('should have all status values', () => {
-      const values = orderStatusOptions.map(opt => opt.value);
+      const values = orderStatusOptions.map((opt) => opt.value);
       expect(values).toContain('Pending');
       expect(values).toContain('Processing');
       expect(values).toContain('Shipped');
@@ -319,7 +331,7 @@ describe('order-columns', () => {
     });
 
     it('should have proper label-value pairs', () => {
-      orderStatusOptions.forEach(option => {
+      orderStatusOptions.forEach((option) => {
         expect(option.label).toBeDefined();
         expect(option.value).toBeDefined();
         expect(typeof option.label).toBe('string');
@@ -346,23 +358,23 @@ describe('order-columns', () => {
       const longName = 'A'.repeat(200);
       const order = createMockOrder({ customer: longName });
       const columns = getOrderColumns();
-      
+
       expect(columns).toBeDefined();
     });
 
     it('should handle very long email addresses', () => {
-      const longEmail = 'a'.repeat(50) + '@' + 'b'.repeat(50) + '.com';
+      const longEmail = `${'a'.repeat(50)}@${'b'.repeat(50)}.com`;
       const order = createMockOrder({ email: longEmail });
       const columns = getOrderColumns();
-      
+
       expect(columns).toBeDefined();
     });
 
     it('should handle decimal quantities gracefully', () => {
       const order = createMockOrder({ quantity: 1.5 });
       const columns = getOrderColumns();
-      const quantityColumn = columns.find(col => col.accessorKey === 'quantity');
-      
+      const quantityColumn = columns.find((col) => col.accessorKey === 'quantity');
+
       expect(quantityColumn).toBeDefined();
     });
   });

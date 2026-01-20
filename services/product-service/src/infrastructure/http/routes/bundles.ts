@@ -1,10 +1,10 @@
-import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { z } from 'zod';
-import { drizzle } from 'drizzle-orm/d1';
 import { eq } from 'drizzle-orm';
-import { productBundles, bundleItems } from '../../db/schema';
+import { drizzle } from 'drizzle-orm/d1';
+import { Hono } from 'hono';
+import { z } from 'zod';
 import { generateId } from '../../../shared/utils/helpers';
+import { bundleItems, productBundles } from '../../db/schema';
 
 type Bindings = {
   DB: D1Database;
@@ -56,22 +56,14 @@ app.get('/:id', async (c) => {
   const id = c.req.param('id');
   const db = drizzle(c.env.DB);
 
-  const bundle = await db
-    .select()
-    .from(productBundles)
-    .where(eq(productBundles.id, id))
-    .get();
+  const bundle = await db.select().from(productBundles).where(eq(productBundles.id, id)).get();
 
   if (!bundle) {
     return c.json({ error: 'Bundle not found' }, 404);
   }
 
   // Get bundle items
-  const items = await db
-    .select()
-    .from(bundleItems)
-    .where(eq(bundleItems.bundleId, id))
-    .all();
+  const items = await db.select().from(bundleItems).where(eq(bundleItems.bundleId, id)).all();
 
   return c.json({
     bundle,
@@ -101,11 +93,7 @@ app.get('/:id/available-stock', async (c) => {
   const warehouseId = queryWarehouseId || bundle.warehouseId;
 
   // Get bundle items (components)
-  const items = await db
-    .select()
-    .from(bundleItems)
-    .where(eq(bundleItems.bundleId, bundleId))
-    .all();
+  const items = await db.select().from(bundleItems).where(eq(bundleItems.bundleId, bundleId)).all();
 
   if (items.length === 0) {
     return c.json({
@@ -120,8 +108,13 @@ app.get('/:id/available-stock', async (c) => {
     });
   }
 
-  let minAvailableBundles = Infinity;
-  let limitingComponent: { productId: string; productName: string; available: number; required: number } | null = null;
+  let minAvailableBundles = Number.POSITIVE_INFINITY;
+  let limitingComponent: {
+    productId: string;
+    productName: string;
+    available: number;
+    required: number;
+  } | null = null;
   const componentAvailability = [];
 
   // Check availability of each component
@@ -135,7 +128,7 @@ app.get('/:id/available-stock', async (c) => {
       const invResponse = await c.env.INVENTORY_SERVICE.fetch(new Request(stockUrl));
 
       if (invResponse.ok) {
-        const invData = await invResponse.json() as {
+        const invData = (await invResponse.json()) as {
           quantityAvailable?: number;
           totalAvailable?: number;
           totalStock?: number;
@@ -143,8 +136,8 @@ app.get('/:id/available-stock', async (c) => {
 
         // Extract available quantity based on response type
         const availableQty = warehouseId
-          ? (invData.quantityAvailable || 0)
-          : (invData.totalAvailable || invData.totalStock || 0);
+          ? invData.quantityAvailable || 0
+          : invData.totalAvailable || invData.totalStock || 0;
 
         // Calculate how many bundles can be made from this component
         const maxBundlesFromComponent = Math.floor(availableQty / item.quantity);
@@ -204,7 +197,7 @@ app.get('/:id/available-stock', async (c) => {
     }
   }
 
-  const availableStock = minAvailableBundles === Infinity ? 0 : minAvailableBundles;
+  const availableStock = minAvailableBundles === Number.POSITIVE_INFINITY ? 0 : minAvailableBundles;
 
   return c.json({
     bundleId,
@@ -214,11 +207,12 @@ app.get('/:id/available-stock', async (c) => {
     availableStock,
     limitingComponent,
     componentAvailability,
-    message: availableStock > 0
-      ? `${availableStock} bundles can be assembled`
-      : limitingComponent
-      ? `Limited by ${limitingComponent.productName} (need ${limitingComponent.required}, have ${limitingComponent.available})`
-      : 'Insufficient components',
+    message:
+      availableStock > 0
+        ? `${availableStock} bundles can be assembled`
+        : limitingComponent
+          ? `Limited by ${limitingComponent.productName} (need ${limitingComponent.required}, have ${limitingComponent.available})`
+          : 'Insufficient components',
   });
 });
 
@@ -251,7 +245,7 @@ app.post('/', zValidator('json', createBundleSchema), async (c) => {
 
   // Create bundle items
   if (data.items && data.items.length > 0) {
-    const items = data.items.map(item => ({
+    const items = data.items.map((item) => ({
       id: generateId(),
       bundleId: bundleId,
       productId: item.productId,
@@ -267,16 +261,15 @@ app.post('/', zValidator('json', createBundleSchema), async (c) => {
   }
 
   // Return created bundle with items
-  const items = await db
-    .select()
-    .from(bundleItems)
-    .where(eq(bundleItems.bundleId, bundleId))
-    .all();
+  const items = await db.select().from(bundleItems).where(eq(bundleItems.bundleId, bundleId)).all();
 
-  return c.json({
-    bundle: newBundle,
-    items,
-  }, 201);
+  return c.json(
+    {
+      bundle: newBundle,
+      items,
+    },
+    201
+  );
 });
 
 // PUT /api/bundles/:id - Update bundle
@@ -285,11 +278,7 @@ app.put('/:id', zValidator('json', updateBundleSchema), async (c) => {
   const data = c.req.valid('json');
   const db = drizzle(c.env.DB);
 
-  const existing = await db
-    .select()
-    .from(productBundles)
-    .where(eq(productBundles.id, id))
-    .get();
+  const existing = await db.select().from(productBundles).where(eq(productBundles.id, id)).get();
 
   if (!existing) {
     return c.json({ error: 'Bundle not found' }, 404);
@@ -301,61 +290,60 @@ app.put('/:id', zValidator('json', updateBundleSchema), async (c) => {
     .where(eq(productBundles.id, id))
     .run();
 
-  const updated = await db
-    .select()
-    .from(productBundles)
-    .where(eq(productBundles.id, id))
-    .get();
+  const updated = await db.select().from(productBundles).where(eq(productBundles.id, id)).get();
 
   return c.json(updated);
 });
 
 // PUT /api/bundles/:id/items - Update bundle items
-app.put('/:id/items', zValidator('json', z.object({
-  items: z.array(bundleItemSchema).min(1),
-})), async (c) => {
-  const id = c.req.param('id');
-  const { items: newItems } = c.req.valid('json');
-  const db = drizzle(c.env.DB);
+app.put(
+  '/:id/items',
+  zValidator(
+    'json',
+    z.object({
+      items: z.array(bundleItemSchema).min(1),
+    })
+  ),
+  async (c) => {
+    const id = c.req.param('id');
+    const { items: newItems } = c.req.valid('json');
+    const db = drizzle(c.env.DB);
 
-  const existing = await db
-    .select()
-    .from(productBundles)
-    .where(eq(productBundles.id, id))
-    .get();
+    const existing = await db.select().from(productBundles).where(eq(productBundles.id, id)).get();
 
-  if (!existing) {
-    return c.json({ error: 'Bundle not found' }, 404);
+    if (!existing) {
+      return c.json({ error: 'Bundle not found' }, 404);
+    }
+
+    // Delete existing items
+    await db.delete(bundleItems).where(eq(bundleItems.bundleId, id)).run();
+
+    // Insert new items
+    const now = new Date();
+    const items = newItems.map((item) => ({
+      id: generateId(),
+      bundleId: id,
+      productId: item.productId,
+      productSKU: item.productSKU,
+      productName: item.productName,
+      barcode: item.barcode,
+      quantity: item.quantity,
+      price: item.price,
+      createdAt: now,
+    }));
+
+    await db.insert(bundleItems).values(items).run();
+
+    // Return updated items
+    const updatedItems = await db
+      .select()
+      .from(bundleItems)
+      .where(eq(bundleItems.bundleId, id))
+      .all();
+
+    return c.json({ items: updatedItems });
   }
-
-  // Delete existing items
-  await db.delete(bundleItems).where(eq(bundleItems.bundleId, id)).run();
-
-  // Insert new items
-  const now = new Date();
-  const items = newItems.map(item => ({
-    id: generateId(),
-    bundleId: id,
-    productId: item.productId,
-    productSKU: item.productSKU,
-    productName: item.productName,
-    barcode: item.barcode,
-    quantity: item.quantity,
-    price: item.price,
-    createdAt: now,
-  }));
-
-  await db.insert(bundleItems).values(items).run();
-
-  // Return updated items
-  const updatedItems = await db
-    .select()
-    .from(bundleItems)
-    .where(eq(bundleItems.bundleId, id))
-    .all();
-
-  return c.json({ items: updatedItems });
-});
+);
 
 // PATCH /api/bundles/:id/stock - Update bundle stock
 // NOTE: This route is deprecated after DDD Phase 4 refactoring

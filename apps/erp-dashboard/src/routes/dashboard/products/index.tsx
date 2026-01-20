@@ -1,10 +1,21 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Package, TrendingUp, TrendingDown, Wallet, Boxes, AlertCircle, ShoppingCart, Loader2, Calendar, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { productApi, categoryApi, inventoryApi } from '@/lib/api';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { categoryApi, inventoryApi, productApi } from '@/lib/api';
+import { useQuery } from '@tanstack/react-query';
+import { Link, createFileRoute } from '@tanstack/react-router';
+import {
+  AlertCircle,
+  AlertTriangle,
+  Boxes,
+  Calendar,
+  Loader2,
+  Package,
+  ShoppingCart,
+  TrendingDown,
+  TrendingUp,
+  Wallet,
+} from 'lucide-react';
 
 export const Route = createFileRoute('/dashboard/products/')({
   component: ProductsReportPage,
@@ -59,20 +70,23 @@ function ProductsReportPage() {
   const isLoading = productsLoading || categoriesLoading || inventoryLoading;
 
   // Aggregate stock by product ID from Inventory Service (DDD: Single Source of Truth)
-  const productStockMap = inventory.reduce((acc, inv) => {
-    if (!acc[inv.productId]) {
-      acc[inv.productId] = {
-        totalStock: 0,
-        minimumStock: inv.minimumStock || 0,
-      };
-    }
-    acc[inv.productId].totalStock += inv.quantityAvailable || 0;
-    // Use the highest minimumStock across all warehouses
-    if (inv.minimumStock && inv.minimumStock > acc[inv.productId].minimumStock) {
-      acc[inv.productId].minimumStock = inv.minimumStock;
-    }
-    return acc;
-  }, {} as Record<string, { totalStock: number; minimumStock: number }>);
+  const productStockMap = inventory.reduce(
+    (acc, inv) => {
+      if (!acc[inv.productId]) {
+        acc[inv.productId] = {
+          totalStock: 0,
+          minimumStock: inv.minimumStock || 0,
+        };
+      }
+      acc[inv.productId].totalStock += inv.quantityAvailable || 0;
+      // Use the highest minimumStock across all warehouses
+      if (inv.minimumStock && inv.minimumStock > acc[inv.productId].minimumStock) {
+        acc[inv.productId].minimumStock = inv.minimumStock;
+      }
+      return acc;
+    },
+    {} as Record<string, { totalStock: number; minimumStock: number }>
+  );
 
   // Helper function to get stock for a product
   const getProductStock = (productId: string): number => {
@@ -80,7 +94,7 @@ function ProductsReportPage() {
   };
 
   // Helper function to get minimum stock for a product
-  const getMinimumStock = (productId: string, fallback: number = 50): number => {
+  const getMinimumStock = (productId: string, fallback = 50): number => {
     return productStockMap[productId]?.minimumStock || fallback;
   };
 
@@ -88,17 +102,21 @@ function ProductsReportPage() {
   const productStats = {
     totalProducts: products.length,
     // Phase 3: Updated to match ProductStatus enum (online sales, offline sales, omnichannel sales are "active")
-    activeProducts: products.filter(p => ['online sales', 'offline sales', 'omnichannel sales'].includes(p.status)).length,
-    inactiveProducts: products.filter(p => p.status === 'inactive').length + products.filter(p => p.status === 'discontinued').length,
-    totalValue: products.reduce((sum, p) => sum + (p.price * getProductStock(p.id)), 0),
+    activeProducts: products.filter((p) =>
+      ['online sales', 'offline sales', 'omnichannel sales'].includes(p.status)
+    ).length,
+    inactiveProducts:
+      products.filter((p) => p.status === 'inactive').length +
+      products.filter((p) => p.status === 'discontinued').length,
+    totalValue: products.reduce((sum, p) => sum + p.price * getProductStock(p.id), 0),
     // Use custom minimumStock if set, otherwise default to 50 for low stock and 20 for out of stock
-    lowStockProducts: products.filter(p => {
+    lowStockProducts: products.filter((p) => {
       const stock = getProductStock(p.id);
       const minStock = getMinimumStock(p.id, p.minimumStock || 50);
       const criticalStock = Math.floor(minStock * 0.4); // Critical is 40% of minimum
       return stock < minStock && stock >= criticalStock;
     }).length,
-    outOfStock: products.filter(p => {
+    outOfStock: products.filter((p) => {
       const stock = getProductStock(p.id);
       const minStock = getMinimumStock(p.id, p.minimumStock || 50);
       const criticalStock = Math.floor(minStock * 0.4);
@@ -109,10 +127,10 @@ function ProductsReportPage() {
   // Top selling products (sorted by stock sold - assuming lower stock means higher sales for demo)
   // In production, you'd have actual sales data
   const topSellingProducts = products
-    .filter(p => p.reviews > 0)
+    .filter((p) => p.reviews > 0)
     .sort((a, b) => b.reviews - a.reviews)
     .slice(0, 5)
-    .map(p => ({
+    .map((p) => ({
       id: p.id,
       name: p.name,
       sku: p.sku,
@@ -123,14 +141,14 @@ function ProductsReportPage() {
 
   // Low stock products (Phase 2B: Using Inventory Service data)
   const lowStockProducts = products
-    .filter(p => {
+    .filter((p) => {
       const stock = getProductStock(p.id);
       const minStock = getMinimumStock(p.id, p.minimumStock || 50);
       return stock < minStock;
     })
     .sort((a, b) => getProductStock(a.id) - getProductStock(b.id))
     .slice(0, 4)
-    .map(p => {
+    .map((p) => {
       const stock = getProductStock(p.id);
       const minStock = getMinimumStock(p.id, p.minimumStock || 50);
       const criticalStock = Math.floor(minStock * 0.4);
@@ -145,18 +163,24 @@ function ProductsReportPage() {
     });
 
   // Category breakdown (Phase 2B: Using Inventory Service data)
-  const categoryBreakdown = categories.map(cat => {
-    const categoryProducts = products.filter(p => p.categoryId === cat.id);
-    const categoryValue = categoryProducts.reduce((sum, p) => sum + (p.price * getProductStock(p.id)), 0);
-    const percentage = products.length > 0 ? Math.round((categoryProducts.length / products.length) * 100) : 0;
+  const categoryBreakdown = categories
+    .map((cat) => {
+      const categoryProducts = products.filter((p) => p.categoryId === cat.id);
+      const categoryValue = categoryProducts.reduce(
+        (sum, p) => sum + p.price * getProductStock(p.id),
+        0
+      );
+      const percentage =
+        products.length > 0 ? Math.round((categoryProducts.length / products.length) * 100) : 0;
 
-    return {
-      category: cat.name,
-      products: categoryProducts.length,
-      percentage,
-      value: formatRupiah(categoryValue),
-    };
-  }).filter(c => c.products > 0); // Only show categories with products
+      return {
+        category: cat.name,
+        products: categoryProducts.length,
+        percentage,
+        value: formatRupiah(categoryValue),
+      };
+    })
+    .filter((c) => c.products > 0); // Only show categories with products
 
   // Products approaching expiration
   // Normalize dates to start of day to avoid timezone and time-of-day comparison issues
@@ -167,7 +191,7 @@ function ProductsReportPage() {
   thirtyDaysFromNow.setHours(23, 59, 59, 999); // End of day
 
   const expiringProducts = products
-    .filter(p => {
+    .filter((p) => {
       if (!p.expirationDate) return false;
       const expirationDate = new Date(p.expirationDate);
       expirationDate.setHours(0, 0, 0, 0); // Normalize to start of day
@@ -179,17 +203,19 @@ function ProductsReportPage() {
       return dateA - dateB;
     })
     .slice(0, 5)
-    .map(p => ({
+    .map((p) => ({
       id: p.id,
       name: p.name,
       sku: p.sku,
       expirationDate: p.expirationDate!,
       alertDate: p.alertDate,
-      daysUntilExpiration: Math.ceil((new Date(p.expirationDate!).getTime() - today.getTime()) / (1000 * 60 * 60 * 24)),
+      daysUntilExpiration: Math.ceil(
+        (new Date(p.expirationDate!).getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+      ),
       status: p.status,
     }));
 
-  const expiredProducts = products.filter(p => {
+  const expiredProducts = products.filter((p) => {
     if (!p.expirationDate) return false;
     const expirationDate = new Date(p.expirationDate);
     expirationDate.setHours(0, 0, 0, 0); // Normalize to start of day
@@ -200,7 +226,7 @@ function ProductsReportPage() {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   };
 
@@ -247,8 +273,19 @@ function ProductsReportPage() {
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0">
               <div className="rounded-full bg-blue-100 dark:bg-blue-900/50 p-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600 dark:text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 text-blue-600 dark:text-blue-400"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  role="img"
+                  aria-label="Information"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </div>
             </div>
@@ -257,7 +294,8 @@ function ProductsReportPage() {
                 Product vs Inventory Reports
               </h3>
               <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
-                This <strong>Product Report</strong> shows aggregate product data across all warehouses. Stock levels, expiration dates, and alerts shown here are totals.
+                This <strong>Product Report</strong> shows aggregate product data across all
+                warehouses. Stock levels, expiration dates, and alerts shown here are totals.
               </p>
               <p className="text-sm text-blue-800 dark:text-blue-200">
                 For detailed warehouse-specific information including:
@@ -269,9 +307,20 @@ function ProductsReportPage() {
               </ul>
               <Link to="/dashboard/inventory" className="inline-block mt-3">
                 <Button variant="default" size="sm" className="gap-2 bg-blue-600 hover:bg-blue-700">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    role="img"
+                    aria-label="Inventory"
+                  >
                     <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
-                    <path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd" />
+                    <path
+                      fillRule="evenodd"
+                      d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                   View Inventory Report
                 </Button>
@@ -322,7 +371,9 @@ function ProductsReportPage() {
             <Wallet className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">{formatRupiah(productStats.totalValue)}</div>
+            <div className="text-2xl font-bold text-primary">
+              {formatRupiah(productStats.totalValue)}
+            </div>
             <p className="text-xs text-muted-foreground">Inventory value</p>
           </CardContent>
         </Card>
@@ -336,7 +387,9 @@ function ProductsReportPage() {
             <AlertCircle className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{productStats.lowStockProducts}</div>
+            <div className="text-2xl font-bold text-yellow-600">
+              {productStats.lowStockProducts}
+            </div>
             <p className="text-xs text-muted-foreground">Need restocking</p>
           </CardContent>
         </Card>
@@ -411,7 +464,9 @@ function ProductsReportPage() {
                         <span className="font-medium">{product.name}</span>
                       </td>
                       <td className="p-4 align-middle">
-                        <span className="font-mono text-sm text-muted-foreground">{product.sku}</span>
+                        <span className="font-mono text-sm text-muted-foreground">
+                          {product.sku}
+                        </span>
                       </td>
                       <td className="p-4 align-middle text-right">
                         <span className="font-semibold">{product.sales}</span>
@@ -449,7 +504,8 @@ function ProductsReportPage() {
             <div className="space-y-3">
               {expiringProducts.map((product) => {
                 const isUrgent = product.daysUntilExpiration <= 7;
-                const isWarning = product.daysUntilExpiration <= 14 && product.daysUntilExpiration > 7;
+                const isWarning =
+                  product.daysUntilExpiration <= 14 && product.daysUntilExpiration > 7;
 
                 return (
                   <div
@@ -458,8 +514,8 @@ function ProductsReportPage() {
                       isUrgent
                         ? 'bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-900'
                         : isWarning
-                        ? 'bg-orange-50 border-orange-200 dark:bg-orange-950/20 dark:border-orange-900'
-                        : 'bg-yellow-50 border-yellow-200 dark:bg-yellow-950/20 dark:border-yellow-900'
+                          ? 'bg-orange-50 border-orange-200 dark:bg-orange-950/20 dark:border-orange-900'
+                          : 'bg-yellow-50 border-yellow-200 dark:bg-yellow-950/20 dark:border-yellow-900'
                     }`}
                   >
                     <div className="flex-1">
@@ -471,11 +527,12 @@ function ProductsReportPage() {
                             isUrgent
                               ? 'bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-400'
                               : isWarning
-                              ? 'bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-400'
-                              : 'bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                ? 'bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-400'
+                                : 'bg-yellow-100 text-yellow-700 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-400'
                           }
                         >
-                          {product.daysUntilExpiration} {product.daysUntilExpiration === 1 ? 'day' : 'days'} left
+                          {product.daysUntilExpiration}{' '}
+                          {product.daysUntilExpiration === 1 ? 'day' : 'days'} left
                         </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground font-mono mt-1">{product.sku}</p>
@@ -493,13 +550,15 @@ function ProductsReportPage() {
                       </div>
                     </div>
                     <div className="ml-4">
-                      <Calendar className={`h-8 w-8 ${
-                        isUrgent
-                          ? 'text-red-600'
-                          : isWarning
-                          ? 'text-orange-600'
-                          : 'text-yellow-600'
-                      }`} />
+                      <Calendar
+                        className={`h-8 w-8 ${
+                          isUrgent
+                            ? 'text-red-600'
+                            : isWarning
+                              ? 'text-orange-600'
+                              : 'text-yellow-600'
+                        }`}
+                      />
                     </div>
                   </div>
                 );
@@ -526,7 +585,10 @@ function ProductsReportPage() {
             {lowStockProducts.length > 0 ? (
               <div className="space-y-3">
                 {lowStockProducts.map((product) => (
-                  <div key={product.id} className="flex items-center justify-between p-3 border rounded-md">
+                  <div
+                    key={product.id}
+                    className="flex items-center justify-between p-3 border rounded-md"
+                  >
                     <div>
                       <p className="font-medium text-sm">{product.name}</p>
                       <p className="text-xs text-muted-foreground font-mono">{product.sku}</p>
@@ -570,8 +632,8 @@ function ProductsReportPage() {
           <CardContent>
             {categoryBreakdown.length > 0 ? (
               <div className="space-y-3">
-                {categoryBreakdown.map((cat, index) => (
-                  <div key={index} className="space-y-2">
+                {categoryBreakdown.map((cat) => (
+                  <div key={cat.category} className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
                       <span className="font-medium">{cat.category}</span>
                       <div className="flex items-center gap-3">

@@ -1,10 +1,10 @@
-import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { z } from 'zod';
-import { drizzle } from 'drizzle-orm/d1';
 import { eq } from 'drizzle-orm';
-import { categories } from '../../db/schema';
+import { drizzle } from 'drizzle-orm/d1';
+import { Hono } from 'hono';
+import { z } from 'zod';
 import { generateId, generateTimestamp } from '../../../shared/utils/helpers';
+import { categories } from '../../db/schema';
 
 type Bindings = {
   DB: D1Database;
@@ -32,7 +32,9 @@ async function getCategoriesWithParentNames(db: any) {
   type Category = typeof categories.$inferSelect;
 
   // Create a map for quick parent lookup
-  const categoryMap = new Map<string, Category>(allCategories.map((cat: Category) => [cat.id, cat]));
+  const categoryMap = new Map<string, Category>(
+    allCategories.map((cat: Category) => [cat.id, cat])
+  );
 
   // Add parentCategoryName to each category
   return allCategories.map((cat: Category) => ({
@@ -43,17 +45,17 @@ async function getCategoriesWithParentNames(db: any) {
 
 // Helper function to check if a category already has a parent (is a subcategory)
 async function categoryHasParent(db: any, categoryId: string): Promise<boolean> {
-  const category = await db
-    .select()
-    .from(categories)
-    .where(eq(categories.id, categoryId))
-    .get();
+  const category = await db.select().from(categories).where(eq(categories.id, categoryId)).get();
 
   return category && category.parentId !== null && category.parentId !== undefined;
 }
 
 // Helper function to check for circular parent reference
-async function wouldCreateCircularReference(db: any, categoryId: string, newParentId: string): Promise<boolean> {
+async function wouldCreateCircularReference(
+  db: any,
+  categoryId: string,
+  newParentId: string
+): Promise<boolean> {
   // A category cannot be its own parent
   if (categoryId === newParentId) {
     return true;
@@ -88,12 +90,12 @@ app.get('/active', async (c) => {
   const allCategories = await db.select().from(categories).all();
 
   // Create a map for quick parent lookup
-  const categoryMap = new Map(allCategories.map(cat => [cat.id, cat]));
+  const categoryMap = new Map(allCategories.map((cat) => [cat.id, cat]));
 
   // Filter active categories and add parentCategoryName
   const activeCategories = allCategories
-    .filter(cat => cat.status === 'active')
-    .map(cat => ({
+    .filter((cat) => cat.status === 'active')
+    .map((cat) => ({
       ...cat,
       parentCategoryName: cat.parentId ? categoryMap.get(cat.parentId)?.name || null : null,
     }));
@@ -109,11 +111,7 @@ app.get('/:id', async (c) => {
   const id = c.req.param('id');
   const db = drizzle(c.env.DB);
 
-  const category = await db
-    .select()
-    .from(categories)
-    .where(eq(categories.id, id))
-    .get();
+  const category = await db.select().from(categories).where(eq(categories.id, id)).get();
 
   if (!category) {
     return c.json({ error: 'Category not found' }, 404);
@@ -146,7 +144,8 @@ app.post('/', zValidator('json', createCategorySchema), async (c) => {
       return c.json(
         {
           error: 'Invalid parent category',
-          message: 'Cannot create a subcategory under another subcategory. Only 2 levels are supported: category and subcategory.',
+          message:
+            'Cannot create a subcategory under another subcategory. Only 2 levels are supported: category and subcategory.',
         },
         400
       );
@@ -172,11 +171,7 @@ app.put('/:id', zValidator('json', updateCategorySchema), async (c) => {
   const data = c.req.valid('json');
   const db = drizzle(c.env.DB);
 
-  const existing = await db
-    .select()
-    .from(categories)
-    .where(eq(categories.id, id))
-    .get();
+  const existing = await db.select().from(categories).where(eq(categories.id, id)).get();
 
   if (!existing) {
     return c.json({ error: 'Category not found' }, 404);
@@ -202,7 +197,8 @@ app.put('/:id', zValidator('json', updateCategorySchema), async (c) => {
         return c.json(
           {
             error: 'Invalid parent category',
-            message: 'Cannot create a subcategory under another subcategory. Only 2 levels are supported: category and subcategory.',
+            message:
+              'Cannot create a subcategory under another subcategory. Only 2 levels are supported: category and subcategory.',
           },
           400
         );
@@ -228,11 +224,7 @@ app.put('/:id', zValidator('json', updateCategorySchema), async (c) => {
     .where(eq(categories.id, id))
     .run();
 
-  const updated = await db
-    .select()
-    .from(categories)
-    .where(eq(categories.id, id))
-    .get();
+  const updated = await db.select().from(categories).where(eq(categories.id, id)).get();
 
   return c.json(updated);
 });

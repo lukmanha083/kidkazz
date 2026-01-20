@@ -7,9 +7,9 @@
  * @see Phase 5: Async Validation with Debouncing
  */
 
-import { Hono } from 'hono';
+import { and, eq, ne } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, and, ne } from 'drizzle-orm';
+import { Hono } from 'hono';
 import { z } from 'zod';
 import { products } from '../../db/schema';
 
@@ -63,11 +63,7 @@ app.get('/sku', async (c) => {
     ? and(eq(products.sku, sku), ne(products.id, excludeId))
     : eq(products.sku, sku);
 
-  const existing = await db
-    .select()
-    .from(products)
-    .where(conditions)
-    .get();
+  const existing = await db.select().from(products).where(conditions).get();
 
   return c.json({ isUnique: !existing });
 });
@@ -99,11 +95,7 @@ app.get('/barcode', async (c) => {
     ? and(eq(products.barcode, barcode), ne(products.id, excludeId))
     : eq(products.barcode, barcode);
 
-  const existing = await db
-    .select()
-    .from(products)
-    .where(conditions)
-    .get();
+  const existing = await db.select().from(products).where(conditions).get();
 
   return c.json({ isUnique: !existing });
 });

@@ -11,8 +11,8 @@
  * - Integration with React Query for cache invalidation
  */
 
-import { useEffect, useRef, useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { queryKeys } from '../lib/query-client';
 
 export type WebSocketType = 'inventory' | 'warehouses';
@@ -189,7 +189,7 @@ export function useWebSocket(options: UseWebSocketOptions) {
     if (!enabled) return;
 
     // Determine WebSocket URL based on type
-    const wsUrl = baseUrl.replace(/^http/, 'ws') + `/ws/${type}`;
+    const wsUrl = `${baseUrl.replace(/^http/, 'ws')}/ws/${type}`;
 
     try {
       const ws = new WebSocket(wsUrl);
@@ -222,9 +222,7 @@ export function useWebSocket(options: UseWebSocketOptions) {
         // Attempt to reconnect with exponential backoff
         if (enabled) {
           const delay =
-            RECONNECT_DELAYS[
-              Math.min(reconnectAttemptRef.current, RECONNECT_DELAYS.length - 1)
-            ];
+            RECONNECT_DELAYS[Math.min(reconnectAttemptRef.current, RECONNECT_DELAYS.length - 1)];
           console.log(`Reconnecting in ${delay}ms...`);
 
           reconnectTimeoutRef.current = setTimeout(() => {

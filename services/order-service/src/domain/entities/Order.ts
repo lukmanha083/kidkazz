@@ -1,5 +1,13 @@
-import { OrderId, UserId, ProductId, Result, ResultFactory, InvalidOperationError, Price } from '@kidkazz/types';
-import { OrderCreated, OrderConfirmed, OrderCancelled } from '@kidkazz/domain-events';
+import type { OrderCancelled, OrderConfirmed, OrderCreated } from '@kidkazz/domain-events';
+import {
+  InvalidOperationError,
+  type OrderId,
+  Price,
+  type ProductId,
+  type Result,
+  ResultFactory,
+  type UserId,
+} from '@kidkazz/types';
 import { generateId, generateTimestamp } from '@kidkazz/utils';
 import { OrderStatus } from '../value-objects/OrderStatus';
 

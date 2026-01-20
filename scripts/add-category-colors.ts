@@ -6,38 +6,49 @@
 // Default color mappings for common categories
 const categoryColorMapping: Record<string, string> = {
   // Baby & Kids
-  'baby': 'pink',
-  'bayi': 'pink',
+  baby: 'pink',
+  bayi: 'pink',
   'baby bottle': 'cyan',
-  'baterai': 'orange',
+  baterai: 'orange',
   'operated b/o': 'orange',
 
   // Electronics & Toys
   'plastic toys': 'purple',
-  'toys': 'purple',
-  'elektronik': 'blue',
-  'gadget': 'blue',
+  toys: 'purple',
+  elektronik: 'blue',
+  gadget: 'blue',
 
   // Food & Beverage
-  'food': 'green',
-  'beverage': 'teal',
+  food: 'green',
+  beverage: 'teal',
   'bubur bayi': 'green',
 
   // Other
-  'uncategorized': 'gray',
-  'lainnya': 'yellow',
-  'accessories': 'indigo',
-  'clothing': 'red',
-  'books': 'orange',
-  'sports': 'red',
-  'beauty': 'pink',
-  'health': 'green',
-  'home': 'cyan',
-  'kitchen': 'orange',
+  uncategorized: 'gray',
+  lainnya: 'yellow',
+  accessories: 'indigo',
+  clothing: 'red',
+  books: 'orange',
+  sports: 'red',
+  beauty: 'pink',
+  health: 'green',
+  home: 'cyan',
+  kitchen: 'orange',
 };
 
 // Color cycle for categories without specific mapping
-const defaultColors = ['blue', 'green', 'purple', 'orange', 'pink', 'teal', 'indigo', 'cyan', 'red', 'yellow'];
+const defaultColors = [
+  'blue',
+  'green',
+  'purple',
+  'orange',
+  'pink',
+  'teal',
+  'indigo',
+  'cyan',
+  'red',
+  'yellow',
+];
 
 export function assignColorToCategory(categoryName: string): string {
   // Normalize category name to lowercase for matching
@@ -64,7 +75,9 @@ export function assignColorToCategory(categoryName: string): string {
 }
 
 // SQL update statements for Cloudflare D1
-export function generateCategoryColorUpdates(categories: Array<{ id: string; name: string; color?: string | null }>) {
+export function generateCategoryColorUpdates(
+  categories: Array<{ id: string; name: string; color?: string | null }>
+) {
   const updates: string[] = [];
 
   for (const category of categories) {
@@ -72,9 +85,7 @@ export function generateCategoryColorUpdates(categories: Array<{ id: string; nam
     if (category.color) continue;
 
     const color = assignColorToCategory(category.name);
-    updates.push(
-      `UPDATE categories SET color = '${color}' WHERE id = '${category.id}';`
-    );
+    updates.push(`UPDATE categories SET color = '${color}' WHERE id = '${category.id}';`);
   }
 
   return updates;

@@ -12,15 +12,15 @@
  * - Product + Inventory integration
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  productApi,
-  inventoryApi,
-  type Product,
-  type ProductWithInventory,
   type CreateProductInput,
-  type ProductStockResponse,
   type LowStockStatusResponse,
+  type Product,
+  type ProductStockResponse,
+  type ProductWithInventory,
+  inventoryApi,
+  productApi,
 } from '../../lib/api';
 import { queryKeys } from '../../lib/query-client';
 
@@ -100,27 +100,25 @@ export function useProductsWithInventory(
 
       const inventoryResults = await Promise.all(inventoryPromises);
 
-      const productsWithInventory: ProductWithInventory[] = products.map(
-        (product, index) => {
-          const inventory = inventoryResults[index];
-          if (!inventory) {
-            return product;
-          }
-
-          const minimumStock = inventory.warehouses?.[0]?.minimumStock || 0;
-          return {
-            ...product,
-            inventory: {
-              totalAvailable: inventory.totalAvailable || 0,
-              totalReserved: inventory.totalReserved || 0,
-              totalInTransit: 0,
-              minimumStock,
-              isLowStock: (inventory.totalAvailable || 0) < minimumStock,
-              warehouses: inventory.warehouses || [],
-            },
-          };
+      const productsWithInventory: ProductWithInventory[] = products.map((product, index) => {
+        const inventory = inventoryResults[index];
+        if (!inventory) {
+          return product;
         }
-      );
+
+        const minimumStock = inventory.warehouses?.[0]?.minimumStock || 0;
+        return {
+          ...product,
+          inventory: {
+            totalAvailable: inventory.totalAvailable || 0,
+            totalReserved: inventory.totalReserved || 0,
+            totalInTransit: 0,
+            minimumStock,
+            isLowStock: (inventory.totalAvailable || 0) < minimumStock,
+            warehouses: inventory.warehouses || [],
+          },
+        };
+      });
 
       return { products: productsWithInventory, total };
     },
@@ -150,10 +148,7 @@ export function useProduct(id: string, options?: { enabled?: boolean }) {
  * @param id - Product ID
  * @param options.enabled - Enable/disable query (default: true)
  */
-export function useProductWithInventory(
-  id: string,
-  options?: { enabled?: boolean }
-) {
+export function useProductWithInventory(id: string, options?: { enabled?: boolean }) {
   const { enabled = true } = options || {};
 
   return useQuery({
@@ -191,10 +186,7 @@ export function useProductWithInventory(
  * @param productId - Product ID
  * @param options.enabled - Enable/disable query (default: true)
  */
-export function useProductStock(
-  productId: string,
-  options?: { enabled?: boolean }
-) {
+export function useProductStock(productId: string, options?: { enabled?: boolean }) {
   const { enabled = true } = options || {};
 
   return useQuery({
@@ -210,10 +202,7 @@ export function useProductStock(
  * @param productId - Product ID
  * @param options.enabled - Enable/disable query (default: true)
  */
-export function useProductLowStockStatus(
-  productId: string,
-  options?: { enabled?: boolean }
-) {
+export function useProductLowStockStatus(productId: string, options?: { enabled?: boolean }) {
   const { enabled = true } = options || {};
 
   return useQuery({
@@ -313,12 +302,8 @@ export function useUpdateProduct() {
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.products.all });
 
-      const previousProducts = queryClient.getQueryData(
-        queryKeys.products.lists()
-      );
-      const previousProduct = queryClient.getQueryData(
-        queryKeys.products.detail(id)
-      );
+      const previousProducts = queryClient.getQueryData(queryKeys.products.lists());
+      const previousProduct = queryClient.getQueryData(queryKeys.products.detail(id));
 
       // Update list cache
       queryClient.setQueryData(
@@ -335,29 +320,20 @@ export function useUpdateProduct() {
       );
 
       // Update detail cache
-      queryClient.setQueryData(
-        queryKeys.products.detail(id),
-        (old: Product | undefined) => {
-          if (!old) return old;
-          return { ...old, ...data, updatedAt: new Date() };
-        }
-      );
+      queryClient.setQueryData(queryKeys.products.detail(id), (old: Product | undefined) => {
+        if (!old) return old;
+        return { ...old, ...data, updatedAt: new Date() };
+      });
 
       return { previousProducts, previousProduct };
     },
 
     onError: (err, { id }, context) => {
       if (context?.previousProducts) {
-        queryClient.setQueryData(
-          queryKeys.products.lists(),
-          context.previousProducts
-        );
+        queryClient.setQueryData(queryKeys.products.lists(), context.previousProducts);
       }
       if (context?.previousProduct) {
-        queryClient.setQueryData(
-          queryKeys.products.detail(id),
-          context.previousProduct
-        );
+        queryClient.setQueryData(queryKeys.products.detail(id), context.previousProduct);
       }
     },
 
@@ -414,9 +390,7 @@ export function useDeleteProduct() {
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.products.all });
 
-      const previousProducts = queryClient.getQueryData(
-        queryKeys.products.lists()
-      );
+      const previousProducts = queryClient.getQueryData(queryKeys.products.lists());
 
       // Remove from list cache
       queryClient.setQueryData(
@@ -440,10 +414,7 @@ export function useDeleteProduct() {
 
     onError: (err, id, context) => {
       if (context?.previousProducts) {
-        queryClient.setQueryData(
-          queryKeys.products.lists(),
-          context.previousProducts
-        );
+        queryClient.setQueryData(queryKeys.products.lists(), context.previousProducts);
       }
     },
 

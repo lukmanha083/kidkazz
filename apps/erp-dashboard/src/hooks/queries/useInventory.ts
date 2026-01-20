@@ -11,12 +11,12 @@
  * - Type-safe API calls
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  inventoryApi,
   type Inventory,
   type InventoryAdjustmentInput,
   type InventoryMovement,
+  inventoryApi,
 } from '../../lib/api';
 import { queryKeys } from '../../lib/query-client';
 import { useWebSocket } from '../useWebSocket';
@@ -161,8 +161,7 @@ export function useAdjustInventory() {
 
     // Optimistic update
     onMutate: async (adjustment) => {
-      const { productId, warehouseId, quantity, movementType, source = 'warehouse' } =
-        adjustment;
+      const { productId, warehouseId, quantity, movementType, source = 'warehouse' } = adjustment;
 
       // Cancel outgoing refetches
       await queryClient.cancelQueries({
@@ -170,75 +169,67 @@ export function useAdjustInventory() {
       });
 
       // Snapshot previous values
-      const previousInventoryList = queryClient.getQueryData(
-        queryKeys.inventory.lists()
-      );
+      const previousInventoryList = queryClient.getQueryData(queryKeys.inventory.lists());
       const previousProductInventory = queryClient.getQueryData(
         queryKeys.inventory.detail(productId, warehouseId)
       );
 
       // Calculate new quantity
-      queryClient.setQueryData(
-        queryKeys.inventory.detail(productId, warehouseId),
-        (old: any) => {
-          if (!old) return old;
+      queryClient.setQueryData(queryKeys.inventory.detail(productId, warehouseId), (old: any) => {
+        if (!old) return old;
 
-          let newQuantity = old.quantityAvailable;
-          if (movementType === 'in') {
-            newQuantity += quantity;
-          } else if (movementType === 'out') {
-            // BUSINESS RULE: Check warehouse operations
-            if (source === 'warehouse' && old.quantityAvailable < quantity) {
-              // Don't update optimistically if it would violate business rule
-              return old;
-            }
-            newQuantity -= quantity;
-          } else {
-            // adjustment - set to exact quantity
-            newQuantity = quantity;
+        let newQuantity = old.quantityAvailable;
+        if (movementType === 'in') {
+          newQuantity += quantity;
+        } else if (movementType === 'out') {
+          // BUSINESS RULE: Check warehouse operations
+          if (source === 'warehouse' && old.quantityAvailable < quantity) {
+            // Don't update optimistically if it would violate business rule
+            return old;
           }
-
-          return {
-            ...old,
-            quantityAvailable: newQuantity,
-            updatedAt: new Date().toISOString(),
-          };
+          newQuantity -= quantity;
+        } else {
+          // adjustment - set to exact quantity
+          newQuantity = quantity;
         }
-      );
+
+        return {
+          ...old,
+          quantityAvailable: newQuantity,
+          updatedAt: new Date().toISOString(),
+        };
+      });
 
       // Update list cache
-      queryClient.setQueryData(
-        queryKeys.inventory.lists(),
-        (old: any) => {
-          if (!old) return old;
+      queryClient.setQueryData(queryKeys.inventory.lists(), (old: any) => {
+        if (!old) return old;
 
-          return {
-            ...old,
-            inventory: old.inventory.map((inv: Inventory) => {
-              if (inv.productId === productId && inv.warehouseId === warehouseId) {
-                let newQuantity = inv.quantityAvailable;
-                if (movementType === 'in') {
-                  newQuantity += quantity;
-                } else if (movementType === 'out') {
-                  if (source === 'warehouse' && inv.quantityAvailable < quantity) {
-                    return inv; // Don't update if would violate business rule
-                  }
-                  newQuantity -= quantity;
-                } else {
-                  newQuantity = quantity;
+        return {
+          ...old,
+          inventory: old.inventory.map((inv: Inventory) => {
+            if (inv.productId === productId && inv.warehouseId === warehouseId) {
+              let newQuantity = inv.quantityAvailable;
+              if (movementType === 'in') {
+                newQuantity += quantity;
+              } else if (movementType === 'out') {
+                if (source === 'warehouse' && inv.quantityAvailable < quantity) {
+                  return inv; // Don't update if would violate business rule
                 }
-
-                return {
-                  ...inv,
-                  quantityAvailable: newQuantity,
-                  updatedAt: new Date().toISOString(),
-                };
+                newQuantity -= quantity;
+              } else {
+                newQuantity = quantity;
               }
-              return inv;
-            }),
-          };
-        }
-      );
+
+              return {
+                ...inv,
+                quantityAvailable: newQuantity,
+                updatedAt: new Date().toISOString(),
+              };
+            }
+            return inv;
+          }),
+        };
+      });
 
       return { previousInventoryList, previousProductInventory };
     },
@@ -248,10 +239,7 @@ export function useAdjustInventory() {
       const { productId, warehouseId } = adjustment;
 
       if (context?.previousInventoryList) {
-        queryClient.setQueryData(
-          queryKeys.inventory.lists(),
-          context.previousInventoryList
-        );
+        queryClient.setQueryData(queryKeys.inventory.lists(), context.previousInventoryList);
       }
       if (context?.previousProductInventory) {
         queryClient.setQueryData(
@@ -304,36 +292,28 @@ export function useSetMinimumStock() {
         queryKey: queryKeys.inventory.all,
       });
 
-      const previousInventory = queryClient.getQueryData(
-        queryKeys.inventory.lists()
-      );
+      const previousInventory = queryClient.getQueryData(queryKeys.inventory.lists());
 
       // Update cache
-      queryClient.setQueryData(
-        queryKeys.inventory.lists(),
-        (old: any) => {
-          if (!old) return old;
+      queryClient.setQueryData(queryKeys.inventory.lists(), (old: any) => {
+        if (!old) return old;
 
-          return {
-            ...old,
-            inventory: old.inventory.map((inv: Inventory) =>
-              inv.id === inventoryId
-                ? { ...inv, minimumStock, updatedAt: new Date().toISOString() }
-                : inv
-            ),
-          };
-        }
-      );
+        return {
+          ...old,
+          inventory: old.inventory.map((inv: Inventory) =>
+            inv.id === inventoryId
+              ? { ...inv, minimumStock, updatedAt: new Date().toISOString() }
+              : inv
+          ),
+        };
+      });
 
       return { previousInventory };
     },
 
     onError: (err, variables, context) => {
       if (context?.previousInventory) {
-        queryClient.setQueryData(
-          queryKeys.inventory.lists(),
-          context.previousInventory
-        );
+        queryClient.setQueryData(queryKeys.inventory.lists(), context.previousInventory);
       }
     },
 

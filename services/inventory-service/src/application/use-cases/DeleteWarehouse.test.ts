@@ -4,11 +4,11 @@
  * Tests soft delete behavior and validation logic
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { DeleteWarehouseUseCase } from './DeleteWarehouse';
-import { db } from '../../infrastructure/db';
-import { warehouses, inventory } from '../../infrastructure/db/schema';
 import { eq, isNull } from 'drizzle-orm';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { db } from '../../infrastructure/db';
+import { inventory, warehouses } from '../../infrastructure/db/schema';
+import { DeleteWarehouseUseCase } from './DeleteWarehouse';
 
 describe('DeleteWarehouse Use Case', () => {
   let deleteWarehouseUseCase: DeleteWarehouseUseCase;
@@ -78,9 +78,7 @@ describe('DeleteWarehouse Use Case', () => {
         .where(isNull(warehouses.deletedAt))
         .all();
 
-      const deletedWarehouseInResults = activeWarehouses.find(
-        w => w.id === testWarehouseId
-      );
+      const deletedWarehouseInResults = activeWarehouses.find((w) => w.id === testWarehouseId);
 
       expect(deletedWarehouseInResults).toBeUndefined();
     });
@@ -146,7 +144,7 @@ describe('DeleteWarehouse Use Case', () => {
 
       expect(result.success).toBe(false);
       expect(result.cannotDeleteReasons).toHaveLength(1);
-      expect(result.cannotDeleteReasons![0]).toContain('contains 50 units');
+      expect(result.cannotDeleteReasons?.[0]).toContain('contains 50 units');
 
       // Verify warehouse is NOT deleted
       const warehouse = await db
@@ -206,8 +204,8 @@ describe('DeleteWarehouse Use Case', () => {
       });
 
       expect(result.success).toBe(false);
-      expect(result.cannotDeleteReasons![0]).toContain('100 units');
-      expect(result.cannotDeleteReasons![0]).toContain('3 product');
+      expect(result.cannotDeleteReasons?.[0]).toContain('100 units');
+      expect(result.cannotDeleteReasons?.[0]).toContain('3 product');
     });
   });
 
@@ -229,10 +227,7 @@ describe('DeleteWarehouse Use Case', () => {
       expect(deletedWarehouse?.deletedAt).toBeDefined();
 
       // Restore the warehouse
-      const result = await deleteWarehouseUseCase.restore(
-        testWarehouseId,
-        'admin-user'
-      );
+      const result = await deleteWarehouseUseCase.restore(testWarehouseId, 'admin-user');
 
       expect(result.success).toBe(true);
       expect(result.message).toContain('restored');
@@ -250,10 +245,7 @@ describe('DeleteWarehouse Use Case', () => {
     });
 
     it('should prevent restoring a warehouse that is not deleted', async () => {
-      const result = await deleteWarehouseUseCase.restore(
-        testWarehouseId,
-        'admin-user'
-      );
+      const result = await deleteWarehouseUseCase.restore(testWarehouseId, 'admin-user');
 
       expect(result.success).toBe(false);
       expect(result.message).toContain('not deleted');
@@ -288,10 +280,7 @@ describe('DeleteWarehouse Use Case', () => {
       expect(inventoryBefore).toHaveLength(1);
 
       // Hard delete warehouse (bypass soft delete for this test)
-      await db
-        .delete(warehouses)
-        .where(eq(warehouses.id, testWarehouseId))
-        .run();
+      await db.delete(warehouses).where(eq(warehouses.id, testWarehouseId)).run();
 
       // Verify inventory is CASCADE deleted
       const inventoryAfter = await db

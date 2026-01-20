@@ -1,7 +1,7 @@
+import { type ChartOfAccount, type LedgerTransaction, accountingApi } from '@/lib/api';
 import { createFileRoute } from '@tanstack/react-router';
-import { useState, useEffect } from 'react';
 import { Download, Filter } from 'lucide-react';
-import { accountingApi, type ChartOfAccount, type LedgerTransaction } from '@/lib/api';
+import { useCallback, useEffect, useState } from 'react';
 
 export const Route = createFileRoute('/dashboard/accounting/general-ledger')({
   component: GeneralLedgerPage,
@@ -19,32 +19,22 @@ function GeneralLedgerPage() {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
 
-  useEffect(() => {
-    loadAccounts();
-  }, []);
-
-  useEffect(() => {
-    if (selectedAccountId) {
-      loadLedger();
-    }
-  }, [selectedAccountId, fromDate, toDate]);
-
-  const loadAccounts = async () => {
+  const loadAccounts = useCallback(async () => {
     try {
       const data = await accountingApi.accounts.getActive();
-      setAccounts(data.accounts.filter(a => a.isDetailAccount));
+      setAccounts(data.accounts.filter((a) => a.isDetailAccount));
     } catch (error) {
       console.error('Failed to load accounts:', error);
       alert('Failed to load accounts. Please try again.');
     }
-  };
+  }, []);
 
-  const loadLedger = async () => {
+  const loadLedger = useCallback(async () => {
     if (!selectedAccountId) return;
 
     try {
       setLoading(true);
-      const params: any = {};
+      const params: { from?: string; to?: string } = {};
       if (fromDate) params.from = fromDate;
       if (toDate) params.to = toDate;
 
@@ -58,14 +48,32 @@ function GeneralLedgerPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedAccountId, fromDate, toDate]);
+
+  useEffect(() => {
+    loadAccounts();
+  }, [loadAccounts]);
+
+  useEffect(() => {
+    if (selectedAccountId) {
+      loadLedger();
+    }
+  }, [selectedAccountId, loadLedger]);
 
   const handleExport = () => {
     if (!selectedAccount || transactions.length === 0) return;
 
     // Create CSV content
-    const headers = ['Date', 'Entry Number', 'Description', 'Reference', 'Debit', 'Credit', 'Balance'];
-    const rows = transactions.map(t => [
+    const headers = [
+      'Date',
+      'Entry Number',
+      'Description',
+      'Reference',
+      'Debit',
+      'Credit',
+      'Balance',
+    ];
+    const rows = transactions.map((t) => [
       new Date(t.date).toLocaleDateString(),
       t.entryNumber,
       t.description || '',
@@ -80,7 +88,7 @@ function GeneralLedgerPage() {
       [`Period: ${fromDate || 'Beginning'} to ${toDate || 'Present'}`],
       [''],
       headers.join(','),
-      ...rows.map(r => r.join(',')),
+      ...rows.map((r) => r.join(',')),
       [''],
       ['Closing Balance', '', '', '', '', '', closingBalance.toFixed(2)],
     ].join('\n');
@@ -101,6 +109,7 @@ function GeneralLedgerPage() {
         <h1 className="text-2xl font-bold">General Ledger</h1>
         {transactions.length > 0 && (
           <button
+            type="button"
             onClick={handleExport}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
           >
@@ -119,16 +128,20 @@ function GeneralLedgerPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="sm:col-span-1">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="account-select"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Account *
             </label>
             <select
+              id="account-select"
               value={selectedAccountId}
               onChange={(e) => setSelectedAccountId(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">Select an account...</option>
-              {accounts.map(acc => (
+              {accounts.map((acc) => (
                 <option key={acc.id} value={acc.id}>
                   {acc.code} - {acc.name}
                 </option>
@@ -137,10 +150,11 @@ function GeneralLedgerPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="from-date" className="block text-sm font-medium text-gray-700 mb-1">
               From Date
             </label>
             <input
+              id="from-date"
               type="date"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
@@ -149,10 +163,11 @@ function GeneralLedgerPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="to-date" className="block text-sm font-medium text-gray-700 mb-1">
               To Date
             </label>
             <input
+              id="to-date"
               type="date"
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
@@ -165,9 +180,7 @@ function GeneralLedgerPage() {
       {/* Ledger Display */}
       {!selectedAccountId ? (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-          <div className="text-gray-400 text-lg">
-            Please select an account to view its ledger
-          </div>
+          <div className="text-gray-400 text-lg">Please select an account to view its ledger</div>
         </div>
       ) : loading ? (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
@@ -197,11 +210,13 @@ function GeneralLedgerPage() {
                 <div>
                   <span className="text-gray-500">Status:</span>
                   <div className="font-medium">
-                    <span className={`inline-flex px-2 py-1 text-xs rounded-full ${
-                      selectedAccount.status === 'Active'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs rounded-full ${
+                        selectedAccount.status === 'Active'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
                       {selectedAccount.status}
                     </span>
                   </div>
@@ -244,8 +259,8 @@ function GeneralLedgerPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {transactions.map((transaction, index) => (
-                    <tr key={index} className="hover:bg-gray-50">
+                  {transactions.map((transaction) => (
+                    <tr key={transaction.journalEntryId} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
                         {new Date(transaction.date).toLocaleDateString()}
                       </td>
@@ -257,9 +272,7 @@ function GeneralLedgerPage() {
                           {transaction.entryNumber}
                         </a>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        {transaction.description}
-                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900">{transaction.description}</td>
                       <td className="px-4 py-3 text-sm text-gray-500">
                         {transaction.reference || '-'}
                       </td>

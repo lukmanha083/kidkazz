@@ -1,5 +1,5 @@
-import { IOrderRepository } from '../../domain/repositories/IOrderRepository';
-import { Result, ResultFactory } from '@kidkazz/types';
+import { type Result, ResultFactory } from '@kidkazz/types';
+import type { IOrderRepository } from '../../domain/repositories/IOrderRepository';
 
 /**
  * List Orders Use Case

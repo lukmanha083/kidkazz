@@ -14,10 +14,7 @@ interface UsePollingOptions {
  * usePolling(refetch, { interval: 30000 });
  * ```
  */
-export function usePolling(
-  callback: () => void | Promise<void>,
-  options: UsePollingOptions = {}
-) {
+export function usePolling(callback: () => void | Promise<void>, options: UsePollingOptions = {}) {
   const { interval = 30000, enabled = true } = options;
   const savedCallback = useRef(callback);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);

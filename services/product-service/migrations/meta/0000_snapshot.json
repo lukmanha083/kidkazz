@@ -77,12 +77,8 @@
           "name": "bundle_items_bundle_id_product_bundles_id_fk",
           "tableFrom": "bundle_items",
           "tableTo": "product_bundles",
-          "columnsFrom": [
-            "bundle_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["bundle_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -90,12 +86,8 @@
           "name": "bundle_items_product_id_products_id_fk",
           "tableFrom": "bundle_items",
           "tableTo": "products",
-          "columnsFrom": [
-            "product_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["product_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -237,12 +229,8 @@
           "name": "custom_pricing_product_id_products_id_fk",
           "tableFrom": "custom_pricing",
           "tableTo": "products",
-          "columnsFrom": [
-            "product_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["product_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -296,12 +284,8 @@
           "name": "pricing_tiers_product_id_products_id_fk",
           "tableFrom": "pricing_tiers",
           "tableTo": "products",
-          "columnsFrom": [
-            "product_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["product_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -410,9 +394,7 @@
       "indexes": {
         "product_bundles_bundle_sku_unique": {
           "name": "product_bundles_bundle_sku_unique",
-          "columns": [
-            "bundle_sku"
-          ],
+          "columns": ["bundle_sku"],
           "isUnique": true
         }
       },
@@ -500,9 +482,7 @@
       "indexes": {
         "product_uoms_barcode_unique": {
           "name": "product_uoms_barcode_unique",
-          "columns": [
-            "barcode"
-          ],
+          "columns": ["barcode"],
           "isUnique": true
         }
       },
@@ -511,12 +491,8 @@
           "name": "product_uoms_product_id_products_id_fk",
           "tableFrom": "product_uoms",
           "tableTo": "products",
-          "columnsFrom": [
-            "product_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["product_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -618,9 +594,7 @@
       "indexes": {
         "product_variants_variant_sku_unique": {
           "name": "product_variants_variant_sku_unique",
-          "columns": [
-            "variant_sku"
-          ],
+          "columns": ["variant_sku"],
           "isUnique": true
         }
       },
@@ -629,12 +603,8 @@
           "name": "product_variants_product_id_products_id_fk",
           "tableFrom": "product_variants",
           "tableTo": "products",
-          "columnsFrom": [
-            "product_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["product_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -828,16 +798,12 @@
       "indexes": {
         "products_barcode_unique": {
           "name": "products_barcode_unique",
-          "columns": [
-            "barcode"
-          ],
+          "columns": ["barcode"],
           "isUnique": true
         },
         "products_sku_unique": {
           "name": "products_sku_unique",
-          "columns": [
-            "sku"
-          ],
+          "columns": ["sku"],
           "isUnique": true
         }
       },
@@ -846,12 +812,8 @@
           "name": "products_category_id_categories_id_fk",
           "tableFrom": "products",
           "tableTo": "categories",
-          "columnsFrom": [
-            "category_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["category_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -910,9 +872,7 @@
       "indexes": {
         "uoms_code_unique": {
           "name": "uoms_code_unique",
-          "columns": [
-            "code"
-          ],
+          "columns": ["code"],
           "isUnique": true
         }
       },

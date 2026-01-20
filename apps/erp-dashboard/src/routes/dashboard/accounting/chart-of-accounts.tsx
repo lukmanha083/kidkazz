@@ -1,36 +1,3 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { useState, useEffect, useMemo } from 'react';
-import { toast } from 'sonner';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,19 +8,52 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Plus,
-  Search,
-  Edit,
-  Trash2,
-  ChevronRight,
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { type ChartOfAccount, accountingApi } from '@/lib/api';
+import { createFileRoute } from '@tanstack/react-router';
+import {
+  Calculator,
   ChevronDown,
+  ChevronRight,
+  Edit,
+  FileText,
   Folder,
   FolderOpen,
-  FileText,
-  Calculator,
+  Plus,
+  Search,
+  Trash2,
 } from 'lucide-react';
-import { accountingApi, type ChartOfAccount } from '@/lib/api';
+import { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 
 export const Route = createFileRoute('/dashboard/accounting/chart-of-accounts')({
   component: ChartOfAccountsPage,
@@ -107,9 +107,7 @@ function ChartOfAccountsPage() {
 
       // Auto-expand all parent accounts initially
       const parentIds = new Set(
-        response.accounts
-          .filter(a => !a.isDetailAccount)
-          .map(a => a.id)
+        response.accounts.filter((a) => !a.isDetailAccount).map((a) => a.id)
       );
       setExpandedAccounts(parentIds);
     } catch (err) {
@@ -122,7 +120,7 @@ function ChartOfAccountsPage() {
 
   // Build hierarchical tree structure
   const accountTree = useMemo(() => {
-    const filtered = accounts.filter(account => {
+    const filtered = accounts.filter((account) => {
       const matchesSearch =
         account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         account.code.toLowerCase().includes(searchTerm.toLowerCase());
@@ -134,9 +132,9 @@ function ChartOfAccountsPage() {
 
     const buildTree = (parentId: string | null | undefined): AccountNode[] => {
       return filtered
-        .filter(account => account.parentAccountId === parentId)
+        .filter((account) => account.parentAccountId === parentId)
         .sort((a, b) => a.code.localeCompare(b.code))
-        .map(account => ({
+        .map((account) => ({
           ...account,
           children: buildTree(account.id),
           isExpanded: expandedAccounts.has(account.id),
@@ -162,7 +160,7 @@ function ChartOfAccountsPage() {
       code: '',
       name: '',
       accountType: parentId
-        ? accounts.find(a => a.id === parentId)?.accountType || 'Asset'
+        ? accounts.find((a) => a.id === parentId)?.accountType || 'Asset'
         : 'Asset',
       accountSubType: '',
       parentAccountId: parentId || '',
@@ -203,7 +201,7 @@ function ChartOfAccountsPage() {
 
     try {
       await accountingApi.accounts.delete(accountToDelete.id);
-      setAccounts(accounts.filter(a => a.id !== accountToDelete.id));
+      setAccounts(accounts.filter((a) => a.id !== accountToDelete.id));
       toast.success('Account deleted successfully');
       setDeleteDialogOpen(false);
       setAccountToDelete(null);
@@ -222,9 +220,7 @@ function ChartOfAccountsPage() {
         toast.success('Account created successfully');
       } else if (formMode === 'edit' && selectedAccount) {
         const response = await accountingApi.accounts.update(selectedAccount.id, formData);
-        setAccounts(accounts.map(a =>
-          a.id === selectedAccount.id ? response.account : a
-        ));
+        setAccounts(accounts.map((a) => (a.id === selectedAccount.id ? response.account : a)));
         toast.success('Account updated successfully');
       }
       setFormDrawerOpen(false);
@@ -247,7 +243,7 @@ function ChartOfAccountsPage() {
   };
 
   // Render account row with hierarchy
-  const renderAccountRow = (account: AccountNode, level: number = 0) => {
+  const renderAccountRow = (account: AccountNode, level = 0) => {
     const hasChildren = account.children.length > 0;
     const isExpanded = account.isExpanded;
     const indent = level * 24;
@@ -351,7 +347,7 @@ function ChartOfAccountsPage() {
           </TableCell>
         </TableRow>
 
-        {isExpanded && account.children.map(child => renderAccountRow(child, level + 1))}
+        {isExpanded && account.children.map((child) => renderAccountRow(child, level + 1))}
       </>
     );
   };
@@ -359,23 +355,18 @@ function ChartOfAccountsPage() {
   // Get parent account options (excluding descendants to prevent circular references)
   const getParentAccountOptions = (): ChartOfAccount[] => {
     if (formMode === 'add') {
-      return accounts.filter(a => !a.isDetailAccount && a.status === 'Active');
+      return accounts.filter((a) => !a.isDetailAccount && a.status === 'Active');
     }
 
     // For edit mode, exclude the account itself and its descendants
     const getDescendantIds = (accountId: string): string[] => {
-      const children = accounts.filter(a => a.parentAccountId === accountId);
-      return [
-        accountId,
-        ...children.flatMap(child => getDescendantIds(child.id))
-      ];
+      const children = accounts.filter((a) => a.parentAccountId === accountId);
+      return [accountId, ...children.flatMap((child) => getDescendantIds(child.id))];
     };
 
     const excludeIds = selectedAccount ? getDescendantIds(selectedAccount.id) : [];
-    return accounts.filter(a =>
-      !a.isDetailAccount &&
-      a.status === 'Active' &&
-      !excludeIds.includes(a.id)
+    return accounts.filter(
+      (a) => !a.isDetailAccount && a.status === 'Active' && !excludeIds.includes(a.id)
     );
   };
 
@@ -396,9 +387,7 @@ function ChartOfAccountsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Chart of Accounts</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your account hierarchy and structure
-          </p>
+          <p className="text-muted-foreground mt-1">Manage your account hierarchy and structure</p>
         </div>
         <Button onClick={() => handleAddAccount()} className="gap-2">
           <Plus className="h-4 w-4" />
@@ -426,7 +415,7 @@ function ChartOfAccountsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {accounts.filter(a => a.accountType === 'Asset').length}
+              {accounts.filter((a) => a.accountType === 'Asset').length}
             </div>
             <p className="text-xs text-muted-foreground">Asset accounts</p>
           </CardContent>
@@ -439,7 +428,7 @@ function ChartOfAccountsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {accounts.filter(a => a.accountType === 'Revenue').length}
+              {accounts.filter((a) => a.accountType === 'Revenue').length}
             </div>
             <p className="text-xs text-muted-foreground">Revenue accounts</p>
           </CardContent>
@@ -452,7 +441,7 @@ function ChartOfAccountsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {accounts.filter(a => a.accountType === 'Expense').length}
+              {accounts.filter((a) => a.accountType === 'Expense').length}
             </div>
             <p className="text-xs text-muted-foreground">Expense accounts</p>
           </CardContent>
@@ -470,7 +459,8 @@ function ChartOfAccountsPage() {
                   const countNodes = (n: AccountNode): number =>
                     1 + n.children.reduce((s, c) => s + countNodes(c), 0);
                   return sum + countNodes(node);
-                }, 0)} accounts in hierarchy
+                }, 0)}{' '}
+                accounts in hierarchy
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -538,7 +528,7 @@ function ChartOfAccountsPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  accountTree.map(account => renderAccountRow(account, 0))
+                  accountTree.map((account) => renderAccountRow(account, 0))
                 )}
               </TableBody>
             </Table>
@@ -555,9 +545,7 @@ function ChartOfAccountsPage() {
                 <X className="h-4 w-4" />
               </Button>
             </DrawerClose>
-            <DrawerTitle>
-              {formMode === 'add' ? 'Add New Account' : 'Edit Account'}
-            </DrawerTitle>
+            <DrawerTitle>{formMode === 'add' ? 'Add New Account' : 'Edit Account'}</DrawerTitle>
             <DrawerDescription>
               {formMode === 'add'
                 ? 'Create a new account in your chart of accounts'
@@ -609,9 +597,7 @@ function ChartOfAccountsPage() {
                 <Label htmlFor="accountType">Account Type *</Label>
                 <Select
                   value={formData.accountType}
-                  onValueChange={(value: any) =>
-                    setFormData({ ...formData, accountType: value })
-                  }
+                  onValueChange={(value: any) => setFormData({ ...formData, accountType: value })}
                   disabled={formMode === 'edit'}
                 >
                   <SelectTrigger>
@@ -643,16 +629,14 @@ function ChartOfAccountsPage() {
               <Label htmlFor="parentAccountId">Parent Account</Label>
               <Select
                 value={formData.parentAccountId}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, parentAccountId: value })
-                }
+                onValueChange={(value) => setFormData({ ...formData, parentAccountId: value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="None (Top level)" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">None (Top level)</SelectItem>
-                  {getParentAccountOptions().map(account => (
+                  {getParentAccountOptions().map((account) => (
                     <SelectItem key={account.id} value={account.id}>
                       {account.code} - {account.name}
                     </SelectItem>
@@ -702,9 +686,7 @@ function ChartOfAccountsPage() {
                 <Label htmlFor="status">Status</Label>
                 <Select
                   value={formData.status}
-                  onValueChange={(value: any) =>
-                    setFormData({ ...formData, status: value })
-                  }
+                  onValueChange={(value: any) => setFormData({ ...formData, status: value })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -740,10 +722,12 @@ function ChartOfAccountsPage() {
             <AlertDialogDescription>
               {accountToDelete && (
                 <>
-                  Are you sure you want to delete account <strong>"{accountToDelete.name}"</strong> ({accountToDelete.code})?
-                  <br /><br />
-                  This action cannot be undone. This will permanently delete the account
-                  and all its data. Accounts with transactions cannot be deleted.
+                  Are you sure you want to delete account <strong>"{accountToDelete.name}"</strong>{' '}
+                  ({accountToDelete.code})?
+                  <br />
+                  <br />
+                  This action cannot be undone. This will permanently delete the account and all its
+                  data. Accounts with transactions cannot be deleted.
                 </>
               )}
             </AlertDialogDescription>

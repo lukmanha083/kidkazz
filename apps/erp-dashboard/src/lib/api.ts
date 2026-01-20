@@ -1,7 +1,8 @@
 // API base URLs for microservices
 const PRODUCT_SERVICE_URL = import.meta.env.VITE_PRODUCT_SERVICE_URL || 'http://localhost:8788';
 const INVENTORY_SERVICE_URL = import.meta.env.VITE_INVENTORY_SERVICE_URL || 'http://localhost:8792';
-const ACCOUNTING_SERVICE_URL = import.meta.env.VITE_ACCOUNTING_SERVICE_URL || 'http://localhost:8794';
+const ACCOUNTING_SERVICE_URL =
+  import.meta.env.VITE_ACCOUNTING_SERVICE_URL || 'http://localhost:8794';
 
 // For backward compatibility
 const API_BASE_URL = PRODUCT_SERVICE_URL;
@@ -167,7 +168,9 @@ export const warehouseApi = {
   },
 
   // Create new warehouse
-  create: async (data: CreateWarehouseInput): Promise<{ id: string; code: string; name: string }> => {
+  create: async (
+    data: CreateWarehouseInput
+  ): Promise<{ id: string; code: string; name: string }> => {
     const url = `${INVENTORY_SERVICE_URL}/api/warehouses`;
     const response = await fetch(url, {
       method: 'POST',
@@ -302,7 +305,12 @@ export interface CreateProductUOMLocationInput {
 }
 
 // Product type - DDD compliant (stock managed by Inventory Service)
-export type ProductStatus = 'online sales' | 'offline sales' | 'omnichannel sales' | 'inactive' | 'discontinued';
+export type ProductStatus =
+  | 'online sales'
+  | 'offline sales'
+  | 'omnichannel sales'
+  | 'inactive'
+  | 'discontinued';
 
 export interface Product {
   id: string;
@@ -406,9 +414,9 @@ export interface VariantWithInventory extends ProductVariant {
 // ============================================================================
 // Import FormData types from form-schemas (inferred from Zod schemas)
 import type {
+  CategoryFormData,
   ProductFormData,
   VariantFormData,
-  CategoryFormData,
   WarehouseFormData,
 } from './form-schemas';
 
@@ -500,7 +508,9 @@ export const productApi = {
   },
 
   // Get UOM warehouse stock breakdown
-  getUOMWarehouseStock: async (id: string): Promise<{
+  getUOMWarehouseStock: async (
+    id: string
+  ): Promise<{
     productId: string;
     productName: string;
     productSKU: string;
@@ -533,7 +543,9 @@ export const productApi = {
   },
 
   // Get variant warehouse stock breakdown
-  getVariantWarehouseStock: async (id: string): Promise<{
+  getVariantWarehouseStock: async (
+    id: string
+  ): Promise<{
     productId: string;
     productName: string;
     productSKU: string;
@@ -558,7 +570,9 @@ export const productApi = {
 
   // Validate stock consistency per warehouse (product locations vs UOM locations)
   // Updated to use new per-warehouse validation approach
-  validateStockConsistency: async (id: string): Promise<{
+  validateStockConsistency: async (
+    id: string
+  ): Promise<{
     isValid: boolean;
     globalSummary: {
       totalLocationStock: number;
@@ -661,7 +675,10 @@ export const variantApi = {
     });
   },
 
-  update: async (id: string, data: Partial<Omit<CreateVariantInput, 'productId'>>): Promise<ProductVariant> => {
+  update: async (
+    id: string,
+    data: Partial<Omit<CreateVariantInput, 'productId'>>
+  ): Promise<ProductVariant> => {
     return apiRequest(`/api/variants/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -756,7 +773,10 @@ export interface CreateBundleInput {
 }
 
 export const bundleApi = {
-  getAll: async (filters?: { status?: string }): Promise<{ bundles: ProductBundle[]; total: number }> => {
+  getAll: async (filters?: { status?: string }): Promise<{
+    bundles: ProductBundle[];
+    total: number;
+  }> => {
     // Build query params, excluding undefined/null values
     const params: Record<string, string> = {};
     if (filters) {
@@ -766,9 +786,8 @@ export const bundleApi = {
         }
       }
     }
-    const queryString = Object.keys(params).length > 0
-      ? `?${new URLSearchParams(params).toString()}`
-      : '';
+    const queryString =
+      Object.keys(params).length > 0 ? `?${new URLSearchParams(params).toString()}` : '';
     return apiRequest(`/api/bundles${queryString}`);
   },
 
@@ -776,14 +795,19 @@ export const bundleApi = {
     return apiRequest(`/api/bundles/${id}`);
   },
 
-  create: async (data: CreateBundleInput): Promise<{ bundle: ProductBundle; items: BundleItem[] }> => {
+  create: async (
+    data: CreateBundleInput
+  ): Promise<{ bundle: ProductBundle; items: BundleItem[] }> => {
     return apiRequest('/api/bundles', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   },
 
-  update: async (id: string, data: Partial<Omit<CreateBundleInput, 'items'>>): Promise<ProductBundle> => {
+  update: async (
+    id: string,
+    data: Partial<Omit<CreateBundleInput, 'items'>>
+  ): Promise<ProductBundle> => {
     return apiRequest(`/api/bundles/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -890,7 +914,9 @@ export const uomApi = {
   },
 
   // Product UOMs
-  getProductUOMs: async (productId: string): Promise<{ productUOMs: ProductUOM[]; total: number }> => {
+  getProductUOMs: async (
+    productId: string
+  ): Promise<{ productUOMs: ProductUOM[]; total: number }> => {
     return apiRequest(`/api/uoms/products/${productId}`);
   },
 
@@ -901,7 +927,10 @@ export const uomApi = {
     });
   },
 
-  updateProductUOM: async (id: string, data: Partial<Omit<CreateProductUOMInput, 'productId'>>): Promise<ProductUOM> => {
+  updateProductUOM: async (
+    id: string,
+    data: Partial<Omit<CreateProductUOMInput, 'productId'>>
+  ): Promise<ProductUOM> => {
     return apiRequest(`/api/uoms/products/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -937,7 +966,9 @@ export const uomApi = {
     return apiRequest(`/api/uoms/locations/${id}`);
   },
 
-  createProductUOMLocation: async (data: CreateProductUOMLocationInput): Promise<ProductUOMLocation> => {
+  createProductUOMLocation: async (
+    data: CreateProductUOMLocationInput
+  ): Promise<ProductUOMLocation> => {
     return apiRequest('/api/uoms/locations', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -954,7 +985,10 @@ export const uomApi = {
     });
   },
 
-  updateProductUOMLocationQuantity: async (id: string, quantity: number): Promise<{ message: string }> => {
+  updateProductUOMLocationQuantity: async (
+    id: string,
+    quantity: number
+  ): Promise<{ message: string }> => {
     return apiRequest(`/api/uoms/locations/${id}/quantity`, {
       method: 'PATCH',
       body: JSON.stringify({ quantity }),
@@ -1061,9 +1095,15 @@ export interface BalanceSheet {
 export const accountingApi = {
   // Chart of Accounts
   accounts: {
-    getAll: async (params?: { type?: string; status?: string }): Promise<{ accounts: ChartOfAccount[] }> => {
+    getAll: async (params?: { type?: string; status?: string }): Promise<{
+      accounts: ChartOfAccount[];
+    }> => {
       const queryParams = new URLSearchParams(params as any).toString();
-      return apiRequest(`/api/accounting/accounts${queryParams ? `?${queryParams}` : ''}`, {}, 'accounting');
+      return apiRequest(
+        `/api/accounting/accounts${queryParams ? `?${queryParams}` : ''}`,
+        {},
+        'accounting'
+      );
     },
 
     getActive: async (): Promise<{ accounts: ChartOfAccount[] }> => {
@@ -1075,23 +1115,38 @@ export const accountingApi = {
     },
 
     create: async (data: Partial<ChartOfAccount>): Promise<{ account: ChartOfAccount }> => {
-      return apiRequest('/api/accounting/accounts', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }, 'accounting');
+      return apiRequest(
+        '/api/accounting/accounts',
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        },
+        'accounting'
+      );
     },
 
-    update: async (id: string, data: Partial<ChartOfAccount>): Promise<{ account: ChartOfAccount }> => {
-      return apiRequest(`/api/accounting/accounts/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      }, 'accounting');
+    update: async (
+      id: string,
+      data: Partial<ChartOfAccount>
+    ): Promise<{ account: ChartOfAccount }> => {
+      return apiRequest(
+        `/api/accounting/accounts/${id}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify(data),
+        },
+        'accounting'
+      );
     },
 
     delete: async (id: string): Promise<{ message: string }> => {
-      return apiRequest(`/api/accounting/accounts/${id}`, {
-        method: 'DELETE',
-      }, 'accounting');
+      return apiRequest(
+        `/api/accounting/accounts/${id}`,
+        {
+          method: 'DELETE',
+        },
+        'accounting'
+      );
     },
   },
 
@@ -1104,7 +1159,11 @@ export const accountingApi = {
       limit?: number;
     }): Promise<{ journalEntries: JournalEntry[] }> => {
       const queryParams = new URLSearchParams(params as any).toString();
-      return apiRequest(`/api/accounting/journal-entries${queryParams ? `?${queryParams}` : ''}`, {}, 'accounting');
+      return apiRequest(
+        `/api/accounting/journal-entries${queryParams ? `?${queryParams}` : ''}`,
+        {},
+        'accounting'
+      );
     },
 
     getById: async (id: string): Promise<{ journalEntry: JournalEntry; lines: JournalLine[] }> => {
@@ -1121,41 +1180,64 @@ export const accountingApi = {
       notes?: string;
       createdBy: string;
     }): Promise<{ journalEntry: JournalEntry; lines: JournalLine[] }> => {
-      return apiRequest('/api/accounting/journal-entries', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }, 'accounting');
+      return apiRequest(
+        '/api/accounting/journal-entries',
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        },
+        'accounting'
+      );
     },
 
     post: async (id: string, postedBy: string): Promise<{ message: string }> => {
-      return apiRequest(`/api/accounting/journal-entries/${id}/post`, {
-        method: 'POST',
-        body: JSON.stringify({ postedBy }),
-      }, 'accounting');
+      return apiRequest(
+        `/api/accounting/journal-entries/${id}/post`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ postedBy }),
+        },
+        'accounting'
+      );
     },
 
     void: async (id: string, voidedBy: string, reason: string): Promise<{ message: string }> => {
-      return apiRequest(`/api/accounting/journal-entries/${id}/void`, {
-        method: 'POST',
-        body: JSON.stringify({ voidedBy, reason }),
-      }, 'accounting');
+      return apiRequest(
+        `/api/accounting/journal-entries/${id}/void`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ voidedBy, reason }),
+        },
+        'accounting'
+      );
     },
   },
 
   // Ledger
-  getLedger: async (accountId: string, params?: { from?: string; to?: string }): Promise<{
+  getLedger: async (
+    accountId: string,
+    params?: { from?: string; to?: string }
+  ): Promise<{
     account: ChartOfAccount;
     transactions: LedgerTransaction[];
     closingBalance: number;
   }> => {
     const queryParams = new URLSearchParams(params as any).toString();
-    return apiRequest(`/api/accounting/ledger/${accountId}${queryParams ? `?${queryParams}` : ''}`, {}, 'accounting');
+    return apiRequest(
+      `/api/accounting/ledger/${accountId}${queryParams ? `?${queryParams}` : ''}`,
+      {},
+      'accounting'
+    );
   },
 
   // Reports
   reports: {
     incomeStatement: async (from: string, to: string): Promise<IncomeStatement> => {
-      return apiRequest(`/api/accounting/reports/income-statement?from=${from}&to=${to}`, {}, 'accounting');
+      return apiRequest(
+        `/api/accounting/reports/income-statement?from=${from}&to=${to}`,
+        {},
+        'accounting'
+      );
     },
 
     balanceSheet: async (asOf: string): Promise<BalanceSheet> => {
@@ -1176,17 +1258,17 @@ export interface Inventory {
   id: string;
   warehouseId: string;
   productId: string;
-  variantId?: string | null;    // For variant-level inventory
-  uomId?: string | null;        // For UOM-specific inventory
+  variantId?: string | null; // For variant-level inventory
+  uomId?: string | null; // For UOM-specific inventory
   quantityAvailable: number;
   quantityReserved: number;
   quantityInTransit?: number;
   minimumStock: number;
-  rack?: string | null;         // Location within warehouse
+  rack?: string | null; // Location within warehouse
   bin?: string | null;
   zone?: string | null;
   aisle?: string | null;
-  version: number;              // For optimistic locking
+  version: number; // For optimistic locking
   lastModifiedAt?: string;
   lastRestockedAt?: Date | string;
   createdAt: Date | string;
@@ -1376,49 +1458,74 @@ export interface CreateStockOpnameInput {
 
 export const inventoryApi = {
   // Get all inventory records
-  getAll: async (filters?: { productId?: string; warehouseId?: string }): Promise<{ inventory: Inventory[]; total: number }> => {
+  getAll: async (filters?: { productId?: string; warehouseId?: string }): Promise<{
+    inventory: Inventory[];
+    total: number;
+  }> => {
     const params = new URLSearchParams(filters as any).toString();
-    const url = INVENTORY_SERVICE_URL + '/api/inventory' + (params ? '?' + params : '');
-    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
+    const url = `${INVENTORY_SERVICE_URL}/api/inventory${params ? `?${params}` : ''}`;
+    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then((r) => r.json());
   },
 
   // Get inventory for a product across all warehouses
-  getByProduct: async (productId: string): Promise<{ productId: string; warehouses: Inventory[]; totalAvailable: number; totalReserved: number }> => {
-    const url = INVENTORY_SERVICE_URL + '/api/inventory/' + productId;
-    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
+  getByProduct: async (
+    productId: string
+  ): Promise<{
+    productId: string;
+    warehouses: Inventory[];
+    totalAvailable: number;
+    totalReserved: number;
+  }> => {
+    const url = `${INVENTORY_SERVICE_URL}/api/inventory/${productId}`;
+    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then((r) => r.json());
   },
 
   // Get specific product-warehouse inventory
   getByProductAndWarehouse: async (productId: string, warehouseId: string): Promise<Inventory> => {
-    const url = INVENTORY_SERVICE_URL + '/api/inventory/' + productId + '/' + warehouseId;
-    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
+    const url = `${INVENTORY_SERVICE_URL}/api/inventory/${productId}/${warehouseId}`;
+    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then((r) => r.json());
   },
 
   // Adjust inventory (in/out/adjustment)
-  adjust: async (data: InventoryAdjustmentInput): Promise<{ inventoryId: string; productId: string; warehouseId: string; previousQuantity: number; newQuantity: number; message: string }> => {
-    const url = INVENTORY_SERVICE_URL + '/api/inventory/adjust';
+  adjust: async (
+    data: InventoryAdjustmentInput
+  ): Promise<{
+    inventoryId: string;
+    productId: string;
+    warehouseId: string;
+    previousQuantity: number;
+    newQuantity: number;
+    message: string;
+  }> => {
+    const url = `${INVENTORY_SERVICE_URL}/api/inventory/adjust`;
     return fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
-    }).then(r => r.json());
+    }).then((r) => r.json());
   },
 
   // Set minimum stock level
-  setMinimumStock: async (inventoryId: string, minimumStock: number): Promise<{ message: string }> => {
-    const url = INVENTORY_SERVICE_URL + '/api/inventory/' + inventoryId + '/minimum-stock';
+  setMinimumStock: async (
+    inventoryId: string,
+    minimumStock: number
+  ): Promise<{ message: string }> => {
+    const url = `${INVENTORY_SERVICE_URL}/api/inventory/${inventoryId}/minimum-stock`;
     return fetch(url, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ minimumStock }),
-    }).then(r => r.json());
+    }).then((r) => r.json());
   },
 
   // Get movement history for a product
-  getMovements: async (productId: string, limit?: number): Promise<{ movements: InventoryMovement[]; total: number }> => {
-    const params = limit ? '?limit=' + limit : '';
-    const url = INVENTORY_SERVICE_URL + '/api/inventory/movements/' + productId + params;
-    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
+  getMovements: async (
+    productId: string,
+    limit?: number
+  ): Promise<{ movements: InventoryMovement[]; total: number }> => {
+    const params = limit ? `?limit=${limit}` : '';
+    const url = `${INVENTORY_SERVICE_URL}/api/inventory/movements/${productId}${params}`;
+    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then((r) => r.json());
   },
 };
 
@@ -1466,34 +1573,33 @@ export const batchApi = {
         }
       }
     }
-    const queryString = Object.keys(params).length > 0
-      ? `?${new URLSearchParams(params).toString()}`
-      : '';
-    const url = INVENTORY_SERVICE_URL + '/api/batches' + queryString;
-    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
+    const queryString =
+      Object.keys(params).length > 0 ? `?${new URLSearchParams(params).toString()}` : '';
+    const url = `${INVENTORY_SERVICE_URL}/api/batches${queryString}`;
+    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then((r) => r.json());
   },
 
   // Get a single batch by ID
   getById: async (id: string): Promise<InventoryBatch> => {
-    const url = INVENTORY_SERVICE_URL + '/api/batches/' + id;
-    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
+    const url = `${INVENTORY_SERVICE_URL}/api/batches/${id}`;
+    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then((r) => r.json());
   },
 
   // Get batches expiring within N days
-  getExpiring: async (days: number = 30): Promise<{ batches: InventoryBatch[]; total: number }> => {
-    const url = INVENTORY_SERVICE_URL + '/api/batches/expiring?days=' + days;
-    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
+  getExpiring: async (days = 30): Promise<{ batches: InventoryBatch[]; total: number }> => {
+    const url = `${INVENTORY_SERVICE_URL}/api/batches/expiring?days=${days}`;
+    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then((r) => r.json());
   },
 
   // Get expired batches
   getExpired: async (): Promise<{ batches: InventoryBatch[]; total: number }> => {
-    const url = INVENTORY_SERVICE_URL + '/api/batches/expired';
-    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then(r => r.json());
+    const url = `${INVENTORY_SERVICE_URL}/api/batches/expired`;
+    return fetch(url, { headers: { 'Content-Type': 'application/json' } }).then((r) => r.json());
   },
 
   // Create a new batch
   create: async (data: CreateBatchInput): Promise<InventoryBatch> => {
-    const url = INVENTORY_SERVICE_URL + '/api/batches';
+    const url = `${INVENTORY_SERVICE_URL}/api/batches`;
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1508,7 +1614,7 @@ export const batchApi = {
 
   // Adjust batch quantity (with optimistic locking via version)
   adjust: async (batchId: string, data: BatchAdjustInput): Promise<InventoryBatch> => {
-    const url = INVENTORY_SERVICE_URL + '/api/batches/' + batchId + '/adjust';
+    const url = `${INVENTORY_SERVICE_URL}/api/batches/${batchId}/adjust`;
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1518,7 +1624,9 @@ export const batchApi = {
       const errorData = await response.json().catch(() => ({ message: response.statusText }));
       // Handle optimistic locking conflict (version mismatch)
       if (response.status === 409) {
-        throw new Error('Conflict: The batch has been modified by another user. Please refresh and try again.');
+        throw new Error(
+          'Conflict: The batch has been modified by another user. Please refresh and try again.'
+        );
       }
       throw new Error(errorData.message || `Failed to adjust batch: ${response.statusText}`);
     }
@@ -1527,7 +1635,7 @@ export const batchApi = {
 
   // Update batch status (with optimistic locking via version)
   updateStatus: async (batchId: string, data: BatchStatusInput): Promise<InventoryBatch> => {
-    const url = INVENTORY_SERVICE_URL + '/api/batches/' + batchId + '/status';
+    const url = `${INVENTORY_SERVICE_URL}/api/batches/${batchId}/status`;
     const response = await fetch(url, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -1537,7 +1645,9 @@ export const batchApi = {
       const errorData = await response.json().catch(() => ({ message: response.statusText }));
       // Handle optimistic locking conflict (version mismatch)
       if (response.status === 409) {
-        throw new Error('Conflict: The batch has been modified by another user. Please refresh and try again.');
+        throw new Error(
+          'Conflict: The batch has been modified by another user. Please refresh and try again.'
+        );
       }
       throw new Error(errorData.message || `Failed to update batch status: ${response.statusText}`);
     }
@@ -1546,7 +1656,7 @@ export const batchApi = {
 
   // Delete a batch
   delete: async (id: string): Promise<{ message: string }> => {
-    const url = INVENTORY_SERVICE_URL + '/api/batches/' + id;
+    const url = `${INVENTORY_SERVICE_URL}/api/batches/${id}`;
     const response = await fetch(url, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
@@ -1576,11 +1686,15 @@ export const productLocationApi = {
     return apiRequest(`/api/product-locations/${id}`);
   },
 
-  getByProduct: async (productId: string): Promise<{ locations: ProductLocation[]; total: number }> => {
+  getByProduct: async (
+    productId: string
+  ): Promise<{ locations: ProductLocation[]; total: number }> => {
     return apiRequest(`/api/product-locations/product/${productId}`);
   },
 
-  getByWarehouse: async (warehouseId: string): Promise<{ locations: ProductLocation[]; total: number }> => {
+  getByWarehouse: async (
+    warehouseId: string
+  ): Promise<{ locations: ProductLocation[]; total: number }> => {
     return apiRequest(`/api/product-locations/warehouse/${warehouseId}`);
   },
 
@@ -1591,7 +1705,10 @@ export const productLocationApi = {
     });
   },
 
-  update: async (id: string, data: Partial<Omit<CreateProductLocationInput, 'productId'>>): Promise<ProductLocation> => {
+  update: async (
+    id: string,
+    data: Partial<Omit<CreateProductLocationInput, 'productId'>>
+  ): Promise<ProductLocation> => {
     return apiRequest(`/api/product-locations/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -1630,11 +1747,15 @@ export const productUOMLocationApi = {
     return apiRequest(`/api/product-uom-locations/${id}`);
   },
 
-  getByProductUOM: async (productUOMId: string): Promise<{ locations: ProductUOMLocation[]; total: number }> => {
+  getByProductUOM: async (
+    productUOMId: string
+  ): Promise<{ locations: ProductUOMLocation[]; total: number }> => {
     return apiRequest(`/api/product-uom-locations/uom/${productUOMId}`);
   },
 
-  getByWarehouse: async (warehouseId: string): Promise<{ locations: ProductUOMLocation[]; total: number }> => {
+  getByWarehouse: async (
+    warehouseId: string
+  ): Promise<{ locations: ProductUOMLocation[]; total: number }> => {
     return apiRequest(`/api/product-uom-locations/warehouse/${warehouseId}`);
   },
 
@@ -1645,7 +1766,10 @@ export const productUOMLocationApi = {
     });
   },
 
-  update: async (id: string, data: Partial<Omit<CreateProductUOMLocationInput, 'productUOMId'>>): Promise<ProductUOMLocation> => {
+  update: async (
+    id: string,
+    data: Partial<Omit<CreateProductUOMLocationInput, 'productUOMId'>>
+  ): Promise<ProductUOMLocation> => {
     return apiRequest(`/api/product-uom-locations/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -1708,11 +1832,15 @@ export const variantLocationApi = {
     return apiRequest(`/api/variant-locations/${id}`);
   },
 
-  getByVariant: async (variantId: string): Promise<{ variantLocations: VariantLocation[]; total: number }> => {
+  getByVariant: async (
+    variantId: string
+  ): Promise<{ variantLocations: VariantLocation[]; total: number }> => {
     return apiRequest(`/api/variant-locations/variant/${variantId}`);
   },
 
-  getByWarehouse: async (warehouseId: string): Promise<{ variantLocations: VariantLocation[]; total: number }> => {
+  getByWarehouse: async (
+    warehouseId: string
+  ): Promise<{ variantLocations: VariantLocation[]; total: number }> => {
     return apiRequest(`/api/variant-locations/warehouse/${warehouseId}`);
   },
 
@@ -1723,7 +1851,10 @@ export const variantLocationApi = {
     });
   },
 
-  update: async (id: string, data: Partial<Omit<CreateVariantLocationInput, 'variantId'>>): Promise<VariantLocation> => {
+  update: async (
+    id: string,
+    data: Partial<Omit<CreateVariantLocationInput, 'variantId'>>
+  ): Promise<VariantLocation> => {
     return apiRequest(`/api/variant-locations/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),

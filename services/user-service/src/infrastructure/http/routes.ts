@@ -1,10 +1,10 @@
-import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
+import { Hono } from 'hono';
 import { z } from 'zod';
-import { RegisterUserUseCase } from '../../application/use-cases/RegisterUser';
 import { LoginUserUseCase } from '../../application/use-cases/LoginUser';
-import { DrizzleUserRepository } from '../repositories/DrizzleUserRepository';
+import { RegisterUserUseCase } from '../../application/use-cases/RegisterUser';
 import { JWTService } from '../auth/JWTService';
+import { DrizzleUserRepository } from '../repositories/DrizzleUserRepository';
 
 type Bindings = {
   DB: D1Database;
@@ -142,9 +142,7 @@ app.get('/api/auth/me', async (c) => {
     const token = authHeader.substring(7);
 
     // Verify token
-    const jwtService = new JWTService(
-      c.env.JWT_SECRET || 'dev-secret-change-in-production'
-    );
+    const jwtService = new JWTService(c.env.JWT_SECRET || 'dev-secret-change-in-production');
 
     const payload = await jwtService.verifyToken(token);
     if (!payload) {
@@ -197,10 +195,7 @@ app.post('/api/auth/refresh', async (c) => {
     const refreshToken = body.refreshToken;
 
     if (!refreshToken) {
-      return c.json(
-        { error: 'ValidationError', message: 'Refresh token is required' },
-        400
-      );
+      return c.json({ error: 'ValidationError', message: 'Refresh token is required' }, 400);
     }
 
     // Verify refresh token

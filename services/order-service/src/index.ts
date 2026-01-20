@@ -16,11 +16,14 @@ const app = new Hono<{ Bindings: Bindings }>();
 
 // Middleware
 app.use('/*', logger());
-app.use('/*', cors({
-  origin: '*',
-  allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization'],
-}));
+app.use(
+  '/*',
+  cors({
+    origin: '*',
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+  })
+);
 
 // Health check
 app.get('/health', (c) => {
@@ -36,20 +39,26 @@ app.route('/', routes);
 
 // 404 handler
 app.notFound((c) => {
-  return c.json({
-    error: 'Not Found',
-    message: 'The requested endpoint does not exist',
-    path: c.req.url,
-  }, 404);
+  return c.json(
+    {
+      error: 'Not Found',
+      message: 'The requested endpoint does not exist',
+      path: c.req.url,
+    },
+    404
+  );
 });
 
 // Error handler
 app.onError((err, c) => {
   console.error('Order Service Error:', err);
-  return c.json({
-    error: 'Internal Server Error',
-    message: err.message,
-  }, 500);
+  return c.json(
+    {
+      error: 'Internal Server Error',
+      message: err.message,
+    },
+    500
+  );
 });
 
 export default app;

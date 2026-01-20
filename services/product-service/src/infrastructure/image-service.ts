@@ -54,13 +54,7 @@ export const IMAGE_CONFIG = {
   MAX_FILE_SIZE: 5 * 1024 * 1024,
 
   // Allowed MIME types
-  ALLOWED_TYPES: [
-    'image/jpeg',
-    'image/jpg',
-    'image/png',
-    'image/webp',
-    'image/gif',
-  ] as const,
+  ALLOWED_TYPES: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'] as const,
 
   // Image sizes
   SIZES: {
@@ -85,9 +79,7 @@ export class ImageService {
   validateImage(file: File | Blob, mimeType: string): void {
     // Check MIME type
     if (!IMAGE_CONFIG.ALLOWED_TYPES.includes(mimeType as any)) {
-      throw new Error(
-        `Invalid image type. Allowed: ${IMAGE_CONFIG.ALLOWED_TYPES.join(', ')}`
-      );
+      throw new Error(`Invalid image type. Allowed: ${IMAGE_CONFIG.ALLOWED_TYPES.join(', ')}`);
     }
 
     // Check file size
@@ -268,8 +260,8 @@ export class ImageService {
       return null;
     }
 
-    let imageData = await object.arrayBuffer();
-    let contentType = object.httpMetadata?.contentType || 'image/jpeg';
+    const imageData = await object.arrayBuffer();
+    const contentType = object.httpMetadata?.contentType || 'image/jpeg';
 
     // In production, resize image here using Cloudflare's Image Resizing API
     // For local development, we return the original image
@@ -284,13 +276,9 @@ export class ImageService {
     await this.kv.put(cacheKey, imageData, {
       expirationTtl: IMAGE_CONFIG.CACHE_TTL,
     });
-    await this.kv.put(
-      `${cacheKey}:meta`,
-      JSON.stringify({ contentType }),
-      {
-        expirationTtl: IMAGE_CONFIG.CACHE_TTL,
-      }
-    );
+    await this.kv.put(`${cacheKey}:meta`, JSON.stringify({ contentType }), {
+      expirationTtl: IMAGE_CONFIG.CACHE_TTL,
+    });
 
     return {
       data: imageData,
@@ -328,9 +316,7 @@ export class ImageService {
     });
 
     // Delete all images
-    await Promise.all(
-      listed.objects.map((object) => this.deleteImage(object.key))
-    );
+    await Promise.all(listed.objects.map((object) => this.deleteImage(object.key)));
   }
 
   /**

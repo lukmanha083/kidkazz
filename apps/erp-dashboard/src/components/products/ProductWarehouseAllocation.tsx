@@ -1,16 +1,5 @@
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Combobox } from '@/components/ui/combobox';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   Dialog,
   DialogContent,
@@ -19,8 +8,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, Warehouse } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import type { Warehouse as WarehouseType } from '@/lib/api';
+import { Edit, Plus, Trash2, Warehouse } from 'lucide-react';
+import { useState } from 'react';
 
 export interface WarehouseAllocation {
   warehouseId: string;
@@ -71,9 +71,9 @@ export function ProductWarehouseAllocation({
     // Location fields removed - use UOM locations for detailed tracking
   });
 
-  const warehouseOptions = warehouses.map(w => ({
+  const warehouseOptions = warehouses.map((w) => ({
     value: w.id,
-    label: `${w.name} - ${w.city}${w.province ? ', ' + w.province : ''}`,
+    label: `${w.name} - ${w.city}${w.province ? `, ${w.province}` : ''}`,
   }));
 
   const allocatedTotal = allocations.reduce((sum, alloc) => sum + alloc.quantity, 0);
@@ -100,7 +100,7 @@ export function ProductWarehouseAllocation({
   };
 
   const handleSave = () => {
-    const warehouse = warehouses.find(w => w.id === formData.warehouseId);
+    const warehouse = warehouses.find((w) => w.id === formData.warehouseId);
     if (!warehouse) return;
 
     const allocationWithName = {
@@ -125,16 +125,18 @@ export function ProductWarehouseAllocation({
   };
 
   const getWarehouseName = (warehouseId: string) => {
-    const warehouse = warehouses.find(w => w.id === warehouseId);
+    const warehouse = warehouses.find((w) => w.id === warehouseId);
     return warehouse ? `${warehouse.name} - ${warehouse.city}` : 'Unknown';
   };
 
   const isWarehouseAlreadyAllocated = (warehouseId: string) => {
     if (editingIndex !== null) {
       // When editing, allow the current warehouse
-      return allocations.some((alloc, i) => alloc.warehouseId === warehouseId && i !== editingIndex);
+      return allocations.some(
+        (alloc, i) => alloc.warehouseId === warehouseId && i !== editingIndex
+      );
     }
-    return allocations.some(alloc => alloc.warehouseId === warehouseId);
+    return allocations.some((alloc) => alloc.warehouseId === warehouseId);
   };
 
   return (
@@ -147,7 +149,13 @@ export function ProductWarehouseAllocation({
           </p>
         </div>
         {!readOnly && (
-          <Button type="button" onClick={handleAddClick} variant="outline" size="sm" className="gap-2">
+          <Button
+            type="button"
+            onClick={handleAddClick}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+          >
             <Plus className="h-4 w-4" />
             Add Warehouse
           </Button>
@@ -165,19 +173,19 @@ export function ProductWarehouseAllocation({
           </div>
           <div>
             <span className="text-muted-foreground">Allocated:</span>
-            <p className="text-lg font-bold mt-1">
-              {allocatedTotal.toLocaleString()}
-            </p>
+            <p className="text-lg font-bold mt-1">{allocatedTotal.toLocaleString()}</p>
           </div>
           <div>
             <span className="text-muted-foreground">Remaining:</span>
-            <p className={`text-lg font-bold mt-1 ${
-              totalStock !== undefined && allocatedTotal > totalStock
-                ? 'text-destructive'
-                : totalStock !== undefined && allocatedTotal < totalStock
-                ? 'text-orange-600'
-                : 'text-green-600'
-            }`}>
+            <p
+              className={`text-lg font-bold mt-1 ${
+                totalStock !== undefined && allocatedTotal > totalStock
+                  ? 'text-destructive'
+                  : totalStock !== undefined && allocatedTotal < totalStock
+                    ? 'text-orange-600'
+                    : 'text-green-600'
+              }`}
+            >
               {totalStock !== undefined ? (totalStock - allocatedTotal).toLocaleString() : '-'}
             </p>
           </div>
@@ -205,7 +213,9 @@ export function ProductWarehouseAllocation({
           <Warehouse className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
           <p className="font-medium text-muted-foreground">No warehouse allocations</p>
           <p className="text-sm text-muted-foreground mt-1">
-            {readOnly ? 'Product is not allocated to any warehouse' : 'Add warehouses to allocate stock'}
+            {readOnly
+              ? 'Product is not allocated to any warehouse'
+              : 'Add warehouses to allocate stock'}
           </p>
         </div>
       ) : (
@@ -265,9 +275,7 @@ export function ProductWarehouseAllocation({
             <DialogTitle>
               {editingIndex !== null ? 'Edit Warehouse Allocation' : 'Add Warehouse Allocation'}
             </DialogTitle>
-            <DialogDescription>
-              Allocate product stock to a warehouse location
-            </DialogDescription>
+            <DialogDescription>Allocate product stock to a warehouse location</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -283,9 +291,7 @@ export function ProductWarehouseAllocation({
                 disabled={editingIndex !== null} // Can't change warehouse when editing
               />
               {isWarehouseAlreadyAllocated(formData.warehouseId) && formData.warehouseId && (
-                <p className="text-sm text-destructive">
-                  This warehouse is already allocated
-                </p>
+                <p className="text-sm text-destructive">This warehouse is already allocated</p>
               )}
             </div>
 
@@ -297,7 +303,9 @@ export function ProductWarehouseAllocation({
                 min="0"
                 placeholder="100"
                 value={formData.quantity || ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, quantity: Number(e.target.value) })}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setFormData({ ...formData, quantity: Number(e.target.value) })
+                }
               />
               <p className="text-xs text-muted-foreground mt-1">
                 💡 Use UOM Locations to assign detailed rack/bin/zone/aisle positions

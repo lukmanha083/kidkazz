@@ -1,8 +1,8 @@
-import { ColumnDef } from '@tanstack/react-table';
+import type { UOM } from '@/lib/api';
+import type { ColumnDef } from '@tanstack/react-table';
 import { Badge } from '../../badge';
 import { DataTableColumnHeader } from '../data-table-column-header';
 import { DataTableRowActions } from '../data-table-row-actions';
-import type { UOM } from '@/lib/api';
 
 interface UOMColumnOptions {
   onView?: (uom: UOM) => void;
@@ -27,27 +27,19 @@ export function getUOMColumns(options: UOMColumnOptions = {}): ColumnDef<UOM>[] 
   return [
     {
       accessorKey: 'code',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Code" />
-      ),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Code" />,
       cell: ({ row }) => (
         <span className="font-mono text-sm font-medium">{row.getValue('code')}</span>
       ),
     },
     {
       accessorKey: 'name',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Name" />
-      ),
-      cell: ({ row }) => (
-        <span className="font-medium">{row.getValue('name')}</span>
-      ),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
+      cell: ({ row }) => <span className="font-medium">{row.getValue('name')}</span>,
     },
     {
       accessorKey: 'conversionFactor',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Conversion Factor" />
-      ),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Conversion Factor" />,
       cell: ({ row }) => {
         const uom = row.original;
         return (
@@ -64,9 +56,7 @@ export function getUOMColumns(options: UOMColumnOptions = {}): ColumnDef<UOM>[] 
     {
       id: 'type',
       accessorKey: 'isBaseUnit',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Type" />
-      ),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Type" />,
       cell: ({ row }) => {
         const isBaseUnit = row.original.isBaseUnit;
         return (

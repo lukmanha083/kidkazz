@@ -10,12 +10,8 @@
  * - Type-safe API calls
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  categoryApi,
-  type Category,
-  type CreateCategoryInput,
-} from '../../lib/api';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { type Category, type CreateCategoryInput, categoryApi } from '../../lib/api';
 import { queryKeys } from '../../lib/query-client';
 
 /**
@@ -85,9 +81,7 @@ export function useCreateCategory() {
         queryKey: queryKeys.categories.lists(),
       });
 
-      const previousCategories = queryClient.getQueryData(
-        queryKeys.categories.lists()
-      );
+      const previousCategories = queryClient.getQueryData(queryKeys.categories.lists());
 
       // Optimistically update cache
       queryClient.setQueryData(
@@ -115,10 +109,7 @@ export function useCreateCategory() {
 
     onError: (err, newCategory, context) => {
       if (context?.previousCategories) {
-        queryClient.setQueryData(
-          queryKeys.categories.lists(),
-          context.previousCategories
-        );
+        queryClient.setQueryData(queryKeys.categories.lists(), context.previousCategories);
       }
     },
 
@@ -152,12 +143,8 @@ export function useUpdateCategory() {
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.categories.all });
 
-      const previousCategories = queryClient.getQueryData(
-        queryKeys.categories.lists()
-      );
-      const previousCategory = queryClient.getQueryData(
-        queryKeys.categories.detail(id)
-      );
+      const previousCategories = queryClient.getQueryData(queryKeys.categories.lists());
+      const previousCategory = queryClient.getQueryData(queryKeys.categories.detail(id));
 
       // Update list cache
       queryClient.setQueryData(
@@ -174,29 +161,20 @@ export function useUpdateCategory() {
       );
 
       // Update detail cache
-      queryClient.setQueryData(
-        queryKeys.categories.detail(id),
-        (old: Category | undefined) => {
-          if (!old) return old;
-          return { ...old, ...data, updatedAt: new Date() };
-        }
-      );
+      queryClient.setQueryData(queryKeys.categories.detail(id), (old: Category | undefined) => {
+        if (!old) return old;
+        return { ...old, ...data, updatedAt: new Date() };
+      });
 
       return { previousCategories, previousCategory };
     },
 
     onError: (err, { id }, context) => {
       if (context?.previousCategories) {
-        queryClient.setQueryData(
-          queryKeys.categories.lists(),
-          context.previousCategories
-        );
+        queryClient.setQueryData(queryKeys.categories.lists(), context.previousCategories);
       }
       if (context?.previousCategory) {
-        queryClient.setQueryData(
-          queryKeys.categories.detail(id),
-          context.previousCategory
-        );
+        queryClient.setQueryData(queryKeys.categories.detail(id), context.previousCategory);
       }
     },
 
@@ -224,9 +202,7 @@ export function useDeleteCategory() {
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.categories.all });
 
-      const previousCategories = queryClient.getQueryData(
-        queryKeys.categories.lists()
-      );
+      const previousCategories = queryClient.getQueryData(queryKeys.categories.lists());
 
       // Remove from list cache
       queryClient.setQueryData(
@@ -250,10 +226,7 @@ export function useDeleteCategory() {
 
     onError: (err, id, context) => {
       if (context?.previousCategories) {
-        queryClient.setQueryData(
-          queryKeys.categories.lists(),
-          context.previousCategories
-        );
+        queryClient.setQueryData(queryKeys.categories.lists(), context.previousCategories);
       }
     },
 

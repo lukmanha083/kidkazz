@@ -1,10 +1,10 @@
-import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { z } from 'zod';
+import { and, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, and } from 'drizzle-orm';
-import { productVariants } from '../../db/schema';
+import { Hono } from 'hono';
+import { z } from 'zod';
 import { generateId } from '../../../shared/utils/helpers';
+import { productVariants } from '../../db/schema';
 
 type Bindings = {
   DB: D1Database;
@@ -33,7 +33,7 @@ app.get('/', async (c) => {
   const db = drizzle(c.env.DB);
   const productId = c.req.query('productId');
 
-  let query = db.select().from(productVariants);
+  const query = db.select().from(productVariants);
 
   const allVariants = productId
     ? await query.where(eq(productVariants.productId, productId)).all()
@@ -50,11 +50,7 @@ app.get('/:id', async (c) => {
   const id = c.req.param('id');
   const db = drizzle(c.env.DB);
 
-  const variant = await db
-    .select()
-    .from(productVariants)
-    .where(eq(productVariants.id, id))
-    .get();
+  const variant = await db.select().from(productVariants).where(eq(productVariants.id, id)).get();
 
   if (!variant) {
     return c.json({ error: 'Variant not found' }, 404);
@@ -87,11 +83,7 @@ app.put('/:id', zValidator('json', updateVariantSchema), async (c) => {
   const data = c.req.valid('json');
   const db = drizzle(c.env.DB);
 
-  const existing = await db
-    .select()
-    .from(productVariants)
-    .where(eq(productVariants.id, id))
-    .get();
+  const existing = await db.select().from(productVariants).where(eq(productVariants.id, id)).get();
 
   if (!existing) {
     return c.json({ error: 'Variant not found' }, 404);
@@ -103,11 +95,7 @@ app.put('/:id', zValidator('json', updateVariantSchema), async (c) => {
     .where(eq(productVariants.id, id))
     .run();
 
-  const updated = await db
-    .select()
-    .from(productVariants)
-    .where(eq(productVariants.id, id))
-    .get();
+  const updated = await db.select().from(productVariants).where(eq(productVariants.id, id)).get();
 
   return c.json(updated);
 });

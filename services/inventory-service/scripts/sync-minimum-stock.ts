@@ -58,9 +58,7 @@ export async function syncMinimumStock(
     console.log('Starting minimumStock migration...');
 
     // Get all inventory records
-    const inventoryRecords = await db
-      .prepare('SELECT * FROM inventory')
-      .all<InventoryRecord>();
+    const inventoryRecords = await db.prepare('SELECT * FROM inventory').all<InventoryRecord>();
 
     result.totalInventoryRecords = inventoryRecords.results?.length || 0;
     console.log(`Found ${result.totalInventoryRecords} inventory records`);

@@ -1,9 +1,9 @@
-import { DrizzleD1Database } from 'drizzle-orm/d1';
+import { type Result, ResultFactory } from '@kidkazz/types';
 import { eq } from 'drizzle-orm';
-import { IUserRepository } from '../../application/use-cases/RegisterUser';
-import { User, UserType } from '../../domain/entities/User';
+import type { DrizzleD1Database } from 'drizzle-orm/d1';
+import type { IUserRepository } from '../../application/use-cases/RegisterUser';
+import { User, type UserType } from '../../domain/entities/User';
 import { users } from '../db/schema';
-import { Result, ResultFactory } from '@kidkazz/types';
 
 /**
  * Drizzle User Repository (Adapter)
@@ -14,11 +14,7 @@ export class DrizzleUserRepository implements IUserRepository {
 
   async save(user: User): Promise<Result<void>> {
     try {
-      const existing = await this.db
-        .select()
-        .from(users)
-        .where(eq(users.id, user.getId()))
-        .get();
+      const existing = await this.db.select().from(users).where(eq(users.id, user.getId())).get();
 
       const data = {
         id: user.getId(),
@@ -37,11 +33,7 @@ export class DrizzleUserRepository implements IUserRepository {
 
       if (existing) {
         // Update existing user
-        await this.db
-          .update(users)
-          .set(data)
-          .where(eq(users.id, user.getId()))
-          .run();
+        await this.db.update(users).set(data).where(eq(users.id, user.getId())).run();
       } else {
         // Insert new user
         await this.db
@@ -62,11 +54,7 @@ export class DrizzleUserRepository implements IUserRepository {
 
   async findByEmail(email: string): Promise<Result<User | null>> {
     try {
-      const row = await this.db
-        .select()
-        .from(users)
-        .where(eq(users.email, email))
-        .get();
+      const row = await this.db.select().from(users).where(eq(users.email, email)).get();
 
       if (!row) {
         return ResultFactory.ok(null);
@@ -81,11 +69,7 @@ export class DrizzleUserRepository implements IUserRepository {
 
   async findById(id: string): Promise<Result<User | null>> {
     try {
-      const row = await this.db
-        .select()
-        .from(users)
-        .where(eq(users.id, id))
-        .get();
+      const row = await this.db.select().from(users).where(eq(users.id, id)).get();
 
       if (!row) {
         return ResultFactory.ok(null);

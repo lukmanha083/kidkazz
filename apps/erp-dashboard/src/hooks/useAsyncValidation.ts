@@ -14,12 +14,12 @@
  * @see Phase 5: Async Validation with Debouncing
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface AsyncValidationState {
-	isValidating: boolean;
-	isValid: boolean | null;
-	error: string | null;
+  isValidating: boolean;
+  isValid: boolean | null;
+  error: string | null;
 }
 
 /**
@@ -38,82 +38,82 @@ interface AsyncValidationState {
  *  - `reset()`: Function to reset the validation state to idle.
  */
 export function useAsyncValidation<T>(
-	validationFn: (value: T, excludeId?: string, signal?: AbortSignal) => Promise<boolean>,
-	debounceMs = 500
+  validationFn: (value: T, excludeId?: string, signal?: AbortSignal) => Promise<boolean>,
+  debounceMs = 500
 ) {
-	const [state, setState] = useState<AsyncValidationState>({
-		isValidating: false,
-		isValid: null,
-		error: null,
-	});
+  const [state, setState] = useState<AsyncValidationState>({
+    isValidating: false,
+    isValid: null,
+    error: null,
+  });
 
-	const abortControllerRef = useRef<AbortController | null>(null);
-	const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-	// Cleanup on unmount
-	useEffect(() => {
-		return () => {
-			if (timeoutRef.current) {
-				clearTimeout(timeoutRef.current);
-			}
-			if (abortControllerRef.current) {
-				abortControllerRef.current.abort();
-			}
-		};
-	}, []);
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
-	const validate = useCallback(
-		(value: T, excludeId?: string) => {
-			// Clear previous timeout
-			if (timeoutRef.current) {
-				clearTimeout(timeoutRef.current);
-			}
+  const validate = useCallback(
+    (value: T, excludeId?: string) => {
+      // Clear previous timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
 
-			// Cancel previous request
-			if (abortControllerRef.current) {
-				abortControllerRef.current.abort();
-			}
+      // Cancel previous request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
 
-			// Reset state if value is empty
-			if (!value || (typeof value === 'string' && value.trim() === '')) {
-				setState({ isValidating: false, isValid: null, error: null });
-				return;
-			}
+      // Reset state if value is empty
+      if (!value || (typeof value === 'string' && value.trim() === '')) {
+        setState({ isValidating: false, isValid: null, error: null });
+        return;
+      }
 
-			// Set validating state
-			setState({ isValidating: true, isValid: null, error: null });
+      // Set validating state
+      setState({ isValidating: true, isValid: null, error: null });
 
-			// Create AbortController before scheduling
-			abortControllerRef.current = new AbortController();
-			const signal = abortControllerRef.current.signal;
+      // Create AbortController before scheduling
+      abortControllerRef.current = new AbortController();
+      const signal = abortControllerRef.current.signal;
 
-			// Debounce the validation request
-			timeoutRef.current = setTimeout(async () => {
-				try {
-					const isUnique = await validationFn(value, excludeId, signal);
-					setState({
-						isValidating: false,
-						isValid: isUnique,
-						error: isUnique ? null : 'Already exists',
-					});
-				} catch (error: any) {
-					// Ignore abort errors (from cancellation)
-					if (error.name !== 'AbortError') {
-						setState({
-							isValidating: false,
-							isValid: null,
-							error: 'Validation failed',
-						});
-					}
-				}
-			}, debounceMs);
-		},
-		[validationFn, debounceMs]
-	);
+      // Debounce the validation request
+      timeoutRef.current = setTimeout(async () => {
+        try {
+          const isUnique = await validationFn(value, excludeId, signal);
+          setState({
+            isValidating: false,
+            isValid: isUnique,
+            error: isUnique ? null : 'Already exists',
+          });
+        } catch (error: any) {
+          // Ignore abort errors (from cancellation)
+          if (error.name !== 'AbortError') {
+            setState({
+              isValidating: false,
+              isValid: null,
+              error: 'Validation failed',
+            });
+          }
+        }
+      }, debounceMs);
+    },
+    [validationFn, debounceMs]
+  );
 
-	const reset = useCallback(() => {
-		setState({ isValidating: false, isValid: null, error: null });
-	}, []);
+  const reset = useCallback(() => {
+    setState({ isValidating: false, isValid: null, error: null });
+  }, []);
 
-	return { ...state, validate, reset };
+  return { ...state, validate, reset };
 }

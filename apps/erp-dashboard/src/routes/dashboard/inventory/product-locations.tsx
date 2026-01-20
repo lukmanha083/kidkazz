@@ -1,38 +1,3 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { useState, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useForm } from '@tanstack/react-form';
-import { zodValidator } from '@tanstack/zod-form-adapter';
-import { toast } from 'sonner';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,18 +8,50 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Search, Edit, Trash2, MapPin, Package, Loader2, X } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  productLocationApi,
-  productApi,
-  warehouseApi,
-  type ProductLocation,
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
   type CreateProductLocationInput,
+  type ProductLocation,
+  productApi,
+  productLocationApi,
+  warehouseApi,
 } from '@/lib/api';
-import {
-  productLocationFormSchema,
-  type ProductLocationFormData,
-} from '@/lib/form-schemas';
+import { type ProductLocationFormData, productLocationFormSchema } from '@/lib/form-schemas';
+import { useForm } from '@tanstack/react-form';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { createFileRoute } from '@tanstack/react-router';
+import { zodValidator } from '@tanstack/zod-form-adapter';
+import { Edit, Loader2, MapPin, Package, Plus, Search, Trash2, X } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 
 /**
  * Extract error message from TanStack Form / Zod validation errors.
@@ -111,7 +108,7 @@ function ProductLocationsPage() {
       const quantity = value.quantity;
       if (quantity < 0) {
         toast.error('Invalid quantity', {
-          description: 'Quantity cannot be negative'
+          description: 'Quantity cannot be negative',
         });
         return;
       }
@@ -140,7 +137,11 @@ function ProductLocationsPage() {
   });
 
   // Fetch product locations
-  const { data: locationsData, isLoading, error } = useQuery({
+  const {
+    data: locationsData,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['product-locations'],
     queryFn: () => productLocationApi.getAll(),
   });
@@ -182,7 +183,10 @@ function ProductLocationsPage() {
 
   // Update location mutation
   const updateLocationMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Omit<CreateProductLocationInput, 'productId'>> }) =>
+    mutationFn: ({
+      id,
+      data,
+    }: { id: string; data: Partial<Omit<CreateProductLocationInput, 'productId'>> }) =>
       productLocationApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['product-locations'] });
@@ -218,8 +222,8 @@ function ProductLocationsPage() {
   // Filter locations
   const filteredLocations = useMemo(() => {
     return locations.filter((location) => {
-      const product = products.find(p => p.id === location.productId);
-      const warehouse = warehouses.find(w => w.id === location.warehouseId);
+      const product = products.find((p) => p.id === location.productId);
+      const warehouse = warehouses.find((w) => w.id === location.warehouseId);
 
       const matchesSearch =
         product?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -339,7 +343,7 @@ function ProductLocationsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {new Set(locations.map(l => l.productId)).size}
+                  {new Set(locations.map((l) => l.productId)).size}
                 </div>
                 <p className="text-xs text-muted-foreground">Unique products</p>
               </CardContent>
@@ -352,7 +356,7 @@ function ProductLocationsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {new Set(locations.map(l => l.warehouseId)).size}
+                  {new Set(locations.map((l) => l.warehouseId)).size}
                 </div>
                 <p className="text-xs text-muted-foreground">Different warehouses</p>
               </CardContent>
@@ -377,7 +381,7 @@ function ProductLocationsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">All Warehouses</SelectItem>
-                      {warehouses.map(warehouse => (
+                      {warehouses.map((warehouse) => (
                         <SelectItem key={warehouse.id} value={warehouse.id}>
                           {warehouse.name}
                         </SelectItem>
@@ -393,8 +397,8 @@ function ProductLocationsPage() {
                     <SelectContent>
                       <SelectItem value="">All Products</SelectItem>
                       {products
-                        .filter(p => locations.some(l => l.productId === p.id))
-                        .map(product => (
+                        .filter((p) => locations.some((l) => l.productId === p.id))
+                        .map((product) => (
                           <SelectItem key={product.id} value={product.id}>
                             {product.name}
                           </SelectItem>
@@ -439,14 +443,16 @@ function ProductLocationsPage() {
                       </TableRow>
                     ) : (
                       filteredLocations.map((location) => {
-                        const product = products.find(p => p.id === location.productId);
-                        const warehouse = warehouses.find(w => w.id === location.warehouseId);
+                        const product = products.find((p) => p.id === location.productId);
+                        const warehouse = warehouses.find((w) => w.id === location.warehouseId);
 
                         return (
                           <TableRow key={location.id}>
                             <TableCell>
                               <div>
-                                <div className="font-medium">{product?.name || 'Unknown Product'}</div>
+                                <div className="font-medium">
+                                  {product?.name || 'Unknown Product'}
+                                </div>
                                 <div className="text-sm text-muted-foreground">{product?.sku}</div>
                               </div>
                             </TableCell>
@@ -535,7 +541,7 @@ function ProductLocationsPage() {
                       <SelectValue placeholder="Select product" />
                     </SelectTrigger>
                     <SelectContent>
-                      {products.map(product => (
+                      {products.map((product) => (
                         <SelectItem key={product.id} value={product.id}>
                           {product.name} ({product.sku})
                         </SelectItem>
@@ -549,7 +555,7 @@ function ProductLocationsPage() {
                   )}
                   {field.state.meta.errors.length > 0 && (
                     <p className="text-sm text-destructive">
-                      {field.state.meta.errors.map(getErrorMessage).join(", ")}
+                      {field.state.meta.errors.map(getErrorMessage).join(', ')}
                     </p>
                   )}
                 </div>
@@ -568,7 +574,7 @@ function ProductLocationsPage() {
                       <SelectValue placeholder="Select warehouse" />
                     </SelectTrigger>
                     <SelectContent>
-                      {warehouses.map(warehouse => (
+                      {warehouses.map((warehouse) => (
                         <SelectItem key={warehouse.id} value={warehouse.id}>
                           {warehouse.name} - {warehouse.city}
                         </SelectItem>
@@ -577,7 +583,7 @@ function ProductLocationsPage() {
                   </Select>
                   {field.state.meta.errors.length > 0 && (
                     <p className="text-sm text-destructive">
-                      {field.state.meta.errors.map(getErrorMessage).join(", ")}
+                      {field.state.meta.errors.map(getErrorMessage).join(', ')}
                     </p>
                   )}
                 </div>
@@ -656,7 +662,7 @@ function ProductLocationsPage() {
                     min="0"
                     placeholder="100"
                     value={field.state.value}
-                    onChange={(e) => field.handleChange(parseInt(e.target.value) || 0)}
+                    onChange={(e) => field.handleChange(Number.parseInt(e.target.value) || 0)}
                     onBlur={field.handleBlur}
                     required
                   />
@@ -665,7 +671,7 @@ function ProductLocationsPage() {
                   </p>
                   {field.state.meta.errors.length > 0 && (
                     <p className="text-sm text-destructive">
-                      {field.state.meta.errors.map(getErrorMessage).join(", ")}
+                      {field.state.meta.errors.map(getErrorMessage).join(', ')}
                     </p>
                   )}
                 </div>
@@ -683,8 +689,10 @@ function ProductLocationsPage() {
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     {formMode === 'add' ? 'Creating...' : 'Updating...'}
                   </>
+                ) : formMode === 'add' ? (
+                  'Create Location'
                 ) : (
-                  formMode === 'add' ? 'Create Location' : 'Update Location'
+                  'Update Location'
                 )}
               </Button>
               <DrawerClose asChild>
@@ -703,11 +711,8 @@ function ProductLocationsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Location?</AlertDialogTitle>
             <AlertDialogDescription>
-              {locationToDelete && (
-                <>
-                  Are you sure you want to delete this location? This action cannot be undone.
-                </>
-              )}
+              {locationToDelete &&
+                'Are you sure you want to delete this location? This action cannot be undone.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

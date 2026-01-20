@@ -12,17 +12,17 @@
  * - Error handling
  */
 
-import { useEffect, useRef, useState } from 'react';
 import {
-  Play,
+  AlertCircle,
+  Loader2,
+  Maximize,
   Pause,
+  Play,
+  Settings,
   Volume2,
   VolumeX,
-  Maximize,
-  Settings,
-  Loader2,
-  AlertCircle,
 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 export interface VideoUrls {
   original?: string; // R2 mode
@@ -92,9 +92,7 @@ export function VideoPlayer({
 
         if (!Hls.isSupported()) {
           // Fallback to native HLS support (Safari)
-          if (
-            videoRef.current?.canPlayType('application/vnd.apple.mpegurl')
-          ) {
+          if (videoRef.current?.canPlayType('application/vnd.apple.mpegurl')) {
             videoRef.current.src = urls.hls!;
             setIsLoading(false);
             return;
@@ -122,9 +120,7 @@ export function VideoPlayer({
           setIsLoading(false);
 
           // Get available qualities
-          const levels = hlsInstance.levels.map(
-            (level: any) => `${level.height}p`
-          );
+          const levels = hlsInstance.levels.map((level: any) => `${level.height}p`);
           setQualities(['auto', ...levels]);
 
           // Autoplay if enabled
@@ -146,11 +142,12 @@ export function VideoPlayer({
                 console.log('Media error, trying to recover...');
                 hlsInstance.recoverMediaError();
                 break;
-              default:
+              default: {
                 const errorMsg = 'Fatal HLS error, cannot recover';
                 setError(errorMsg);
                 onError?.(errorMsg);
                 break;
+              }
             }
           }
         });
@@ -293,9 +290,7 @@ export function VideoPlayer({
     if (quality === 'auto') {
       hls.currentLevel = -1; // Auto quality
     } else {
-      const levelIndex = hls.levels.findIndex(
-        (level: any) => `${level.height}p` === quality
-      );
+      const levelIndex = hls.levels.findIndex((level: any) => `${level.height}p` === quality);
       if (levelIndex !== -1) {
         hls.currentLevel = levelIndex;
       }
@@ -309,7 +304,7 @@ export function VideoPlayer({
    * Format time (seconds to MM:SS)
    */
   const formatTime = (seconds: number): string => {
-    if (isNaN(seconds)) return '0:00';
+    if (Number.isNaN(seconds)) return '0:00';
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -357,7 +352,7 @@ export function VideoPlayer({
               min={0}
               max={duration || 0}
               value={currentTime}
-              onChange={(e) => handleSeek(parseFloat(e.target.value))}
+              onChange={(e) => handleSeek(Number.parseFloat(e.target.value))}
               className="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer"
               style={{
                 background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${(currentTime / duration) * 100}%, #4b5563 ${(currentTime / duration) * 100}%, #4b5563 100%)`,
@@ -374,6 +369,7 @@ export function VideoPlayer({
             <div className="flex items-center gap-3">
               {/* Play/Pause */}
               <button
+                type="button"
                 onClick={togglePlay}
                 className="p-2 text-white hover:bg-white/20 rounded-full transition"
               >
@@ -387,6 +383,7 @@ export function VideoPlayer({
               {/* Volume */}
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={toggleMute}
                   className="p-2 text-white hover:bg-white/20 rounded-full transition"
                 >
@@ -402,7 +399,7 @@ export function VideoPlayer({
                   max={1}
                   step={0.1}
                   value={isMuted ? 0 : volume}
-                  onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                  onChange={(e) => handleVolumeChange(Number.parseFloat(e.target.value))}
                   className="w-20 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer"
                 />
               </div>
@@ -413,6 +410,7 @@ export function VideoPlayer({
               {mode === 'stream' && qualities.length > 0 && (
                 <div className="relative">
                   <button
+                    type="button"
                     onClick={() => setShowQualityMenu(!showQualityMenu)}
                     className="p-2 text-white hover:bg-white/20 rounded-full transition"
                   >
@@ -422,12 +420,11 @@ export function VideoPlayer({
                     <div className="absolute bottom-full right-0 mb-2 bg-gray-900 rounded-lg shadow-lg py-2 min-w-[120px]">
                       {qualities.map((quality) => (
                         <button
+                          type="button"
                           key={quality}
                           onClick={() => changeQuality(quality)}
                           className={`w-full px-4 py-2 text-left text-white hover:bg-white/20 transition ${
-                            currentQuality === quality
-                              ? 'bg-blue-500/30'
-                              : ''
+                            currentQuality === quality ? 'bg-blue-500/30' : ''
                           }`}
                         >
                           {quality}
@@ -440,6 +437,7 @@ export function VideoPlayer({
 
               {/* Fullscreen */}
               <button
+                type="button"
                 onClick={toggleFullscreen}
                 className="p-2 text-white hover:bg-white/20 rounded-full transition"
               >
@@ -454,9 +452,7 @@ export function VideoPlayer({
       <div className="absolute top-2 right-2">
         <div
           className={`px-2 py-1 rounded text-xs font-medium ${
-            mode === 'stream'
-              ? 'bg-green-500 text-white'
-              : 'bg-gray-500 text-white'
+            mode === 'stream' ? 'bg-green-500 text-white' : 'bg-gray-500 text-white'
           }`}
         >
           {mode === 'stream' ? 'Adaptive Streaming' : 'Basic Video'}

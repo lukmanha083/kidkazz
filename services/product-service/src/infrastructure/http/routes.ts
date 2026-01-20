@@ -1,14 +1,14 @@
 import { Hono } from 'hono';
-import categoriesRoutes from './routes/categories';
-import productsRoutes from './routes/products';
-import variantsRoutes from './routes/variants';
 import bundlesRoutes from './routes/bundles';
-import uomsRoutes from './routes/uoms';
-import productLocationsRoutes from './routes/product-locations';
-import variantLocationsRoutes from './routes/variant-locations';
-import productUOMLocationsRoutes from './routes/product-uom-locations';
+import categoriesRoutes from './routes/categories';
 import cleanupRoutes from './routes/cleanup';
+import productLocationsRoutes from './routes/product-locations';
+import productUOMLocationsRoutes from './routes/product-uom-locations';
+import productsRoutes from './routes/products';
+import uomsRoutes from './routes/uoms';
 import validationRoutes from './routes/validation';
+import variantLocationsRoutes from './routes/variant-locations';
+import variantsRoutes from './routes/variants';
 
 type Bindings = {
   DB: D1Database;

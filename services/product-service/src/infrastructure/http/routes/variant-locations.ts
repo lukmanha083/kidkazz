@@ -1,10 +1,10 @@
-import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { z } from 'zod';
+import { and, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, and } from 'drizzle-orm';
-import { variantLocations, productVariants } from '../../db/schema';
+import { Hono } from 'hono';
+import { z } from 'zod';
 import { generateId } from '../../../shared/utils/helpers';
+import { productVariants, variantLocations } from '../../db/schema';
 
 /**
  * Variant Locations Routes - DDD Phase 5 Refactored
@@ -46,7 +46,7 @@ app.get('/', async (c) => {
   const variantId = c.req.query('variantId');
   const warehouseId = c.req.query('warehouseId');
 
-  let query = db.select().from(variantLocations);
+  const query = db.select().from(variantLocations);
 
   // Apply filters
   const conditions = [];
@@ -57,9 +57,8 @@ app.get('/', async (c) => {
     conditions.push(eq(variantLocations.warehouseId, warehouseId));
   }
 
-  const locations = conditions.length > 0
-    ? await query.where(and(...conditions)).all()
-    : await query.all();
+  const locations =
+    conditions.length > 0 ? await query.where(and(...conditions)).all() : await query.all();
 
   return c.json({
     variantLocations: locations,
@@ -134,9 +133,7 @@ app.get('/variant/:variantId/with-stock', async (c) => {
 
   // Merge location data with stock data
   const locationsWithStock = locations.map((location) => {
-    const inventory = inventoryData.find(
-      (inv: any) => inv.warehouseId === location.warehouseId
-    );
+    const inventory = inventoryData.find((inv: any) => inv.warehouseId === location.warehouseId);
     return {
       ...location,
       quantity: inventory?.quantity || 0,
@@ -261,17 +258,9 @@ app.put('/:id', zValidator('json', updateLocationSchema), async (c) => {
     updatedAt: new Date(),
   };
 
-  await db
-    .update(variantLocations)
-    .set(updateData)
-    .where(eq(variantLocations.id, id))
-    .run();
+  await db.update(variantLocations).set(updateData).where(eq(variantLocations.id, id)).run();
 
-  const updated = await db
-    .select()
-    .from(variantLocations)
-    .where(eq(variantLocations.id, id))
-    .get();
+  const updated = await db.select().from(variantLocations).where(eq(variantLocations.id, id)).get();
 
   // DDD Phase 5: No longer validating or syncing stock here
   // Stock management is the responsibility of Inventory Service

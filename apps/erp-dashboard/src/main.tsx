@@ -1,8 +1,8 @@
+import { type QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { RouterProvider, createRouter } from '@tanstack/react-router';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { RouterProvider, createRouter } from '@tanstack/react-router';
-import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { queryClient } from './lib/query-client';
 import './index.css';
 
@@ -38,7 +38,9 @@ declare module '@tanstack/react-router' {
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
-  throw new Error('Root element not found. Make sure there is a <div id="root"></div> in your HTML.');
+  throw new Error(
+    'Root element not found. Make sure there is a <div id="root"></div> in your HTML.'
+  );
 }
 
 ReactDOM.createRoot(rootElement).render(

@@ -1,6 +1,13 @@
-import { createFileRoute } from '@tanstack/react-router';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowUpRight, ArrowDownRight, DollarSign, ShoppingCart, Package, Users } from 'lucide-react';
+import { createFileRoute } from '@tanstack/react-router';
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  DollarSign,
+  Package,
+  ShoppingCart,
+  Users,
+} from 'lucide-react';
 
 export const Route = createFileRoute('/dashboard/')({
   component: DashboardHome,
@@ -18,9 +25,7 @@ function StatCard({ title, value, change, isPositive, icon: Icon }: StatCardProp
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          {title}
-        </CardTitle>
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
         <Icon className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
@@ -74,10 +79,34 @@ function DashboardHome() {
   ];
 
   const recentOrders = [
-    { id: 'ORD-001', customer: 'John Doe', product: 'Baby Bottle Set', amount: '$29.99', status: 'Completed' },
-    { id: 'ORD-002', customer: 'Jane Smith', product: 'Kids Backpack', amount: '$45.00', status: 'Processing' },
-    { id: 'ORD-003', customer: 'Bob Johnson', product: 'Toy Car Collection', amount: '$89.99', status: 'Completed' },
-    { id: 'ORD-004', customer: 'Alice Brown', product: 'Children Books', amount: '$34.50', status: 'Pending' },
+    {
+      id: 'ORD-001',
+      customer: 'John Doe',
+      product: 'Baby Bottle Set',
+      amount: '$29.99',
+      status: 'Completed',
+    },
+    {
+      id: 'ORD-002',
+      customer: 'Jane Smith',
+      product: 'Kids Backpack',
+      amount: '$45.00',
+      status: 'Processing',
+    },
+    {
+      id: 'ORD-003',
+      customer: 'Bob Johnson',
+      product: 'Toy Car Collection',
+      amount: '$89.99',
+      status: 'Completed',
+    },
+    {
+      id: 'ORD-004',
+      customer: 'Alice Brown',
+      product: 'Children Books',
+      amount: '$34.50',
+      status: 'Pending',
+    },
   ];
 
   return (
@@ -108,18 +137,25 @@ function DashboardHome() {
           <CardContent>
             <div className="space-y-4">
               {recentOrders.map((order) => (
-                <div key={order.id} className="flex items-center justify-between border-b pb-3 last:border-0">
+                <div
+                  key={order.id}
+                  className="flex items-center justify-between border-b pb-3 last:border-0"
+                >
                   <div className="space-y-1">
                     <p className="text-sm font-medium">{order.customer}</p>
                     <p className="text-xs text-muted-foreground">{order.product}</p>
                   </div>
                   <div className="text-right space-y-1">
                     <p className="text-sm font-bold">{order.amount}</p>
-                    <p className={`text-xs px-2 py-0.5 rounded-full inline-block ${
-                      order.status === 'Completed' ? 'bg-green-100 text-green-700' :
-                      order.status === 'Processing' ? 'bg-blue-100 text-blue-700' :
-                      'bg-yellow-100 text-yellow-700'
-                    }`}>
+                    <p
+                      className={`text-xs px-2 py-0.5 rounded-full inline-block ${
+                        order.status === 'Completed'
+                          ? 'bg-green-100 text-green-700'
+                          : order.status === 'Processing'
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-yellow-100 text-yellow-700'
+                      }`}
+                    >
                       {order.status}
                     </p>
                   </div>
@@ -186,19 +222,31 @@ function DashboardHome() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <button className="flex flex-col items-center gap-2 p-4 rounded-lg border hover:bg-muted transition-colors">
+            <button
+              type="button"
+              className="flex flex-col items-center gap-2 p-4 rounded-lg border hover:bg-muted transition-colors"
+            >
               <Package className="h-8 w-8" />
               <span className="text-sm font-medium">Add Product</span>
             </button>
-            <button className="flex flex-col items-center gap-2 p-4 rounded-lg border hover:bg-muted transition-colors">
+            <button
+              type="button"
+              className="flex flex-col items-center gap-2 p-4 rounded-lg border hover:bg-muted transition-colors"
+            >
               <ShoppingCart className="h-8 w-8" />
               <span className="text-sm font-medium">View Orders</span>
             </button>
-            <button className="flex flex-col items-center gap-2 p-4 rounded-lg border hover:bg-muted transition-colors">
+            <button
+              type="button"
+              className="flex flex-col items-center gap-2 p-4 rounded-lg border hover:bg-muted transition-colors"
+            >
               <Users className="h-8 w-8" />
               <span className="text-sm font-medium">Manage Users</span>
             </button>
-            <button className="flex flex-col items-center gap-2 p-4 rounded-lg border hover:bg-muted transition-colors">
+            <button
+              type="button"
+              className="flex flex-col items-center gap-2 p-4 rounded-lg border hover:bg-muted transition-colors"
+            >
               <DollarSign className="h-8 w-8" />
               <span className="text-sm font-medium">View Reports</span>
             </button>

@@ -1,8 +1,5 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
-import { Download, Warehouse, TrendingUp, ShoppingCart } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -13,6 +10,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { createFileRoute } from '@tanstack/react-router';
+import { Download, ShoppingCart, TrendingUp, Warehouse } from 'lucide-react';
+import { useState } from 'react';
 
 export const Route = createFileRoute('/dashboard/accounting/reports/sales-by-warehouse')({
   component: SalesByWarehousePage,
@@ -83,7 +83,7 @@ function SalesByWarehousePage() {
       [`Period: ${fromDate} to ${toDate}`],
       [''],
       ['Warehouse ID', 'Total Sales', 'Transaction Count', 'Avg Transaction Value'],
-      ...data.map(row => [
+      ...data.map((row) => [
         row.warehouse_id || 'Unknown',
         row.total_sales.toFixed(2),
         row.transaction_count.toString(),
@@ -96,7 +96,7 @@ function SalesByWarehousePage() {
       ['Total Transactions', summary?.totalTransactions.toString() || '0'],
     ];
 
-    const csv = lines.map(l => l.join(',')).join('\n');
+    const csv = lines.map((l) => l.join(',')).join('\n');
 
     // Download CSV
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -113,7 +113,9 @@ function SalesByWarehousePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Sales by Warehouse</h1>
-          <p className="text-muted-foreground mt-1">Track sales performance by warehouse location</p>
+          <p className="text-muted-foreground mt-1">
+            Track sales performance by warehouse location
+          </p>
         </div>
         {data.length > 0 && (
           <Button onClick={handleExport} className="gap-2">
@@ -152,11 +154,7 @@ function SalesByWarehousePage() {
             </div>
 
             <div className="flex items-end">
-              <Button
-                onClick={loadReport}
-                disabled={loading}
-                className="w-full"
-              >
+              <Button onClick={loadReport} disabled={loading} className="w-full">
                 {loading ? 'Loading...' : 'Generate Report'}
               </Button>
             </div>
@@ -172,9 +170,7 @@ function SalesByWarehousePage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total Warehouses</p>
-                  <p className="text-3xl font-bold mt-1">
-                    {summary.totalWarehouses}
-                  </p>
+                  <p className="text-3xl font-bold mt-1">{summary.totalWarehouses}</p>
                 </div>
                 <div className="p-3 bg-blue-50 rounded-lg">
                   <Warehouse className="h-6 w-6 text-blue-600" />
@@ -221,7 +217,7 @@ function SalesByWarehousePage() {
       {loading ? (
         <Card className="bg-gradient-to-br from-white to-gray-50/50">
           <CardContent className="py-12 text-center">
-            <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto"></div>
+            <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto" />
             <p className="text-muted-foreground mt-4">Loading report data...</p>
           </CardContent>
         </Card>
@@ -229,8 +225,12 @@ function SalesByWarehousePage() {
         <Card className="bg-gradient-to-br from-white to-gray-50/50">
           <CardContent className="py-12 text-center">
             <Warehouse className="h-16 w-16 text-muted-foreground/40 mx-auto mb-4" />
-            <p className="text-muted-foreground text-lg">No data available for the selected period</p>
-            <p className="text-sm text-muted-foreground mt-2">Try adjusting the date range or check if there are any sales transactions</p>
+            <p className="text-muted-foreground text-lg">
+              No data available for the selected period
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Try adjusting the date range or check if there are any sales transactions
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -252,11 +252,9 @@ function SalesByWarehousePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.map((row, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-medium">
-                        {row.warehouse_id || 'Unknown'}
-                      </TableCell>
+                  {data.map((row) => (
+                    <TableRow key={row.warehouse_id || `unknown-${Math.random()}`}>
+                      <TableCell className="font-medium">{row.warehouse_id || 'Unknown'}</TableCell>
                       <TableCell className="text-right">
                         Rp {row.total_sales.toLocaleString('id-ID', { minimumFractionDigits: 2 })}
                       </TableCell>
@@ -264,10 +262,16 @@ function SalesByWarehousePage() {
                         {row.transaction_count.toLocaleString('id-ID')}
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">
-                        Rp {row.avg_transaction_value.toLocaleString('id-ID', { minimumFractionDigits: 2 })}
+                        Rp{' '}
+                        {row.avg_transaction_value.toLocaleString('id-ID', {
+                          minimumFractionDigits: 2,
+                        })}
                       </TableCell>
                       <TableCell className="text-right text-muted-foreground">
-                        {summary ? ((row.total_sales / summary.totalSales) * 100).toFixed(1) : '0.0'}%
+                        {summary
+                          ? ((row.total_sales / summary.totalSales) * 100).toFixed(1)
+                          : '0.0'}
+                        %
                       </TableCell>
                     </TableRow>
                   ))}

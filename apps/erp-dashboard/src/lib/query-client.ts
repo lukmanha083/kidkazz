@@ -6,7 +6,7 @@
  */
 
 import { QueryClient } from '@tanstack/react-query';
-import type { TransferStatus, OpnameStatus } from './api';
+import type { OpnameStatus, TransferStatus } from './api';
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -65,8 +65,7 @@ export const queryKeys = {
     details: () => [...queryKeys.inventory.all, 'detail'] as const,
     detail: (productId: string, warehouseId?: string) =>
       [...queryKeys.inventory.details(), productId, warehouseId] as const,
-    movements: (productId: string) =>
-      [...queryKeys.inventory.all, 'movements', productId] as const,
+    movements: (productId: string) => [...queryKeys.inventory.all, 'movements', productId] as const,
     lowStock: (warehouseId?: string) =>
       [...queryKeys.inventory.all, 'low-stock', warehouseId] as const,
   },
@@ -87,8 +86,7 @@ export const queryKeys = {
   variants: {
     all: ['variants'] as const,
     lists: () => [...queryKeys.variants.all, 'list'] as const,
-    list: (productId?: string) =>
-      [...queryKeys.variants.lists(), { productId }] as const,
+    list: (productId?: string) => [...queryKeys.variants.lists(), { productId }] as const,
     details: () => [...queryKeys.variants.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.variants.all, 'detail', id] as const,
   },
@@ -97,8 +95,7 @@ export const queryKeys = {
   bundles: {
     all: ['bundles'] as const,
     lists: () => [...queryKeys.bundles.all, 'list'] as const,
-    list: (filters?: { status?: string }) =>
-      [...queryKeys.bundles.lists(), filters] as const,
+    list: (filters?: { status?: string }) => [...queryKeys.bundles.lists(), filters] as const,
     details: () => [...queryKeys.bundles.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.bundles.all, 'detail', id] as const,
     availableStock: (id: string, warehouseId?: string) =>
@@ -113,8 +110,7 @@ export const queryKeys = {
       [...queryKeys.batches.lists(), filters] as const,
     details: () => [...queryKeys.batches.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.batches.all, 'detail', id] as const,
-    expiring: (days: number) =>
-      [...queryKeys.batches.all, 'expiring', days] as const,
+    expiring: (days: number) => [...queryKeys.batches.all, 'expiring', days] as const,
     expired: () => [...queryKeys.batches.all, 'expired'] as const,
   },
 
@@ -122,8 +118,7 @@ export const queryKeys = {
   categories: {
     all: ['categories'] as const,
     lists: () => [...queryKeys.categories.all, 'list'] as const,
-    list: (filters?: { status?: string }) =>
-      [...queryKeys.categories.lists(), filters] as const,
+    list: (filters?: { status?: string }) => [...queryKeys.categories.lists(), filters] as const,
     active: () => [...queryKeys.categories.all, 'active'] as const,
     tree: () => [...queryKeys.categories.all, 'tree'] as const,
     details: () => [...queryKeys.categories.all, 'detail'] as const,
@@ -134,12 +129,14 @@ export const queryKeys = {
   transfers: {
     all: ['transfers'] as const,
     lists: () => [...queryKeys.transfers.all, 'list'] as const,
-    list: (filters?: { warehouseId?: string; direction?: 'inbound' | 'outbound'; status?: TransferStatus }) =>
-      [...queryKeys.transfers.lists(), filters] as const,
+    list: (filters?: {
+      warehouseId?: string;
+      direction?: 'inbound' | 'outbound';
+      status?: TransferStatus;
+    }) => [...queryKeys.transfers.lists(), filters] as const,
     details: () => [...queryKeys.transfers.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.transfers.all, 'detail', id] as const,
-    logs: (transferId: string) =>
-      [...queryKeys.transfers.all, 'logs', transferId] as const,
+    logs: (transferId: string) => [...queryKeys.transfers.all, 'logs', transferId] as const,
   },
 
   // Stock Opname (Phase 8)
@@ -150,16 +147,14 @@ export const queryKeys = {
       [...queryKeys.stockOpname.lists(), filters] as const,
     details: () => [...queryKeys.stockOpname.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.stockOpname.all, 'detail', id] as const,
-    items: (sessionId: string) =>
-      [...queryKeys.stockOpname.all, 'items', sessionId] as const,
+    items: (sessionId: string) => [...queryKeys.stockOpname.all, 'items', sessionId] as const,
   },
 
   // UOMs
   uoms: {
     all: ['uoms'] as const,
     lists: () => [...queryKeys.uoms.all, 'list'] as const,
-    productUOMs: (productId: string) =>
-      [...queryKeys.uoms.all, 'product', productId] as const,
+    productUOMs: (productId: string) => [...queryKeys.uoms.all, 'product', productId] as const,
     detail: (code: string) => [...queryKeys.uoms.all, 'detail', code] as const,
   },
 } as const;

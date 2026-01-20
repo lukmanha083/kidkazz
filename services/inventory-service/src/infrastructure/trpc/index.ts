@@ -1,6 +1,6 @@
 import { router } from '@kidkazz/trpc';
-import { warehouseRouter } from './warehouseRouter';
 import { inventoryRouter } from './inventoryRouter';
+import { warehouseRouter } from './warehouseRouter';
 
 /**
  * Main tRPC App Router

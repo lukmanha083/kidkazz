@@ -5,7 +5,12 @@ interface LogoProps {
   className?: string;
 }
 
-export function Logo({ size = 'md', showText = true, showTagline = false, className = '' }: LogoProps) {
+export function Logo({
+  size = 'md',
+  showText = true,
+  showTagline = false,
+  className = '',
+}: LogoProps) {
   const sizes = {
     sm: { width: 24, height: 24, text: 'text-xl', tagline: 'text-[8px]' },
     md: { width: 32, height: 32, text: 'text-2xl', tagline: 'text-[9px]' },
@@ -25,24 +30,26 @@ export function Logo({ size = 'md', showText = true, showTagline = false, classN
         xmlns="http://www.w3.org/2000/svg"
         className="flex-shrink-0"
         style={{ display: 'block' }}
+        aria-label="Kidkazz logo"
+        role="img"
       >
         {/* Black background - no border */}
-        <rect width="80" height="80" fill="#000000" rx="0"/>
+        <rect width="80" height="80" fill="#000000" rx="0" />
 
         {/* Left vertical bar */}
-        <rect x="8" y="8" width="11" height="64" fill="white"/>
+        <rect x="8" y="8" width="11" height="64" fill="white" />
 
         {/* Top arm */}
-        <rect x="21" y="8" width="51" height="11" fill="white"/>
+        <rect x="21" y="8" width="51" height="11" fill="white" />
 
         {/* Middle connecting piece */}
-        <rect x="21" y="31" width="20" height="11" fill="white"/>
+        <rect x="21" y="31" width="20" height="11" fill="white" />
 
         {/* Bottom arm lower part */}
-        <rect x="43" y="61" width="29" height="11" fill="white"/>
+        <rect x="43" y="61" width="29" height="11" fill="white" />
 
         {/* Bottom arm upper part */}
-        <rect x="43" y="43" width="20" height="16" fill="white"/>
+        <rect x="43" y="43" width="20" height="16" fill="white" />
       </svg>
 
       {/* Brand Text */}
@@ -50,7 +57,9 @@ export function Logo({ size = 'md', showText = true, showTagline = false, classN
         <div className="flex flex-col leading-tight">
           <span className={`font-bold tracking-tight ${textSize}`}>kidkazz</span>
           {showTagline && (
-            <span className={`text-muted-foreground font-medium uppercase tracking-wider ${taglineSize}`}>
+            <span
+              className={`text-muted-foreground font-medium uppercase tracking-wider ${taglineSize}`}
+            >
               Best Price Excellent Service
             </span>
           )}
@@ -70,24 +79,26 @@ export function LogoIcon({ size = 32, className = '' }: { size?: number; classNa
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       style={{ display: 'block' }}
+      aria-label="Kidkazz logo"
+      role="img"
     >
       {/* Black background - no border */}
-      <rect width="80" height="80" fill="#000000" rx="0"/>
+      <rect width="80" height="80" fill="#000000" rx="0" />
 
       {/* Left vertical bar */}
-      <rect x="8" y="8" width="11" height="64" fill="white"/>
+      <rect x="8" y="8" width="11" height="64" fill="white" />
 
       {/* Top arm */}
-      <rect x="21" y="8" width="51" height="11" fill="white"/>
+      <rect x="21" y="8" width="51" height="11" fill="white" />
 
       {/* Middle connecting piece */}
-      <rect x="21" y="31" width="20" height="11" fill="white"/>
+      <rect x="21" y="31" width="20" height="11" fill="white" />
 
       {/* Bottom arm lower part */}
-      <rect x="43" y="61" width="29" height="11" fill="white"/>
+      <rect x="43" y="61" width="29" height="11" fill="white" />
 
       {/* Bottom arm upper part */}
-      <rect x="43" y="43" width="20" height="16" fill="white"/>
+      <rect x="43" y="43" width="20" height="16" fill="white" />
     </svg>
   );
 }

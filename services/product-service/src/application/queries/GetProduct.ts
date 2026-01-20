@@ -1,4 +1,4 @@
-import { IProductRepository } from '../../domain/repositories/IProductRepository';
+import type { IProductRepository } from '../../domain/repositories/IProductRepository';
 
 /**
  * Query: Get Product by ID

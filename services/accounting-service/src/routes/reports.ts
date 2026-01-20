@@ -1,7 +1,7 @@
-import { Hono } from 'hono';
-import { drizzle } from 'drizzle-orm/d1';
-import { journalLines, chartOfAccounts } from '../infrastructure/db/schema';
 import { sql } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/d1';
+import { Hono } from 'hono';
+import { chartOfAccounts, journalLines } from '../infrastructure/db/schema';
 
 type Bindings = {
   DB: D1Database;
@@ -33,25 +33,32 @@ app.get('/sales-by-warehouse', async (c) => {
     const params: any[] = [];
 
     if (startDate) {
-      query += ` AND created_at >= ?`;
+      query += ' AND created_at >= ?';
       params.push(new Date(startDate).getTime() / 1000);
     }
 
     if (endDate) {
-      query += ` AND created_at < ?`;
+      query += ' AND created_at < ?';
       params.push(new Date(endDate).getTime() / 1000);
     }
 
-    query += ` GROUP BY warehouse_id ORDER BY total_sales DESC`;
+    query += ' GROUP BY warehouse_id ORDER BY total_sales DESC';
 
-    const result = await c.env.DB.prepare(query).bind(...params).all();
+    const result = await c.env.DB.prepare(query)
+      .bind(...params)
+      .all();
 
     return c.json({
       data: result.results || [],
       summary: {
         totalWarehouses: result.results?.length || 0,
-        totalSales: result.results?.reduce((sum: number, row: any) => sum + (row.total_sales || 0), 0) || 0,
-        totalTransactions: result.results?.reduce((sum: number, row: any) => sum + (row.transaction_count || 0), 0) || 0,
+        totalSales:
+          result.results?.reduce((sum: number, row: any) => sum + (row.total_sales || 0), 0) || 0,
+        totalTransactions:
+          result.results?.reduce(
+            (sum: number, row: any) => sum + (row.transaction_count || 0),
+            0
+          ) || 0,
       },
     });
   } catch (error: any) {
@@ -85,25 +92,32 @@ app.get('/sales-by-person', async (c) => {
     const params: any[] = [];
 
     if (startDate) {
-      query += ` AND created_at >= ?`;
+      query += ' AND created_at >= ?';
       params.push(new Date(startDate).getTime() / 1000);
     }
 
     if (endDate) {
-      query += ` AND created_at < ?`;
+      query += ' AND created_at < ?';
       params.push(new Date(endDate).getTime() / 1000);
     }
 
-    query += ` GROUP BY sales_person_id, sales_channel ORDER BY total_sales DESC`;
+    query += ' GROUP BY sales_person_id, sales_channel ORDER BY total_sales DESC';
 
-    const result = await c.env.DB.prepare(query).bind(...params).all();
+    const result = await c.env.DB.prepare(query)
+      .bind(...params)
+      .all();
 
     return c.json({
       data: result.results || [],
       summary: {
         totalSalesPeople: new Set(result.results?.map((r: any) => r.sales_person_id)).size || 0,
-        totalSales: result.results?.reduce((sum: number, row: any) => sum + (row.total_sales || 0), 0) || 0,
-        totalTransactions: result.results?.reduce((sum: number, row: any) => sum + (row.transaction_count || 0), 0) || 0,
+        totalSales:
+          result.results?.reduce((sum: number, row: any) => sum + (row.total_sales || 0), 0) || 0,
+        totalTransactions:
+          result.results?.reduce(
+            (sum: number, row: any) => sum + (row.transaction_count || 0),
+            0
+          ) || 0,
       },
     });
   } catch (error: any) {
@@ -136,25 +150,32 @@ app.get('/sales-by-channel', async (c) => {
     const params: any[] = [];
 
     if (startDate) {
-      query += ` AND created_at >= ?`;
+      query += ' AND created_at >= ?';
       params.push(new Date(startDate).getTime() / 1000);
     }
 
     if (endDate) {
-      query += ` AND created_at < ?`;
+      query += ' AND created_at < ?';
       params.push(new Date(endDate).getTime() / 1000);
     }
 
-    query += ` GROUP BY sales_channel ORDER BY total_sales DESC`;
+    query += ' GROUP BY sales_channel ORDER BY total_sales DESC';
 
-    const result = await c.env.DB.prepare(query).bind(...params).all();
+    const result = await c.env.DB.prepare(query)
+      .bind(...params)
+      .all();
 
     return c.json({
       data: result.results || [],
       summary: {
         totalChannels: result.results?.length || 0,
-        totalSales: result.results?.reduce((sum: number, row: any) => sum + (row.total_sales || 0), 0) || 0,
-        totalTransactions: result.results?.reduce((sum: number, row: any) => sum + (row.transaction_count || 0), 0) || 0,
+        totalSales:
+          result.results?.reduce((sum: number, row: any) => sum + (row.total_sales || 0), 0) || 0,
+        totalTransactions:
+          result.results?.reduce(
+            (sum: number, row: any) => sum + (row.transaction_count || 0),
+            0
+          ) || 0,
       },
     });
   } catch (error: any) {
@@ -188,40 +209,47 @@ app.get('/sales-multi-dimensional', async (c) => {
     const params: any[] = [];
 
     if (startDate) {
-      query += ` AND created_at >= ?`;
+      query += ' AND created_at >= ?';
       params.push(new Date(startDate).getTime() / 1000);
     }
 
     if (endDate) {
-      query += ` AND created_at < ?`;
+      query += ' AND created_at < ?';
       params.push(new Date(endDate).getTime() / 1000);
     }
 
     if (warehouseId) {
-      query += ` AND warehouse_id = ?`;
+      query += ' AND warehouse_id = ?';
       params.push(warehouseId);
     }
 
     if (salesPersonId) {
-      query += ` AND sales_person_id = ?`;
+      query += ' AND sales_person_id = ?';
       params.push(salesPersonId);
     }
 
     if (salesChannel) {
-      query += ` AND sales_channel = ?`;
+      query += ' AND sales_channel = ?';
       params.push(salesChannel);
     }
 
-    query += ` GROUP BY warehouse_id, sales_channel, sales_person_id ORDER BY total_sales DESC`;
+    query += ' GROUP BY warehouse_id, sales_channel, sales_person_id ORDER BY total_sales DESC';
 
-    const result = await c.env.DB.prepare(query).bind(...params).all();
+    const result = await c.env.DB.prepare(query)
+      .bind(...params)
+      .all();
 
     return c.json({
       data: result.results || [],
       summary: {
         totalRows: result.results?.length || 0,
-        totalSales: result.results?.reduce((sum: number, row: any) => sum + (row.total_sales || 0), 0) || 0,
-        totalTransactions: result.results?.reduce((sum: number, row: any) => sum + (row.transaction_count || 0), 0) || 0,
+        totalSales:
+          result.results?.reduce((sum: number, row: any) => sum + (row.total_sales || 0), 0) || 0,
+        totalTransactions:
+          result.results?.reduce(
+            (sum: number, row: any) => sum + (row.transaction_count || 0),
+            0
+          ) || 0,
       },
     });
   } catch (error: any) {

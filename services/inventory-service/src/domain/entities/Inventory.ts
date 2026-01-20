@@ -1,7 +1,7 @@
 import { AggregateRoot } from '@kidkazz/ddd-core';
-import { Quantity } from '../value-objects/Quantity';
 import { InventoryAdjusted } from '../events/InventoryAdjusted';
 import { InventoryCreated } from '../events/InventoryCreated';
+import { Quantity } from '../value-objects/Quantity';
 
 interface InventoryProps {
   id: string;
@@ -56,12 +56,7 @@ export class Inventory extends AggregateRoot {
 
     // Raise domain event
     inventory.addDomainEvent(
-      new InventoryCreated(
-        id,
-        input.productId,
-        input.warehouseId,
-        input.initialQuantity || 0
-      )
+      new InventoryCreated(id, input.productId, input.warehouseId, input.initialQuantity || 0)
     );
 
     return inventory;
@@ -102,11 +97,7 @@ export class Inventory extends AggregateRoot {
    * Business Logic: Adjust inventory IN (receiving stock)
    * This is for warehouse receiving operations
    */
-  public adjustIn(
-    quantity: number,
-    reason?: string,
-    performedBy?: string
-  ): void {
+  public adjustIn(quantity: number, reason?: string, performedBy?: string): void {
     const previousQuantity = this.props.quantityAvailable.getValue();
     const newQuantity = this.props.quantityAvailable.increase(Math.abs(quantity));
 
@@ -135,11 +126,7 @@ export class Inventory extends AggregateRoot {
    * STRICT VALIDATION: Cannot create negative stock
    * Use this for warehouse operations (transfers, manual adjustments, etc.)
    */
-  public warehouseAdjustOut(
-    quantity: number,
-    reason?: string,
-    performedBy?: string
-  ): void {
+  public warehouseAdjustOut(quantity: number, reason?: string, performedBy?: string): void {
     const previousQuantity = this.props.quantityAvailable.getValue();
     const absoluteQuantity = Math.abs(quantity);
 
@@ -176,11 +163,7 @@ export class Inventory extends AggregateRoot {
    * ALLOWS NEGATIVE STOCK: First-pay-first-served business rule
    * Use this ONLY for Point of Sale transactions
    */
-  public posSale(
-    quantity: number,
-    reason?: string,
-    performedBy?: string
-  ): void {
+  public posSale(quantity: number, reason?: string, performedBy?: string): void {
     const previousQuantity = this.props.quantityAvailable.getValue();
     const absoluteQuantity = Math.abs(quantity);
 
@@ -211,11 +194,7 @@ export class Inventory extends AggregateRoot {
    * Business Logic: Direct adjustment/correction
    * Use this for inventory corrections and audits
    */
-  public directAdjustment(
-    newQuantity: number,
-    reason?: string,
-    performedBy?: string
-  ): void {
+  public directAdjustment(newQuantity: number, reason?: string, performedBy?: string): void {
     const previousQuantity = this.props.quantityAvailable.getValue();
     const quantity = Quantity.create(newQuantity);
 

@@ -1,8 +1,8 @@
-import { ColumnDef } from '@tanstack/react-table';
+import type { Category } from '@/lib/api';
+import type { ColumnDef } from '@tanstack/react-table';
 import { Badge } from '../../badge';
 import { DataTableColumnHeader } from '../data-table-column-header';
 import { DataTableRowActions } from '../data-table-row-actions';
-import type { Category } from '@/lib/api';
 
 interface CategoryColumnOptions {
   onEdit?: (category: Category) => void;
@@ -23,9 +23,7 @@ export function getCategoryColumns(options: CategoryColumnOptions = {}): ColumnD
   return [
     {
       accessorKey: 'name',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Name" />
-      ),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Name" />,
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           {row.original.parentId && <span className="text-muted-foreground">└─</span>}
@@ -35,9 +33,7 @@ export function getCategoryColumns(options: CategoryColumnOptions = {}): ColumnD
     },
     {
       accessorKey: 'parentCategoryName',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Parent Category" />
-      ),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Parent Category" />,
       cell: ({ row }) => (
         <span className="text-sm text-muted-foreground">
           {row.getValue('parentCategoryName') || '-'}
@@ -46,9 +42,7 @@ export function getCategoryColumns(options: CategoryColumnOptions = {}): ColumnD
     },
     {
       accessorKey: 'description',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Description" />
-      ),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Description" />,
       cell: ({ row }) => (
         <span className="text-sm text-muted-foreground">
           {row.getValue('description') || 'No description'}
@@ -57,9 +51,7 @@ export function getCategoryColumns(options: CategoryColumnOptions = {}): ColumnD
     },
     {
       accessorKey: 'status',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Status" />
-      ),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
       cell: ({ row }) => {
         const status = row.getValue('status') as string;
         return (
@@ -81,13 +73,7 @@ export function getCategoryColumns(options: CategoryColumnOptions = {}): ColumnD
     },
     {
       id: 'actions',
-      cell: ({ row }) => (
-        <DataTableRowActions
-          row={row}
-          onEdit={onEdit}
-          onDelete={onDelete}
-        />
-      ),
+      cell: ({ row }) => <DataTableRowActions row={row} onEdit={onEdit} onDelete={onDelete} />,
     },
   ];
 }

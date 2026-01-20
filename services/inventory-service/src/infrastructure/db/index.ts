@@ -6,8 +6,8 @@
  * In tests, it uses better-sqlite3 for in-memory testing.
  */
 
-import { drizzle } from 'drizzle-orm/better-sqlite3';
 import Database from 'better-sqlite3';
+import { drizzle } from 'drizzle-orm/better-sqlite3';
 import * as schema from './schema';
 
 // Create in-memory SQLite database for testing

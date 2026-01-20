@@ -1,9 +1,9 @@
-import { ColumnDef } from '@tanstack/react-table';
+import type { Warehouse } from '@/lib/api';
+import type { ColumnDef } from '@tanstack/react-table';
 import { MapPin } from 'lucide-react';
 import { Badge } from '../../badge';
 import { DataTableColumnHeader } from '../data-table-column-header';
 import { DataTableRowActions } from '../data-table-row-actions';
-import type { Warehouse } from '@/lib/api';
 
 interface WarehouseColumnOptions {
   onView?: (warehouse: Warehouse) => void;
@@ -27,18 +27,12 @@ export function getWarehouseColumns(options: WarehouseColumnOptions = {}): Colum
   return [
     {
       accessorKey: 'code',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Code" />
-      ),
-      cell: ({ row }) => (
-        <span className="font-mono text-sm">{row.getValue('code')}</span>
-      ),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Code" />,
+      cell: ({ row }) => <span className="font-mono text-sm">{row.getValue('code')}</span>,
     },
     {
       accessorKey: 'name',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Warehouse Name" />
-      ),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Warehouse Name" />,
       cell: ({ row }) => (
         <div>
           <div className="font-medium">{row.getValue('name')}</div>
@@ -48,9 +42,7 @@ export function getWarehouseColumns(options: WarehouseColumnOptions = {}): Colum
     },
     {
       accessorKey: 'city',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Location" />
-      ),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Location" />,
       cell: ({ row }) => (
         <div className="flex items-center gap-1">
           <MapPin className="h-3 w-3 text-muted-foreground" />
@@ -90,16 +82,10 @@ export function getWarehouseColumns(options: WarehouseColumnOptions = {}): Colum
     },
     {
       accessorKey: 'status',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Status" />
-      ),
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
       cell: ({ row }) => {
         const status = row.getValue('status') as string;
-        return (
-          <Badge variant={status === 'active' ? 'default' : 'secondary'}>
-            {status}
-          </Badge>
-        );
+        return <Badge variant={status === 'active' ? 'default' : 'secondary'}>{status}</Badge>;
       },
       filterFn: (row, id, value) => {
         return value.includes(row.getValue(id));
@@ -108,12 +94,7 @@ export function getWarehouseColumns(options: WarehouseColumnOptions = {}): Colum
     {
       id: 'actions',
       cell: ({ row }) => (
-        <DataTableRowActions
-          row={row}
-          onView={onView}
-          onEdit={onEdit}
-          onDelete={onDelete}
-        />
+        <DataTableRowActions row={row} onView={onView} onEdit={onEdit} onDelete={onDelete} />
       ),
     },
   ];

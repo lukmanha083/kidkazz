@@ -1,7 +1,7 @@
+import { type IncomeStatement, accountingApi } from '@/lib/api';
 import { createFileRoute } from '@tanstack/react-router';
+import { Download, TrendingDown, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
-import { Download, TrendingUp, TrendingDown } from 'lucide-react';
-import { accountingApi, type IncomeStatement } from '@/lib/api';
 
 export const Route = createFileRoute('/dashboard/accounting/income-statement')({
   component: IncomeStatementPage,
@@ -48,23 +48,23 @@ function IncomeStatementPage() {
       [`Period: ${report.period.from} to ${report.period.to}`],
       [''],
       ['REVENUE'],
-      ...report.revenue.accounts.map(a => [a.name, a.balance.toFixed(2)]),
+      ...report.revenue.accounts.map((a) => [a.name, a.balance.toFixed(2)]),
       ['Total Revenue', report.revenue.total.toFixed(2)],
       [''],
       ['COST OF GOODS SOLD'],
-      ...report.cogs.accounts.map(a => [a.name, a.balance.toFixed(2)]),
+      ...report.cogs.accounts.map((a) => [a.name, a.balance.toFixed(2)]),
       ['Total COGS', report.cogs.total.toFixed(2)],
       [''],
       ['GROSS PROFIT', report.grossProfit.toFixed(2)],
       [''],
       ['EXPENSES'],
-      ...report.expenses.accounts.map(a => [a.name, a.balance.toFixed(2)]),
+      ...report.expenses.accounts.map((a) => [a.name, a.balance.toFixed(2)]),
       ['Total Expenses', report.expenses.total.toFixed(2)],
       [''],
       ['NET INCOME', report.netIncome.toFixed(2)],
     ];
 
-    const csv = lines.map(l => l.join(',')).join('\n');
+    const csv = lines.map((l) => l.join(',')).join('\n');
 
     // Download CSV
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -82,6 +82,7 @@ function IncomeStatementPage() {
         <h1 className="text-2xl font-bold">Income Statement (P&L)</h1>
         {report && (
           <button
+            type="button"
             onClick={handleExport}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
           >
@@ -97,9 +98,7 @@ function IncomeStatementPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              From Date *
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">From Date *</label>
             <input
               type="date"
               value={fromDate}
@@ -109,9 +108,7 @@ function IncomeStatementPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              To Date *
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">To Date *</label>
             <input
               type="date"
               value={toDate}
@@ -122,6 +119,7 @@ function IncomeStatementPage() {
 
           <div className="flex items-end">
             <button
+              type="button"
               onClick={loadReport}
               disabled={loading}
               className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
@@ -134,6 +132,7 @@ function IncomeStatementPage() {
         {/* Quick Presets */}
         <div className="mt-4 flex flex-wrap gap-2">
           <button
+            type="button"
             onClick={() => {
               const today = new Date();
               const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -145,6 +144,7 @@ function IncomeStatementPage() {
             This Month
           </button>
           <button
+            type="button"
             onClick={() => {
               const today = new Date();
               const firstDay = new Date(today.getFullYear(), today.getMonth() - 1, 1);
@@ -157,6 +157,7 @@ function IncomeStatementPage() {
             Last Month
           </button>
           <button
+            type="button"
             onClick={() => {
               const today = new Date();
               const firstDay = new Date(today.getFullYear(), 0, 1);
@@ -168,6 +169,7 @@ function IncomeStatementPage() {
             Year to Date
           </button>
           <button
+            type="button"
             onClick={() => {
               const today = new Date();
               const yearAgo = new Date(today);
@@ -225,12 +227,14 @@ function IncomeStatementPage() {
                   : 'N/A'}
               </div>
             </div>
-            <div className={`p-4 rounded-lg ${
-              report.netIncome >= 0 ? 'bg-green-50' : 'bg-red-50'
-            }`}>
-              <div className={`text-sm font-medium flex items-center gap-1 ${
-                report.netIncome >= 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
+            <div
+              className={`p-4 rounded-lg ${report.netIncome >= 0 ? 'bg-green-50' : 'bg-red-50'}`}
+            >
+              <div
+                className={`text-sm font-medium flex items-center gap-1 ${
+                  report.netIncome >= 0 ? 'text-green-600' : 'text-red-600'
+                }`}
+              >
                 {report.netIncome >= 0 ? (
                   <TrendingUp className="h-4 w-4" />
                 ) : (
@@ -238,15 +242,19 @@ function IncomeStatementPage() {
                 )}
                 Net Income
               </div>
-              <div className={`text-2xl font-bold mt-1 ${
-                report.netIncome >= 0 ? 'text-green-900' : 'text-red-900'
-              }`}>
+              <div
+                className={`text-2xl font-bold mt-1 ${
+                  report.netIncome >= 0 ? 'text-green-900' : 'text-red-900'
+                }`}
+              >
                 ${Math.abs(report.netIncome).toLocaleString()}
                 {report.netIncome < 0 && ' Loss'}
               </div>
-              <div className={`text-xs mt-1 ${
-                report.netIncome >= 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
+              <div
+                className={`text-xs mt-1 ${
+                  report.netIncome >= 0 ? 'text-green-600' : 'text-red-600'
+                }`}
+              >
                 {report.revenue.total > 0
                   ? `${((report.netIncome / report.revenue.total) * 100).toFixed(1)}% margin`
                   : 'N/A'}
@@ -265,8 +273,11 @@ function IncomeStatementPage() {
                 <div className="text-gray-500 italic pl-4">No revenue accounts</div>
               ) : (
                 <div className="space-y-2">
-                  {report.revenue.accounts.map((account, index) => (
-                    <div key={index} className="flex justify-between pl-4 py-1 hover:bg-gray-50">
+                  {report.revenue.accounts.map((account) => (
+                    <div
+                      key={account.name}
+                      className="flex justify-between pl-4 py-1 hover:bg-gray-50"
+                    >
                       <span className="text-gray-700">{account.name}</span>
                       <span className="font-medium text-gray-900">
                         ${account.balance.toLocaleString()}
@@ -290,8 +301,11 @@ function IncomeStatementPage() {
                 <div className="text-gray-500 italic pl-4">No COGS accounts</div>
               ) : (
                 <div className="space-y-2">
-                  {report.cogs.accounts.map((account, index) => (
-                    <div key={index} className="flex justify-between pl-4 py-1 hover:bg-gray-50">
+                  {report.cogs.accounts.map((account) => (
+                    <div
+                      key={account.name}
+                      className="flex justify-between pl-4 py-1 hover:bg-gray-50"
+                    >
                       <span className="text-gray-700">{account.name}</span>
                       <span className="font-medium text-gray-900">
                         ${account.balance.toLocaleString()}
@@ -321,8 +335,11 @@ function IncomeStatementPage() {
                 <div className="text-gray-500 italic pl-4">No expense accounts</div>
               ) : (
                 <div className="space-y-2">
-                  {report.expenses.accounts.map((account, index) => (
-                    <div key={index} className="flex justify-between pl-4 py-1 hover:bg-gray-50">
+                  {report.expenses.accounts.map((account) => (
+                    <div
+                      key={account.name}
+                      className="flex justify-between pl-4 py-1 hover:bg-gray-50"
+                    >
                       <span className="text-gray-700">{account.name}</span>
                       <span className="font-medium text-gray-900">
                         ${account.balance.toLocaleString()}
@@ -338,15 +355,14 @@ function IncomeStatementPage() {
             </div>
 
             {/* Net Income */}
-            <div className={`flex justify-between font-bold text-xl py-4 px-4 rounded ${
-              report.netIncome >= 0
-                ? 'bg-green-100 text-green-900'
-                : 'bg-red-100 text-red-900'
-            }`}>
+            <div
+              className={`flex justify-between font-bold text-xl py-4 px-4 rounded ${
+                report.netIncome >= 0 ? 'bg-green-100 text-green-900' : 'bg-red-100 text-red-900'
+              }`}
+            >
               <span>Net Income {report.netIncome < 0 ? '(Loss)' : ''}</span>
               <span>
-                {report.netIncome < 0 && '('}
-                ${Math.abs(report.netIncome).toLocaleString()}
+                {report.netIncome < 0 && '('}${Math.abs(report.netIncome).toLocaleString()}
                 {report.netIncome < 0 && ')'}
               </span>
             </div>

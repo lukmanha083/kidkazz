@@ -5,7 +5,10 @@ import { ValueObject } from '@kidkazz/ddd-core';
  * Encapsulates monetary amount with validation
  */
 export class Money extends ValueObject<number> {
-  constructor(amount: number, private readonly currency: string = 'IDR') {
+  constructor(
+    amount: number,
+    private readonly currency: string = 'IDR'
+  ) {
     super(amount);
   }
 
@@ -67,7 +70,7 @@ export class Money extends ValueObject<number> {
     return this._value > other._value;
   }
 
-  public static create(amount: number, currency: string = 'IDR'): Money {
+  public static create(amount: number, currency = 'IDR'): Money {
     return new Money(amount, currency);
   }
 }

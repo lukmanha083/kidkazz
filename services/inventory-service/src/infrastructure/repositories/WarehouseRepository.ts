@@ -1,7 +1,7 @@
-import { drizzle } from 'drizzle-orm/d1';
 import { eq } from 'drizzle-orm';
-import { IWarehouseRepository } from '../../domain/repositories/IWarehouseRepository';
+import { drizzle } from 'drizzle-orm/d1';
 import { Warehouse } from '../../domain/entities/Warehouse';
+import type { IWarehouseRepository } from '../../domain/repositories/IWarehouseRepository';
 import { warehouses } from '../db/schema';
 
 /**
@@ -15,11 +15,7 @@ export class WarehouseRepository implements IWarehouseRepository {
   }
 
   async findById(id: string): Promise<Warehouse | null> {
-    const result = await this.db
-      .select()
-      .from(warehouses)
-      .where(eq(warehouses.id, id))
-      .get();
+    const result = await this.db.select().from(warehouses).where(eq(warehouses.id, id)).get();
 
     if (!result) {
       return null;
@@ -29,11 +25,7 @@ export class WarehouseRepository implements IWarehouseRepository {
   }
 
   async findByCode(code: string): Promise<Warehouse | null> {
-    const result = await this.db
-      .select()
-      .from(warehouses)
-      .where(eq(warehouses.code, code))
-      .get();
+    const result = await this.db.select().from(warehouses).where(eq(warehouses.code, code)).get();
 
     if (!result) {
       return null;
@@ -50,7 +42,7 @@ export class WarehouseRepository implements IWarehouseRepository {
     }
 
     const results = await query.all();
-    return results.map(r => Warehouse.reconstitute(r as any));
+    return results.map((r) => Warehouse.reconstitute(r as any));
   }
 
   async findActive(): Promise<Warehouse[]> {
@@ -60,7 +52,7 @@ export class WarehouseRepository implements IWarehouseRepository {
       .where(eq(warehouses.status, 'active'))
       .all();
 
-    return results.map(r => Warehouse.reconstitute(r as any));
+    return results.map((r) => Warehouse.reconstitute(r as any));
   }
 
   async save(warehouse: Warehouse): Promise<void> {
@@ -85,7 +77,10 @@ export class WarehouseRepository implements IWarehouseRepository {
         .run();
     } else {
       // Insert
-      await this.db.insert(warehouses).values(data as any).run();
+      await this.db
+        .insert(warehouses)
+        .values(data as any)
+        .run();
     }
   }
 

@@ -1,11 +1,11 @@
-import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { z } from 'zod';
+import { and, eq, isNull } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, and, isNull } from 'drizzle-orm';
-import { inventory, inventoryMovements } from '../infrastructure/db/schema';
-import { broadcastInventoryEvent } from '../infrastructure/broadcast';
+import { Hono } from 'hono';
+import { z } from 'zod';
 import type { InventoryEvent } from '../durable-objects/InventoryUpdatesBroadcaster';
+import { broadcastInventoryEvent } from '../infrastructure/broadcast';
+import { inventory, inventoryMovements } from '../infrastructure/db/schema';
 
 type Bindings = {
   DB: D1Database;
@@ -53,7 +53,7 @@ app.get('/', async (c) => {
   const warehouseId = c.req.query('warehouseId');
   const productId = c.req.query('productId');
 
-  let query = db.select().from(inventory);
+  const query = db.select().from(inventory);
 
   const conditions = [];
   if (warehouseId) {
@@ -63,9 +63,8 @@ app.get('/', async (c) => {
     conditions.push(eq(inventory.productId, productId));
   }
 
-  const inventoryRecords = conditions.length > 0
-    ? await query.where(and(...conditions)).all()
-    : await query.all();
+  const inventoryRecords =
+    conditions.length > 0 ? await query.where(and(...conditions)).all() : await query.all();
 
   return c.json({
     inventory: inventoryRecords,
@@ -77,7 +76,7 @@ app.get('/', async (c) => {
 app.get('/movements/:productId', async (c) => {
   const productId = c.req.param('productId');
   const db = drizzle(c.env.DB);
-  const limit = parseInt(c.req.query('limit') || '50');
+  const limit = Number.parseInt(c.req.query('limit') || '50');
 
   const movements = await db
     .select()
@@ -104,7 +103,7 @@ app.post('/adjust', zValidator('json', adjustStockSchema), async (c) => {
       const now = new Date();
 
       // 1. Find or create inventory record with version
-      let inventoryRecord = await db
+      const inventoryRecord = await db
         .select()
         .from(inventory)
         .where(
@@ -139,7 +138,8 @@ app.post('/adjust', zValidator('json', adjustStockSchema), async (c) => {
           warehouseId: data.warehouseId,
           variantId: data.variantId || null,
           uomId: data.uomId || null,
-          quantityAvailable: data.movementType === 'adjustment' ? data.quantity : Math.abs(data.quantity),
+          quantityAvailable:
+            data.movementType === 'adjustment' ? data.quantity : Math.abs(data.quantity),
           quantityReserved: 0,
           quantityInTransit: 0,
           minimumStock: 0,
@@ -157,21 +157,24 @@ app.post('/adjust', zValidator('json', adjustStockSchema), async (c) => {
         await db.insert(inventory).values(newInv).run();
 
         // Record movement for new inventory
-        await db.insert(inventoryMovements).values({
-          id: generateId(),
-          inventoryId: newInv.id,
-          productId: data.productId,
-          warehouseId: data.warehouseId,
-          movementType: data.movementType,
-          quantity: data.quantity,
-          source: data.source || 'warehouse',
-          referenceType: null,
-          referenceId: null,
-          reason: data.reason || null,
-          notes: data.notes || null,
-          performedBy: data.performedBy || null,
-          createdAt: now,
-        }).run();
+        await db
+          .insert(inventoryMovements)
+          .values({
+            id: generateId(),
+            inventoryId: newInv.id,
+            productId: data.productId,
+            warehouseId: data.warehouseId,
+            movementType: data.movementType,
+            quantity: data.quantity,
+            source: data.source || 'warehouse',
+            referenceType: null,
+            referenceId: null,
+            reason: data.reason || null,
+            notes: data.notes || null,
+            performedBy: data.performedBy || null,
+            createdAt: now,
+          })
+          .run();
 
         // Broadcast new inventory event
         await broadcastInventoryEvent(c.env, {
@@ -270,7 +273,7 @@ app.post('/adjust', zValidator('json', adjustStockSchema), async (c) => {
           );
         }
         // Exponential backoff before retry
-        await new Promise((r) => setTimeout(r, BASE_RETRY_DELAY_MS * Math.pow(2, retries)));
+        await new Promise((r) => setTimeout(r, BASE_RETRY_DELAY_MS * 2 ** retries));
         continue;
       }
 
@@ -348,11 +351,7 @@ app.patch('/:id/minimum-stock', zValidator('json', setMinimumStockSchema), async
   const { minimumStock } = c.req.valid('json');
   const db = drizzle(c.env.DB);
 
-  const existing = await db
-    .select()
-    .from(inventory)
-    .where(eq(inventory.id, id))
-    .get();
+  const existing = await db.select().from(inventory).where(eq(inventory.id, id)).get();
 
   if (!existing) {
     return c.json({ error: 'Inventory record not found' }, 404);
@@ -395,10 +394,7 @@ app.get('/:productId/:warehouseId', async (c) => {
   const inventoryRecord = await db
     .select()
     .from(inventory)
-    .where(and(
-      eq(inventory.productId, productId),
-      eq(inventory.warehouseId, warehouseId)
-    ))
+    .where(and(eq(inventory.productId, productId), eq(inventory.warehouseId, warehouseId)))
     .get();
 
   if (!inventoryRecord) {
@@ -435,7 +431,7 @@ app.get('/product/:id/total-stock', async (c) => {
   const totalReserved = inventoryRecords.reduce((sum, inv) => sum + (inv.quantityReserved || 0), 0);
 
   // Warehouse breakdown
-  const warehouses = inventoryRecords.map(inv => ({
+  const warehouses = inventoryRecords.map((inv) => ({
     warehouseId: inv.warehouseId,
     quantityAvailable: inv.quantityAvailable,
     quantityReserved: inv.quantityReserved,
@@ -476,8 +472,8 @@ app.get('/product/:id/low-stock-status', async (c) => {
 
   // Check which warehouses are low stock
   const lowStockWarehouses = inventoryRecords
-    .filter(inv => inv.minimumStock && inv.quantityAvailable < inv.minimumStock)
-    .map(inv => ({
+    .filter((inv) => inv.minimumStock && inv.quantityAvailable < inv.minimumStock)
+    .map((inv) => ({
       warehouseId: inv.warehouseId,
       currentStock: inv.quantityAvailable,
       minimumStock: inv.minimumStock,
@@ -530,7 +526,7 @@ app.get('/warehouse/:warehouseId/report', async (c) => {
         );
 
         if (productResponse.ok) {
-          const product = await productResponse.json() as {
+          const product = (await productResponse.json()) as {
             name?: string;
             sku?: string;
           };
@@ -543,18 +539,17 @@ app.get('/warehouse/:warehouseId/report', async (c) => {
             minimumStock: inv.minimumStock,
             isLowStock: inv.minimumStock ? inv.quantityAvailable < inv.minimumStock : false,
           };
-        } else {
-          // Product not found - might be deleted
-          return {
-            productId: inv.productId,
-            productName: '[Product Not Found]',
-            productSKU: 'N/A',
-            quantityAvailable: inv.quantityAvailable,
-            quantityReserved: inv.quantityReserved,
-            minimumStock: inv.minimumStock,
-            isLowStock: false,
-          };
         }
+        // Product not found - might be deleted
+        return {
+          productId: inv.productId,
+          productName: '[Product Not Found]',
+          productSKU: 'N/A',
+          quantityAvailable: inv.quantityAvailable,
+          quantityReserved: inv.quantityReserved,
+          minimumStock: inv.minimumStock,
+          isLowStock: false,
+        };
       } catch (error) {
         console.error(`Failed to fetch product ${inv.productId}:`, error);
         return {
@@ -608,7 +603,7 @@ app.delete('/warehouse/:warehouseId', async (c) => {
   }
 
   const totalStock = inventoryRecords.reduce((sum, inv) => sum + inv.quantityAvailable, 0);
-  const productIds = [...new Set(inventoryRecords.map(inv => inv.productId))];
+  const productIds = [...new Set(inventoryRecords.map((inv) => inv.productId))];
 
   // 2. VALIDATION: Ensure all stock is zero (prevent data loss)
   if (totalStock > 0) {
@@ -619,8 +614,8 @@ app.delete('/warehouse/:warehouseId', async (c) => {
         productCount: productIds.length,
         message: 'Transfer all inventory to another warehouse before deletion',
         products: inventoryRecords
-          .filter(inv => inv.quantityAvailable > 0)
-          .map(inv => ({
+          .filter((inv) => inv.quantityAvailable > 0)
+          .map((inv) => ({
             productId: inv.productId,
             quantityAvailable: inv.quantityAvailable,
           })),
@@ -641,7 +636,9 @@ app.delete('/warehouse/:warehouseId', async (c) => {
     .where(eq(inventory.warehouseId, warehouseId))
     .run();
 
-  console.log(`Cascade delete - Warehouse ${warehouseId}: Deleted ${inventoryRecords.length} inventory records (${productIds.length} products) and movements`);
+  console.log(
+    `Cascade delete - Warehouse ${warehouseId}: Deleted ${inventoryRecords.length} inventory records (${productIds.length} products) and movements`
+  );
 
   return c.json({
     message: 'Warehouse inventory deleted successfully',
@@ -673,7 +670,7 @@ app.delete('/product/:productId', async (c) => {
     });
   }
 
-  const inventoryIds = inventoryRecords.map(inv => inv.id);
+  const inventoryIds = inventoryRecords.map((inv) => inv.id);
   const totalStock = inventoryRecords.reduce((sum, inv) => sum + inv.quantityAvailable, 0);
 
   // 2. Delete all inventory movements for this product
@@ -688,7 +685,9 @@ app.delete('/product/:productId', async (c) => {
     .where(eq(inventory.productId, productId))
     .run();
 
-  console.log(`Cascade delete - Product ${productId}: Deleted ${inventoryRecords.length} inventory records (${totalStock} total units) and movements`);
+  console.log(
+    `Cascade delete - Product ${productId}: Deleted ${inventoryRecords.length} inventory records (${totalStock} total units) and movements`
+  );
 
   return c.json({
     message: 'Inventory records deleted successfully',
@@ -696,7 +695,7 @@ app.delete('/product/:productId', async (c) => {
     deletedInventoryRecords: inventoryRecords.length,
     deletedMovements: deleteMovementsResult.meta?.changes || 0,
     totalStockDeleted: totalStock,
-    warehouses: inventoryRecords.map(inv => ({
+    warehouses: inventoryRecords.map((inv) => ({
       warehouseId: inv.warehouseId,
       quantity: inv.quantityAvailable,
     })),
@@ -883,11 +882,7 @@ app.get('/variant/:variantId', async (c) => {
   const variantId = c.req.param('variantId');
   const db = drizzle(c.env.DB);
 
-  const records = await db
-    .select()
-    .from(inventory)
-    .where(eq(inventory.variantId, variantId))
-    .all();
+  const records = await db.select().from(inventory).where(eq(inventory.variantId, variantId)).all();
 
   const totalAvailable = records.reduce((sum, inv) => sum + inv.quantityAvailable, 0);
   const totalReserved = records.reduce((sum, inv) => sum + inv.quantityReserved, 0);
@@ -909,11 +904,7 @@ app.get('/uom/:uomId', async (c) => {
   const uomId = c.req.param('uomId');
   const db = drizzle(c.env.DB);
 
-  const records = await db
-    .select()
-    .from(inventory)
-    .where(eq(inventory.uomId, uomId))
-    .all();
+  const records = await db.select().from(inventory).where(eq(inventory.uomId, uomId)).all();
 
   const totalAvailable = records.reduce((sum, inv) => sum + inv.quantityAvailable, 0);
   const totalReserved = records.reduce((sum, inv) => sum + inv.quantityReserved, 0);

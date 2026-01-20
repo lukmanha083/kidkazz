@@ -1,10 +1,10 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
+import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Logo } from '@/components/Logo';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { Eye, EyeOff } from 'lucide-react';
+import { useState } from 'react';
 
 export const Route = createFileRoute('/')({
   component: LoginPage,
@@ -30,7 +30,7 @@ function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
 
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
     navigate({ to: '/dashboard' });
   };
 
@@ -66,16 +66,16 @@ function LoginPage() {
           {/* Header */}
           <div className="space-y-2 text-center">
             <h2 className="text-2xl font-bold tracking-tight">Welcome to Kidkazz</h2>
-            <p className="text-sm text-muted-foreground">
-              Sign in to access the account area
-            </p>
+            <p className="text-sm text-muted-foreground">Sign in to access the account area</p>
           </div>
 
           {/* Login Form */}
           <form onSubmit={handleLogin} className="space-y-4">
             {/* Email Field */}
             <div className="space-y-2">
-              <Label htmlFor="email" className="sr-only">Email</Label>
+              <Label htmlFor="email" className="sr-only">
+                Email
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -89,7 +89,9 @@ function LoginPage() {
 
             {/* Password Field */}
             <div className="space-y-2">
-              <Label htmlFor="password" className="sr-only">Password</Label>
+              <Label htmlFor="password" className="sr-only">
+                Password
+              </Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -105,21 +107,13 @@ function LoginPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
 
             {/* Continue Button */}
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="w-full h-11"
-            >
+            <Button type="submit" disabled={isLoading} className="w-full h-11">
               {isLoading ? 'Signing in...' : 'Continue with Email'}
             </Button>
 

@@ -12,20 +12,11 @@
  * - Multiple size variants displayed
  */
 
+import { Crop, Droplet, Image as ImageIcon, Loader2, Settings, Upload, X } from 'lucide-react';
 import { useCallback, useState } from 'react';
-import {
-  Upload,
-  X,
-  Image as ImageIcon,
-  Loader2,
-  Crop,
-  Droplet,
-  Settings,
-} from 'lucide-react';
-import { ImageCropper, type CropArea } from './ImageCropper';
+import { type CropArea, ImageCropper } from './ImageCropper';
 
-const PRODUCT_SERVICE_URL =
-  import.meta.env.VITE_PRODUCT_SERVICE_URL || 'http://localhost:8788';
+const PRODUCT_SERVICE_URL = import.meta.env.VITE_PRODUCT_SERVICE_URL || 'http://localhost:8788';
 
 export interface ImageUploadResult {
   filename: string;
@@ -90,34 +81,9 @@ export function ImageUploadEnhanced({
   });
 
   /**
-   * Validate file
-   */
-  const validateFile = (file: File): string | null => {
-    // Check file type
-    const allowedTypes = [
-      'image/jpeg',
-      'image/jpg',
-      'image/png',
-      'image/webp',
-      'image/gif',
-    ];
-    if (!allowedTypes.includes(file.type)) {
-      return 'Invalid file type. Please upload JPEG, PNG, WebP, or GIF.';
-    }
-
-    // Check file size
-    const maxSize = maxSizeMB * 1024 * 1024;
-    if (file.size > maxSize) {
-      return `File too large. Maximum size is ${maxSizeMB}MB.`;
-    }
-
-    return null;
-  };
-
-  /**
    * Compress image before upload
    */
-  const compressImage = async (file: File): Promise<Blob> => {
+  const compressImage = useCallback(async (file: File): Promise<Blob> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
 
@@ -176,7 +142,80 @@ export function ImageUploadEnhanced({
       reader.onerror = () => reject(new Error('Failed to read file'));
       reader.readAsDataURL(file);
     });
-  };
+  }, []);
+
+  /**
+   * Upload image to server
+   */
+  const uploadImage = useCallback(
+    async (file: File, crop: CropArea | null) => {
+      try {
+        setIsUploading(true);
+
+        // Compress image
+        const compressedBlob = await compressImage(file);
+
+        // Create form data
+        const formData = new FormData();
+        formData.append('file', compressedBlob, file.name);
+        formData.append('productId', productId);
+
+        if (crop) {
+          formData.append('cropArea', JSON.stringify(crop));
+        }
+
+        if (watermark.enabled) {
+          formData.append('watermark', JSON.stringify(watermark));
+        }
+
+        // Upload to server
+        const response = await fetch(`${PRODUCT_SERVICE_URL}/api/images/upload`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Upload failed');
+        }
+
+        const result = await response.json();
+
+        // Success
+        onUploadSuccess?.(result.image);
+        setPreview(result.image.urls.medium); // Show medium size preview
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Upload failed';
+        setError(errorMessage);
+        onUploadError?.(errorMessage);
+      } finally {
+        setIsUploading(false);
+      }
+    },
+    [productId, watermark, onUploadSuccess, onUploadError, compressImage]
+  );
+
+  /**
+   * Validate file
+   */
+  const validateFile = useCallback(
+    (file: File): string | null => {
+      // Check file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+      if (!allowedTypes.includes(file.type)) {
+        return 'Invalid file type. Please upload JPEG, PNG, WebP, or GIF.';
+      }
+
+      // Check file size
+      const maxSize = maxSizeMB * 1024 * 1024;
+      if (file.size > maxSize) {
+        return `File too large. Maximum size is ${maxSizeMB}MB.`;
+      }
+
+      return null;
+    },
+    [maxSizeMB]
+  );
 
   /**
    * Handle file selection
@@ -210,7 +249,7 @@ export function ImageUploadEnhanced({
         await uploadImage(file, null);
       }
     },
-    [maxSizeMB, enableCropping, onUploadError]
+    [validateFile, enableCropping, onUploadError, uploadImage]
   );
 
   /**
@@ -222,54 +261,6 @@ export function ImageUploadEnhanced({
 
     if (selectedFile) {
       await uploadImage(selectedFile, crop);
-    }
-  };
-
-  /**
-   * Upload image to server
-   */
-  const uploadImage = async (file: File, crop: CropArea | null) => {
-    try {
-      setIsUploading(true);
-
-      // Compress image
-      const compressedBlob = await compressImage(file);
-
-      // Create form data
-      const formData = new FormData();
-      formData.append('file', compressedBlob, file.name);
-      formData.append('productId', productId);
-
-      if (crop) {
-        formData.append('cropArea', JSON.stringify(crop));
-      }
-
-      if (watermark.enabled) {
-        formData.append('watermark', JSON.stringify(watermark));
-      }
-
-      // Upload to server
-      const response = await fetch(`${PRODUCT_SERVICE_URL}/api/images/upload`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Upload failed');
-      }
-
-      const result = await response.json();
-
-      // Success
-      onUploadSuccess?.(result.image);
-      setPreview(result.image.urls.medium); // Show medium size preview
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Upload failed';
-      setError(errorMessage);
-      onUploadError?.(errorMessage);
-    } finally {
-      setIsUploading(false);
     }
   };
 
@@ -339,6 +330,14 @@ export function ImageUploadEnhanced({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={handleClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            handleClick();
+          }
+        }}
+        // biome-ignore lint/a11y/useSemanticElements lint/a11y/noNoninteractiveTabindex: drag-drop area
+        role="button"
+        tabIndex={0}
       >
         {isUploading ? (
           <div className="flex flex-col items-center gap-3">
@@ -347,12 +346,9 @@ export function ImageUploadEnhanced({
           </div>
         ) : preview ? (
           <div className="relative">
-            <img
-              src={preview}
-              alt="Preview"
-              className="max-w-full max-h-64 mx-auto rounded-lg"
-            />
+            <img src={preview} alt="Preview" className="max-w-full max-h-64 mx-auto rounded-lg" />
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 handleClear();
@@ -396,14 +392,15 @@ export function ImageUploadEnhanced({
       {/* Feature Toggles */}
       <div className="flex items-center gap-4">
         {enableCropping && (
-          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+          <span className="flex items-center gap-2 text-sm text-gray-700">
             <Crop className="w-4 h-4" />
             <span>Auto-crop enabled</span>
-          </label>
+          </span>
         )}
 
         {enableWatermark && (
           <button
+            type="button"
             onClick={() => setShowWatermarkSettings(!showWatermarkSettings)}
             className="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900 transition"
           >
@@ -421,9 +418,7 @@ export function ImageUploadEnhanced({
               <input
                 type="checkbox"
                 checked={watermark.enabled}
-                onChange={(e) =>
-                  setWatermark({ ...watermark, enabled: e.target.checked })
-                }
+                onChange={(e) => setWatermark({ ...watermark, enabled: e.target.checked })}
                 className="rounded"
               />
               Enable Watermark
@@ -433,30 +428,36 @@ export function ImageUploadEnhanced({
           {watermark.enabled && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="watermark-text"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Watermark Text
                 </label>
                 <input
+                  id="watermark-text"
                   type="text"
                   value={watermark.text || ''}
-                  onChange={(e) =>
-                    setWatermark({ ...watermark, text: e.target.value })
-                  }
+                  onChange={(e) => setWatermark({ ...watermark, text: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   placeholder="© KidKazz"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="watermark-position"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Position
                 </label>
                 <select
+                  id="watermark-position"
                   value={watermark.position || 'bottom-right'}
                   onChange={(e) =>
                     setWatermark({
                       ...watermark,
-                      position: e.target.value as any,
+                      position: e.target.value as WatermarkConfig['position'],
                     })
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
@@ -470,10 +471,14 @@ export function ImageUploadEnhanced({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="watermark-opacity"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Opacity: {((watermark.opacity || 0.7) * 100).toFixed(0)}%
                 </label>
                 <input
+                  id="watermark-opacity"
                   type="range"
                   min="0"
                   max="1"
@@ -482,7 +487,7 @@ export function ImageUploadEnhanced({
                   onChange={(e) =>
                     setWatermark({
                       ...watermark,
-                      opacity: parseFloat(e.target.value),
+                      opacity: Number.parseFloat(e.target.value),
                     })
                   }
                   className="w-full"

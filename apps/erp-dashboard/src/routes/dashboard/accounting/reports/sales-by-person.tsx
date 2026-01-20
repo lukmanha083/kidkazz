@@ -1,11 +1,11 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
-import { Download, Users, TrendingUp, ShoppingCart, Tag } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
+import { createFileRoute } from '@tanstack/react-router';
+import { Download, ShoppingCart, Tag, TrendingUp, Users } from 'lucide-react';
+import { useState } from 'react';
 
 export const Route = createFileRoute('/dashboard/accounting/reports/sales-by-person')({
   component: SalesByPersonPage,
@@ -41,24 +41,27 @@ function SalesByPersonPage() {
   const [loading, setLoading] = useState(false);
 
   // Group data by sales person
-  const groupedData = data.reduce((acc, row) => {
-    if (!acc[row.sales_person_id]) {
-      acc[row.sales_person_id] = {
-        sales_person_id: row.sales_person_id,
-        total_sales: 0,
-        transaction_count: 0,
-        channels: [],
-      };
-    }
-    acc[row.sales_person_id].total_sales += row.total_sales;
-    acc[row.sales_person_id].transaction_count += row.transaction_count;
-    acc[row.sales_person_id].channels.push({
-      channel: row.sales_channel,
-      sales: row.total_sales,
-      count: row.transaction_count,
-    });
-    return acc;
-  }, {} as Record<string, any>);
+  const groupedData = data.reduce(
+    (acc, row) => {
+      if (!acc[row.sales_person_id]) {
+        acc[row.sales_person_id] = {
+          sales_person_id: row.sales_person_id,
+          total_sales: 0,
+          transaction_count: 0,
+          channels: [],
+        };
+      }
+      acc[row.sales_person_id].total_sales += row.total_sales;
+      acc[row.sales_person_id].transaction_count += row.transaction_count;
+      acc[row.sales_person_id].channels.push({
+        channel: row.sales_channel,
+        sales: row.total_sales,
+        count: row.transaction_count,
+      });
+      return acc;
+    },
+    {} as Record<string, any>
+  );
 
   const loadReport = async () => {
     try {
@@ -96,8 +99,14 @@ function SalesByPersonPage() {
       ['Sales by Person Report (Commission)'],
       [`Period: ${fromDate} to ${toDate}`],
       [''],
-      ['Sales Person ID', 'Sales Channel', 'Total Sales', 'Transaction Count', 'Avg Transaction Value'],
-      ...data.map(row => [
+      [
+        'Sales Person ID',
+        'Sales Channel',
+        'Total Sales',
+        'Transaction Count',
+        'Avg Transaction Value',
+      ],
+      ...data.map((row) => [
         row.sales_person_id || 'Unknown',
         row.sales_channel || 'Unknown',
         row.total_sales.toFixed(2),
@@ -111,7 +120,7 @@ function SalesByPersonPage() {
       ['Total Transactions', summary?.totalTransactions.toString() || '0'],
     ];
 
-    const csv = lines.map(l => l.join(',')).join('\n');
+    const csv = lines.map((l) => l.join(',')).join('\n');
 
     // Download CSV
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -131,8 +140,10 @@ function SalesByPersonPage() {
     Marketplace: 'bg-pink-100 text-pink-800',
   };
 
-  const getChannelVariant = (channel: string): "default" | "secondary" | "destructive" | "outline" => {
-    const variantMap: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  const getChannelVariant = (
+    channel: string
+  ): 'default' | 'secondary' | 'destructive' | 'outline' => {
+    const variantMap: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
       POS: 'default',
       Wholesale: 'secondary',
       Online: 'outline',
@@ -147,7 +158,9 @@ function SalesByPersonPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Sales by Person (Commission Report)</h1>
-          <p className="text-muted-foreground mt-1">Track sales performance by sales person and channel</p>
+          <p className="text-muted-foreground mt-1">
+            Track sales performance by sales person and channel
+          </p>
         </div>
         {data.length > 0 && (
           <Button onClick={handleExport} className="gap-2">
@@ -186,11 +199,7 @@ function SalesByPersonPage() {
             </div>
 
             <div className="flex items-end">
-              <Button
-                onClick={loadReport}
-                disabled={loading}
-                className="w-full"
-              >
+              <Button onClick={loadReport} disabled={loading} className="w-full">
                 {loading ? 'Loading...' : 'Generate Report'}
               </Button>
             </div>
@@ -206,9 +215,7 @@ function SalesByPersonPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total Sales People</p>
-                  <p className="text-3xl font-bold mt-1">
-                    {summary.totalSalesPeople}
-                  </p>
+                  <p className="text-3xl font-bold mt-1">{summary.totalSalesPeople}</p>
                 </div>
                 <div className="p-3 bg-blue-50 rounded-lg">
                   <Users className="h-6 w-6 text-blue-600" />
@@ -255,7 +262,7 @@ function SalesByPersonPage() {
       {loading ? (
         <Card className="bg-gradient-to-br from-white to-gray-50/50">
           <CardContent className="py-12 text-center">
-            <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto"></div>
+            <div className="animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto" />
             <p className="text-muted-foreground mt-4">Loading report data...</p>
           </CardContent>
         </Card>
@@ -263,8 +270,12 @@ function SalesByPersonPage() {
         <Card className="bg-gradient-to-br from-white to-gray-50/50">
           <CardContent className="py-12 text-center">
             <Users className="h-16 w-16 text-muted-foreground/40 mx-auto mb-4" />
-            <p className="text-muted-foreground text-lg">No data available for the selected period</p>
-            <p className="text-sm text-muted-foreground mt-2">Try adjusting the date range or check if there are any sales transactions</p>
+            <p className="text-muted-foreground text-lg">
+              No data available for the selected period
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Try adjusting the date range or check if there are any sales transactions
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -274,8 +285,8 @@ function SalesByPersonPage() {
             <CardDescription>Detailed breakdown of sales by person and channel</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {Object.values(groupedData).map((person: any, index) => (
-              <div key={index} className="border rounded-lg p-6 bg-background">
+            {Object.values(groupedData).map((person: any) => (
+              <div key={person.sales_person_id} className="border rounded-lg p-6 bg-background">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-blue-50 rounded-lg">
@@ -293,17 +304,23 @@ function SalesByPersonPage() {
                       Rp {person.total_sales.toLocaleString('id-ID', { minimumFractionDigits: 2 })}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {summary ? ((person.total_sales / summary.totalSales) * 100).toFixed(1) : '0.0'}% of total
+                      {summary
+                        ? ((person.total_sales / summary.totalSales) * 100).toFixed(1)
+                        : '0.0'}
+                      % of total
                     </p>
                   </div>
                 </div>
 
                 {/* Channel Breakdown */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {person.channels.map((channel: any, idx: number) => (
-                    <div key={idx} className="border rounded-lg p-3">
+                  {person.channels.map((channel: any) => (
+                    <div key={channel.channel} className="border rounded-lg p-3">
                       <div className="flex items-center justify-between mb-2">
-                        <Badge variant={getChannelVariant(channel.channel)} className={channelColors[channel.channel] || 'bg-gray-100 text-gray-800'}>
+                        <Badge
+                          variant={getChannelVariant(channel.channel)}
+                          className={channelColors[channel.channel] || 'bg-gray-100 text-gray-800'}
+                        >
                           <Tag className="h-3 w-3 mr-1" />
                           {channel.channel}
                         </Badge>

@@ -1,6 +1,6 @@
 import { Inventory } from '../../domain/entities/Inventory';
-import { IInventoryRepository } from '../../domain/repositories/IInventoryRepository';
-import { EventPublisher } from '../../infrastructure/events/EventPublisher';
+import type { IInventoryRepository } from '../../domain/repositories/IInventoryRepository';
+import type { EventPublisher } from '../../infrastructure/events/EventPublisher';
 
 interface AdjustInventoryInput {
   productId: string;

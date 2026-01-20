@@ -1,10 +1,10 @@
-import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { z } from 'zod';
+import { and, eq, isNull } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, isNull, and } from 'drizzle-orm';
-import { warehouses } from '../infrastructure/db/schema';
+import { Hono } from 'hono';
+import { z } from 'zod';
 import { broadcastWarehouseUpdate } from '../infrastructure/broadcast';
+import { warehouses } from '../infrastructure/db/schema';
 
 type Bindings = {
   DB: D1Database;
@@ -41,13 +41,10 @@ app.get('/', async (c) => {
   const db = drizzle(c.env.DB);
   const status = c.req.query('status');
 
-  let query = db.select().from(warehouses);
+  const query = db.select().from(warehouses);
 
   const allWarehouses = status
-    ? await query.where(and(
-        eq(warehouses.status, status),
-        isNull(warehouses.deletedAt)
-      )).all()
+    ? await query.where(and(eq(warehouses.status, status), isNull(warehouses.deletedAt))).all()
     : await query.where(isNull(warehouses.deletedAt)).all();
 
   return c.json({
@@ -63,10 +60,7 @@ app.get('/active', async (c) => {
   const activeWarehouses = await db
     .select()
     .from(warehouses)
-    .where(and(
-      eq(warehouses.status, 'active'),
-      isNull(warehouses.deletedAt)
-    ))
+    .where(and(eq(warehouses.status, 'active'), isNull(warehouses.deletedAt)))
     .all();
 
   return c.json({
@@ -83,10 +77,7 @@ app.get('/:id', async (c) => {
   const warehouse = await db
     .select()
     .from(warehouses)
-    .where(and(
-      eq(warehouses.id, id),
-      isNull(warehouses.deletedAt)
-    ))
+    .where(and(eq(warehouses.id, id), isNull(warehouses.deletedAt)))
     .get();
 
   if (!warehouse) {
@@ -142,10 +133,7 @@ app.put('/:id', zValidator('json', updateWarehouseSchema), async (c) => {
   const existing = await db
     .select()
     .from(warehouses)
-    .where(and(
-      eq(warehouses.id, id),
-      isNull(warehouses.deletedAt)
-    ))
+    .where(and(eq(warehouses.id, id), isNull(warehouses.deletedAt)))
     .get();
 
   if (!existing) {
@@ -158,11 +146,7 @@ app.put('/:id', zValidator('json', updateWarehouseSchema), async (c) => {
     .where(eq(warehouses.id, id))
     .run();
 
-  const updated = await db
-    .select()
-    .from(warehouses)
-    .where(eq(warehouses.id, id))
-    .get();
+  const updated = await db.select().from(warehouses).where(eq(warehouses.id, id)).get();
 
   // Broadcast real-time update via WebSocket
   if (updated) {
@@ -197,10 +181,7 @@ app.delete('/:id', async (c) => {
   const warehouse = await db
     .select()
     .from(warehouses)
-    .where(and(
-      eq(warehouses.id, id),
-      isNull(warehouses.deletedAt)
-    ))
+    .where(and(eq(warehouses.id, id), isNull(warehouses.deletedAt)))
     .get();
 
   if (!warehouse) {
@@ -217,7 +198,7 @@ app.delete('/:id', async (c) => {
       : await fetch(`${new URL(c.req.url).origin}/api/inventory/warehouse/${id}/report`);
 
     if (reportResponse.ok) {
-      const report = await reportResponse.json() as {
+      const report = (await reportResponse.json()) as {
         canDelete?: boolean;
         totalStock?: number;
         productCount?: number;
@@ -226,16 +207,19 @@ app.delete('/:id', async (c) => {
 
       // Validate that all stock is zero
       if (!report.canDelete || (report.totalStock && report.totalStock > 0)) {
-        return c.json({
-          error: `Cannot delete warehouse "${warehouse.name}" (${warehouse.code})`,
-          reason: 'Warehouse contains inventory',
-          details: {
-            totalStock: report.totalStock || 0,
-            productCount: report.productCount || 0,
-            suggestion: 'Transfer all inventory to another warehouse before deletion',
+        return c.json(
+          {
+            error: `Cannot delete warehouse "${warehouse.name}" (${warehouse.code})`,
+            reason: 'Warehouse contains inventory',
+            details: {
+              totalStock: report.totalStock || 0,
+              productCount: report.productCount || 0,
+              suggestion: 'Transfer all inventory to another warehouse before deletion',
+            },
+            products: report.products || [],
           },
-          products: report.products || [],
-        }, 400);
+          400
+        );
       }
 
       // 3. Cascade delete: Clean up inventory records (all at zero)
@@ -251,7 +235,7 @@ app.delete('/:id', async (c) => {
 
       let deletedInventoryRecords = 0;
       if (inventoryDeleteResponse.ok) {
-        const inventoryResult = await inventoryDeleteResponse.json() as {
+        const inventoryResult = (await inventoryDeleteResponse.json()) as {
           deletedInventoryRecords?: number;
         };
         deletedInventoryRecords = inventoryResult.deletedInventoryRecords || 0;
@@ -268,11 +252,13 @@ app.delete('/:id', async (c) => {
         );
 
         if (productLocationsResponse.ok) {
-          const locationResult = await productLocationsResponse.json() as {
+          const locationResult = (await productLocationsResponse.json()) as {
             deletedLocations?: number;
           };
           deletedProductLocations = locationResult.deletedLocations || 0;
-          console.log(`✅ Deleted ${deletedProductLocations} product locations for warehouse ${id}`);
+          console.log(
+            `✅ Deleted ${deletedProductLocations} product locations for warehouse ${id}`
+          );
         }
       } catch (err) {
         console.error(`Failed to delete product locations for warehouse ${id}:`, err);
@@ -315,15 +301,17 @@ app.delete('/:id', async (c) => {
         deletedProductLocations,
         cascadeCleanup: true,
       });
-    } else {
-      throw new Error('Failed to get warehouse inventory report');
     }
+    throw new Error('Failed to get warehouse inventory report');
   } catch (error) {
     console.error('Error during warehouse deletion:', error);
-    return c.json({
-      error: 'Failed to delete warehouse',
-      message: error instanceof Error ? error.message : 'Unknown error occurred',
-    }, 500);
+    return c.json(
+      {
+        error: 'Failed to delete warehouse',
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+      },
+      500
+    );
   }
 });
 

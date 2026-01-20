@@ -1,5 +1,5 @@
-import { Row } from '@tanstack/react-table';
-import { MoreHorizontal, Eye, Edit, Trash2 } from 'lucide-react';
+import type { Row } from '@tanstack/react-table';
+import { Edit, Eye, MoreHorizontal, Trash2 } from 'lucide-react';
 import { Button } from '../button';
 import {
   DropdownMenu,
@@ -43,6 +43,7 @@ export function DataTableRowActions<TData>({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
+          type="button"
           variant="ghost"
           className="flex h-8 w-8 p-0 data-[state=open]:bg-muted"
           onClick={(e) => e.stopPropagation()}
@@ -74,9 +75,9 @@ export function DataTableRowActions<TData>({
             Edit
           </DropdownMenuItem>
         )}
-        {customActions.map((action, index) => (
+        {customActions.map((action) => (
           <DropdownMenuItem
-            key={index}
+            key={action.label}
             onClick={(e) => {
               e.stopPropagation();
               action.onClick(row.original);

@@ -3,7 +3,7 @@
  * Proper type definitions to replace 'any' usage
  */
 
-import { ReactFormExtendedApi } from '@tanstack/react-form';
+import type { ReactFormExtendedApi } from '@tanstack/react-form';
 
 // TanStack Form Types
 /**
@@ -12,18 +12,18 @@ import { ReactFormExtendedApi } from '@tanstack/react-form';
  * Avoids the need to specify all 11-12 generic parameters
  */
 export type SimpleFormApi<TFormData> = ReactFormExtendedApi<
-	TFormData,
-	undefined, // TOnMount
-	undefined, // TOnChange
-	undefined, // TOnChangeAsync
-	undefined, // TOnBlur
-	undefined, // TOnBlurAsync
-	undefined, // TOnSubmit
-	undefined, // TOnSubmitAsync
-	undefined, // TOnDynamic
-	undefined, // TOnDynamicAsync
-	undefined, // TOnServer
-	never      // TSubmitMeta
+  TFormData,
+  undefined, // TOnMount
+  undefined, // TOnChange
+  undefined, // TOnChangeAsync
+  undefined, // TOnBlur
+  undefined, // TOnBlurAsync
+  undefined, // TOnSubmit
+  undefined, // TOnSubmitAsync
+  undefined, // TOnDynamic
+  undefined, // TOnDynamicAsync
+  undefined, // TOnServer
+  never // TSubmitMeta
 >;
 
 // API Response Types

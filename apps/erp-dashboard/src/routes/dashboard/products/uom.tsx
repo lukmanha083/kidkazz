@@ -1,24 +1,3 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { useState, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useForm } from '@tanstack/react-form';
-import { zodValidator } from '@tanstack/zod-form-adapter';
-import { toast } from 'sonner';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,16 +8,32 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-  Plus,
-  X,
-  Package,
-  Loader2,
-} from 'lucide-react';
-import { uomApi, type UOM } from '@/lib/api';
-import { uomFormSchema, type UOMFormData } from '@/lib/form-schemas';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { getUOMColumns, uomTypeOptions } from '@/components/ui/data-table/columns';
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { type UOM, uomApi } from '@/lib/api';
+import { type UOMFormData, uomFormSchema } from '@/lib/form-schemas';
+import { useForm } from '@tanstack/react-form';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { createFileRoute } from '@tanstack/react-router';
+import { zodValidator } from '@tanstack/zod-form-adapter';
+import { Loader2, Package, Plus, X } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 
 /**
  * Extract error message from TanStack Form / Zod validation errors.
@@ -109,7 +104,11 @@ function UOMPage() {
   });
 
   // Fetch UOMs
-  const { data: uomsData, isLoading, error } = useQuery({
+  const {
+    data: uomsData,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['uoms'],
     queryFn: () => uomApi.getAll(),
   });
@@ -192,7 +191,7 @@ function UOMPage() {
   const handleDelete = (uom: UOM) => {
     if (uom.isBaseUnit) {
       toast.error('Cannot delete base unit', {
-        description: 'Base units cannot be deleted from the system'
+        description: 'Base units cannot be deleted from the system',
       });
       return;
     }
@@ -230,6 +229,7 @@ function UOMPage() {
   };
 
   // Memoize columns with callbacks
+  // biome-ignore lint/correctness/useExhaustiveDependencies: callbacks are stable within component lifecycle
   const columns = useMemo(
     () =>
       getUOMColumns({
@@ -305,7 +305,7 @@ function UOMPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {uoms.filter(u => u.isBaseUnit).length}
+              {uoms.filter((u) => u.isBaseUnit).length}
             </div>
             <p className="text-xs text-muted-foreground">Standard units</p>
           </CardContent>
@@ -318,7 +318,7 @@ function UOMPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-600">
-              {uoms.filter(u => !u.isBaseUnit).length}
+              {uoms.filter((u) => !u.isBaseUnit).length}
             </div>
             <p className="text-xs text-muted-foreground">User-defined</p>
           </CardContent>
@@ -329,9 +329,7 @@ function UOMPage() {
       <Card>
         <CardHeader>
           <CardTitle>All Units of Measure</CardTitle>
-          <CardDescription>
-            {uoms.length} units total
-          </CardDescription>
+          <CardDescription>{uoms.length} units total</CardDescription>
         </CardHeader>
         <CardContent>
           <DataTable
@@ -415,10 +413,12 @@ function UOMPage() {
                     <div className="rounded-md bg-muted p-3">
                       <p className="text-sm font-medium mb-2">Conversion Formula</p>
                       <p className="text-sm">
-                        1 {selectedUOM.code} = {selectedUOM.conversionFactor} {selectedUOM.baseUnitCode || 'base units'}
+                        1 {selectedUOM.code} = {selectedUOM.conversionFactor}{' '}
+                        {selectedUOM.baseUnitCode || 'base units'}
                       </p>
                       <p className="text-xs text-muted-foreground mt-2">
-                        Example: 5 {selectedUOM.code} = {5 * selectedUOM.conversionFactor} {selectedUOM.baseUnitCode || 'base units'}
+                        Example: 5 {selectedUOM.code} = {5 * selectedUOM.conversionFactor}{' '}
+                        {selectedUOM.baseUnitCode || 'base units'}
                       </p>
                       {selectedUOM.baseUnitCode && (
                         <p className="text-xs text-muted-foreground mt-2 italic">
@@ -489,7 +489,9 @@ function UOMPage() {
                     required
                   />
                   {field.state.meta.errors.length > 0 && (
-                    <p className="text-xs text-destructive">{getErrorMessage(field.state.meta.errors[0])}</p>
+                    <p className="text-xs text-destructive">
+                      {getErrorMessage(field.state.meta.errors[0])}
+                    </p>
                   )}
                   <p className="text-xs text-muted-foreground">
                     Unique code for this unit (e.g., CARTON18, BOX24)
@@ -511,11 +513,11 @@ function UOMPage() {
                     required
                   />
                   {field.state.meta.errors.length > 0 && (
-                    <p className="text-xs text-destructive">{getErrorMessage(field.state.meta.errors[0])}</p>
+                    <p className="text-xs text-destructive">
+                      {getErrorMessage(field.state.meta.errors[0])}
+                    </p>
                   )}
-                  <p className="text-xs text-muted-foreground">
-                    Descriptive name for this unit
-                  </p>
+                  <p className="text-xs text-muted-foreground">Descriptive name for this unit</p>
                 </div>
               )}
             </form.Field>
@@ -533,13 +535,15 @@ function UOMPage() {
                     step="1"
                     placeholder="18"
                     value={field.state.value}
-                    onChange={(e) => field.handleChange(parseInt(e.target.value, 10) || 0)}
+                    onChange={(e) => field.handleChange(Number.parseInt(e.target.value, 10) || 0)}
                     onBlur={field.handleBlur}
                     required
                     disabled={form.getFieldValue('isBaseUnit')}
                   />
                   {field.state.meta.errors.length > 0 && (
-                    <p className="text-xs text-destructive">{getErrorMessage(field.state.meta.errors[0])}</p>
+                    <p className="text-xs text-destructive">
+                      {getErrorMessage(field.state.meta.errors[0])}
+                    </p>
                   )}
                   <p className="text-xs text-muted-foreground">
                     Whole number only. How many base units equals 1 of this unit.
@@ -566,7 +570,10 @@ function UOMPage() {
                       }}
                       className="h-4 w-4 rounded border-gray-300"
                     />
-                    <Label htmlFor="isBaseUnit" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    <Label
+                      htmlFor="isBaseUnit"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
                       This is a base unit
                     </Label>
                   </div>
@@ -592,14 +599,18 @@ function UOMPage() {
                         className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
                       >
                         <option value="">Select base unit...</option>
-                        {uoms.filter(uom => uom.isBaseUnit).map(baseUom => (
-                          <option key={baseUom.id} value={baseUom.code}>
-                            {baseUom.code} - {baseUom.name}
-                          </option>
-                        ))}
+                        {uoms
+                          .filter((uom) => uom.isBaseUnit)
+                          .map((baseUom) => (
+                            <option key={baseUom.id} value={baseUom.code}>
+                              {baseUom.code} - {baseUom.name}
+                            </option>
+                          ))}
                       </select>
                       {field.state.meta.errors.length > 0 && (
-                        <p className="text-xs text-destructive">{getErrorMessage(field.state.meta.errors[0])}</p>
+                        <p className="text-xs text-destructive">
+                          {getErrorMessage(field.state.meta.errors[0])}
+                        </p>
                       )}
                       <p className="text-xs text-muted-foreground">
                         Select which base unit this custom UOM is bound to (e.g., PCS, KG, L, etc.)
@@ -610,35 +621,48 @@ function UOMPage() {
               </>
             )}
 
-            {form.getFieldValue('conversionFactor') > 0 && !form.getFieldValue('isBaseUnit') && form.getFieldValue('baseUnitCode') && (
-              <div className="rounded-md bg-muted p-3">
-                <p className="text-sm font-medium mb-2">Conversion Preview</p>
-                <p className="text-sm">
-                  1 {form.getFieldValue('code') || 'UNIT'} = {form.getFieldValue('conversionFactor')} {form.getFieldValue('baseUnitCode')}
-                </p>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Example: 5 {form.getFieldValue('code') || 'UNIT'} = {form.getFieldValue('conversionFactor') * 5} {form.getFieldValue('baseUnitCode')}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1 italic">
-                  This custom UOM is bound to {form.getFieldValue('baseUnitCode')} base unit
-                </p>
-              </div>
-            )}
+            {form.getFieldValue('conversionFactor') > 0 &&
+              !form.getFieldValue('isBaseUnit') &&
+              form.getFieldValue('baseUnitCode') && (
+                <div className="rounded-md bg-muted p-3">
+                  <p className="text-sm font-medium mb-2">Conversion Preview</p>
+                  <p className="text-sm">
+                    1 {form.getFieldValue('code') || 'UNIT'} ={' '}
+                    {form.getFieldValue('conversionFactor')} {form.getFieldValue('baseUnitCode')}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Example: 5 {form.getFieldValue('code') || 'UNIT'} ={' '}
+                    {form.getFieldValue('conversionFactor') * 5}{' '}
+                    {form.getFieldValue('baseUnitCode')}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1 italic">
+                    This custom UOM is bound to {form.getFieldValue('baseUnitCode')} base unit
+                  </p>
+                </div>
+              )}
 
             <DrawerFooter className="px-0">
               <div className="flex flex-col sm:flex-row gap-2 w-full">
                 <Button
                   type="submit"
                   className="w-full sm:w-auto"
-                  disabled={createUOMMutation.isPending || updateUOMMutation.isPending || form.state.isSubmitting}
+                  disabled={
+                    createUOMMutation.isPending ||
+                    updateUOMMutation.isPending ||
+                    form.state.isSubmitting
+                  }
                 >
-                  {createUOMMutation.isPending || updateUOMMutation.isPending || form.state.isSubmitting ? (
+                  {createUOMMutation.isPending ||
+                  updateUOMMutation.isPending ||
+                  form.state.isSubmitting ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       {formMode === 'add' ? 'Creating...' : 'Updating...'}
                     </>
+                  ) : formMode === 'add' ? (
+                    'Create UOM'
                   ) : (
-                    formMode === 'add' ? 'Create UOM' : 'Update UOM'
+                    'Update UOM'
                   )}
                 </Button>
                 <DrawerClose asChild>
@@ -660,8 +684,8 @@ function UOMPage() {
             <AlertDialogDescription>
               {uomToDelete && (
                 <>
-                  You are about to delete <strong>"{uomToDelete.name}"</strong>.
-                  This action cannot be undone.
+                  You are about to delete <strong>"{uomToDelete.name}"</strong>. This action cannot
+                  be undone.
                 </>
               )}
             </AlertDialogDescription>
@@ -672,7 +696,8 @@ function UOMPage() {
               onClick={() => {
                 setDeleteDialogOpen(false);
                 setUomToDelete(null);
-              }}>
+              }}
+            >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction

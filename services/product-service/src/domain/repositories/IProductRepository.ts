@@ -1,5 +1,5 @@
-import { IRepository } from '@kidkazz/ddd-core';
-import { Product } from '../entities/Product';
+import type { IRepository } from '@kidkazz/ddd-core';
+import type { Product } from '../entities/Product';
 
 /**
  * Product Repository Interface

@@ -1,10 +1,10 @@
 import { ValueObject } from '@kidkazz/ddd-core';
 
 interface PhysicalAttributesProps {
-  weight: number;      // in kg
-  length: number;      // in cm (panjang)
-  width: number;       // in cm (lebar)
-  height: number;      // in cm (tinggi)
+  weight: number; // in kg
+  length: number; // in cm (panjang)
+  width: number; // in cm (lebar)
+  height: number; // in cm (tinggi)
 }
 
 /**
@@ -32,15 +32,23 @@ export class PhysicalAttributes extends ValueObject<PhysicalAttributesProps> {
       throw new Error('Dimensions must be positive numbers');
     }
 
-    if (!Number.isFinite(props.length) || !Number.isFinite(props.width) || !Number.isFinite(props.height)) {
+    if (
+      !Number.isFinite(props.length) ||
+      !Number.isFinite(props.width) ||
+      !Number.isFinite(props.height)
+    ) {
       throw new Error('Dimensions must be finite numbers');
     }
 
     // Business rule: Maximum dimension limits for standard shipping
     const MAX_DIMENSION_CM = 200; // 2 meters max per side
-    const MAX_WEIGHT_KG = 100;    // 100kg max weight
+    const MAX_WEIGHT_KG = 100; // 100kg max weight
 
-    if (props.length > MAX_DIMENSION_CM || props.width > MAX_DIMENSION_CM || props.height > MAX_DIMENSION_CM) {
+    if (
+      props.length > MAX_DIMENSION_CM ||
+      props.width > MAX_DIMENSION_CM ||
+      props.height > MAX_DIMENSION_CM
+    ) {
       throw new Error(`Dimensions cannot exceed ${MAX_DIMENSION_CM}cm per side`);
     }
 
@@ -115,9 +123,11 @@ export class PhysicalAttributes extends ValueObject<PhysicalAttributesProps> {
    */
   public isOversized(): boolean {
     const OVERSIZED_THRESHOLD_CM = 150;
-    return this._value.length > OVERSIZED_THRESHOLD_CM ||
-           this._value.width > OVERSIZED_THRESHOLD_CM ||
-           this._value.height > OVERSIZED_THRESHOLD_CM;
+    return (
+      this._value.length > OVERSIZED_THRESHOLD_CM ||
+      this._value.width > OVERSIZED_THRESHOLD_CM ||
+      this._value.height > OVERSIZED_THRESHOLD_CM
+    );
   }
 
   /**
@@ -152,10 +162,10 @@ export class PhysicalAttributes extends ValueObject<PhysicalAttributesProps> {
    */
   public static createDefault(): PhysicalAttributes {
     return new PhysicalAttributes({
-      weight: 0.5,    // 500g
-      length: 20,     // 20cm
-      width: 15,      // 15cm
-      height: 10,     // 10cm
+      weight: 0.5, // 500g
+      length: 20, // 20cm
+      width: 15, // 15cm
+      height: 10, // 10cm
     });
   }
 }

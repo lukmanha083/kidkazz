@@ -11,8 +11,8 @@
  * - Type-safe API calls
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { warehouseApi, type Warehouse, type CreateWarehouseInput } from '../../lib/api';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { type CreateWarehouseInput, type Warehouse, warehouseApi } from '../../lib/api';
 import { queryKeys } from '../../lib/query-client';
 import { useWebSocket } from '../useWebSocket';
 
@@ -119,30 +119,25 @@ export function useCreateWarehouse() {
       });
 
       // Snapshot previous value
-      const previousWarehouses = queryClient.getQueryData(
-        queryKeys.warehouses.lists()
-      );
+      const previousWarehouses = queryClient.getQueryData(queryKeys.warehouses.lists());
 
       // Optimistically update cache
-      queryClient.setQueryData(
-        queryKeys.warehouses.lists(),
-        (old: any) => {
-          if (!old) return old;
+      queryClient.setQueryData(queryKeys.warehouses.lists(), (old: any) => {
+        if (!old) return old;
 
-          const optimisticWarehouse: Partial<Warehouse> = {
-            id: `temp-${Date.now()}`,
-            ...newWarehouse,
-            status: 'active',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
+        const optimisticWarehouse: Partial<Warehouse> = {
+          id: `temp-${Date.now()}`,
+          ...newWarehouse,
+          status: 'active',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
 
-          return {
-            warehouses: [...old.warehouses, optimisticWarehouse],
-            total: old.total + 1,
-          };
-        }
-      );
+        return {
+          warehouses: [...old.warehouses, optimisticWarehouse],
+          total: old.total + 1,
+        };
+      });
 
       return { previousWarehouses };
     },
@@ -150,10 +145,7 @@ export function useCreateWarehouse() {
     // Rollback on error
     onError: (err, newWarehouse, context) => {
       if (context?.previousWarehouses) {
-        queryClient.setQueryData(
-          queryKeys.warehouses.lists(),
-          context.previousWarehouses
-        );
+        queryClient.setQueryData(queryKeys.warehouses.lists(), context.previousWarehouses);
       }
     },
 
@@ -192,52 +184,36 @@ export function useUpdateWarehouse() {
         queryKey: queryKeys.warehouses.all,
       });
 
-      const previousWarehouses = queryClient.getQueryData(
-        queryKeys.warehouses.lists()
-      );
-      const previousWarehouse = queryClient.getQueryData(
-        queryKeys.warehouses.detail(id)
-      );
+      const previousWarehouses = queryClient.getQueryData(queryKeys.warehouses.lists());
+      const previousWarehouse = queryClient.getQueryData(queryKeys.warehouses.detail(id));
 
       // Update list cache
-      queryClient.setQueryData(
-        queryKeys.warehouses.lists(),
-        (old: any) => {
-          if (!old) return old;
+      queryClient.setQueryData(queryKeys.warehouses.lists(), (old: any) => {
+        if (!old) return old;
 
-          return {
-            ...old,
-            warehouses: old.warehouses.map((w: Warehouse) =>
-              w.id === id ? { ...w, ...data, updatedAt: new Date().toISOString() } : w
-            ),
-          };
-        }
-      );
+        return {
+          ...old,
+          warehouses: old.warehouses.map((w: Warehouse) =>
+            w.id === id ? { ...w, ...data, updatedAt: new Date().toISOString() } : w
+          ),
+        };
+      });
 
       // Update detail cache
-      queryClient.setQueryData(
-        queryKeys.warehouses.detail(id),
-        (old: any) => {
-          if (!old) return old;
-          return { ...old, ...data, updatedAt: new Date().toISOString() };
-        }
-      );
+      queryClient.setQueryData(queryKeys.warehouses.detail(id), (old: any) => {
+        if (!old) return old;
+        return { ...old, ...data, updatedAt: new Date().toISOString() };
+      });
 
       return { previousWarehouses, previousWarehouse };
     },
 
     onError: (err, { id }, context) => {
       if (context?.previousWarehouses) {
-        queryClient.setQueryData(
-          queryKeys.warehouses.lists(),
-          context.previousWarehouses
-        );
+        queryClient.setQueryData(queryKeys.warehouses.lists(), context.previousWarehouses);
       }
       if (context?.previousWarehouse) {
-        queryClient.setQueryData(
-          queryKeys.warehouses.detail(id),
-          context.previousWarehouse
-        );
+        queryClient.setQueryData(queryKeys.warehouses.detail(id), context.previousWarehouse);
       }
     },
 
@@ -269,22 +245,17 @@ export function useDeleteWarehouse() {
         queryKey: queryKeys.warehouses.all,
       });
 
-      const previousWarehouses = queryClient.getQueryData(
-        queryKeys.warehouses.lists()
-      );
+      const previousWarehouses = queryClient.getQueryData(queryKeys.warehouses.lists());
 
       // Remove from list cache
-      queryClient.setQueryData(
-        queryKeys.warehouses.lists(),
-        (old: any) => {
-          if (!old) return old;
+      queryClient.setQueryData(queryKeys.warehouses.lists(), (old: any) => {
+        if (!old) return old;
 
-          return {
-            warehouses: old.warehouses.filter((w: Warehouse) => w.id !== id),
-            total: old.total - 1,
-          };
-        }
-      );
+        return {
+          warehouses: old.warehouses.filter((w: Warehouse) => w.id !== id),
+          total: old.total - 1,
+        };
+      });
 
       // Remove detail cache
       queryClient.removeQueries({
@@ -296,10 +267,7 @@ export function useDeleteWarehouse() {
 
     onError: (err, id, context) => {
       if (context?.previousWarehouses) {
-        queryClient.setQueryData(
-          queryKeys.warehouses.lists(),
-          context.previousWarehouses
-        );
+        queryClient.setQueryData(queryKeys.warehouses.lists(), context.previousWarehouses);
       }
     },
 

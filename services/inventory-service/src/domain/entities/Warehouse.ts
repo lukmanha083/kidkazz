@@ -1,6 +1,6 @@
 import { AggregateRoot } from '@kidkazz/ddd-core';
-import { Location } from '../value-objects/Location';
 import { WarehouseCreated } from '../events/WarehouseCreated';
+import { Location } from '../value-objects/Location';
 
 export type WarehouseStatus = 'active' | 'inactive';
 
@@ -137,16 +137,13 @@ export class Warehouse extends AggregateRoot {
     }
 
     // Update location if any address fields changed
-    if (
-      input.addressLine1 ||
-      input.city ||
-      input.province ||
-      input.postalCode ||
-      input.country
-    ) {
+    if (input.addressLine1 || input.city || input.province || input.postalCode || input.country) {
       this.props.location = Location.create({
         addressLine1: input.addressLine1 || this.props.location.getAddressLine1(),
-        addressLine2: input.addressLine2 !== undefined ? input.addressLine2 : this.props.location.getAddressLine2(),
+        addressLine2:
+          input.addressLine2 !== undefined
+            ? input.addressLine2
+            : this.props.location.getAddressLine2(),
         city: input.city || this.props.location.getCity(),
         province: input.province || this.props.location.getProvince(),
         postalCode: input.postalCode || this.props.location.getPostalCode(),

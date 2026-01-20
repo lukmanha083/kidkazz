@@ -1,6 +1,6 @@
 import { Warehouse } from '../../domain/entities/Warehouse';
-import { IWarehouseRepository } from '../../domain/repositories/IWarehouseRepository';
-import { EventPublisher } from '../../infrastructure/events/EventPublisher';
+import type { IWarehouseRepository } from '../../domain/repositories/IWarehouseRepository';
+import type { EventPublisher } from '../../infrastructure/events/EventPublisher';
 
 interface CreateWarehouseInput {
   code: string;

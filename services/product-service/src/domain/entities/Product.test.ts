@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { Product } from './Product';
 
 describe('Product Entity', () => {
@@ -66,9 +66,9 @@ describe('Product Entity', () => {
         baseUnit: 'PCS',
         physicalAttributes: {
           weight: 2.5, // kg
-          length: 30,  // cm
-          width: 20,   // cm
-          height: 15,  // cm
+          length: 30, // cm
+          width: 20, // cm
+          height: 15, // cm
         },
       };
 

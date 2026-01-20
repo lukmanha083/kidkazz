@@ -11,14 +11,14 @@
  * - Type-safe API calls
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  batchApi,
-  type InventoryBatch,
-  type BatchFilters,
-  type CreateBatchInput,
   type BatchAdjustInput,
+  type BatchFilters,
   type BatchStatusInput,
+  type CreateBatchInput,
+  type InventoryBatch,
+  batchApi,
 } from '../../lib/api';
 import { queryKeys } from '../../lib/query-client';
 
@@ -30,10 +30,7 @@ import { queryKeys } from '../../lib/query-client';
  * @param filters.status - Filter by batch status
  * @param options.enabled - Enable/disable query (default: true)
  */
-export function useBatches(
-  filters?: BatchFilters,
-  options?: { enabled?: boolean }
-) {
+export function useBatches(filters?: BatchFilters, options?: { enabled?: boolean }) {
   const { enabled = true } = options || {};
 
   return useQuery({
@@ -59,7 +56,7 @@ export function useBatch(id: string, options?: { enabled?: boolean }) {
 /**
  * Hook to fetch batches expiring within N days
  */
-export function useExpiringBatches(days: number = 30, options?: { enabled?: boolean }) {
+export function useExpiringBatches(days = 30, options?: { enabled?: boolean }) {
   const { enabled = true } = options || {};
 
   return useQuery({
@@ -210,7 +207,11 @@ export function useUpdateBatchStatus() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ batchId, status, version }: { batchId: string; status: BatchStatusInput['status']; version: number }) =>
+    mutationFn: ({
+      batchId,
+      status,
+      version,
+    }: { batchId: string; status: BatchStatusInput['status']; version: number }) =>
       batchApi.updateStatus(batchId, { status, version }),
 
     // Optimistic update

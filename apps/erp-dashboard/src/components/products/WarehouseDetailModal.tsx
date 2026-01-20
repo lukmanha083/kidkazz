@@ -1,16 +1,16 @@
-import { useState } from 'react';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { Download, Loader2 } from 'lucide-react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 export interface WarehouseStockDetail {
@@ -67,7 +67,11 @@ export function WarehouseDetailModal({
       doc.setFontSize(11);
       let yPos = 30;
 
-      doc.text(`Report Type: ${reportType.charAt(0).toUpperCase() + reportType.slice(1)}`, 14, yPos);
+      doc.text(
+        `Report Type: ${reportType.charAt(0).toUpperCase() + reportType.slice(1)}`,
+        14,
+        yPos
+      );
       yPos += 7;
 
       // Always show product details if available (for all report types)
@@ -88,11 +92,19 @@ export function WarehouseDetailModal({
 
       // For variant/UOM reports, also show the specific item details
       if (reportType !== 'product') {
-        doc.text(`${reportType.charAt(0).toUpperCase() + reportType.slice(1)}: ${itemName}`, 14, yPos);
+        doc.text(
+          `${reportType.charAt(0).toUpperCase() + reportType.slice(1)}: ${itemName}`,
+          14,
+          yPos
+        );
         yPos += 7;
 
         if (itemSKU) {
-          doc.text(`${reportType.charAt(0).toUpperCase() + reportType.slice(1)} SKU/Code: ${itemSKU}`, 14, yPos);
+          doc.text(
+            `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} SKU/Code: ${itemSKU}`,
+            14,
+            yPos
+          );
           yPos += 7;
         }
       }
@@ -141,7 +153,11 @@ export function WarehouseDetailModal({
       const finalY = (doc as any).lastAutoTable.finalY + 10;
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text(`Total: ${totalStock} units across ${warehouseStocks.length} warehouses`, 14, finalY);
+      doc.text(
+        `Total: ${totalStock} units across ${warehouseStocks.length} warehouses`,
+        14,
+        finalY
+      );
 
       // Save PDF
       const fileName = `${reportType}_${itemName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
@@ -203,8 +219,11 @@ export function WarehouseDetailModal({
                   </tr>
                 </thead>
                 <tbody>
-                  {warehouseStocks.map((stock, idx) => (
-                    <tr key={idx} className="border-b last:border-b-0 hover:bg-muted/20">
+                  {warehouseStocks.map((stock) => (
+                    <tr
+                      key={stock.warehouseId}
+                      className="border-b last:border-b-0 hover:bg-muted/20"
+                    >
                       <td className="p-3 text-sm font-medium">{stock.warehouseName}</td>
                       <td className="p-3 text-sm text-right font-semibold">{stock.quantity}</td>
                       <td className="p-3 text-sm text-center text-muted-foreground">

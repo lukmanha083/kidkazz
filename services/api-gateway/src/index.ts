@@ -16,11 +16,14 @@ const app = new Hono<{ Bindings: Bindings }>();
 
 // Middleware
 app.use('/*', logger());
-app.use('/*', cors({
-  origin: '*', // Configure this properly in production
-  allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization'],
-}));
+app.use(
+  '/*',
+  cors({
+    origin: '*', // Configure this properly in production
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+  })
+);
 
 // Health check
 app.get('/health', (c) => {
@@ -62,19 +65,18 @@ app.get('/health/all', async (c) => {
         );
 
         if (response.ok) {
-          const data = await response.json() as { status: string };
+          const data = (await response.json()) as { status: string };
           return {
             name: service.name,
             status: data.status === 'healthy' ? 'online' : 'degraded',
             timestamp: new Date().toISOString(),
           };
-        } else {
-          return {
-            name: service.name,
-            status: 'offline',
-            timestamp: new Date().toISOString(),
-          };
         }
+        return {
+          name: service.name,
+          status: 'offline',
+          timestamp: new Date().toISOString(),
+        };
       } catch (error) {
         return {
           name: service.name,
@@ -214,20 +216,26 @@ app.all('/api/admin/*', async (c) => {
 
 // 404 handler
 app.notFound((c) => {
-  return c.json({
-    error: 'Not Found',
-    message: 'The requested endpoint does not exist',
-    path: c.req.url,
-  }, 404);
+  return c.json(
+    {
+      error: 'Not Found',
+      message: 'The requested endpoint does not exist',
+      path: c.req.url,
+    },
+    404
+  );
 });
 
 // Error handler
 app.onError((err, c) => {
   console.error('API Gateway Error:', err);
-  return c.json({
-    error: 'Internal Server Error',
-    message: err.message,
-  }, 500);
+  return c.json(
+    {
+      error: 'Internal Server Error',
+      message: err.message,
+    },
+    500
+  );
 });
 
 export default app;

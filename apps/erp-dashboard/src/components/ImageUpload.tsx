@@ -11,15 +11,14 @@
  * - Shadcn UI components with dark mode support
  */
 
-import { useCallback, useState } from 'react';
-import { Upload, X, Image as ImageIcon, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { AlertCircle, CheckCircle2, Image as ImageIcon, Loader2, Upload, X } from 'lucide-react';
+import { useCallback, useState } from 'react';
 
-const PRODUCT_SERVICE_URL =
-  import.meta.env.VITE_PRODUCT_SERVICE_URL || 'http://localhost:8788';
+const PRODUCT_SERVICE_URL = import.meta.env.VITE_PRODUCT_SERVICE_URL || 'http://localhost:8788';
 
 export interface ImageUploadResult {
   urls: {
@@ -71,26 +70,29 @@ export function ImageUpload({
   /**
    * Validate file
    */
-  const validateFile = (file: File): string | null => {
-    // Check file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowedTypes.includes(file.type)) {
-      return 'Invalid file type. Please upload JPEG, PNG, WebP, or GIF.';
-    }
+  const validateFile = useCallback(
+    (file: File): string | null => {
+      // Check file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+      if (!allowedTypes.includes(file.type)) {
+        return 'Invalid file type. Please upload JPEG, PNG, WebP, or GIF.';
+      }
 
-    // Check file size
-    const maxSize = maxSizeMB * 1024 * 1024;
-    if (file.size > maxSize) {
-      return `File too large. Maximum size is ${maxSizeMB}MB.`;
-    }
+      // Check file size
+      const maxSize = maxSizeMB * 1024 * 1024;
+      if (file.size > maxSize) {
+        return `File too large. Maximum size is ${maxSizeMB}MB.`;
+      }
 
-    return null;
-  };
+      return null;
+    },
+    [maxSizeMB]
+  );
 
   /**
    * Compress image before upload
    */
-  const compressImage = async (file: File): Promise<Blob> => {
+  const compressImage = useCallback(async (file: File): Promise<Blob> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
 
@@ -149,7 +151,7 @@ export function ImageUpload({
       reader.onerror = () => reject(new Error('Failed to read file'));
       reader.readAsDataURL(file);
     });
-  };
+  }, []);
 
   /**
    * Handle file selection
@@ -212,7 +214,7 @@ export function ImageUpload({
         setIsUploading(false);
       }
     },
-    [productId, maxSizeMB, onUploadSuccess, onUploadError]
+    [productId, validateFile, compressImage, onUploadSuccess, onUploadError]
   );
 
   /**
@@ -286,6 +288,14 @@ export function ImageUpload({
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             onClick={handleClick}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleClick();
+              }
+            }}
+            // biome-ignore lint/a11y/useSemanticElements lint/a11y/noNoninteractiveTabindex: drag-drop area
+            role="button"
+            tabIndex={0}
           >
             {isUploading ? (
               <div className="flex flex-col items-center gap-3">
@@ -300,6 +310,7 @@ export function ImageUpload({
                   className="max-w-full max-h-64 mx-auto rounded-lg"
                 />
                 <Button
+                  type="button"
                   variant="destructive"
                   size="icon"
                   className="absolute top-2 right-2 rounded-full"

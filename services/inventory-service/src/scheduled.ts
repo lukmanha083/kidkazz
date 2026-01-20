@@ -54,8 +54,7 @@ export async function scheduledOrphanCheck(env: Bindings): Promise<void> {
     }
 
     const totalOrphans =
-      (inventoryCheck?.totalOrphaned || 0) +
-      (locationsCheck?.totalOrphaned || 0);
+      (inventoryCheck?.totalOrphaned || 0) + (locationsCheck?.totalOrphaned || 0);
 
     // Log results
     console.log('📊 Orphan Check Results:');
@@ -65,11 +64,7 @@ export async function scheduledOrphanCheck(env: Bindings): Promise<void> {
 
     // Send alert if orphans found
     if (totalOrphans > 0) {
-      const alertMessage = `⚠️ Orphaned Data Alert!\n\n` +
-        `Orphaned Inventory: ${inventoryCheck.totalOrphaned}\n` +
-        `Orphaned Locations: ${locationsCheck?.totalOrphaned || 0}\n` +
-        `Total: ${totalOrphans}\n\n` +
-        `Action Required: Review and clean up orphaned data at /admin/maintenance`;
+      const alertMessage = `⚠️ Orphaned Data Alert!\n\nOrphaned Inventory: ${inventoryCheck.totalOrphaned}\nOrphaned Locations: ${locationsCheck?.totalOrphaned || 0}\nTotal: ${totalOrphans}\n\nAction Required: Review and clean up orphaned data at /admin/maintenance`;
 
       console.warn(alertMessage);
 
@@ -121,9 +116,11 @@ export async function scheduledHealthReport(env: Bindings): Promise<void> {
     };
 
     // Get inventory stats
-    const inventoryResponse = await fetch('http://localhost:8792/api/cleanup/orphaned-inventory/check');
+    const inventoryResponse = await fetch(
+      'http://localhost:8792/api/cleanup/orphaned-inventory/check'
+    );
     if (inventoryResponse.ok) {
-      const data = await inventoryResponse.json() as {
+      const data = (await inventoryResponse.json()) as {
         totalOrphaned?: number;
         summary?: { totalInventoryRecords?: number };
       };
@@ -137,7 +134,7 @@ export async function scheduledHealthReport(env: Bindings): Promise<void> {
         new Request('http://product-service/api/cleanup/orphaned-locations/check')
       );
       if (locationResponse.ok) {
-        const data = await locationResponse.json() as {
+        const data = (await locationResponse.json()) as {
           totalOrphaned?: number;
         };
         report.checks.orphanedLocations = data.totalOrphaned || 0;
@@ -152,12 +149,11 @@ export async function scheduledHealthReport(env: Bindings): Promise<void> {
     if (env.SLACK_WEBHOOK_URL) {
       await sendSlackAlert(env.SLACK_WEBHOOK_URL, {
         title: '📋 Weekly Database Health Report',
-        message: `Database Health Status:\n` +
-          `- Orphaned Inventory: ${report.checks.orphanedInventory}\n` +
-          `- Orphaned Locations: ${report.checks.orphanedLocations}\n` +
-          `- Total Inventory Records: ${report.checks.totalInventoryRecords}\n` +
-          `\nStatus: ${report.checks.orphanedInventory + report.checks.orphanedLocations === 0 ? '✅ Healthy' : '⚠️ Needs Attention'}`,
-        severity: report.checks.orphanedInventory + report.checks.orphanedLocations === 0 ? 'info' : 'warning',
+        message: `Database Health Status:\n- Orphaned Inventory: ${report.checks.orphanedInventory}\n- Orphaned Locations: ${report.checks.orphanedLocations}\n- Total Inventory Records: ${report.checks.totalInventoryRecords}\n\nStatus: ${report.checks.orphanedInventory + report.checks.orphanedLocations === 0 ? '✅ Healthy' : '⚠️ Needs Attention'}`,
+        severity:
+          report.checks.orphanedInventory + report.checks.orphanedLocations === 0
+            ? 'info'
+            : 'warning',
       });
     }
   } catch (error) {
@@ -179,9 +175,9 @@ async function sendSlackAlert(
 ): Promise<void> {
   try {
     const color = {
-      info: '#36a64f',      // Green
-      warning: '#ff9800',   // Orange
-      error: '#f44336',     // Red
+      info: '#36a64f', // Green
+      warning: '#ff9800', // Orange
+      error: '#f44336', // Red
     }[alert.severity];
 
     const payload = {
@@ -190,18 +186,20 @@ async function sendSlackAlert(
           color,
           title: alert.title,
           text: alert.message,
-          fields: alert.orphanDetails ? [
-            {
-              title: 'Orphaned Inventory',
-              value: alert.orphanDetails.inventory.toString(),
-              short: true,
-            },
-            {
-              title: 'Orphaned Locations',
-              value: alert.orphanDetails.locations.toString(),
-              short: true,
-            },
-          ] : undefined,
+          fields: alert.orphanDetails
+            ? [
+                {
+                  title: 'Orphaned Inventory',
+                  value: alert.orphanDetails.inventory.toString(),
+                  short: true,
+                },
+                {
+                  title: 'Orphaned Locations',
+                  value: alert.orphanDetails.locations.toString(),
+                  short: true,
+                },
+              ]
+            : undefined,
           footer: 'Kidkazz Database Monitoring',
           ts: Math.floor(Date.now() / 1000),
         },

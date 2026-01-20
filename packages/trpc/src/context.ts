@@ -14,10 +14,7 @@ export interface BaseContext {
  * Create context factory for tRPC
  */
 export function createContextFactory<TEnv extends Record<string, any>>() {
-  return async (
-    opts: FetchCreateContextFnOptions,
-    env: TEnv
-  ): Promise<BaseContext> => {
+  return async (opts: FetchCreateContextFnOptions, env: TEnv): Promise<BaseContext> => {
     return {
       db: env.DB,
       eventQueue: env.EVENTS_QUEUE || env.EVENT_QUEUE,

@@ -1,7 +1,7 @@
+import { and, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, and } from 'drizzle-orm';
-import { IInventoryRepository } from '../../domain/repositories/IInventoryRepository';
 import { Inventory } from '../../domain/entities/Inventory';
+import type { IInventoryRepository } from '../../domain/repositories/IInventoryRepository';
 import { inventory } from '../db/schema';
 
 /**
@@ -15,11 +15,7 @@ export class InventoryRepository implements IInventoryRepository {
   }
 
   async findById(id: string): Promise<Inventory | null> {
-    const result = await this.db
-      .select()
-      .from(inventory)
-      .where(eq(inventory.id, id))
-      .get();
+    const result = await this.db.select().from(inventory).where(eq(inventory.id, id)).get();
 
     if (!result) {
       return null;
@@ -35,12 +31,7 @@ export class InventoryRepository implements IInventoryRepository {
     const result = await this.db
       .select()
       .from(inventory)
-      .where(
-        and(
-          eq(inventory.productId, productId),
-          eq(inventory.warehouseId, warehouseId)
-        )
-      )
+      .where(and(eq(inventory.productId, productId), eq(inventory.warehouseId, warehouseId)))
       .get();
 
     if (!result) {
@@ -57,7 +48,7 @@ export class InventoryRepository implements IInventoryRepository {
       .where(eq(inventory.productId, productId))
       .all();
 
-    return results.map(r => Inventory.reconstitute(r as any));
+    return results.map((r) => Inventory.reconstitute(r as any));
   }
 
   async findByWarehouse(warehouseId: string): Promise<Inventory[]> {
@@ -67,7 +58,7 @@ export class InventoryRepository implements IInventoryRepository {
       .where(eq(inventory.warehouseId, warehouseId))
       .all();
 
-    return results.map(r => Inventory.reconstitute(r as any));
+    return results.map((r) => Inventory.reconstitute(r as any));
   }
 
   async findAll(filters?: {
@@ -89,18 +80,14 @@ export class InventoryRepository implements IInventoryRepository {
     }
 
     const results = await query.all();
-    return results.map(r => Inventory.reconstitute(r as any));
+    return results.map((r) => Inventory.reconstitute(r as any));
   }
 
   async save(inv: Inventory): Promise<void> {
     const data = inv.toData();
 
     // Check if inventory exists
-    const existing = await this.db
-      .select()
-      .from(inventory)
-      .where(eq(inventory.id, data.id))
-      .get();
+    const existing = await this.db.select().from(inventory).where(eq(inventory.id, data.id)).get();
 
     if (existing) {
       // Update
@@ -114,7 +101,10 @@ export class InventoryRepository implements IInventoryRepository {
         .run();
     } else {
       // Insert
-      await this.db.insert(inventory).values(data as any).run();
+      await this.db
+        .insert(inventory)
+        .values(data as any)
+        .run();
     }
   }
 

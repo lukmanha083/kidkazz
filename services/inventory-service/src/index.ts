@@ -1,12 +1,12 @@
+import { createContextFactory, createTRPCHandler } from '@kidkazz/trpc';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
-import { createTRPCHandler, createContextFactory } from '@kidkazz/trpc';
 import { appRouter } from './infrastructure/trpc';
-import warehousesRoutes from './routes/warehouses';
+import cleanupRoutes from './routes/cleanup';
 import inventoryRoutes from './routes/inventory';
 import inventoryBatchesRoutes from './routes/inventory-batches';
-import cleanupRoutes from './routes/cleanup';
+import warehousesRoutes from './routes/warehouses';
 import { handleScheduled } from './scheduled';
 
 // Export Durable Objects
@@ -28,11 +28,14 @@ const app = new Hono<{ Bindings: Bindings }>();
 
 // Middleware
 app.use('/*', logger());
-app.use('/*', cors({
-  origin: '*',
-  allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization', 'x-user-id'],
-}));
+app.use(
+  '/*',
+  cors({
+    origin: '*',
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization', 'x-user-id'],
+  })
+);
 
 // Health check
 app.get('/health', (c) => {
@@ -123,19 +126,25 @@ app.get('/internal/stats/warehouses', async (c) => {
 
 // 404 handler
 app.notFound((c) => {
-  return c.json({
-    error: 'Not Found',
-    path: c.req.url,
-  }, 404);
+  return c.json(
+    {
+      error: 'Not Found',
+      path: c.req.url,
+    },
+    404
+  );
 });
 
 // Error handler
 app.onError((err, c) => {
   console.error('Inventory Service Error:', err);
-  return c.json({
-    error: 'Internal Server Error',
-    message: err.message,
-  }, 500);
+  return c.json(
+    {
+      error: 'Internal Server Error',
+      message: err.message,
+    },
+    500
+  );
 });
 
 export default app;

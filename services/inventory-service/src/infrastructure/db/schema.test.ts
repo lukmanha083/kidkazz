@@ -9,10 +9,10 @@
  * Reference: docs/DDD_REFACTORING_ROADMAP.md - Phase 1
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { and, eq, isNull } from 'drizzle-orm';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { db } from './index';
 import { inventory, inventoryBatches, warehouses } from './schema';
-import { eq, and, isNull } from 'drizzle-orm';
 
 describe('Phase 1: Inventory Schema Enhancement', () => {
   let testWarehouseId: string;
@@ -144,11 +144,7 @@ describe('Phase 1: Inventory Schema Enhancement', () => {
         updatedAt: new Date(),
       });
 
-      const results = await db
-        .select()
-        .from(inventory)
-        .where(eq(inventory.uomId, uomId))
-        .all();
+      const results = await db.select().from(inventory).where(eq(inventory.uomId, uomId)).all();
 
       expect(results).toHaveLength(1);
       expect(results[0].id).toBe(testInventoryId);
@@ -233,11 +229,13 @@ describe('Phase 1: Inventory Schema Enhancement', () => {
       const results = await db
         .select()
         .from(inventory)
-        .where(and(
-          eq(inventory.warehouseId, testWarehouseId),
-          eq(inventory.zone, 'Cold-Storage'),
-          eq(inventory.rack, 'B2')
-        ))
+        .where(
+          and(
+            eq(inventory.warehouseId, testWarehouseId),
+            eq(inventory.zone, 'Cold-Storage'),
+            eq(inventory.rack, 'B2')
+          )
+        )
         .all();
 
       expect(results).toHaveLength(1);
@@ -288,10 +286,12 @@ describe('Phase 1: Inventory Schema Enhancement', () => {
           lastModifiedAt: new Date().toISOString(),
           updatedAt: new Date(),
         })
-        .where(and(
-          eq(inventory.id, testInventoryId),
-          eq(inventory.version, 1) // Optimistic lock check
-        ))
+        .where(
+          and(
+            eq(inventory.id, testInventoryId),
+            eq(inventory.version, 1) // Optimistic lock check
+          )
+        )
         .run();
 
       // For better-sqlite3, changes is directly on the result object
@@ -327,10 +327,12 @@ describe('Phase 1: Inventory Schema Enhancement', () => {
           version: 2,
           updatedAt: new Date(),
         })
-        .where(and(
-          eq(inventory.id, testInventoryId),
-          eq(inventory.version, 1) // Wrong version - should fail
-        ))
+        .where(
+          and(
+            eq(inventory.id, testInventoryId),
+            eq(inventory.version, 1) // Wrong version - should fail
+          )
+        )
         .run();
 
       // No rows should be updated - for better-sqlite3, changes is directly on result
@@ -448,10 +450,7 @@ describe('Phase 1: Inventory Schema Enhancement', () => {
           lastModifiedAt: new Date().toISOString(),
           updatedAt: new Date(),
         })
-        .where(and(
-          eq(inventoryBatches.id, testBatchId),
-          eq(inventoryBatches.version, 1)
-        ))
+        .where(and(eq(inventoryBatches.id, testBatchId), eq(inventoryBatches.version, 1)))
         .run();
 
       const result = await db
@@ -488,11 +487,13 @@ describe('Phase 1: Inventory Schema Enhancement', () => {
       const results = await db
         .select()
         .from(inventory)
-        .where(and(
-          eq(inventory.variantId, variantId),
-          eq(inventory.warehouseId, testWarehouseId),
-          eq(inventory.zone, 'Main-Floor')
-        ))
+        .where(
+          and(
+            eq(inventory.variantId, variantId),
+            eq(inventory.warehouseId, testWarehouseId),
+            eq(inventory.zone, 'Main-Floor')
+          )
+        )
         .all();
 
       expect(results).toHaveLength(1);
@@ -517,12 +518,14 @@ describe('Phase 1: Inventory Schema Enhancement', () => {
       const results = await db
         .select()
         .from(inventory)
-        .where(and(
-          eq(inventory.productId, 'product-001'),
-          eq(inventory.warehouseId, testWarehouseId),
-          isNull(inventory.variantId),
-          isNull(inventory.uomId)
-        ))
+        .where(
+          and(
+            eq(inventory.productId, 'product-001'),
+            eq(inventory.warehouseId, testWarehouseId),
+            isNull(inventory.variantId),
+            isNull(inventory.uomId)
+          )
+        )
         .all();
 
       expect(results).toHaveLength(1);

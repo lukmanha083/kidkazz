@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
-import type { ProductUOM } from '@/lib/api';
 import type { UOMWarehouseAllocation } from '@/components/products/ProductUOMWarehouseAllocation';
+import type { ProductUOM } from '@/lib/api';
+import { useCallback, useState } from 'react';
 
 /**
  * TEMPORARY: ProductUOM with stock property
@@ -8,7 +8,7 @@ import type { UOMWarehouseAllocation } from '@/components/products/ProductUOMWar
  * Stock should be fetched from Inventory Service, not stored in Product UOMs
  */
 export interface ProductUOMWithStock extends ProductUOM {
-	stock: number; // TEMPORARY - violates DDD, will be removed in Phase 3
+  stock: number; // TEMPORARY - violates DDD, will be removed in Phase 3
 }
 
 /**
@@ -24,149 +24,152 @@ export interface ProductUOMWithStock extends ProductUOM {
  * - `calculateAllocatedPCS`, `getRemainingPCS`, `hasUOM` (utility functions)
  */
 export function useUOMManagement() {
-	// UOM list state
-	const [productUOMs, setProductUOMs] = useState<ProductUOMWithStock[]>([]);
+  // UOM list state
+  const [productUOMs, setProductUOMs] = useState<ProductUOMWithStock[]>([]);
 
-	// UOM form input state
-	const [selectedUOM, setSelectedUOM] = useState("");
-	const [uomBarcode, setUomBarcode] = useState("");
-	const [uomStock, setUomStock] = useState("");
+  // UOM form input state
+  const [selectedUOM, setSelectedUOM] = useState('');
+  const [uomBarcode, setUomBarcode] = useState('');
+  const [uomStock, setUomStock] = useState('');
 
-	// UOM warehouse allocations state - Map of UOM ID to warehouse allocations
-	const [uomWarehouseAllocations, setUomWarehouseAllocations] = useState<
-		Record<string, UOMWarehouseAllocation[]>
-	>({});
+  // UOM warehouse allocations state - Map of UOM ID to warehouse allocations
+  const [uomWarehouseAllocations, setUomWarehouseAllocations] = useState<
+    Record<string, UOMWarehouseAllocation[]>
+  >({});
 
-	/**
-	 * Add a new UOM to the product
-	 */
-	const addUOM = useCallback((newUOM: ProductUOMWithStock) => {
-		setProductUOMs((prev) => [...prev, newUOM]);
-	}, []);
+  /**
+   * Add a new UOM to the product
+   */
+  const addUOM = useCallback((newUOM: ProductUOMWithStock) => {
+    setProductUOMs((prev) => [...prev, newUOM]);
+  }, []);
 
-	/**
-	 * Remove a UOM from the product
-	 */
-	const removeUOM = useCallback((uomId: string) => {
-		setProductUOMs((prev) => prev.filter((uom) => uom.id !== uomId));
-		// Also remove UOM warehouse allocations
-		setUomWarehouseAllocations((prev) => {
-			const newAllocations = { ...prev };
-			delete newAllocations[uomId];
-			return newAllocations;
-		});
-	}, []);
+  /**
+   * Remove a UOM from the product
+   */
+  const removeUOM = useCallback((uomId: string) => {
+    setProductUOMs((prev) => prev.filter((uom) => uom.id !== uomId));
+    // Also remove UOM warehouse allocations
+    setUomWarehouseAllocations((prev) => {
+      const newAllocations = { ...prev };
+      delete newAllocations[uomId];
+      return newAllocations;
+    });
+  }, []);
 
-	/**
-	 * Set a UOM as default (and unset others)
-	 */
-	const setDefaultUOM = useCallback((uomId: string) => {
-		setProductUOMs((prev) =>
-			prev.map((uom) => ({
-				...uom,
-				isDefault: uom.id === uomId,
-			}))
-		);
-	}, []);
+  /**
+   * Set a UOM as default (and unset others)
+   */
+  const setDefaultUOM = useCallback((uomId: string) => {
+    setProductUOMs((prev) =>
+      prev.map((uom) => ({
+        ...uom,
+        isDefault: uom.id === uomId,
+      }))
+    );
+  }, []);
 
-	/**
-	 * Toggle default status of a UOM
-	 */
-	const toggleDefaultUOM = useCallback((uomId: string) => {
-		setProductUOMs((prev) =>
-			prev.map((uom) => {
-				if (uom.id === uomId) {
-					return { ...uom, isDefault: !uom.isDefault };
-				}
-				return { ...uom, isDefault: false }; // Unset others
-			})
-		);
-	}, []);
+  /**
+   * Toggle default status of a UOM
+   */
+  const toggleDefaultUOM = useCallback((uomId: string) => {
+    setProductUOMs((prev) =>
+      prev.map((uom) => {
+        if (uom.id === uomId) {
+          return { ...uom, isDefault: !uom.isDefault };
+        }
+        return { ...uom, isDefault: false }; // Unset others
+      })
+    );
+  }, []);
 
-	/**
-	 * Update warehouse allocations for a specific UOM
-	 */
-	const updateUOMAllocations = useCallback((
-		uomId: string,
-		allocations: UOMWarehouseAllocation[]
-	) => {
-		setUomWarehouseAllocations((prev) => ({
-			...prev,
-			[uomId]: allocations,
-		}));
-	}, []);
+  /**
+   * Update warehouse allocations for a specific UOM
+   */
+  const updateUOMAllocations = useCallback(
+    (uomId: string, allocations: UOMWarehouseAllocation[]) => {
+      setUomWarehouseAllocations((prev) => ({
+        ...prev,
+        [uomId]: allocations,
+      }));
+    },
+    []
+  );
 
-	/**
-	 * Calculate total allocated stock across all UOMs (in PCS)
-	 */
-	const calculateAllocatedPCS = useCallback(() => {
-		return productUOMs.reduce(
-			(total, uom) => total + (uom.stock * uom.conversionFactor),
-			0
-		);
-	}, [productUOMs]);
+  /**
+   * Calculate total allocated stock across all UOMs (in PCS)
+   */
+  const calculateAllocatedPCS = useCallback(() => {
+    return productUOMs.reduce((total, uom) => total + uom.stock * uom.conversionFactor, 0);
+  }, [productUOMs]);
 
-	/**
-	 * Calculate remaining stock (in PCS)
-	 */
-	const getRemainingPCS = useCallback((totalStock: number) => {
-		return totalStock - calculateAllocatedPCS();
-	}, [calculateAllocatedPCS]);
+  /**
+   * Calculate remaining stock (in PCS)
+   */
+  const getRemainingPCS = useCallback(
+    (totalStock: number) => {
+      return totalStock - calculateAllocatedPCS();
+    },
+    [calculateAllocatedPCS]
+  );
 
-	/**
-	 * Reset UOM form inputs
-	 */
-	const resetUOMInputs = useCallback(() => {
-		setSelectedUOM("");
-		setUomBarcode("");
-		setUomStock("");
-	}, []);
+  /**
+   * Reset UOM form inputs
+   */
+  const resetUOMInputs = useCallback(() => {
+    setSelectedUOM('');
+    setUomBarcode('');
+    setUomStock('');
+  }, []);
 
-	/**
-	 * Reset all UOM state
-	 */
-	const resetAll = useCallback(() => {
-		setProductUOMs([]);
-		setSelectedUOM("");
-		setUomBarcode("");
-		setUomStock("");
-		setUomWarehouseAllocations({});
-	}, []);
+  /**
+   * Reset all UOM state
+   */
+  const resetAll = useCallback(() => {
+    setProductUOMs([]);
+    setSelectedUOM('');
+    setUomBarcode('');
+    setUomStock('');
+    setUomWarehouseAllocations({});
+  }, []);
 
-	/**
-	 * Check if a UOM code already exists in the product
-	 */
-	const hasUOM = useCallback((uomCode: string) => {
-		return productUOMs.some((uom) => uom.uomCode === uomCode);
-	}, [productUOMs]);
+  /**
+   * Check if a UOM code already exists in the product
+   */
+  const hasUOM = useCallback(
+    (uomCode: string) => {
+      return productUOMs.some((uom) => uom.uomCode === uomCode);
+    },
+    [productUOMs]
+  );
 
-	return {
-		// State
-		productUOMs,
-		selectedUOM,
-		uomBarcode,
-		uomStock,
-		uomWarehouseAllocations,
+  return {
+    // State
+    productUOMs,
+    selectedUOM,
+    uomBarcode,
+    uomStock,
+    uomWarehouseAllocations,
 
-		// State setters (for direct access if needed)
-		setProductUOMs,
-		setSelectedUOM,
-		setUomBarcode,
-		setUomStock,
-		setUomWarehouseAllocations,
+    // State setters (for direct access if needed)
+    setProductUOMs,
+    setSelectedUOM,
+    setUomBarcode,
+    setUomStock,
+    setUomWarehouseAllocations,
 
-		// Actions
-		addUOM,
-		removeUOM,
-		setDefaultUOM,
-		toggleDefaultUOM,
-		updateUOMAllocations,
-		resetUOMInputs,
-		resetAll,
+    // Actions
+    addUOM,
+    removeUOM,
+    setDefaultUOM,
+    toggleDefaultUOM,
+    updateUOMAllocations,
+    resetUOMInputs,
+    resetAll,
 
-		// Utilities
-		calculateAllocatedPCS,
-		getRemainingPCS,
-		hasUOM,
-	};
+    // Utilities
+    calculateAllocatedPCS,
+    getRemainingPCS,
+    hasUOM,
+  };
 }

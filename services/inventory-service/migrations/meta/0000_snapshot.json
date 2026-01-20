@@ -88,12 +88,8 @@
           "name": "inventory_warehouse_id_warehouses_id_fk",
           "tableFrom": "inventory",
           "tableTo": "warehouses",
-          "columnsFrom": [
-            "warehouse_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["warehouse_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -196,12 +192,8 @@
           "name": "inventory_movements_inventory_id_inventory_id_fk",
           "tableFrom": "inventory_movements",
           "tableTo": "inventory",
-          "columnsFrom": [
-            "inventory_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["inventory_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -290,12 +282,8 @@
           "name": "inventory_reservations_inventory_id_inventory_id_fk",
           "tableFrom": "inventory_reservations",
           "tableTo": "inventory",
-          "columnsFrom": [
-            "inventory_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["inventory_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -418,9 +406,7 @@
       "indexes": {
         "warehouses_code_unique": {
           "name": "warehouses_code_unique",
-          "columns": [
-            "code"
-          ],
+          "columns": ["code"],
           "isUnique": true
         }
       },

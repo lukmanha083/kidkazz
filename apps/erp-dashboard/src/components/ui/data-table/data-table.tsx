@@ -1,48 +1,41 @@
 import {
-	ColumnDef,
-	ColumnFiltersState,
-	SortingState,
-	VisibilityState,
-	flexRender,
-	getCoreRowModel,
-	getFilteredRowModel,
-	getPaginationRowModel,
-	getSortedRowModel,
-	useReactTable,
-	RowSelectionState,
-	OnChangeFn,
-	PaginationState,
-} from "@tanstack/react-table";
-import { useState } from "react";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "../table";
-import { DataTablePagination } from "./data-table-pagination";
-import { DataTableToolbar } from "./data-table-toolbar";
-import { Loader2 } from "lucide-react";
+  type ColumnDef,
+  type ColumnFiltersState,
+  type OnChangeFn,
+  type PaginationState,
+  type RowSelectionState,
+  type SortingState,
+  type VisibilityState,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from '@tanstack/react-table';
+import { Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../table';
+import { DataTablePagination } from './data-table-pagination';
+import { DataTableToolbar } from './data-table-toolbar';
 
 // Base props shared by all configurations
 interface BaseDataTableProps<TData, TValue> {
-	columns: ColumnDef<TData, TValue>[];
-	data: TData[];
-	searchKey?: string;
-	searchPlaceholder?: string;
-	isLoading?: boolean;
-	enableRowSelection?: boolean;
-	enableColumnVisibility?: boolean;
-	enablePagination?: boolean;
-	pageSize?: number;
-	onRowClick?: (row: TData) => void;
-	filterableColumns?: {
-		id: string;
-		title: string;
-		options: { label: string; value: string }[];
-	}[];
+  columns: ColumnDef<TData, TValue>[];
+  data: TData[];
+  searchKey?: string;
+  searchPlaceholder?: string;
+  isLoading?: boolean;
+  enableRowSelection?: boolean;
+  enableColumnVisibility?: boolean;
+  enablePagination?: boolean;
+  pageSize?: number;
+  onRowClick?: (row: TData) => void;
+  filterableColumns?: {
+    id: string;
+    title: string;
+    options: { label: string; value: string }[];
+  }[];
 }
 
 /**
@@ -69,27 +62,25 @@ interface BaseDataTableProps<TData, TValue> {
  * @returns A JSX element containing the configured data table, toolbar, and optional pagination controls.
  */
 // Manual pagination configuration - requires pageCount
-interface ManualPaginationProps<TData, TValue>
-	extends BaseDataTableProps<TData, TValue> {
-	manualPagination: true;
-	pageCount: number;
-	pagination?: PaginationState;
-	onPaginationChange?: OnChangeFn<PaginationState>;
+interface ManualPaginationProps<TData, TValue> extends BaseDataTableProps<TData, TValue> {
+  manualPagination: true;
+  pageCount: number;
+  pagination?: PaginationState;
+  onPaginationChange?: OnChangeFn<PaginationState>;
 }
 
 // Client-side pagination configuration - pageCount is optional
-interface ClientPaginationProps<TData, TValue>
-	extends BaseDataTableProps<TData, TValue> {
-	manualPagination?: false;
-	pageCount?: never;
-	pagination?: PaginationState;
-	onPaginationChange?: OnChangeFn<PaginationState>;
+interface ClientPaginationProps<TData, TValue> extends BaseDataTableProps<TData, TValue> {
+  manualPagination?: false;
+  pageCount?: never;
+  pagination?: PaginationState;
+  onPaginationChange?: OnChangeFn<PaginationState>;
 }
 
 // Union type for all configurations
 type DataTableProps<TData, TValue> =
-	| ManualPaginationProps<TData, TValue>
-	| ClientPaginationProps<TData, TValue>;
+  | ManualPaginationProps<TData, TValue>
+  | ClientPaginationProps<TData, TValue>;
 
 /**
  * Render a configurable data table with sorting, filtering, optional server/client pagination, column visibility, and row selection.
@@ -113,157 +104,137 @@ type DataTableProps<TData, TValue> =
  * @returns A React element rendering the data table.
  */
 export function DataTable<TData, TValue>({
-	columns,
-	data,
-	searchKey,
-	searchPlaceholder,
-	isLoading = false,
-	enableRowSelection = false,
-	enableColumnVisibility = true,
-	enablePagination = true,
-	pageSize = 10,
-	onRowClick,
-	filterableColumns = [],
-	// Server-side pagination
-	pageCount,
-	manualPagination = false,
-	pagination: controlledPagination,
-	onPaginationChange,
+  columns,
+  data,
+  searchKey,
+  searchPlaceholder,
+  isLoading = false,
+  enableRowSelection = false,
+  enableColumnVisibility = true,
+  enablePagination = true,
+  pageSize = 10,
+  onRowClick,
+  filterableColumns = [],
+  // Server-side pagination
+  pageCount,
+  manualPagination = false,
+  pagination: controlledPagination,
+  onPaginationChange,
 }: DataTableProps<TData, TValue>) {
-	const [sorting, setSorting] = useState<SortingState>([]);
-	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-	const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-	const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
-	const [globalFilter, setGlobalFilter] = useState<string>("");
-	const [internalPagination, setInternalPagination] = useState<PaginationState>(
-		{
-			pageIndex: 0,
-			pageSize,
-		},
-	);
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [globalFilter, setGlobalFilter] = useState<string>('');
+  const [internalPagination, setInternalPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize,
+  });
 
-	// Use controlled pagination if provided, otherwise use internal state
-	const paginationState = controlledPagination ?? internalPagination;
-	const setPaginationState = onPaginationChange ?? setInternalPagination;
+  // Use controlled pagination if provided, otherwise use internal state
+  const paginationState = controlledPagination ?? internalPagination;
+  const setPaginationState = onPaginationChange ?? setInternalPagination;
 
-	// Runtime validation for manual pagination
-	if (manualPagination && pageCount === undefined) {
-		console.warn(
-			"DataTable: pageCount is required when manualPagination is true. " +
-				"Pagination may not work correctly without it.",
-		);
-	}
+  // Runtime validation for manual pagination
+  if (manualPagination && pageCount === undefined) {
+    console.warn(
+      'DataTable: pageCount is required when manualPagination is true. ' +
+        'Pagination may not work correctly without it.'
+    );
+  }
 
-	const table = useReactTable({
-		data,
-		columns,
-		pageCount: manualPagination ? pageCount : undefined,
-		getCoreRowModel: getCoreRowModel(),
-		getPaginationRowModel: manualPagination
-			? undefined
-			: getPaginationRowModel(),
-		getSortedRowModel: getSortedRowModel(),
-		getFilteredRowModel: getFilteredRowModel(),
-		onSortingChange: setSorting,
-		onColumnFiltersChange: setColumnFilters,
-		onColumnVisibilityChange: setColumnVisibility,
-		onRowSelectionChange: setRowSelection,
-		onPaginationChange: setPaginationState,
-		onGlobalFilterChange: setGlobalFilter,
-		globalFilterFn: "includesString",
-		manualPagination,
-		state: {
-			sorting,
-			columnFilters,
-			columnVisibility,
-			rowSelection,
-			pagination: paginationState,
-			globalFilter,
-		},
-		enableRowSelection,
-	});
+  const table = useReactTable({
+    data,
+    columns,
+    pageCount: manualPagination ? pageCount : undefined,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: manualPagination ? undefined : getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onColumnVisibilityChange: setColumnVisibility,
+    onRowSelectionChange: setRowSelection,
+    onPaginationChange: setPaginationState,
+    onGlobalFilterChange: setGlobalFilter,
+    globalFilterFn: 'includesString',
+    manualPagination,
+    state: {
+      sorting,
+      columnFilters,
+      columnVisibility,
+      rowSelection,
+      pagination: paginationState,
+      globalFilter,
+    },
+    enableRowSelection,
+  });
 
-	return (
-		<div className="space-y-4">
-			<DataTableToolbar
-				table={table}
-				searchKey={searchKey}
-				searchPlaceholder={searchPlaceholder}
-				filterableColumns={filterableColumns}
-				enableColumnVisibility={enableColumnVisibility}
-			/>
-			{/* Horizontal scroll wrapper for mobile/tablet */}
-			<div className="overflow-x-auto -mx-4 tablet:mx-0">
-				<div className="inline-block min-w-full align-middle px-4 tablet:px-0">
-					<div className="rounded-md border">
-						<Table>
-							<TableHeader>
-								{table.getHeaderGroups().map((headerGroup) => (
-									<TableRow key={headerGroup.id}>
-										{headerGroup.headers.map((header) => (
-											<TableHead key={header.id} className="whitespace-nowrap">
-												{header.isPlaceholder
-													? null
-													: flexRender(
-															header.column.columnDef.header,
-															header.getContext(),
-														)}
-											</TableHead>
-										))}
-									</TableRow>
-								))}
-							</TableHeader>
-							<TableBody>
-								{isLoading ? (
-									<TableRow>
-										<TableCell
-											colSpan={columns.length}
-											className="h-24 text-center"
-										>
-											<div className="flex items-center justify-center gap-2">
-												<Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-												<span className="text-muted-foreground">
-													Loading...
-												</span>
-											</div>
-										</TableCell>
-									</TableRow>
-								) : table.getRowModel().rows?.length ? (
-									table.getRowModel().rows.map((row) => (
-										<TableRow
-											key={row.id}
-											data-state={row.getIsSelected() && "selected"}
-											className={onRowClick ? "cursor-pointer" : ""}
-											onClick={() => onRowClick?.(row.original)}
-										>
-											{row.getVisibleCells().map((cell) => (
-												<TableCell key={cell.id}>
-													{flexRender(
-														cell.column.columnDef.cell,
-														cell.getContext(),
-													)}
-												</TableCell>
-											))}
-										</TableRow>
-									))
-								) : (
-									<TableRow>
-										<TableCell
-											colSpan={columns.length}
-											className="h-24 text-center"
-										>
-											<span className="text-muted-foreground">
-												No results found.
-											</span>
-										</TableCell>
-									</TableRow>
-								)}
-							</TableBody>
-						</Table>
-					</div>
-				</div>
-			</div>
-			{enablePagination && <DataTablePagination table={table} />}
-		</div>
-	);
+  return (
+    <div className="space-y-4">
+      <DataTableToolbar
+        table={table}
+        searchKey={searchKey}
+        searchPlaceholder={searchPlaceholder}
+        filterableColumns={filterableColumns}
+        enableColumnVisibility={enableColumnVisibility}
+      />
+      {/* Horizontal scroll wrapper for mobile/tablet */}
+      <div className="overflow-x-auto -mx-4 tablet:mx-0">
+        <div className="inline-block min-w-full align-middle px-4 tablet:px-0">
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <TableHead key={header.id} className="whitespace-nowrap">
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(header.column.columnDef.header, header.getContext())}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="h-24 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                        <span className="text-muted-foreground">Loading...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : table.getRowModel().rows?.length ? (
+                  table.getRowModel().rows.map((row) => (
+                    <TableRow
+                      key={row.id}
+                      data-state={row.getIsSelected() && 'selected'}
+                      className={onRowClick ? 'cursor-pointer' : ''}
+                      onClick={() => onRowClick?.(row.original)}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="h-24 text-center">
+                      <span className="text-muted-foreground">No results found.</span>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      </div>
+      {enablePagination && <DataTablePagination table={table} />}
+    </div>
+  );
 }

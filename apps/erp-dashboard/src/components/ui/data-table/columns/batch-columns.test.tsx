@@ -1,11 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { flexRender } from '@tanstack/react-table';
-import {
-  getBatchColumns,
-  batchStatusOptions,
-} from './batch-columns';
 import type { InventoryBatch } from '@/lib/api';
+import { flexRender } from '@tanstack/react-table';
+import { render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { batchStatusOptions, getBatchColumns } from './batch-columns';
 
 // Mock the badge component
 vi.mock('../../badge', () => ({
@@ -24,10 +21,18 @@ vi.mock('../data-table-column-header', () => ({
 vi.mock('../data-table-row-actions', () => ({
   DataTableRowActions: ({ onEdit, onDelete, customActions }: any) => (
     <div data-testid="row-actions">
-      {onEdit && <button onClick={() => onEdit({})}>Edit</button>}
-      {onDelete && <button onClick={() => onDelete({})}>Delete</button>}
-      {customActions?.map((action: any, i: number) => (
-        <button key={i} onClick={action.onClick}>
+      {onEdit && (
+        <button type="button" onClick={() => onEdit({})}>
+          Edit
+        </button>
+      )}
+      {onDelete && (
+        <button type="button" onClick={() => onDelete({})}>
+          Delete
+        </button>
+      )}
+      {customActions?.map((action: any, idx: number) => (
+        <button type="button" key={`action-${action.label}-${idx}`} onClick={action.onClick}>
           {action.label}
         </button>
       ))}
@@ -69,8 +74,8 @@ describe('batch-columns', () => {
 
     it('should include all required column IDs', () => {
       const columns = getBatchColumns();
-      const columnIds = columns.map(col => 'accessorKey' in col ? col.accessorKey : col.id);
-      
+      const columnIds = columns.map((col) => ('accessorKey' in col ? col.accessorKey : col.id));
+
       expect(columnIds).toContain('batchNumber');
       expect(columnIds).toContain('lotNumber');
       expect(columnIds).toContain('expiration');
@@ -94,11 +99,11 @@ describe('batch-columns', () => {
     it('should handle null expiration date', () => {
       const batch = createMockBatch({ expirationDate: null });
       const columns = getBatchColumns();
-      const expirationColumn = columns.find(col => col.id === 'expiration');
-      
+      const expirationColumn = columns.find((col) => col.id === 'expiration');
+
       if (expirationColumn && 'accessorFn' in expirationColumn && expirationColumn.accessorFn) {
         const days = expirationColumn.accessorFn(batch, 0);
-        expect(days).toBe(Infinity);
+        expect(days).toBe(Number.POSITIVE_INFINITY);
       }
     });
 
@@ -106,10 +111,10 @@ describe('batch-columns', () => {
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + 30);
       const batch = createMockBatch({ expirationDate: futureDate.toISOString() });
-      
+
       const columns = getBatchColumns();
-      const expirationColumn = columns.find(col => col.id === 'expiration');
-      
+      const expirationColumn = columns.find((col) => col.id === 'expiration');
+
       if (expirationColumn && 'accessorFn' in expirationColumn && expirationColumn.accessorFn) {
         const days = expirationColumn.accessorFn(batch, 0);
         expect(days).toBeGreaterThan(0);
@@ -121,10 +126,10 @@ describe('batch-columns', () => {
       const pastDate = new Date();
       pastDate.setDate(pastDate.getDate() - 10);
       const batch = createMockBatch({ expirationDate: pastDate.toISOString() });
-      
+
       const columns = getBatchColumns();
-      const expirationColumn = columns.find(col => col.id === 'expiration');
-      
+      const expirationColumn = columns.find((col) => col.id === 'expiration');
+
       if (expirationColumn && 'accessorFn' in expirationColumn && expirationColumn.accessorFn) {
         const days = expirationColumn.accessorFn(batch, 0);
         expect(days).toBeLessThan(0);
@@ -139,22 +144,22 @@ describe('batch-columns', () => {
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + 30);
 
-      const expiredBatch = createMockBatch({ 
+      const expiredBatch = createMockBatch({
         id: 'expired',
-        expirationDate: pastDate.toISOString() 
+        expirationDate: pastDate.toISOString(),
       });
-      const activeBatch = createMockBatch({ 
+      const activeBatch = createMockBatch({
         id: 'active',
-        expirationDate: futureDate.toISOString() 
+        expirationDate: futureDate.toISOString(),
       });
 
       const columns = getBatchColumns();
-      const expirationColumn = columns.find(col => col.id === 'expiration');
-      
+      const expirationColumn = columns.find((col) => col.id === 'expiration');
+
       if (expirationColumn && 'sortingFn' in expirationColumn && expirationColumn.sortingFn) {
         const mockRowA = { original: expiredBatch } as any;
         const mockRowB = { original: activeBatch } as any;
-        
+
         const result = expirationColumn.sortingFn(mockRowA, mockRowB, 'expiration');
         expect(result).toBeLessThan(0); // Expired should come first
       }
@@ -170,12 +175,12 @@ describe('batch-columns', () => {
       const laterBatch = createMockBatch({ expirationDate: laterDate.toISOString() });
 
       const columns = getBatchColumns();
-      const expirationColumn = columns.find(col => col.id === 'expiration');
-      
+      const expirationColumn = columns.find((col) => col.id === 'expiration');
+
       if (expirationColumn && 'sortingFn' in expirationColumn && expirationColumn.sortingFn) {
         const mockRowA = { original: soonBatch } as any;
         const mockRowB = { original: laterBatch } as any;
-        
+
         const result = expirationColumn.sortingFn(mockRowA, mockRowB, 'expiration');
         expect(result).toBeLessThan(0); // Soon expiring should come first
       }
@@ -186,11 +191,11 @@ describe('batch-columns', () => {
     it('should filter by status value', () => {
       const batch = createMockBatch({ status: 'active' });
       const columns = getBatchColumns();
-      const statusColumn = columns.find(col => col.accessorKey === 'status');
-      
+      const statusColumn = columns.find((col) => col.accessorKey === 'status');
+
       if (statusColumn && 'filterFn' in statusColumn && statusColumn.filterFn) {
         const mockRow = { getValue: (id: string) => batch.status } as any;
-        
+
         expect(statusColumn.filterFn(mockRow, 'status', ['active'])).toBe(true);
         expect(statusColumn.filterFn(mockRow, 'status', ['expired'])).toBe(false);
         expect(statusColumn.filterFn(mockRow, 'status', ['active', 'quarantined'])).toBe(true);
@@ -200,14 +205,14 @@ describe('batch-columns', () => {
 
   describe('quantity column display', () => {
     it('should display available and reserved quantities', () => {
-      const batch = createMockBatch({ 
-        quantityAvailable: 100, 
-        quantityReserved: 20 
+      const batch = createMockBatch({
+        quantityAvailable: 100,
+        quantityReserved: 20,
       });
-      
+
       const columns = getBatchColumns();
-      const quantityColumn = columns.find(col => col.id === 'quantity');
-      
+      const quantityColumn = columns.find((col) => col.id === 'quantity');
+
       if (quantityColumn && 'cell' in quantityColumn) {
         const mockRow = { original: batch } as any;
         const cellContent = quantityColumn.cell({ row: mockRow } as any);
@@ -216,14 +221,14 @@ describe('batch-columns', () => {
     });
 
     it('should handle zero reserved quantity', () => {
-      const batch = createMockBatch({ 
-        quantityAvailable: 100, 
-        quantityReserved: 0 
+      const batch = createMockBatch({
+        quantityAvailable: 100,
+        quantityReserved: 0,
       });
-      
+
       const columns = getBatchColumns();
-      const quantityColumn = columns.find(col => col.id === 'quantity');
-      
+      const quantityColumn = columns.find((col) => col.id === 'quantity');
+
       if (quantityColumn && 'cell' in quantityColumn) {
         const mockRow = { original: batch } as any;
         const cellContent = quantityColumn.cell({ row: mockRow } as any);
@@ -239,16 +244,16 @@ describe('batch-columns', () => {
       const batch = createMockBatch();
 
       const columns = getBatchColumns({ onEdit, onDelete });
-      const actionsColumn = columns.find(col => col.id === 'actions');
-      
+      const actionsColumn = columns.find((col) => col.id === 'actions');
+
       expect(actionsColumn).toBeDefined();
     });
 
     it('should include custom adjust action when provided', () => {
       const onAdjust = vi.fn();
       const columns = getBatchColumns({ onAdjust });
-      const actionsColumn = columns.find(col => col.id === 'actions');
-      
+      const actionsColumn = columns.find((col) => col.id === 'actions');
+
       expect(actionsColumn).toBeDefined();
     });
   });
@@ -261,7 +266,7 @@ describe('batch-columns', () => {
     });
 
     it('should have correct status values', () => {
-      const values = batchStatusOptions.map(opt => opt.value);
+      const values = batchStatusOptions.map((opt) => opt.value);
       expect(values).toContain('active');
       expect(values).toContain('expired');
       expect(values).toContain('quarantined');
@@ -269,7 +274,7 @@ describe('batch-columns', () => {
     });
 
     it('should have labels for each status', () => {
-      batchStatusOptions.forEach(option => {
+      batchStatusOptions.forEach((option) => {
         expect(option.label).toBeDefined();
         expect(option.value).toBeDefined();
         expect(typeof option.label).toBe('string');
@@ -282,27 +287,27 @@ describe('batch-columns', () => {
     it('should handle missing lotNumber', () => {
       const batch = createMockBatch({ lotNumber: null });
       const columns = getBatchColumns();
-      const lotColumn = columns.find(col => col.accessorKey === 'lotNumber');
-      
+      const lotColumn = columns.find((col) => col.accessorKey === 'lotNumber');
+
       expect(lotColumn).toBeDefined();
     });
 
     it('should handle missing supplier', () => {
       const batch = createMockBatch({ supplier: null });
       const columns = getBatchColumns();
-      const supplierColumn = columns.find(col => col.accessorKey === 'supplier');
-      
+      const supplierColumn = columns.find((col) => col.accessorKey === 'supplier');
+
       expect(supplierColumn).toBeDefined();
     });
 
     it('should handle all status types', () => {
       const statuses: InventoryBatch['status'][] = ['active', 'expired', 'quarantined', 'recalled'];
-      
-      statuses.forEach(status => {
+
+      statuses.forEach((status) => {
         const batch = createMockBatch({ status });
         const columns = getBatchColumns();
-        const statusColumn = columns.find(col => col.accessorKey === 'status');
-        
+        const statusColumn = columns.find((col) => col.accessorKey === 'status');
+
         expect(statusColumn).toBeDefined();
       });
     });

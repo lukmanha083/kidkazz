@@ -1,10 +1,16 @@
-import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { z } from 'zod';
+import { and, eq, ne } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, and, ne } from 'drizzle-orm';
-import { uoms, productUOMs, products, productLocations, productUOMLocations } from '../../db/schema';
+import { Hono } from 'hono';
+import { z } from 'zod';
 import { generateId } from '../../../shared/utils/helpers';
+import {
+  productLocations,
+  productUOMLocations,
+  productUOMs,
+  products,
+  uoms,
+} from '../../db/schema';
 
 type Bindings = {
   DB: D1Database;
@@ -55,14 +61,10 @@ async function validateUOMStockPerWarehouse(
   uomCode: string,
   conversionFactor: number,
   newQuantity: number,
-  isUpdate: boolean = false
+  isUpdate = false
 ): Promise<string | null> {
   // Get product to access baseUnit
-  const product = await db
-    .select()
-    .from(products)
-    .where(eq(products.id, productId))
-    .get();
+  const product = await db.select().from(products).where(eq(products.id, productId)).get();
 
   if (!product) {
     return 'Product not found';
@@ -75,15 +77,12 @@ async function validateUOMStockPerWarehouse(
     .select()
     .from(productLocations)
     .where(
-      and(
-        eq(productLocations.productId, productId),
-        eq(productLocations.warehouseId, warehouseId)
-      )
+      and(eq(productLocations.productId, productId), eq(productLocations.warehouseId, warehouseId))
     )
     .get();
 
   if (!productLocation) {
-    return `Product location not found for warehouse. Please create product location first.`;
+    return 'Product location not found for warehouse. Please create product location first.';
   }
 
   const warehouseBaseStock = productLocation.quantity || 0;
@@ -148,11 +147,7 @@ async function validateUOMStockTotal(
   newStock?: number
 ): Promise<string | null> {
   // Get product's total stock
-  const product = await db
-    .select()
-    .from(products)
-    .where(eq(products.id, productId))
-    .get();
+  const product = await db.select().from(products).where(eq(products.id, productId)).get();
 
   if (!product) {
     return 'Product not found';
@@ -206,11 +201,7 @@ app.get('/:code', async (c) => {
   const code = c.req.param('code');
   const db = drizzle(c.env.DB);
 
-  const uom = await db
-    .select()
-    .from(uoms)
-    .where(eq(uoms.code, code))
-    .get();
+  const uom = await db.select().from(uoms).where(eq(uoms.code, code)).get();
 
   if (!uom) {
     return c.json({ error: 'UOM not found' }, 404);
@@ -301,11 +292,7 @@ app.put('/products/:id', zValidator('json', updateProductUOMSchema), async (c) =
   const db = drizzle(c.env.DB);
 
   // Get existing UOM to validate against
-  const existingUOM = await db
-    .select()
-    .from(productUOMs)
-    .where(eq(productUOMs.id, id))
-    .get();
+  const existingUOM = await db.select().from(productUOMs).where(eq(productUOMs.id, id)).get();
 
   if (!existingUOM) {
     return c.json({ error: 'Product UOM not found' }, 404);
@@ -316,10 +303,7 @@ app.put('/products/:id', zValidator('json', updateProductUOMSchema), async (c) =
     const barcodeExists = await db
       .select()
       .from(productUOMs)
-      .where(and(
-        eq(productUOMs.barcode, data.barcode),
-        ne(productUOMs.id, id)
-      ))
+      .where(and(eq(productUOMs.barcode, data.barcode), ne(productUOMs.id, id)))
       .get();
 
     if (barcodeExists) {
@@ -349,18 +333,10 @@ app.put('/products/:id', zValidator('json', updateProductUOMSchema), async (c) =
     updatedAt: new Date(),
   };
 
-  await db
-    .update(productUOMs)
-    .set(updateData)
-    .where(eq(productUOMs.id, id))
-    .run();
+  await db.update(productUOMs).set(updateData).where(eq(productUOMs.id, id)).run();
 
   // Fetch and return updated UOM
-  const updatedUOM = await db
-    .select()
-    .from(productUOMs)
-    .where(eq(productUOMs.id, id))
-    .get();
+  const updatedUOM = await db.select().from(productUOMs).where(eq(productUOMs.id, id)).get();
 
   return c.json(updatedUOM);
 });
@@ -434,7 +410,9 @@ const createProductUOMLocationSchema = z.object({
   quantity: z.number().int().min(0).default(0),
 });
 
-const updateProductUOMLocationSchema = createProductUOMLocationSchema.partial().omit({ productUOMId: true });
+const updateProductUOMLocationSchema = createProductUOMLocationSchema
+  .partial()
+  .omit({ productUOMId: true });
 
 // GET /api/uoms/locations - Get all product UOM locations
 app.get('/locations', async (c) => {
@@ -442,7 +420,7 @@ app.get('/locations', async (c) => {
   const productUOMId = c.req.query('productUOMId');
   const warehouseId = c.req.query('warehouseId');
 
-  let query = db.select().from(productUOMLocations);
+  const query = db.select().from(productUOMLocations);
 
   const conditions = [];
   if (productUOMId) {
@@ -452,9 +430,8 @@ app.get('/locations', async (c) => {
     conditions.push(eq(productUOMLocations.warehouseId, warehouseId));
   }
 
-  const locations = conditions.length > 0
-    ? await query.where(and(...conditions)).all()
-    : await query.all();
+  const locations =
+    conditions.length > 0 ? await query.where(and(...conditions)).all() : await query.all();
 
   return c.json({
     locations,
@@ -500,7 +477,8 @@ app.post('/locations', zValidator('json', createProductUOMLocationSchema), async
   if (existingLocation) {
     return c.json(
       {
-        error: 'UOM location already exists for this product UOM in this warehouse. Use PUT to update.',
+        error:
+          'UOM location already exists for this product UOM in this warehouse. Use PUT to update.',
       },
       400
     );
@@ -610,11 +588,7 @@ app.put('/locations/:id', zValidator('json', updateProductUOMLocationSchema), as
     updatedAt: new Date(),
   };
 
-  await db
-    .update(productUOMLocations)
-    .set(updateData)
-    .where(eq(productUOMLocations.id, id))
-    .run();
+  await db.update(productUOMLocations).set(updateData).where(eq(productUOMLocations.id, id)).run();
 
   const updated = await db
     .select()

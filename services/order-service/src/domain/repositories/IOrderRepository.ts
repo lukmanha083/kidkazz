@@ -1,5 +1,5 @@
-import { Order } from '../entities/Order';
-import { Result } from '@kidkazz/types';
+import type { Result } from '@kidkazz/types';
+import type { Order } from '../entities/Order';
 
 /**
  * Order Repository Port (Interface)

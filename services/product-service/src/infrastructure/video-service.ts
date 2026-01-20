@@ -91,9 +91,7 @@ export class VideoService {
   validateVideo(file: File | Blob, mimeType: string): void {
     // Check MIME type
     if (!VIDEO_CONFIG.ALLOWED_TYPES.includes(mimeType as any)) {
-      throw new Error(
-        `Invalid video type. Allowed: ${VIDEO_CONFIG.ALLOWED_TYPES.join(', ')}`
-      );
+      throw new Error(`Invalid video type. Allowed: ${VIDEO_CONFIG.ALLOWED_TYPES.join(', ')}`);
     }
 
     // Check file size
@@ -282,7 +280,7 @@ export class VideoService {
       throw new Error('Failed to upload to Cloudflare Stream');
     }
 
-    const result = await response.json() as {
+    const result = (await response.json()) as {
       result?: any;
     };
 
@@ -296,9 +294,7 @@ export class VideoService {
   /**
    * Get video from R2
    */
-  async getVideo(
-    filename: string
-  ): Promise<{ data: ArrayBuffer; contentType: string } | null> {
+  async getVideo(filename: string): Promise<{ data: ArrayBuffer; contentType: string } | null> {
     const object = await this.r2.get(filename);
     if (!object) {
       return null;
@@ -325,15 +321,12 @@ export class VideoService {
       throw new Error('Stream API token not configured');
     }
 
-    await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/{account_id}/stream/${videoId}`,
-      {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${this.streamApiToken}`,
-        },
-      }
-    );
+    await fetch(`https://api.cloudflare.com/client/v4/accounts/{account_id}/stream/${videoId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${this.streamApiToken}`,
+      },
+    });
   }
 
   /**
@@ -346,9 +339,7 @@ export class VideoService {
     });
 
     // Delete all videos
-    await Promise.all(
-      listed.objects.map((object) => this.deleteVideoR2(object.key))
-    );
+    await Promise.all(listed.objects.map((object) => this.deleteVideoR2(object.key)));
   }
 
   /**
@@ -372,7 +363,7 @@ export class VideoService {
       throw new Error('Failed to get Stream metadata');
     }
 
-    const result = await response.json() as {
+    const result = (await response.json()) as {
       result?: any;
     };
 

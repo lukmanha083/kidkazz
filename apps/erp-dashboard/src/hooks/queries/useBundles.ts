@@ -12,12 +12,12 @@
  * - Type-safe API calls
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  bundleApi,
-  type ProductBundle,
   type BundleItem,
   type CreateBundleInput,
+  type ProductBundle,
+  bundleApi,
 } from '../../lib/api';
 import { queryKeys } from '../../lib/query-client';
 
@@ -27,10 +27,7 @@ import { queryKeys } from '../../lib/query-client';
  * @param filters.status - Filter by bundle status ('active' | 'inactive')
  * @param options.enabled - Enable/disable query (default: true)
  */
-export function useBundles(
-  filters?: { status?: string },
-  options?: { enabled?: boolean }
-) {
+export function useBundles(filters?: { status?: string }, options?: { enabled?: boolean }) {
   const { enabled = true } = options || {};
 
   return useQuery({
@@ -124,9 +121,10 @@ export function useUpdateBundle() {
 
       // Snapshot the previous values for potential rollback
       const previousBundles = queryClient.getQueryData(queryKeys.bundles.lists());
-      const previousBundle = queryClient.getQueryData<{ bundle: ProductBundle; items: BundleItem[] }>(
-        queryKeys.bundles.detail(id)
-      );
+      const previousBundle = queryClient.getQueryData<{
+        bundle: ProductBundle;
+        items: BundleItem[];
+      }>(queryKeys.bundles.detail(id));
 
       // Optimistically update the bundles list cache
       // Find and update the matching bundle in all list queries
@@ -203,9 +201,10 @@ export function useUpdateBundleItems() {
     onMutate: async ({ id, items }) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.bundles.detail(id) });
 
-      const previousBundle = queryClient.getQueryData<{ bundle: ProductBundle; items: BundleItem[] }>(
-        queryKeys.bundles.detail(id)
-      );
+      const previousBundle = queryClient.getQueryData<{
+        bundle: ProductBundle;
+        items: BundleItem[];
+      }>(queryKeys.bundles.detail(id));
 
       // Optimistically update bundle detail with new items
       queryClient.setQueryData(
@@ -254,9 +253,10 @@ export function useUpdateBundleStock() {
       await queryClient.cancelQueries({ queryKey: queryKeys.bundles.all });
 
       const previousBundles = queryClient.getQueryData(queryKeys.bundles.lists());
-      const previousBundle = queryClient.getQueryData<{ bundle: ProductBundle; items: BundleItem[] }>(
-        queryKeys.bundles.detail(id)
-      );
+      const previousBundle = queryClient.getQueryData<{
+        bundle: ProductBundle;
+        items: BundleItem[];
+      }>(queryKeys.bundles.detail(id));
 
       // Optimistically update bundles list
       queryClient.setQueriesData(
@@ -266,9 +266,7 @@ export function useUpdateBundleStock() {
           return {
             ...old,
             bundles: old.bundles.map((bundle) =>
-              bundle.id === id
-                ? { ...bundle, availableStock, updatedAt: new Date() }
-                : bundle
+              bundle.id === id ? { ...bundle, availableStock, updatedAt: new Date() } : bundle
             ),
           };
         }

@@ -1,8 +1,8 @@
-import { Hono } from 'hono';
-import { drizzle } from 'drizzle-orm/d1';
 import { eq } from 'drizzle-orm';
-import { inventory, inventoryMovements, warehouses } from '../infrastructure/db/schema';
 import { isNull } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/d1';
+import { Hono } from 'hono';
+import { inventory, inventoryMovements, warehouses } from '../infrastructure/db/schema';
 
 type Bindings = {
   DB: D1Database;
@@ -30,13 +30,10 @@ app.get('/orphaned-inventory/check', async (c) => {
       .where(isNull(warehouses.deletedAt))
       .all();
 
-    const activeWarehouseIds = activeWarehouses.map(w => w.id);
+    const activeWarehouseIds = activeWarehouses.map((w) => w.id);
 
     // 2. Get all inventory records
-    const allInventory = await db
-      .select()
-      .from(inventory)
-      .all();
+    const allInventory = await db.select().from(inventory).all();
 
     // 3. Check for inventory pointing to deleted/non-existent warehouses
     for (const inv of allInventory) {
@@ -79,7 +76,7 @@ app.get('/orphaned-inventory/check', async (c) => {
     );
 
     orphanedData.inventoryWithNonExistentProducts = productChecks.filter(
-      check => !check.productExists
+      (check) => !check.productExists
     );
 
     const totalOrphaned =
@@ -95,12 +92,14 @@ app.get('/orphaned-inventory/check', async (c) => {
         activeWarehouses: activeWarehouseIds.length,
       },
       orphanedData,
-      warning: totalOrphaned > 0
-        ? `${totalOrphaned} orphaned inventory record(s) found! These should be investigated and cleaned up.`
-        : null,
-      message: totalOrphaned === 0
-        ? '✅ No orphaned inventory records - cascade delete working correctly!'
-        : '❌ Orphaned inventory detected - may indicate cascade delete failures',
+      warning:
+        totalOrphaned > 0
+          ? `${totalOrphaned} orphaned inventory record(s) found! These should be investigated and cleaned up.`
+          : null,
+      message:
+        totalOrphaned === 0
+          ? '✅ No orphaned inventory records - cascade delete working correctly!'
+          : '❌ Orphaned inventory detected - may indicate cascade delete failures',
     });
   } catch (error) {
     console.error('Orphaned inventory check error:', error);
@@ -137,13 +136,10 @@ app.post('/orphaned-inventory', async (c) => {
       .where(isNull(warehouses.deletedAt))
       .all();
 
-    const activeWarehouseIds = activeWarehouses.map(w => w.id);
+    const activeWarehouseIds = activeWarehouses.map((w) => w.id);
 
     // 2. Get all inventory
-    const allInventory = await db
-      .select()
-      .from(inventory)
-      .all();
+    const allInventory = await db.select().from(inventory).all();
 
     results.checked = allInventory.length;
 
@@ -161,13 +157,12 @@ app.post('/orphaned-inventory', async (c) => {
               .run();
 
             // Delete inventory
-            await db
-              .delete(inventory)
-              .where(eq(inventory.id, inv.id))
-              .run();
+            await db.delete(inventory).where(eq(inventory.id, inv.id)).run();
 
             results.deletedWarehouseOrphans++;
-            console.log(`Deleted orphaned inventory: ${inv.id} (deleted warehouse: ${inv.warehouseId})`);
+            console.log(
+              `Deleted orphaned inventory: ${inv.id} (deleted warehouse: ${inv.warehouseId})`
+            );
           } else {
             results.skipped++;
             results.errors.push(
@@ -193,13 +188,12 @@ app.post('/orphaned-inventory', async (c) => {
               .run();
 
             // Delete inventory
-            await db
-              .delete(inventory)
-              .where(eq(inventory.id, inv.id))
-              .run();
+            await db.delete(inventory).where(eq(inventory.id, inv.id)).run();
 
             results.deletedProductOrphans++;
-            console.log(`Deleted orphaned inventory: ${inv.id} (non-existent product: ${inv.productId})`);
+            console.log(
+              `Deleted orphaned inventory: ${inv.id} (non-existent product: ${inv.productId})`
+            );
           } else {
             results.skipped++;
             results.errors.push(
@@ -225,9 +219,10 @@ app.post('/orphaned-inventory', async (c) => {
         errors: results.errors.length,
       },
       errors: results.errors.length > 0 ? results.errors : null,
-      warning: results.skipped > 0
-        ? `${results.skipped} record(s) skipped - manual review required for non-zero stock orphans`
-        : null,
+      warning:
+        results.skipped > 0
+          ? `${results.skipped} record(s) skipped - manual review required for non-zero stock orphans`
+          : null,
     });
   } catch (error) {
     console.error('Cleanup job error:', error);

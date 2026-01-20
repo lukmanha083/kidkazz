@@ -1,30 +1,3 @@
-import { createFileRoute } from '@tanstack/react-router';
-import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,8 +8,45 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Warehouse, MapPin, Package, ArrowRightLeft, History, AlertTriangle, Loader2, Search } from 'lucide-react';
-import { warehouseApi, productApi, uomApi, productUOMLocationApi } from '@/lib/api';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { productApi, productUOMLocationApi, uomApi, warehouseApi } from '@/lib/api';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { createFileRoute } from '@tanstack/react-router';
+import {
+  AlertTriangle,
+  ArrowRightLeft,
+  History,
+  Loader2,
+  MapPin,
+  Package,
+  Search,
+  Warehouse,
+} from 'lucide-react';
+import type React from 'react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 export const Route = createFileRoute('/dashboard/inventory/uom-conversion')({
   component: UOMConversionPage,
@@ -87,7 +97,7 @@ function UOMConversionPage() {
   });
 
   const warehouses = warehousesData?.warehouses || [];
-  const activeWarehouses = warehouses.filter(wh => wh.status === 'active');
+  const activeWarehouses = warehouses.filter((wh) => wh.status === 'active');
 
   // Fetch all products with their UOMs from API
   const { data: productsData, isLoading: productsLoading } = useQuery({
@@ -147,7 +157,7 @@ function UOMConversionPage() {
         try {
           const response = await productUOMLocationApi.getAll({ warehouseId: selectedWarehouse });
           const locationMap: Record<string, number> = {};
-          response.locations.forEach(loc => {
+          response.locations.forEach((loc) => {
             locationMap[loc.productUOMId] = loc.quantity;
           });
           setUomLocationsByWarehouse(locationMap);
@@ -198,27 +208,27 @@ function UOMConversionPage() {
   // Calculate total PCS from all UOMs
   const calculateTotalPCS = (product: ProductInventory): number => {
     return product.productUOMs.reduce((total, uom) => {
-      return total + (uom.stock * uom.conversionFactor);
+      return total + uom.stock * uom.conversionFactor;
     }, 0);
   };
 
   // Get base unit UOM (could be PCS, KG, L, etc.)
   const getBaseUOM = (product: ProductInventory): ProductUOM | undefined => {
-    return product.productUOMs.find(uom => uom.uomCode === product.baseUnit);
+    return product.productUOMs.find((uom) => uom.uomCode === product.baseUnit);
   };
 
   // Handle open conversion drawer
   const handleOpenConversion = (product: ProductInventory, uom: ProductUOM) => {
     if (uom.uomCode === product.baseUnit) {
       toast.error(`Cannot convert ${product.baseUnit}`, {
-        description: `${product.baseUnit} is the base unit and cannot be converted`
+        description: `${product.baseUnit} is the base unit and cannot be converted`,
       });
       return;
     }
 
     if (uom.stock === 0) {
       toast.error('No stock available', {
-        description: `${uom.uomName} has no stock available for conversion`
+        description: `${uom.uomName} has no stock available for conversion`,
       });
       return;
     }
@@ -237,10 +247,10 @@ function UOMConversionPage() {
 
     if (!selectedProduct || !selectedFromUOM) return;
 
-    const qty = parseInt(conversionQuantity);
+    const qty = Number.parseInt(conversionQuantity);
     if (qty <= 0 || qty > selectedFromUOM.stock) {
       toast.error('Invalid quantity', {
-        description: `Please enter a quantity between 1 and ${selectedFromUOM.stock}`
+        description: `Please enter a quantity between 1 and ${selectedFromUOM.stock}`,
       });
       return;
     }
@@ -277,14 +287,14 @@ function UOMConversionPage() {
   const executeConversion = async () => {
     if (!selectedProduct || !selectedFromUOM) return;
 
-    const qty = parseInt(conversionQuantity);
+    const qty = Number.parseInt(conversionQuantity);
     const baseUnitsToAdd = qty * selectedFromUOM.conversionFactor;
 
     // Find the base UOM (could be PCS, KG, L, etc.)
     const baseUOM = getBaseUOM(selectedProduct);
     if (!baseUOM) {
       toast.error('Error', {
-        description: `${selectedProduct.baseUnit} UOM not found for this product`
+        description: `${selectedProduct.baseUnit} UOM not found for this product`,
       });
       return;
     }
@@ -299,22 +309,25 @@ function UOMConversionPage() {
       });
 
       // Update local state
-      setInventory(inventory.map(product => {
-        if (product.id === selectedProduct.id) {
-          return {
-            ...product,
-            productUOMs: product.productUOMs.map(uom => {
-              if (uom.id === selectedFromUOM.id) {
-                return { ...uom, stock: uom.stock - qty };
-              } else if (uom.uomCode === product.baseUnit) {
-                return { ...uom, stock: uom.stock + baseUnitsToAdd };
-              }
-              return uom;
-            }),
-          };
-        }
-        return product;
-      }));
+      setInventory(
+        inventory.map((product) => {
+          if (product.id === selectedProduct.id) {
+            return {
+              ...product,
+              productUOMs: product.productUOMs.map((uom) => {
+                if (uom.id === selectedFromUOM.id) {
+                  return { ...uom, stock: uom.stock - qty };
+                }
+                if (uom.uomCode === product.baseUnit) {
+                  return { ...uom, stock: uom.stock + baseUnitsToAdd };
+                }
+                return uom;
+              }),
+            };
+          }
+          return product;
+        })
+      );
 
       // Add to conversion history
       const newConversion: ConversionHistory = {
@@ -331,7 +344,9 @@ function UOMConversionPage() {
       };
       setConversions([newConversion, ...conversions]);
 
-      toast.success(`Converted ${qty} ${selectedFromUOM.uomName} → ${baseUnitsToAdd} ${selectedProduct.baseUnit}`);
+      toast.success(
+        `Converted ${qty} ${selectedFromUOM.uomName} → ${baseUnitsToAdd} ${selectedProduct.baseUnit}`
+      );
 
       setConfirmDialogOpen(false);
       setConversionDrawerOpen(false);
@@ -343,7 +358,7 @@ function UOMConversionPage() {
   };
 
   // Get low stock products (base unit stock < 10)
-  const lowStockProducts = inventory.filter(product => {
+  const lowStockProducts = inventory.filter((product) => {
     const baseUOM = getBaseUOM(product);
     return baseUOM && baseUOM.stock < 10;
   });
@@ -382,7 +397,11 @@ function UOMConversionPage() {
             Manage product inventory and perform UOM conversions
           </p>
         </div>
-        <Button onClick={() => setHistoryDrawerOpen(true)} variant="outline" className="w-full lg:w-auto">
+        <Button
+          onClick={() => setHistoryDrawerOpen(true)}
+          variant="outline"
+          className="w-full lg:w-auto"
+        >
           <History className="h-4 w-4 mr-2" />
           Conversion History
         </Button>
@@ -396,7 +415,7 @@ function UOMConversionPage() {
         </CardHeader>
         <CardContent>
           <div className="flex gap-2 flex-wrap">
-            {activeWarehouses.map(wh => (
+            {activeWarehouses.map((wh) => (
               <Button
                 key={wh.id}
                 variant={selectedWarehouse === wh.id ? 'default' : 'outline'}
@@ -422,10 +441,14 @@ function UOMConversionPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {inventory.filter(p => {
-                const hasStock = p.productUOMs.some(uom => (uomLocationsByWarehouse[uom.id] || 0) > 0);
-                return hasStock;
-              }).length}
+              {
+                inventory.filter((p) => {
+                  const hasStock = p.productUOMs.some(
+                    (uom) => (uomLocationsByWarehouse[uom.id] || 0) > 0
+                  );
+                  return hasStock;
+                }).length
+              }
             </div>
             <p className="text-xs text-muted-foreground">In this warehouse</p>
           </CardContent>
@@ -441,7 +464,7 @@ function UOMConversionPage() {
               {inventory.reduce((sum, p) => {
                 const warehouseBaseUnits = p.productUOMs.reduce((total, uom) => {
                   const warehouseStock = uomLocationsByWarehouse[uom.id] || 0;
-                  return total + (warehouseStock * uom.conversionFactor);
+                  return total + warehouseStock * uom.conversionFactor;
                 }, 0);
                 return sum + warehouseBaseUnits;
               }, 0)}
@@ -457,12 +480,14 @@ function UOMConversionPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {inventory.filter(p => {
-                const baseUOM = p.productUOMs.find(u => u.uomCode === p.baseUnit);
-                if (!baseUOM) return false;
-                const baseWarehouseStock = uomLocationsByWarehouse[baseUOM.id] || 0;
-                return baseWarehouseStock < 10;
-              }).length}
+              {
+                inventory.filter((p) => {
+                  const baseUOM = p.productUOMs.find((u) => u.uomCode === p.baseUnit);
+                  if (!baseUOM) return false;
+                  const baseWarehouseStock = uomLocationsByWarehouse[baseUOM.id] || 0;
+                  return baseWarehouseStock < 10;
+                }).length
+              }
             </div>
             <p className="text-xs text-muted-foreground">Base unit below 10</p>
           </CardContent>
@@ -515,9 +540,10 @@ function UOMConversionPage() {
               </TableHeader>
               <TableBody>
                 {inventory
-                  .filter(product => {
+                  .filter((product) => {
                     // Filter by search term (name or barcode)
-                    const matchesSearch = searchTerm === '' ||
+                    const matchesSearch =
+                      searchTerm === '' ||
                       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                       product.barcode.toLowerCase().includes(searchTerm.toLowerCase()) ||
                       product.sku.toLowerCase().includes(searchTerm.toLowerCase());
@@ -527,104 +553,116 @@ function UOMConversionPage() {
                     // Calculate total stock for this product at the warehouse
                     const warehouseTotalStock = product.productUOMs.reduce((total, uom) => {
                       const warehouseStock = uomLocationsByWarehouse[uom.id] || 0;
-                      return total + (warehouseStock * uom.conversionFactor);
+                      return total + warehouseStock * uom.conversionFactor;
                     }, 0);
 
                     // Only show products with stock > 0
                     return warehouseTotalStock > 0;
                   })
-                  .map(product => {
-                  // Calculate warehouse-specific stock for each UOM
-                  const warehouseUOMs = product.productUOMs.map(uom => ({
-                    ...uom,
-                    warehouseStock: uomLocationsByWarehouse[uom.id] || 0,
-                  }));
+                  .map((product) => {
+                    // Calculate warehouse-specific stock for each UOM
+                    const warehouseUOMs = product.productUOMs.map((uom) => ({
+                      ...uom,
+                      warehouseStock: uomLocationsByWarehouse[uom.id] || 0,
+                    }));
 
-                  const baseUOM = warehouseUOMs.find(u => u.uomCode === product.baseUnit);
-                  const baseWarehouseStock = baseUOM?.warehouseStock || 0;
+                    const baseUOM = warehouseUOMs.find((u) => u.uomCode === product.baseUnit);
+                    const baseWarehouseStock = baseUOM?.warehouseStock || 0;
 
-                  // Calculate total base units from warehouse-specific stock
-                  const warehouseTotalBaseUnits = warehouseUOMs.reduce((total, uom) => {
-                    return total + (uom.warehouseStock * uom.conversionFactor);
-                  }, 0);
+                    // Calculate total base units from warehouse-specific stock
+                    const warehouseTotalBaseUnits = warehouseUOMs.reduce((total, uom) => {
+                      return total + uom.warehouseStock * uom.conversionFactor;
+                    }, 0);
 
-                  const isLowStock = baseWarehouseStock < 10;
+                    const isLowStock = baseWarehouseStock < 10;
 
-                  return (
-                    <TableRow key={product.id}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{product.name}</p>
-                          <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{product.category}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          {warehouseUOMs.map(uom => {
-                            const warehouseStock = uom.warehouseStock;
-                            return (
-                              <div
-                                key={uom.id}
-                                className="flex items-center justify-between gap-4 p-2 border rounded text-sm"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium">{uom.uomCode}</span>
-                                  <span className="text-muted-foreground">×{uom.conversionFactor}</span>
-                                  {uom.isDefault && (
-                                    <Badge variant="outline" className="text-xs">Default</Badge>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-3">
-                                  <div className="text-right">
-                                    <span
-                                      className={`font-semibold ${
-                                        uom.uomCode === product.baseUnit && warehouseStock < 10
-                                          ? 'text-destructive'
-                                          : ''
-                                      }`}
-                                    >
-                                      {warehouseStock} units
+                    return (
+                      <TableRow key={product.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{product.name}</p>
+                            <p className="text-xs text-muted-foreground">SKU: {product.sku}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{product.category}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            {warehouseUOMs.map((uom) => {
+                              const warehouseStock = uom.warehouseStock;
+                              return (
+                                <div
+                                  key={uom.id}
+                                  className="flex items-center justify-between gap-4 p-2 border rounded text-sm"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">{uom.uomCode}</span>
+                                    <span className="text-muted-foreground">
+                                      ×{uom.conversionFactor}
                                     </span>
-                                    <p className="text-xs text-muted-foreground">at warehouse</p>
+                                    {uom.isDefault && (
+                                      <Badge variant="outline" className="text-xs">
+                                        Default
+                                      </Badge>
+                                    )}
                                   </div>
-                                  {uom.uomCode !== product.baseUnit && warehouseStock > 0 && (
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => handleOpenConversion(product, {...uom, stock: warehouseStock})}
-                                    >
-                                      <ArrowRightLeft className="h-3 w-3 mr-1" />
-                                      Convert
-                                    </Button>
-                                  )}
+                                  <div className="flex items-center gap-3">
+                                    <div className="text-right">
+                                      <span
+                                        className={`font-semibold ${
+                                          uom.uomCode === product.baseUnit && warehouseStock < 10
+                                            ? 'text-destructive'
+                                            : ''
+                                        }`}
+                                      >
+                                        {warehouseStock} units
+                                      </span>
+                                      <p className="text-xs text-muted-foreground">at warehouse</p>
+                                    </div>
+                                    {uom.uomCode !== product.baseUnit && warehouseStock > 0 && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() =>
+                                          handleOpenConversion(product, {
+                                            ...uom,
+                                            stock: warehouseStock,
+                                          })
+                                        }
+                                      >
+                                        <ArrowRightLeft className="h-3 w-3 mr-1" />
+                                        Convert
+                                      </Button>
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className={`text-lg font-bold ${isLowStock ? 'text-destructive' : ''}`}>
-                          {warehouseTotalBaseUnits} {product.baseUnit}
-                        </div>
-                        <p className="text-xs text-muted-foreground">at this warehouse</p>
-                        {isLowStock && (
-                          <p className="text-xs text-destructive">Low stock!</p>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {isLowStock && warehouseUOMs.some(u => u.uomCode !== product.baseUnit && u.warehouseStock > 0) && (
-                          <Badge variant="destructive" className="animate-pulse">
-                            Convert Available
-                          </Badge>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                              );
+                            })}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div
+                            className={`text-lg font-bold ${isLowStock ? 'text-destructive' : ''}`}
+                          >
+                            {warehouseTotalBaseUnits} {product.baseUnit}
+                          </div>
+                          <p className="text-xs text-muted-foreground">at this warehouse</p>
+                          {isLowStock && <p className="text-xs text-destructive">Low stock!</p>}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {isLowStock &&
+                            warehouseUOMs.some(
+                              (u) => u.uomCode !== product.baseUnit && u.warehouseStock > 0
+                            ) && (
+                              <Badge variant="destructive" className="animate-pulse">
+                                Convert Available
+                              </Badge>
+                            )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
               </TableBody>
             </Table>
           </div>
@@ -689,22 +727,27 @@ function UOMConversionPage() {
                   </div>
 
                   {/* Conversion Preview */}
-                  {conversionQuantity && parseInt(conversionQuantity) > 0 && selectedProduct && (
-                    <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Will produce</p>
-                          <p className="text-2xl font-bold text-green-600">
-                            {parseInt(conversionQuantity) * selectedFromUOM.conversionFactor} {selectedProduct.baseUnit}
-                          </p>
+                  {conversionQuantity &&
+                    Number.parseInt(conversionQuantity) > 0 &&
+                    selectedProduct && (
+                      <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Will produce</p>
+                            <p className="text-2xl font-bold text-green-600">
+                              {Number.parseInt(conversionQuantity) *
+                                selectedFromUOM.conversionFactor}{' '}
+                              {selectedProduct.baseUnit}
+                            </p>
+                          </div>
+                          <ArrowRightLeft className="h-6 w-6 text-green-600" />
                         </div>
-                        <ArrowRightLeft className="h-6 w-6 text-green-600" />
+                        <p className="text-xs text-muted-foreground mt-2">
+                          {conversionQuantity} {selectedFromUOM.uomName} ×{' '}
+                          {selectedFromUOM.conversionFactor}
+                        </p>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        {conversionQuantity} {selectedFromUOM.uomName} × {selectedFromUOM.conversionFactor}
-                      </p>
-                    </div>
-                  )}
+                    )}
 
                   <Separator />
 
@@ -718,7 +761,9 @@ function UOMConversionPage() {
                       className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
                       required
                     >
-                      <option value={`${selectedProduct?.baseUnit || 'Base unit'} sold out`}>{selectedProduct?.baseUnit || 'Base unit'} sold out</option>
+                      <option value={`${selectedProduct?.baseUnit || 'Base unit'} sold out`}>
+                        {selectedProduct?.baseUnit || 'Base unit'} sold out
+                      </option>
                       <option value="Damaged packaging">Damaged packaging</option>
                       <option value="Bulk order breakdown">Bulk order breakdown</option>
                       <option value="Customer request">Customer request</option>
@@ -760,9 +805,7 @@ function UOMConversionPage() {
         <DrawerContent>
           <DrawerHeader>
             <DrawerTitle>Conversion History</DrawerTitle>
-            <DrawerDescription>
-              All UOM conversion activities in this warehouse
-            </DrawerDescription>
+            <DrawerDescription>All UOM conversion activities in this warehouse</DrawerDescription>
           </DrawerHeader>
 
           <div className="px-6 pb-6">
@@ -770,18 +813,18 @@ function UOMConversionPage() {
               <div className="text-center py-12">
                 <History className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
                 <p className="text-muted-foreground mt-4">No conversions yet</p>
-                <p className="text-sm text-muted-foreground">
-                  Conversion history will appear here
-                </p>
+                <p className="text-sm text-muted-foreground">Conversion history will appear here</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {conversions.map(conversion => (
+                {conversions.map((conversion) => (
                   <div key={conversion.id} className="p-4 border rounded-md">
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="font-semibold">{conversion.productName}</p>
-                        <p className="text-sm text-muted-foreground">SKU: {conversion.productSKU}</p>
+                        <p className="text-sm text-muted-foreground">
+                          SKU: {conversion.productSKU}
+                        </p>
                       </div>
                       <Badge variant="outline">
                         {conversion.fromUOM} → {conversion.toQuantity} Base Units
@@ -840,13 +883,15 @@ function UOMConversionPage() {
                       </Badge>
                       <ArrowRightLeft className="h-4 w-4" />
                       <Badge variant="outline">
-                        {parseInt(conversionQuantity) * selectedFromUOM.conversionFactor} {selectedProduct.baseUnit}
+                        {Number.parseInt(conversionQuantity) * selectedFromUOM.conversionFactor}{' '}
+                        {selectedProduct.baseUnit}
                       </Badge>
                     </div>
                   </div>
                   <p className="mt-3 text-sm">
                     This will decrease <strong>{selectedFromUOM.uomName}</strong> stock and increase
-                    <strong> {selectedProduct.baseUnit}</strong> stock. This action cannot be undone.
+                    <strong> {selectedProduct.baseUnit}</strong> stock. This action cannot be
+                    undone.
                   </p>
                 </>
               )}
@@ -854,9 +899,7 @@ function UOMConversionPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={executeConversion}>
-              Confirm Conversion
-            </AlertDialogAction>
+            <AlertDialogAction onClick={executeConversion}>Confirm Conversion</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

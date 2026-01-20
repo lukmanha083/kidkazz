@@ -1,5 +1,5 @@
-import { IProductRepository } from '../../domain/repositories/IProductRepository';
-import { EventPublisher } from '../../infrastructure/events/EventPublisher';
+import type { IProductRepository } from '../../domain/repositories/IProductRepository';
+import type { EventPublisher } from '../../infrastructure/events/EventPublisher';
 
 interface ChangePriceInput {
   productId: string;

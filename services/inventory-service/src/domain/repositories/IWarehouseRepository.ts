@@ -1,5 +1,5 @@
 import type { IRepository } from '@kidkazz/ddd-core';
-import { Warehouse } from '../entities/Warehouse';
+import type { Warehouse } from '../entities/Warehouse';
 
 /**
  * Warehouse Repository Interface

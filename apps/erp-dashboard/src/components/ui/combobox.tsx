@@ -1,32 +1,28 @@
-import * as React from "react"
-import { Check, ChevronsUpDown } from "lucide-react"
+import { Check, ChevronsUpDown } from 'lucide-react';
+import * as React from 'react';
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 export interface ComboboxOption {
-  value: string
-  label: string
-  barcode?: string
-  name?: string
-  sku?: string
+  value: string;
+  label: string;
+  barcode?: string;
+  name?: string;
+  sku?: string;
 }
 
 interface ComboboxProps {
-  options: ComboboxOption[]
-  value?: string
-  onValueChange?: (value: string) => void
-  placeholder?: string
-  searchPlaceholder?: string
-  emptyText?: string
-  className?: string
-  disabled?: boolean
+  options: ComboboxOption[];
+  value?: string;
+  onValueChange?: (value: string) => void;
+  placeholder?: string;
+  searchPlaceholder?: string;
+  emptyText?: string;
+  className?: string;
+  disabled?: boolean;
 }
 
 /**
@@ -51,14 +47,14 @@ export function Combobox({
   options,
   value,
   onValueChange,
-  placeholder = "Select option...",
-  searchPlaceholder = "Search...",
-  emptyText = "No option found.",
+  placeholder = 'Select option...',
+  searchPlaceholder = 'Search...',
+  emptyText = 'No option found.',
   className,
   disabled = false,
 }: ComboboxProps) {
-  const [open, setOpen] = React.useState(false)
-  const [searchValue, setSearchValue] = React.useState("")
+  const [open, setOpen] = React.useState(false);
+  const [searchValue, setSearchValue] = React.useState('');
 
   const filteredOptions = React.useMemo(() => {
     if (!searchValue) return options;
@@ -75,24 +71,22 @@ export function Combobox({
   }, [options, searchValue]);
 
   const handleSelect = (selectedValue: string) => {
-    onValueChange?.(selectedValue === value ? "" : selectedValue)
-    setSearchValue("")
-    setOpen(false)
-  }
+    onValueChange?.(selectedValue === value ? '' : selectedValue);
+    setSearchValue('');
+    setOpen(false);
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild disabled={disabled}>
         <Button
+          type="button"
           variant="outline"
-          role="combobox"
           aria-expanded={open}
           disabled={disabled}
-          className={cn("w-full justify-between", className)}
+          className={cn('w-full justify-between', className)}
         >
-          {value
-            ? options.find((option) => option.value === value)?.label
-            : placeholder}
+          {value ? options.find((option) => option.value === value)?.label : placeholder}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -108,9 +102,7 @@ export function Combobox({
           </div>
           <div className="max-h-[300px] overflow-y-auto">
             {filteredOptions.length === 0 ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">
-                {emptyText}
-              </div>
+              <div className="py-6 text-center text-sm text-muted-foreground">{emptyText}</div>
             ) : (
               <div className="p-1">
                 {filteredOptions.map((option) => {
@@ -119,17 +111,22 @@ export function Combobox({
                     <div
                       key={option.value}
                       className={cn(
-                        "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none",
-                        "hover:bg-accent hover:text-accent-foreground",
-                        isSelected && "bg-accent"
+                        'relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2 text-sm outline-none',
+                        'hover:bg-accent hover:text-accent-foreground',
+                        isSelected && 'bg-accent'
                       )}
+                      // biome-ignore lint/a11y/noNoninteractiveTabindex: interactive option
+                      tabIndex={0}
                       onClick={() => handleSelect(option.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleSelect(option.value);
+                        }
+                      }}
                     >
                       <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          isSelected ? "opacity-100" : "opacity-0"
-                        )}
+                        className={cn('mr-2 h-4 w-4', isSelected ? 'opacity-100' : 'opacity-0')}
                       />
                       <div className="flex flex-col gap-0.5">
                         <span>{option.label}</span>
@@ -148,5 +145,5 @@ export function Combobox({
         </div>
       </PopoverContent>
     </Popover>
-  )
+  );
 }

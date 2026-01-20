@@ -19,9 +19,9 @@
  * - Cross-service references remain valid
  */
 
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { db } from '../../infrastructure/db';
-import { warehouses, inventory } from '../../infrastructure/db/schema';
-import { eq, isNull, and, sql } from 'drizzle-orm';
+import { inventory, warehouses } from '../../infrastructure/db/schema';
 
 export interface DeleteWarehouseInput {
   warehouseId: string;
@@ -47,12 +47,7 @@ export class DeleteWarehouseUseCase {
     const warehouse = await db
       .select()
       .from(warehouses)
-      .where(
-        and(
-          eq(warehouses.id, warehouseId),
-          isNull(warehouses.deletedAt)
-        )
-      )
+      .where(and(eq(warehouses.id, warehouseId), isNull(warehouses.deletedAt)))
       .get();
 
     if (!warehouse) {
@@ -126,7 +121,9 @@ export class DeleteWarehouseUseCase {
         .where(eq(warehouses.id, warehouseId))
         .run();
 
-      console.log(`Warehouse soft deleted: ${warehouse.name} (${warehouse.code}) by user ${userId}`);
+      console.log(
+        `Warehouse soft deleted: ${warehouse.name} (${warehouse.code}) by user ${userId}`
+      );
 
       // Optional: Publish event for other services to react
       // eventBus.publish('warehouse.deleted', { warehouseId, timestamp: now });

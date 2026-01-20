@@ -1,15 +1,15 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
-import { useMemo } from 'react';
-import { ColumnDef } from '@tanstack/react-table';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, Loader2, Package, Warehouse } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { inventoryApi, warehouseApi, productApi } from '@/lib/api';
-import { lowStockSearchSchema } from '@/lib/route-search-schemas';
-import { queryKeys } from '@/lib/query-client';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table/data-table-column-header';
+import { inventoryApi, productApi, warehouseApi } from '@/lib/api';
+import { queryKeys } from '@/lib/query-client';
+import { lowStockSearchSchema } from '@/lib/route-search-schemas';
+import { useQuery } from '@tanstack/react-query';
+import { createFileRoute } from '@tanstack/react-router';
+import type { ColumnDef } from '@tanstack/react-table';
+import { AlertCircle, Loader2, Package, Warehouse } from 'lucide-react';
+import { useMemo } from 'react';
 
 /**
  * Low Stock Report Route
@@ -68,27 +68,17 @@ const formatRupiah = (amount: number): string => {
 const lowStockColumns: ColumnDef<LowStockItem>[] = [
   {
     accessorKey: 'productName',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Product" />
-    ),
-    cell: ({ row }) => (
-      <span className="font-medium">{row.getValue('productName')}</span>
-    ),
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Product" />,
+    cell: ({ row }) => <span className="font-medium">{row.getValue('productName')}</span>,
   },
   {
     accessorKey: 'productSKU',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="SKU" />
-    ),
-    cell: ({ row }) => (
-      <span className="font-mono text-sm">{row.getValue('productSKU')}</span>
-    ),
+    header: ({ column }) => <DataTableColumnHeader column={column} title="SKU" />,
+    cell: ({ row }) => <span className="font-mono text-sm">{row.getValue('productSKU')}</span>,
   },
   {
     accessorKey: 'warehouseName',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Warehouse" />
-    ),
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Warehouse" />,
     cell: ({ row }) => row.getValue('warehouseName'),
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id));
@@ -96,9 +86,7 @@ const lowStockColumns: ColumnDef<LowStockItem>[] = [
   },
   {
     accessorKey: 'currentStock',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Current Stock" />
-    ),
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Current Stock" />,
     cell: ({ row }) => (
       <Badge variant="destructive" className="font-mono">
         {row.getValue('currentStock')}
@@ -107,20 +95,14 @@ const lowStockColumns: ColumnDef<LowStockItem>[] = [
   },
   {
     accessorKey: 'minimumStock',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Min Stock" />
-    ),
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Min Stock" />,
     cell: ({ row }) => (
-      <span className="font-mono text-muted-foreground">
-        {row.getValue('minimumStock')}
-      </span>
+      <span className="font-mono text-muted-foreground">{row.getValue('minimumStock')}</span>
     ),
   },
   {
     accessorKey: 'deficit',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Deficit" />
-    ),
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Deficit" />,
     cell: ({ row }) => (
       <Badge variant="outline" className="font-mono text-orange-600 border-orange-300">
         -{row.getValue('deficit')}
@@ -129,9 +111,7 @@ const lowStockColumns: ColumnDef<LowStockItem>[] = [
   },
   {
     accessorKey: 'price',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Unit Price" />
-    ),
+    header: ({ column }) => <DataTableColumnHeader column={column} title="Unit Price" />,
     cell: ({ row }) => formatRupiah(row.getValue('price')),
   },
 ];
@@ -173,10 +153,10 @@ function LowStockPage() {
   // Calculate low stock items
   const lowStockItems = useMemo((): LowStockItem[] => {
     return inventory
-      .filter(inv => inv.quantityAvailable < inv.minimumStock)
-      .map(inv => {
-        const product = products.find(p => p.id === inv.productId);
-        const warehouse = warehouses.find(w => w.id === inv.warehouseId);
+      .filter((inv) => inv.quantityAvailable < inv.minimumStock)
+      .map((inv) => {
+        const product = products.find((p) => p.id === inv.productId);
+        const warehouse = warehouses.find((w) => w.id === inv.warehouseId);
 
         return {
           productId: inv.productId,
@@ -195,12 +175,12 @@ function LowStockPage() {
   // Calculate summary stats
   const totalLowStockItems = lowStockItems.length;
   const totalDeficit = lowStockItems.reduce((sum, item) => sum + item.deficit, 0);
-  const affectedWarehouses = new Set(lowStockItems.map(item => item.warehouseId)).size;
+  const affectedWarehouses = new Set(lowStockItems.map((item) => item.warehouseId)).size;
 
   // Warehouse filter options
   const warehouseFilterOptions = useMemo(() => {
-    const uniqueWarehouses = Array.from(new Set(lowStockItems.map(item => item.warehouseName)));
-    return uniqueWarehouses.map(name => ({
+    const uniqueWarehouses = Array.from(new Set(lowStockItems.map((item) => item.warehouseName)));
+    return uniqueWarehouses.map((name) => ({
       label: name,
       value: name,
     }));
@@ -212,9 +192,7 @@ function LowStockPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Low Stock Report</h1>
-            <p className="text-muted-foreground mt-1">
-              Products below minimum stock levels
-            </p>
+            <p className="text-muted-foreground mt-1">Products below minimum stock levels</p>
           </div>
         </div>
         <Card>
@@ -248,9 +226,7 @@ function LowStockPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalLowStockItems}</div>
-            <p className="text-xs text-muted-foreground">
-              Products below minimum
-            </p>
+            <p className="text-xs text-muted-foreground">Products below minimum</p>
           </CardContent>
         </Card>
 
@@ -261,9 +237,7 @@ function LowStockPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalDeficit}</div>
-            <p className="text-xs text-muted-foreground">
-              Units needed to reach minimum
-            </p>
+            <p className="text-xs text-muted-foreground">Units needed to reach minimum</p>
           </CardContent>
         </Card>
 
@@ -274,9 +248,7 @@ function LowStockPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{affectedWarehouses}</div>
-            <p className="text-xs text-muted-foreground">
-              Warehouses with low stock
-            </p>
+            <p className="text-xs text-muted-foreground">Warehouses with low stock</p>
           </CardContent>
         </Card>
       </div>

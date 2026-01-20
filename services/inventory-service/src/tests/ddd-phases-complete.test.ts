@@ -12,18 +12,18 @@
  * Phase 6: Testing & Validation
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { and, eq, gte, isNotNull, isNull, lt, sql } from 'drizzle-orm';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   db,
-  resetDatabase,
   generateId,
   inventory,
   inventoryBatches,
   inventoryMovements,
   inventoryReservations,
+  resetDatabase,
   warehouses,
 } from '../infrastructure/db';
-import { eq, and, isNull, isNotNull, lt, gte, sql } from 'drizzle-orm';
 
 // ============================================
 // Test Setup & Utilities
@@ -97,11 +97,7 @@ describe('DDD Refactoring Complete Test Suite', () => {
           updatedAt: new Date(),
         });
 
-        const result = await db
-          .select()
-          .from(inventory)
-          .where(eq(inventory.id, inventoryId))
-          .get();
+        const result = await db.select().from(inventory).where(eq(inventory.id, inventoryId)).get();
 
         expect(result).toBeDefined();
         expect(result?.variantId).toBe(variantId);
@@ -164,11 +160,7 @@ describe('DDD Refactoring Complete Test Suite', () => {
           updatedAt: new Date(),
         });
 
-        const result = await db
-          .select()
-          .from(inventory)
-          .where(eq(inventory.id, inventoryId))
-          .get();
+        const result = await db.select().from(inventory).where(eq(inventory.id, inventoryId)).get();
 
         expect(result?.uomId).toBe(uomId);
         expect(result?.variantId).toBeNull();
@@ -188,11 +180,7 @@ describe('DDD Refactoring Complete Test Suite', () => {
           updatedAt: new Date(),
         });
 
-        const results = await db
-          .select()
-          .from(inventory)
-          .where(eq(inventory.uomId, uomId))
-          .all();
+        const results = await db.select().from(inventory).where(eq(inventory.uomId, uomId)).all();
 
         expect(results).toHaveLength(1);
         expect(results[0].quantityAvailable).toBe(10);
@@ -217,11 +205,7 @@ describe('DDD Refactoring Complete Test Suite', () => {
           updatedAt: new Date(),
         });
 
-        const result = await db
-          .select()
-          .from(inventory)
-          .where(eq(inventory.id, inventoryId))
-          .get();
+        const result = await db.select().from(inventory).where(eq(inventory.id, inventoryId)).get();
 
         expect(result?.rack).toBe('A1');
         expect(result?.bin).toBe('01');
@@ -279,11 +263,7 @@ describe('DDD Refactoring Complete Test Suite', () => {
           updatedAt: new Date(),
         });
 
-        const result = await db
-          .select()
-          .from(inventory)
-          .where(eq(inventory.id, inventoryId))
-          .get();
+        const result = await db.select().from(inventory).where(eq(inventory.id, inventoryId)).get();
 
         expect(result?.version).toBe(1);
       });
@@ -303,11 +283,7 @@ describe('DDD Refactoring Complete Test Suite', () => {
           updatedAt: new Date(),
         });
 
-        const result = await db
-          .select()
-          .from(inventory)
-          .where(eq(inventory.id, inventoryId))
-          .get();
+        const result = await db.select().from(inventory).where(eq(inventory.id, inventoryId)).get();
 
         expect(result?.lastModifiedAt).toBe(timestamp);
       });
@@ -339,11 +315,13 @@ describe('DDD Refactoring Complete Test Suite', () => {
         const baseProductInventory = await db
           .select()
           .from(inventory)
-          .where(and(
-            eq(inventory.productId, 'product-001'),
-            isNull(inventory.variantId),
-            isNull(inventory.uomId)
-          ))
+          .where(
+            and(
+              eq(inventory.productId, 'product-001'),
+              isNull(inventory.variantId),
+              isNull(inventory.uomId)
+            )
+          )
           .get();
 
         expect(baseProductInventory).toBeDefined();
@@ -458,8 +436,8 @@ describe('DDD Refactoring Complete Test Suite', () => {
         expect(batches).toHaveLength(2);
 
         // Verify FEFO ordering is possible
-        const sortedByExpiration = batches.sort((a, b) =>
-          new Date(a.expirationDate!).getTime() - new Date(b.expirationDate!).getTime()
+        const sortedByExpiration = batches.sort(
+          (a, b) => new Date(a.expirationDate!).getTime() - new Date(b.expirationDate!).getTime()
         );
         expect(sortedByExpiration[0].batchNumber).toBe('BATCH-A001');
       });
@@ -493,10 +471,7 @@ describe('DDD Refactoring Complete Test Suite', () => {
             version: 2,
             lastModifiedAt: new Date().toISOString(),
           })
-          .where(and(
-            eq(inventory.id, inventoryId),
-            eq(inventory.version, 1)
-          ))
+          .where(and(eq(inventory.id, inventoryId), eq(inventory.version, 1)))
           .run();
 
         expect(updateResult.changes).toBe(1);
@@ -533,10 +508,12 @@ describe('DDD Refactoring Complete Test Suite', () => {
             quantityAvailable: 80,
             version: 2,
           })
-          .where(and(
-            eq(inventory.id, inventoryId),
-            eq(inventory.version, 1) // Wrong version
-          ))
+          .where(
+            and(
+              eq(inventory.id, inventoryId),
+              eq(inventory.version, 1) // Wrong version
+            )
+          )
           .run();
 
         expect(updateResult.changes).toBe(0); // No rows updated
@@ -572,10 +549,7 @@ describe('DDD Refactoring Complete Test Suite', () => {
             quantityAvailable: 90,
             version: 2,
           })
-          .where(and(
-            eq(inventory.id, inventoryId),
-            eq(inventory.version, 1)
-          ))
+          .where(and(eq(inventory.id, inventoryId), eq(inventory.version, 1)))
           .run();
 
         // Second update with stale version fails
@@ -585,20 +559,13 @@ describe('DDD Refactoring Complete Test Suite', () => {
             quantityAvailable: 95,
             version: 2,
           })
-          .where(and(
-            eq(inventory.id, inventoryId),
-            eq(inventory.version, 1)
-          ))
+          .where(and(eq(inventory.id, inventoryId), eq(inventory.version, 1)))
           .run();
 
         expect(firstUpdate.changes).toBe(1);
         expect(secondUpdate.changes).toBe(0);
 
-        const final = await db
-          .select()
-          .from(inventory)
-          .where(eq(inventory.id, inventoryId))
-          .get();
+        const final = await db.select().from(inventory).where(eq(inventory.id, inventoryId)).get();
 
         expect(final?.quantityAvailable).toBe(90);
       });
@@ -639,10 +606,7 @@ describe('DDD Refactoring Complete Test Suite', () => {
             quantityAvailable: 40,
             version: 2,
           })
-          .where(and(
-            eq(inventoryBatches.id, batchId),
-            eq(inventoryBatches.version, 1)
-          ))
+          .where(and(eq(inventoryBatches.id, batchId), eq(inventoryBatches.version, 1)))
           .run();
 
         expect(updateResult.changes).toBe(1);
@@ -797,11 +761,7 @@ describe('DDD Refactoring Complete Test Suite', () => {
           updatedAt: new Date(),
         });
 
-        const inv = await db
-          .select()
-          .from(inventory)
-          .where(eq(inventory.id, inventoryId))
-          .get();
+        const inv = await db.select().from(inventory).where(eq(inventory.id, inventoryId)).get();
 
         expect(inv?.quantityAvailable).toBe(100);
         expect(inv?.quantityReserved).toBe(10);
@@ -918,11 +878,10 @@ describe('DDD Refactoring Complete Test Suite', () => {
           .all();
 
         const totalAvailable = inventoryRecords.reduce(
-          (sum, inv) => sum + inv.quantityAvailable, 0
+          (sum, inv) => sum + inv.quantityAvailable,
+          0
         );
-        const totalReserved = inventoryRecords.reduce(
-          (sum, inv) => sum + inv.quantityReserved, 0
-        );
+        const totalReserved = inventoryRecords.reduce((sum, inv) => sum + inv.quantityReserved, 0);
 
         expect(totalAvailable).toBe(150);
         expect(totalReserved).toBe(15);
@@ -957,7 +916,7 @@ describe('DDD Refactoring Complete Test Suite', () => {
 
         const allRecords = await db.select().from(inventory).all();
         const lowStockItems = allRecords.filter(
-          inv => inv.minimumStock && inv.quantityAvailable < inv.minimumStock
+          (inv) => inv.minimumStock && inv.quantityAvailable < inv.minimumStock
         );
 
         expect(lowStockItems).toHaveLength(1);
@@ -999,7 +958,8 @@ describe('DDD Refactoring Complete Test Suite', () => {
           .all();
 
         const totalAvailable = variantInventory.reduce(
-          (sum, inv) => sum + inv.quantityAvailable, 0
+          (sum, inv) => sum + inv.quantityAvailable,
+          0
         );
 
         expect(variantInventory).toHaveLength(2);
@@ -1082,9 +1042,9 @@ describe('DDD Refactoring Complete Test Suite', () => {
         ]);
 
         const allInventory = await db.select().from(inventory).all();
-        const baseProducts = allInventory.filter(inv => !inv.variantId && !inv.uomId);
-        const variants = allInventory.filter(inv => inv.variantId);
-        const uoms = allInventory.filter(inv => inv.uomId);
+        const baseProducts = allInventory.filter((inv) => !inv.variantId && !inv.uomId);
+        const variants = allInventory.filter((inv) => inv.variantId);
+        const uoms = allInventory.filter((inv) => inv.uomId);
 
         expect(allInventory).toHaveLength(3);
         expect(baseProducts).toHaveLength(1);
@@ -1142,9 +1102,7 @@ describe('DDD Refactoring Complete Test Suite', () => {
 
         expect(batches).toHaveLength(2);
 
-        const totalBatchQuantity = batches.reduce(
-          (sum, b) => sum + b.quantityAvailable, 0
-        );
+        const totalBatchQuantity = batches.reduce((sum, b) => sum + b.quantityAvailable, 0);
         expect(totalBatchQuantity).toBe(150);
       });
     });
@@ -1304,11 +1262,7 @@ describe('DDD Refactoring Complete Test Suite', () => {
             .run();
         }
 
-        const final = await db
-          .select()
-          .from(inventory)
-          .where(eq(inventory.id, inventoryId))
-          .get();
+        const final = await db.select().from(inventory).where(eq(inventory.id, inventoryId)).get();
 
         expect(final?.quantityAvailable).toBe(105); // 100 + 5
         expect(final?.version).toBe(6); // 1 + 5 updates
@@ -1347,11 +1301,7 @@ describe('DDD Refactoring Complete Test Suite', () => {
           .where(eq(inventory.id, inventoryId))
           .run();
 
-        const inv = await db
-          .select()
-          .from(inventory)
-          .where(eq(inventory.id, inventoryId))
-          .get();
+        const inv = await db.select().from(inventory).where(eq(inventory.id, inventoryId)).get();
 
         expect(inv?.quantityAvailable).toBe(100);
         expect(inv?.quantityReserved).toBe(20);

@@ -1,10 +1,10 @@
-import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
-import { z } from 'zod';
+import { and, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
-import { eq, and } from 'drizzle-orm';
-import { productUOMLocations, productUOMs } from '../../db/schema';
+import { Hono } from 'hono';
+import { z } from 'zod';
 import { generateId } from '../../../shared/utils/helpers';
+import { productUOMLocations, productUOMs } from '../../db/schema';
 
 /**
  * Product UOM Locations Routes - DDD Phase 5 Refactored
@@ -47,7 +47,7 @@ app.get('/', async (c) => {
   const warehouseId = c.req.query('warehouseId');
   const productId = c.req.query('productId');
 
-  let query = db.select().from(productUOMLocations);
+  const query = db.select().from(productUOMLocations);
 
   // Apply filters
   const conditions = [];
@@ -66,30 +66,25 @@ app.get('/', async (c) => {
       .where(eq(productUOMs.productId, productId))
       .all();
 
-    const uomIds = uoms.map(uom => uom.id);
+    const uomIds = uoms.map((uom) => uom.id);
     if (uomIds.length > 0) {
       // Get locations for all UOMs of this product
-      const locations = await db
-        .select()
-        .from(productUOMLocations)
-        .all();
+      const locations = await db.select().from(productUOMLocations).all();
 
-      const filteredLocations = locations.filter(loc => uomIds.includes(loc.productUOMId));
+      const filteredLocations = locations.filter((loc) => uomIds.includes(loc.productUOMId));
       return c.json({
         locations: filteredLocations,
         total: filteredLocations.length,
       });
-    } else {
-      return c.json({
-        locations: [],
-        total: 0,
-      });
     }
+    return c.json({
+      locations: [],
+      total: 0,
+    });
   }
 
-  const locations = conditions.length > 0
-    ? await query.where(and(...conditions)).all()
-    : await query.all();
+  const locations =
+    conditions.length > 0 ? await query.where(and(...conditions)).all() : await query.all();
 
   return c.json({
     locations,
@@ -171,9 +166,7 @@ app.get('/uom/:productUOMId/with-stock', async (c) => {
 
   // Merge location data with stock data
   const locationsWithStock = locations.map((location) => {
-    const inventory = inventoryData.find(
-      (inv: any) => inv.warehouseId === location.warehouseId
-    );
+    const inventory = inventoryData.find((inv: any) => inv.warehouseId === location.warehouseId);
     return {
       ...location,
       quantity: inventory?.quantity || 0,
@@ -241,7 +234,8 @@ app.post('/', zValidator('json', createUOMLocationSchema), async (c) => {
   if (existingLocation) {
     return c.json(
       {
-        error: 'UOM location already exists for this product UOM in this warehouse. Use PUT to update.',
+        error:
+          'UOM location already exists for this product UOM in this warehouse. Use PUT to update.',
       },
       400
     );
@@ -301,11 +295,7 @@ app.put('/:id', zValidator('json', updateUOMLocationSchema), async (c) => {
     updatedAt: new Date(),
   };
 
-  await db
-    .update(productUOMLocations)
-    .set(updateData)
-    .where(eq(productUOMLocations.id, id))
-    .run();
+  await db.update(productUOMLocations).set(updateData).where(eq(productUOMLocations.id, id)).run();
 
   const updated = await db
     .select()
