@@ -365,3 +365,70 @@ export const transferStockFormSchema = z
   });
 
 export type TransferStockFormData = z.infer<typeof transferStockFormSchema>;
+
+// ============================================================================
+// BUSINESS PARTNER - CUSTOMER FORM SCHEMA
+// ============================================================================
+
+export const customerFormSchema = z.object({
+  name: z.string().min(1, 'Customer name is required'),
+  email: z.string().email('Invalid email address').optional().or(z.literal('')),
+  phone: z.string().optional(),
+  customerType: z.enum(['retail', 'wholesale']),
+  companyName: z.string().optional(),
+  npwp: z.string().optional(),
+  creditLimit: z.coerce.number().min(0, 'Credit limit must be non-negative').optional(),
+  paymentTermDays: z.coerce.number().min(0, 'Payment term days must be non-negative').optional(),
+});
+
+export type CustomerFormData = z.infer<typeof customerFormSchema>;
+
+// ============================================================================
+// BUSINESS PARTNER - SUPPLIER FORM SCHEMA
+// ============================================================================
+
+export const supplierFormSchema = z.object({
+  name: z.string().min(1, 'Supplier name is required'),
+  email: z.string().email('Invalid email address').optional().or(z.literal('')),
+  phone: z.string().optional(),
+  companyName: z.string().optional(),
+  npwp: z.string().optional(),
+  paymentTermDays: z.coerce.number().min(0, 'Payment term days must be non-negative').optional(),
+  leadTimeDays: z.coerce.number().min(0, 'Lead time days must be non-negative').optional(),
+  minimumOrderAmount: z.coerce
+    .number()
+    .min(0, 'Minimum order amount must be non-negative')
+    .optional(),
+});
+
+export type SupplierFormData = z.infer<typeof supplierFormSchema>;
+
+export const supplierBankInfoFormSchema = z.object({
+  bankName: z.string().min(1, 'Bank name is required'),
+  bankAccountNumber: z.string().min(10, 'Account number must be at least 10 characters'),
+  bankAccountName: z.string().min(1, 'Account name is required'),
+});
+
+export type SupplierBankInfoFormData = z.infer<typeof supplierBankInfoFormSchema>;
+
+// ============================================================================
+// BUSINESS PARTNER - EMPLOYEE FORM SCHEMA
+// ============================================================================
+
+export const employeeFormSchema = z.object({
+  name: z.string().min(1, 'Employee name is required'),
+  email: z.string().email('Invalid email address').optional().or(z.literal('')),
+  phone: z.string().optional(),
+  employeeNumber: z.string().min(1, 'Employee number is required'),
+  department: z.string().optional(),
+  position: z.string().optional(),
+  managerId: z.string().optional(),
+  dateOfBirth: z.string().optional(),
+  gender: z.enum(['male', 'female']).optional(),
+  nationalId: z.string().optional(),
+  npwp: z.string().optional(),
+  joinDate: z.string().optional(),
+  baseSalary: z.coerce.number().min(0, 'Base salary must be non-negative').optional(),
+});
+
+export type EmployeeFormData = z.infer<typeof employeeFormSchema>;

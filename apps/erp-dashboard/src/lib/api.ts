@@ -3,6 +3,8 @@ const PRODUCT_SERVICE_URL = import.meta.env.VITE_PRODUCT_SERVICE_URL || 'http://
 const INVENTORY_SERVICE_URL = import.meta.env.VITE_INVENTORY_SERVICE_URL || 'http://localhost:8792';
 const ACCOUNTING_SERVICE_URL =
   import.meta.env.VITE_ACCOUNTING_SERVICE_URL || 'http://localhost:8794';
+const BUSINESS_PARTNER_SERVICE_URL =
+  import.meta.env.VITE_BUSINESS_PARTNER_SERVICE_URL || 'http://localhost:8793';
 
 // For backward compatibility
 const API_BASE_URL = PRODUCT_SERVICE_URL;
@@ -1875,6 +1877,465 @@ export const variantLocationApi = {
   },
 };
 
+// ============================================
+// BUSINESS PARTNER API - CUSTOMERS
+// ============================================
+
+export type CustomerType = 'retail' | 'wholesale';
+export type CustomerStatus = 'active' | 'inactive' | 'blocked';
+export type MembershipTier = 'bronze' | 'silver' | 'gold';
+
+export interface Customer {
+  id: string;
+  code: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  customerType: CustomerType;
+  companyName?: string | null;
+  npwp?: string | null;
+  creditLimit: number;
+  creditUsed: number;
+  paymentTermDays: number;
+  loyaltyPoints: number;
+  membershipTier: MembershipTier;
+  totalOrders: number;
+  totalSpent: number;
+  lastOrderDate?: number | null;
+  status: CustomerStatus;
+  notes?: string | null;
+  createdAt: number;
+  updatedAt: number;
+  createdBy?: string | null;
+  updatedBy?: string | null;
+}
+
+export interface CreateCustomerInput {
+  name: string;
+  email?: string;
+  phone?: string;
+  customerType: CustomerType;
+  companyName?: string;
+  npwp?: string;
+  creditLimit?: number;
+  paymentTermDays?: number;
+}
+
+export const customerApi = {
+  getAll: async (filters?: {
+    status?: string;
+    type?: string;
+    search?: string;
+  }): Promise<{ customers: Customer[]; total: number }> => {
+    const params = new URLSearchParams();
+    if (filters?.status) params.append('status', filters.status);
+    if (filters?.type) params.append('type', filters.type);
+    if (filters?.search) params.append('search', filters.search);
+    const queryString = params.toString();
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/customers${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, { headers: { 'Content-Type': 'application/json' } });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch customers: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  getById: async (id: string): Promise<Customer> => {
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/customers/${id}`;
+    const response = await fetch(url, { headers: { 'Content-Type': 'application/json' } });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch customer: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  create: async (data: CreateCustomerInput): Promise<Customer> => {
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/customers`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.error || `Failed to create customer: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  update: async (id: string, data: Partial<CreateCustomerInput>): Promise<Customer> => {
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/customers/${id}`;
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.error || `Failed to update customer: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  delete: async (id: string): Promise<{ message: string }> => {
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/customers/${id}`;
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.error || `Failed to delete customer: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  block: async (id: string): Promise<Customer> => {
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/customers/${id}/block`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.error || `Failed to block customer: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  activate: async (id: string): Promise<Customer> => {
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/customers/${id}/activate`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.error || `Failed to activate customer: ${response.statusText}`);
+    }
+    return response.json();
+  },
+};
+
+// ============================================
+// BUSINESS PARTNER API - SUPPLIERS
+// ============================================
+
+export type SupplierStatus = 'active' | 'inactive' | 'blocked';
+
+export interface Supplier {
+  id: string;
+  code: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  companyName?: string | null;
+  npwp?: string | null;
+  paymentTermDays: number;
+  leadTimeDays: number;
+  minimumOrderAmount: number;
+  bankName?: string | null;
+  bankAccountNumber?: string | null;
+  bankAccountName?: string | null;
+  rating: number;
+  totalOrders: number;
+  totalPurchased: number;
+  lastOrderDate?: number | null;
+  status: SupplierStatus;
+  notes?: string | null;
+  createdAt: number;
+  updatedAt: number;
+  createdBy?: string | null;
+  updatedBy?: string | null;
+}
+
+export interface CreateSupplierInput {
+  name: string;
+  email?: string;
+  phone?: string;
+  companyName?: string;
+  npwp?: string;
+  paymentTermDays?: number;
+  leadTimeDays?: number;
+  minimumOrderAmount?: number;
+}
+
+export interface UpdateBankInfoInput {
+  bankName: string;
+  bankAccountNumber: string;
+  bankAccountName: string;
+}
+
+export const supplierApi = {
+  getAll: async (filters?: {
+    status?: string;
+    search?: string;
+  }): Promise<{ suppliers: Supplier[]; total: number }> => {
+    const params = new URLSearchParams();
+    if (filters?.status) params.append('status', filters.status);
+    if (filters?.search) params.append('search', filters.search);
+    const queryString = params.toString();
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/suppliers${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, { headers: { 'Content-Type': 'application/json' } });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch suppliers: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  getById: async (id: string): Promise<Supplier> => {
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/suppliers/${id}`;
+    const response = await fetch(url, { headers: { 'Content-Type': 'application/json' } });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch supplier: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  create: async (data: CreateSupplierInput): Promise<Supplier> => {
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/suppliers`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.error || `Failed to create supplier: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  update: async (id: string, data: Partial<CreateSupplierInput>): Promise<Supplier> => {
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/suppliers/${id}`;
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.error || `Failed to update supplier: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  updateBankInfo: async (id: string, data: UpdateBankInfoInput): Promise<Supplier> => {
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/suppliers/${id}/bank-info`;
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.error || `Failed to update bank info: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  delete: async (id: string): Promise<{ message: string }> => {
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/suppliers/${id}`;
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.error || `Failed to delete supplier: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  block: async (id: string): Promise<Supplier> => {
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/suppliers/${id}/block`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.error || `Failed to block supplier: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  activate: async (id: string): Promise<Supplier> => {
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/suppliers/${id}/activate`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.error || `Failed to activate supplier: ${response.statusText}`);
+    }
+    return response.json();
+  },
+};
+
+// ============================================
+// BUSINESS PARTNER API - EMPLOYEES
+// ============================================
+
+export type EmploymentStatus = 'active' | 'on_leave' | 'terminated' | 'resigned';
+export type Gender = 'male' | 'female';
+
+export interface Employee {
+  id: string;
+  code: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  employeeNumber: string;
+  department?: string | null;
+  position?: string | null;
+  managerId?: string | null;
+  dateOfBirth?: number | null;
+  gender?: Gender | null;
+  nationalId?: string | null;
+  npwp?: string | null;
+  joinDate?: number | null;
+  endDate?: number | null;
+  employmentStatus: EmploymentStatus;
+  baseSalary: number;
+  notes?: string | null;
+  createdAt: number;
+  updatedAt: number;
+  createdBy?: string | null;
+  updatedBy?: string | null;
+}
+
+export interface CreateEmployeeInput {
+  name: string;
+  email?: string;
+  phone?: string;
+  employeeNumber: string;
+  department?: string;
+  position?: string;
+  managerId?: string;
+  dateOfBirth?: string;
+  gender?: Gender;
+  nationalId?: string;
+  npwp?: string;
+  joinDate?: string;
+  baseSalary?: number;
+}
+
+export const employeeApi = {
+  getAll: async (filters?: {
+    status?: string;
+    department?: string;
+    managerId?: string;
+    search?: string;
+  }): Promise<{ employees: Employee[]; total: number }> => {
+    const params = new URLSearchParams();
+    if (filters?.status) params.append('status', filters.status);
+    if (filters?.department) params.append('department', filters.department);
+    if (filters?.managerId) params.append('managerId', filters.managerId);
+    if (filters?.search) params.append('search', filters.search);
+    const queryString = params.toString();
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/employees${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, { headers: { 'Content-Type': 'application/json' } });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch employees: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  getById: async (id: string): Promise<Employee> => {
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/employees/${id}`;
+    const response = await fetch(url, { headers: { 'Content-Type': 'application/json' } });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch employee: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  create: async (data: CreateEmployeeInput): Promise<Employee> => {
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/employees`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.error || `Failed to create employee: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  update: async (
+    id: string,
+    data: Partial<Omit<CreateEmployeeInput, 'employeeNumber'>>
+  ): Promise<Employee> => {
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/employees/${id}`;
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.error || `Failed to update employee: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  delete: async (id: string): Promise<{ message: string }> => {
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/employees/${id}`;
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.error || `Failed to delete employee: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  terminate: async (id: string): Promise<Employee> => {
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/employees/${id}/terminate`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.error || `Failed to terminate employee: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  resign: async (id: string): Promise<Employee> => {
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/employees/${id}/resign`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.error || `Failed to resign employee: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  activate: async (id: string): Promise<Employee> => {
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/employees/${id}/activate`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.error || `Failed to activate employee: ${response.statusText}`);
+    }
+    return response.json();
+  },
+};
+
 export default {
   category: categoryApi,
   warehouse: warehouseApi,
@@ -1887,4 +2348,7 @@ export default {
   productLocation: productLocationApi,
   productUOMLocation: productUOMLocationApi,
   variantLocation: variantLocationApi,
+  customer: customerApi,
+  supplier: supplierApi,
+  employee: employeeApi,
 };
