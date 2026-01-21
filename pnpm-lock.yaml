@@ -283,6 +283,9 @@ importers:
       '@kidkazz/ddd-core':
         specifier: workspace:*
         version: link:../../packages/ddd-core
+      '@kidkazz/trpc':
+        specifier: workspace:*
+        version: link:../../packages/trpc
       drizzle-orm:
         specifier: ^0.33.0
         version: 0.33.0(@cloudflare/workers-types@4.20260116.0)(@types/better-sqlite3@7.6.13)(@types/react@18.3.26)(better-sqlite3@12.4.6)(react@18.3.1)
@@ -544,55 +547,6 @@ importers:
       '@cloudflare/workers-types':
         specifier: ^4.20260116.0
         version: 4.20260116.0
-      drizzle-kit:
-        specifier: ^0.29.1
-        version: 0.29.1
-      typescript:
-        specifier: ^5.6.0
-        version: 5.9.3
-      wrangler:
-        specifier: ^4.59.2
-        version: 4.59.2(@cloudflare/workers-types@4.20260116.0)
-
-  services/user-service:
-    dependencies:
-      '@hono/zod-validator':
-        specifier: ^0.2.0
-        version: 0.2.2(hono@4.10.5)(zod@3.25.76)
-      '@kidkazz/domain-events':
-        specifier: workspace:*
-        version: link:../../shared/domain-events
-      '@kidkazz/types':
-        specifier: workspace:*
-        version: link:../../shared/types
-      '@kidkazz/utils':
-        specifier: workspace:*
-        version: link:../../shared/utils
-      '@tsndr/cloudflare-worker-jwt':
-        specifier: ^2.4.0
-        version: 2.5.4
-      bcryptjs:
-        specifier: ^2.4.3
-        version: 2.4.3
-      drizzle-orm:
-        specifier: ^0.36.4
-        version: 0.36.4(@cloudflare/workers-types@4.20260116.0)(@types/better-sqlite3@7.6.13)(@types/react@18.3.26)(better-sqlite3@12.4.6)(react@18.3.1)
-      hono:
-        specifier: ^4.0.0
-        version: 4.10.5
-      nanoid:
-        specifier: ^5.0.0
-        version: 5.1.6
-      zod:
-        specifier: ^3.22.0
-        version: 3.25.76
-    devDependencies:
-      '@cloudflare/workers-types':
-        specifier: ^4.20260116.0
-        version: 4.20260116.0
-      '@types/bcryptjs':
-        specifier: ^2.4.6
-        version: 2.4.6
       drizzle-kit:
         specifier: ^0.29.1
         version: 0.29.1
@@ -2347,9 +2301,6 @@ packages:
   '@ts-morph/common@0.27.0':
     resolution: {integrity: sha512-Wf29UqxWDpc+i61k3oIOzcUfQt79PIT9y/MWfAGlrkjg6lBC1hwDECLXPVJAhWjiGbfBCxZd65F/LIZF3+jeJQ==}
 
-  '@tsndr/cloudflare-worker-jwt@2.5.4':
-    resolution: {integrity: sha512-f9lU8CL9NrsA3f8+Hanlgjl8Ten+WRAaV3DbmbReQGdH5rCRJeDSzpVaMjV6ifZP5hl8gvEumc18KqtT6xtX4A==}
-
   '@types/aria-query@5.0.4':
     resolution: {integrity: sha512-rfT93uj5s0PRL7EzccGMs3brplhcrghnDoV26NqKhCAS1hVo+WdNsPvE/yb6ilfr5hi2MEk6d5EWJTKdxg8jVw==}
 
@@ -2364,9 +2315,6 @@ packages:
 
   '@types/babel__traverse@7.28.0':
     resolution: {integrity: sha512-8PvcXf70gTDZBgt9ptxJ8elBeBjcLOAcOtoO/mPJjtji1+CdGbHgm77om1GrsPxsiE+uXIpNSK64UYaIwQXd4Q==}
-
-  '@types/bcryptjs@2.4.6':
-    resolution: {integrity: sha512-9xlo6R2qDs5uixm0bcIqCeMCE6HiQsIyel9KQySStiyqNl2tnj2mP3DX1Nf56MD6KMenNNlBBsy3LJ7gUEQPXQ==}
 
   '@types/better-sqlite3@7.6.13':
     resolution: {integrity: sha512-NMv9ASNARoKksWtsq/SHakpYAYnhBrQgGD8zkLYk/jaK8jUGn08CfEdTRgYhMypUQAfzSP8W6gNLe0q19/t4VA==}
@@ -2572,9 +2520,6 @@ packages:
   baseline-browser-mapping@2.9.15:
     resolution: {integrity: sha512-kX8h7K2srmDyYnXRIppo4AH/wYgzWVCs+eKr3RusRSQ5PvRYoEFmR/I0PbdTjKFAoKqp5+kbxnNTFO9jOfSVJg==}
     hasBin: true
-
-  bcryptjs@2.4.3:
-    resolution: {integrity: sha512-V/Hy/X9Vt7f3BbPJEi8BdVFMByHi+jNXrYkW3huaybV/kQ0KJg0Y6PkEMbn+zeT+i+SiKZ/HMqJGIIt4LZDqNQ==}
 
   better-sqlite3@11.10.0:
     resolution: {integrity: sha512-EwhOpyXiOEL/lKzHz9AW1msWFNzGc/z+LzeB3/jnFJpxu+th2yqvzsSWas1v9jgs9+xiXJcD5A8CJxAG2TaghQ==}
@@ -6697,8 +6642,6 @@ snapshots:
       minimatch: 10.1.1
       path-browserify: 1.0.1
 
-  '@tsndr/cloudflare-worker-jwt@2.5.4': {}
-
   '@types/aria-query@5.0.4': {}
 
   '@types/babel__core@7.20.5':
@@ -6721,8 +6664,6 @@ snapshots:
   '@types/babel__traverse@7.28.0':
     dependencies:
       '@babel/types': 7.28.5
-
-  '@types/bcryptjs@2.4.6': {}
 
   '@types/better-sqlite3@7.6.13':
     dependencies:
@@ -6953,8 +6894,6 @@ snapshots:
   base64-js@1.5.1: {}
 
   baseline-browser-mapping@2.9.15: {}
-
-  bcryptjs@2.4.3: {}
 
   better-sqlite3@11.10.0:
     dependencies:

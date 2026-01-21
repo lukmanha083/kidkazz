@@ -1,6 +1,8 @@
+import { createContextFactory, createTRPCHandler } from '@kidkazz/trpc';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
+import { appRouter } from './infrastructure/trpc';
 import addressesRoutes from './routes/addresses';
 import customersRoutes from './routes/customers';
 import employeesRoutes from './routes/employees';
@@ -31,6 +33,13 @@ app.get('/health', (c) => {
     service: 'business-partner-service',
     timestamp: new Date().toISOString(),
   });
+});
+
+// tRPC endpoint (for service-to-service communication)
+app.all('/trpc/*', async (c) => {
+  const createContext = createContextFactory<Bindings>();
+  const handler = createTRPCHandler(appRouter, (req, env) => createContext({ req } as any, env));
+  return handler(c);
 });
 
 // REST API routes

@@ -22,6 +22,8 @@ import { cn } from '@/lib/utils';
 import { Link, Outlet, createFileRoute, useLocation } from '@tanstack/react-router';
 import {
   Bell,
+  Briefcase,
+  Building2,
   Calculator,
   ChevronRight,
   Database,
@@ -35,6 +37,7 @@ import {
   ShoppingCart,
   Sun,
   Tag,
+  UserCheck,
   Users,
   Warehouse,
   X,
@@ -122,10 +125,16 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    id: 'customers',
-    title: 'Customers',
-    href: '/dashboard/customers',
-    icon: Users,
+    id: 'business-partner',
+    title: 'Business Partner',
+    href: '/dashboard/business-partner',
+    icon: Briefcase,
+    submenu: [
+      { title: 'Overview', href: '/dashboard/business-partner' },
+      { title: 'Customers', href: '/dashboard/business-partner/customers' },
+      { title: 'Suppliers', href: '/dashboard/business-partner/suppliers' },
+      { title: 'Employees', href: '/dashboard/business-partner/employees' },
+    ],
   },
   {
     id: 'promotions',
@@ -183,7 +192,7 @@ function DashboardLayout() {
       path.includes('/transfer-stock')
     )
       return 'Inventory';
-    if (path.includes('/customers')) return 'Customers';
+    if (path.includes('/business-partner')) return 'Business Partner';
     if (path.includes('/settings')) return 'Settings';
     if (path.includes('/promotions')) return 'Promotions';
     if (path.includes('/price-lists')) return 'Price Lists';

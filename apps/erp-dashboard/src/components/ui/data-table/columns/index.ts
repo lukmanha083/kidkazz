@@ -4,3 +4,6 @@ export { getLowStockColumns, lowStockStatusOptions, type LowStockItem } from './
 export { getCategoryColumns, categoryStatusOptions } from './category-columns';
 export { getUOMColumns, uomTypeOptions } from './uom-columns';
 export { getVariantColumns, variantTypeOptions, variantStatusOptions } from './variant-columns';
+export { getCustomerColumns, customerStatusOptions, customerTypeOptions } from './customer-columns';
+export { getSupplierColumns, supplierStatusOptions } from './supplier-columns';
+export { getEmployeeColumns, employeeStatusOptions } from './employee-columns';

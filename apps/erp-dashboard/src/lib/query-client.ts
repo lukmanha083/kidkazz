@@ -157,4 +157,38 @@ export const queryKeys = {
     productUOMs: (productId: string) => [...queryKeys.uoms.all, 'product', productId] as const,
     detail: (code: string) => [...queryKeys.uoms.all, 'detail', code] as const,
   },
+
+  // Business Partner - Customers
+  customers: {
+    all: ['customers'] as const,
+    lists: () => [...queryKeys.customers.all, 'list'] as const,
+    list: (filters?: { status?: string; type?: string; search?: string }) =>
+      [...queryKeys.customers.lists(), filters] as const,
+    details: () => [...queryKeys.customers.all, 'detail'] as const,
+    detail: (id: string) => [...queryKeys.customers.details(), id] as const,
+  },
+
+  // Business Partner - Suppliers
+  suppliers: {
+    all: ['suppliers'] as const,
+    lists: () => [...queryKeys.suppliers.all, 'list'] as const,
+    list: (filters?: { status?: string; search?: string }) =>
+      [...queryKeys.suppliers.lists(), filters] as const,
+    details: () => [...queryKeys.suppliers.all, 'detail'] as const,
+    detail: (id: string) => [...queryKeys.suppliers.details(), id] as const,
+  },
+
+  // Business Partner - Employees
+  employees: {
+    all: ['employees'] as const,
+    lists: () => [...queryKeys.employees.all, 'list'] as const,
+    list: (filters?: {
+      status?: string;
+      department?: string;
+      managerId?: string;
+      search?: string;
+    }) => [...queryKeys.employees.lists(), filters] as const,
+    details: () => [...queryKeys.employees.all, 'detail'] as const,
+    detail: (id: string) => [...queryKeys.employees.details(), id] as const,
+  },
 } as const;
