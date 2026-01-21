@@ -679,7 +679,7 @@ function SuppliersManagementPage() {
                     </Label>
                     <Input
                       id={field.name}
-                      placeholder="+62215551234"
+                      placeholder="+6281234567890"
                       value={field.state.value}
                       onChange={(e) => field.handleChange(e.target.value)}
                       onBlur={field.handleBlur}

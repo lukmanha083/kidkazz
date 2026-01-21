@@ -12,14 +12,23 @@ import { z } from 'zod';
 // ============================================================================
 
 /**
- * Indonesian phone number validation regex
+ * Indonesian mobile phone number validation regex
  * Accepts formats:
  * - +62XXXXXXXXXX (international with +)
  * - 62XXXXXXXXXX (international without +)
  * - 08XXXXXXXXXX (local format)
  * - Allows 9-13 digits after country code/prefix
  */
-const indonesianPhoneRegex = /^(?:\+62|62|0)8[1-9][0-9]{7,11}$/;
+const indonesianMobileRegex = /^(?:\+62|62|0)8[1-9][0-9]{7,11}$/;
+
+/**
+ * Indonesian landline phone number validation regex
+ * Accepts formats:
+ * - 0[area code][number] (e.g., 021 72786383, 022 1234567)
+ * - Area code: 2-3 digits (21=Jakarta, 22=Bandung, 31=Surabaya, etc.)
+ * - Number: 6-8 digits
+ */
+const indonesianLandlineRegex = /^0[1-9][0-9]{1,2}[0-9]{6,8}$/;
 
 /**
  * International phone number validation regex (E.164 format)
@@ -31,14 +40,19 @@ const indonesianPhoneRegex = /^(?:\+62|62|0)8[1-9][0-9]{7,11}$/;
 const internationalPhoneRegex = /^\+[1-9][0-9]{6,14}$/;
 
 /**
- * Validates phone number for both Indonesian and international formats
+ * Validates phone number for Indonesian mobile, landline, and international formats
  */
 function isValidPhoneNumber(phone: string): boolean {
   // Remove spaces and dashes for validation
   const cleaned = phone.replace(/[\s-]/g, '');
 
-  // Check Indonesian format first (supports local format without +)
-  if (indonesianPhoneRegex.test(cleaned)) {
+  // Check Indonesian mobile format (08xxx)
+  if (indonesianMobileRegex.test(cleaned)) {
+    return true;
+  }
+
+  // Check Indonesian landline format (021xxx, 022xxx, etc.)
+  if (indonesianLandlineRegex.test(cleaned)) {
     return true;
   }
 
@@ -56,14 +70,16 @@ function isValidPhoneNumber(phone: string): boolean {
  * - When provided, must match Indonesian or international phone format
  *
  * Supported formats:
- * - Indonesian: +628xxx, 628xxx, 08xxx
+ * - Indonesian mobile: +628xxx, 628xxx, 08xxx
+ * - Indonesian landline: 021xxx, 022xxx (area code + number)
  * - International: +[country code][number] (E.164)
  */
 export const phoneSchema = z
   .string()
   .optional()
   .refine((val) => !val || isValidPhoneNumber(val), {
-    message: 'Invalid phone number. Use format: +628xxx, 08xxx (ID) or +[country code][number]',
+    message:
+      'Invalid phone number. Use format: +628xxx, 08xxx, 021xxx (ID) or +[country code][number]',
   });
 
 // ============================================================================

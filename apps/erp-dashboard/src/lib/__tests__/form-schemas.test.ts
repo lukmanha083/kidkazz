@@ -49,6 +49,56 @@ describe('Phone Number Validation', () => {
     });
   });
 
+  describe('Indonesian landline numbers', () => {
+    it('should accept Jakarta landline (021)', () => {
+      const result = supplierFormSchema.safeParse({
+        name: 'Test Supplier',
+        phone: '02172786383',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept Jakarta landline with spaces', () => {
+      const result = supplierFormSchema.safeParse({
+        name: 'Test Supplier',
+        phone: '021 7278 6383',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept Jakarta landline with dashes', () => {
+      const result = supplierFormSchema.safeParse({
+        name: 'Test Supplier',
+        phone: '021-7278-6383',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept Bandung landline (022)', () => {
+      const result = supplierFormSchema.safeParse({
+        name: 'Test Supplier',
+        phone: '0221234567',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept Surabaya landline (031)', () => {
+      const result = supplierFormSchema.safeParse({
+        name: 'Test Supplier',
+        phone: '03112345678',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept 3-digit area code landline (0274 Yogyakarta)', () => {
+      const result = supplierFormSchema.safeParse({
+        name: 'Test Supplier',
+        phone: '0274123456',
+      });
+      expect(result.success).toBe(true);
+    });
+  });
+
   describe('International phone numbers (E.164)', () => {
     it('should accept US phone number', () => {
       const result = customerFormSchema.safeParse({
@@ -124,10 +174,10 @@ describe('Phone Number Validation', () => {
       expect(result.success).toBe(false);
     });
 
-    it('should reject phone number starting with 0 but not 08', () => {
+    it('should reject phone number with invalid format (00 prefix)', () => {
       const result = customerFormSchema.safeParse({
         name: 'Test Customer',
-        phone: '0212345678',
+        phone: '001234567890',
         customerType: 'retail',
       });
       expect(result.success).toBe(false);
