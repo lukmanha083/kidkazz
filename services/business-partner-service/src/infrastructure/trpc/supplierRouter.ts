@@ -286,7 +286,7 @@ export const supplierRouter = router({
         updatedAt: new Date(existing.updatedAt),
       });
 
-      supplier.recordOrder(input.orderAmount);
+      supplier.recordPurchaseOrder(input.orderAmount);
       const supplierData = supplier.toData();
 
       await db

@@ -592,6 +592,7 @@ function CustomersManagementPage() {
                   <Select
                     value={field.state.value}
                     onValueChange={(v) => field.handleChange(v as 'retail' | 'wholesale')}
+                    disabled={formMode === 'edit'}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select type" />
@@ -601,6 +602,11 @@ function CustomersManagementPage() {
                       <SelectItem value="wholesale">Wholesale</SelectItem>
                     </SelectContent>
                   </Select>
+                  {formMode === 'edit' && (
+                    <p className="text-xs text-muted-foreground">
+                      Customer type cannot be changed after creation
+                    </p>
+                  )}
                 </div>
               )}
             </form.Field>

@@ -275,9 +275,12 @@ function SuppliersManagementPage() {
   );
 
   const activeSuppliers = suppliers.filter((s) => s.status === 'active').length;
-  const totalPurchased = suppliers.reduce((sum, s) => sum + s.totalPurchased, 0);
+  const totalPurchased = suppliers.reduce((sum, s) => sum + (s.totalPurchased ?? 0), 0);
+  const ratedSuppliers = suppliers.filter((s) => s.rating != null);
   const avgRating =
-    suppliers.length > 0 ? suppliers.reduce((sum, s) => sum + s.rating, 0) / suppliers.length : 0;
+    ratedSuppliers.length > 0
+      ? ratedSuppliers.reduce((sum, s) => sum + (s.rating ?? 0), 0) / ratedSuppliers.length
+      : 0;
 
   if (error) {
     return (
