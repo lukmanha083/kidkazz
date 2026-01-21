@@ -429,16 +429,29 @@ export type TransferStockFormData = z.infer<typeof transferStockFormSchema>;
 // BUSINESS PARTNER - CUSTOMER FORM SCHEMA
 // ============================================================================
 
-export const customerFormSchema = z.object({
-  name: z.string().min(1, 'Customer name is required'),
-  email: z.string().email('Invalid email address').optional().or(z.literal('')),
-  phone: phoneSchema,
-  customerType: z.enum(['retail', 'wholesale']),
-  companyName: z.string().optional(),
-  npwp: z.string().optional(),
-  creditLimit: z.coerce.number().min(0, 'Credit limit must be non-negative').optional(),
-  paymentTermDays: z.coerce.number().min(0, 'Payment term days must be non-negative').optional(),
-});
+export const customerFormSchema = z
+  .object({
+    name: z.string().min(1, 'Customer name is required'),
+    email: z.string().email('Invalid email address').optional().or(z.literal('')),
+    phone: phoneSchema,
+    customerType: z.enum(['retail', 'wholesale']),
+    companyName: z.string().optional(),
+    npwp: z.string().optional(),
+    creditLimit: z.coerce.number().min(0, 'Credit limit must be non-negative').optional(),
+    paymentTermDays: z.coerce.number().min(0, 'Payment term days must be non-negative').optional(),
+  })
+  // Business Rule: At least one contact method (phone or email) is required
+  .refine(
+    (data) => {
+      const hasPhone = data.phone && data.phone.trim().length > 0;
+      const hasEmail = data.email && data.email.trim().length > 0;
+      return hasPhone || hasEmail;
+    },
+    {
+      message: 'Either phone number or email is required',
+      path: ['phone'], // Show error on phone field (user can fill either)
+    }
+  );
 
 export type CustomerFormData = z.infer<typeof customerFormSchema>;
 
@@ -446,19 +459,32 @@ export type CustomerFormData = z.infer<typeof customerFormSchema>;
 // BUSINESS PARTNER - SUPPLIER FORM SCHEMA
 // ============================================================================
 
-export const supplierFormSchema = z.object({
-  name: z.string().min(1, 'Supplier name is required'),
-  email: z.string().email('Invalid email address').optional().or(z.literal('')),
-  phone: phoneSchema,
-  companyName: z.string().optional(),
-  npwp: z.string().optional(),
-  paymentTermDays: z.coerce.number().min(0, 'Payment term days must be non-negative').optional(),
-  leadTimeDays: z.coerce.number().min(0, 'Lead time days must be non-negative').optional(),
-  minimumOrderAmount: z.coerce
-    .number()
-    .min(0, 'Minimum order amount must be non-negative')
-    .optional(),
-});
+export const supplierFormSchema = z
+  .object({
+    name: z.string().min(1, 'Supplier name is required'),
+    email: z.string().email('Invalid email address').optional().or(z.literal('')),
+    phone: phoneSchema,
+    companyName: z.string().optional(),
+    npwp: z.string().optional(),
+    paymentTermDays: z.coerce.number().min(0, 'Payment term days must be non-negative').optional(),
+    leadTimeDays: z.coerce.number().min(0, 'Lead time days must be non-negative').optional(),
+    minimumOrderAmount: z.coerce
+      .number()
+      .min(0, 'Minimum order amount must be non-negative')
+      .optional(),
+  })
+  // Business Rule: At least one contact method (phone or email) is required
+  .refine(
+    (data) => {
+      const hasPhone = data.phone && data.phone.trim().length > 0;
+      const hasEmail = data.email && data.email.trim().length > 0;
+      return hasPhone || hasEmail;
+    },
+    {
+      message: 'Either phone number or email is required',
+      path: ['phone'],
+    }
+  );
 
 export type SupplierFormData = z.infer<typeof supplierFormSchema>;
 

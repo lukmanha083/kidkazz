@@ -134,19 +134,79 @@ describe('Phone Number Validation', () => {
     });
   });
 
-  describe('Optional phone field', () => {
-    it('should accept empty phone', () => {
+  describe('Phone or Email Required (Customer)', () => {
+    it('should accept with only phone provided', () => {
       const result = customerFormSchema.safeParse({
         name: 'Test Customer',
-        phone: '',
+        phone: '+6281234567890',
         customerType: 'retail',
       });
       expect(result.success).toBe(true);
     });
 
-    it('should accept undefined phone', () => {
+    it('should accept with only email provided', () => {
       const result = customerFormSchema.safeParse({
         name: 'Test Customer',
+        email: 'customer@example.com',
+        customerType: 'retail',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept with both phone and email provided', () => {
+      const result = customerFormSchema.safeParse({
+        name: 'Test Customer',
+        phone: '+6281234567890',
+        email: 'customer@example.com',
+        customerType: 'retail',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject when neither phone nor email is provided', () => {
+      const result = customerFormSchema.safeParse({
+        name: 'Test Customer',
+        customerType: 'retail',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toBe('Either phone number or email is required');
+      }
+    });
+
+    it('should reject when phone is empty string and no email', () => {
+      const result = customerFormSchema.safeParse({
+        name: 'Test Customer',
+        phone: '',
+        customerType: 'retail',
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject when email is empty string and no phone', () => {
+      const result = customerFormSchema.safeParse({
+        name: 'Test Customer',
+        email: '',
+        customerType: 'retail',
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('should accept empty phone when email is provided', () => {
+      const result = customerFormSchema.safeParse({
+        name: 'Test Customer',
+        phone: '',
+        email: 'customer@example.com',
+        customerType: 'retail',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept empty email when phone is provided', () => {
+      const result = customerFormSchema.safeParse({
+        name: 'Test Customer',
+        phone: '+6281234567890',
+        email: '',
         customerType: 'retail',
       });
       expect(result.success).toBe(true);
@@ -166,6 +226,52 @@ describe('Phone Number Validation', () => {
       const result = supplierFormSchema.safeParse({
         name: 'Test Supplier',
         phone: 'invalid',
+        email: 'supplier@example.com', // Need email since phone is invalid
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('Phone or Email Required (Supplier)', () => {
+    it('should accept with only phone provided', () => {
+      const result = supplierFormSchema.safeParse({
+        name: 'Test Supplier',
+        phone: '+6281234567890',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept with only email provided', () => {
+      const result = supplierFormSchema.safeParse({
+        name: 'Test Supplier',
+        email: 'supplier@example.com',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept with both phone and email provided', () => {
+      const result = supplierFormSchema.safeParse({
+        name: 'Test Supplier',
+        phone: '+6281234567890',
+        email: 'supplier@example.com',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject when neither phone nor email is provided', () => {
+      const result = supplierFormSchema.safeParse({
+        name: 'Test Supplier',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toBe('Either phone number or email is required');
+      }
+    });
+
+    it('should reject when phone is empty string and no email', () => {
+      const result = supplierFormSchema.safeParse({
+        name: 'Test Supplier',
+        phone: '',
       });
       expect(result.success).toBe(false);
     });

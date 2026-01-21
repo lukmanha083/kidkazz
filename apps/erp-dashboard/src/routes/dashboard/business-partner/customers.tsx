@@ -619,7 +619,9 @@ function CustomersManagementPage() {
               <form.Field name="email">
                 {(field) => (
                   <div className="space-y-2">
-                    <Label htmlFor={field.name}>Email</Label>
+                    <Label htmlFor={field.name}>
+                      Email <span className="text-muted-foreground text-xs">(or phone)</span>
+                    </Label>
                     <Input
                       id={field.name}
                       type="email"
@@ -640,7 +642,9 @@ function CustomersManagementPage() {
               <form.Field name="phone">
                 {(field) => (
                   <div className="space-y-2">
-                    <Label htmlFor={field.name}>Phone</Label>
+                    <Label htmlFor={field.name}>
+                      Phone <span className="text-muted-foreground text-xs">(or email)</span>
+                    </Label>
                     <Input
                       id={field.name}
                       placeholder="+62812345678"
@@ -688,39 +692,46 @@ function CustomersManagementPage() {
               )}
             </form.Field>
 
-            <div className="grid grid-cols-2 gap-4">
-              <form.Field name="creditLimit">
-                {(field) => (
-                  <div className="space-y-2">
-                    <Label htmlFor={field.name}>Credit Limit</Label>
-                    <Input
-                      id={field.name}
-                      type="number"
-                      placeholder="0"
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(Number(e.target.value))}
-                      onBlur={field.handleBlur}
-                    />
-                  </div>
-                )}
-              </form.Field>
+            {/* Credit limit and payment terms only for wholesale customers */}
+            <form.Subscribe selector={(state) => state.values.customerType}>
+              {(customerType) =>
+                customerType === 'wholesale' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <form.Field name="creditLimit">
+                      {(field) => (
+                        <div className="space-y-2">
+                          <Label htmlFor={field.name}>Credit Limit</Label>
+                          <Input
+                            id={field.name}
+                            type="number"
+                            placeholder="0"
+                            value={field.state.value}
+                            onChange={(e) => field.handleChange(Number(e.target.value))}
+                            onBlur={field.handleBlur}
+                          />
+                        </div>
+                      )}
+                    </form.Field>
 
-              <form.Field name="paymentTermDays">
-                {(field) => (
-                  <div className="space-y-2">
-                    <Label htmlFor={field.name}>Payment Terms (days)</Label>
-                    <Input
-                      id={field.name}
-                      type="number"
-                      placeholder="0"
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(Number(e.target.value))}
-                      onBlur={field.handleBlur}
-                    />
+                    <form.Field name="paymentTermDays">
+                      {(field) => (
+                        <div className="space-y-2">
+                          <Label htmlFor={field.name}>Payment Terms (days)</Label>
+                          <Input
+                            id={field.name}
+                            type="number"
+                            placeholder="0"
+                            value={field.state.value}
+                            onChange={(e) => field.handleChange(Number(e.target.value))}
+                            onBlur={field.handleBlur}
+                          />
+                        </div>
+                      )}
+                    </form.Field>
                   </div>
-                )}
-              </form.Field>
-            </div>
+                )
+              }
+            </form.Subscribe>
 
             <DrawerFooter className="px-0">
               <div className="flex flex-col sm:flex-row gap-2 w-full">

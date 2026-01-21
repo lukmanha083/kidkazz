@@ -651,7 +651,9 @@ function SuppliersManagementPage() {
               <form.Field name="email">
                 {(field) => (
                   <div className="space-y-2">
-                    <Label htmlFor={field.name}>Email</Label>
+                    <Label htmlFor={field.name}>
+                      Email <span className="text-muted-foreground text-xs">(or phone)</span>
+                    </Label>
                     <Input
                       id={field.name}
                       type="email"
@@ -672,7 +674,9 @@ function SuppliersManagementPage() {
               <form.Field name="phone">
                 {(field) => (
                   <div className="space-y-2">
-                    <Label htmlFor={field.name}>Phone</Label>
+                    <Label htmlFor={field.name}>
+                      Phone <span className="text-muted-foreground text-xs">(or email)</span>
+                    </Label>
                     <Input
                       id={field.name}
                       placeholder="+62215551234"
@@ -680,6 +684,11 @@ function SuppliersManagementPage() {
                       onChange={(e) => field.handleChange(e.target.value)}
                       onBlur={field.handleBlur}
                     />
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-destructive">
+                        {field.state.meta.errors.map(getErrorMessage).join(', ')}
+                      </p>
+                    )}
                   </div>
                 )}
               </form.Field>
