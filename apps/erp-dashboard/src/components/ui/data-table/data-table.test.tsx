@@ -22,7 +22,7 @@ vi.mock('../table', () => ({
 }));
 
 vi.mock('lucide-react', () => ({
-  Loader2: () => <span data-testid="loader">Loading...</span>,
+  Loader2: () => <span data-testid="loader" />,
 }));
 
 interface TestData {
