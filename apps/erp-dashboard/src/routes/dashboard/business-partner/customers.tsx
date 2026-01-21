@@ -235,7 +235,7 @@ function CustomersManagementPage() {
   const activeCustomers = customers.filter((c) => c.status === 'active').length;
   const retailCustomers = customers.filter((c) => c.customerType === 'retail').length;
   const wholesaleCustomers = customers.filter((c) => c.customerType === 'wholesale').length;
-  const totalSpent = customers.reduce((sum, c) => sum + c.totalSpent, 0);
+  const totalSpent = customers.reduce((sum, c) => sum + (c.totalSpent ?? 0), 0);
 
   if (error) {
     return (
@@ -427,12 +427,12 @@ function CustomersManagementPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-muted-foreground">Membership Tier</p>
-                      <Badge variant="outline">{selectedCustomer.membershipTier}</Badge>
+                      <Badge variant="outline">{selectedCustomer.membershipTier ?? 'bronze'}</Badge>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Loyalty Points</p>
                       <p className="font-medium">
-                        {selectedCustomer.loyaltyPoints.toLocaleString()}
+                        {(selectedCustomer.loyaltyPoints ?? 0).toLocaleString()}
                       </p>
                     </div>
                   </div>
@@ -452,7 +452,7 @@ function CustomersManagementPage() {
                           style: 'currency',
                           currency: 'IDR',
                           maximumFractionDigits: 0,
-                        }).format(selectedCustomer.creditLimit)}
+                        }).format(selectedCustomer.creditLimit ?? 0)}
                       </p>
                     </div>
                     <div>
@@ -462,13 +462,17 @@ function CustomersManagementPage() {
                           style: 'currency',
                           currency: 'IDR',
                           maximumFractionDigits: 0,
-                        }).format(selectedCustomer.creditUsed)}
+                        }).format(selectedCustomer.creditUsed ?? 0)}
                       </p>
                     </div>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Payment Terms</p>
-                    <p className="font-medium">{selectedCustomer.paymentTermDays} days</p>
+                    <p className="font-medium">
+                      {selectedCustomer.paymentTermDays != null
+                        ? `${selectedCustomer.paymentTermDays} days`
+                        : '-'}
+                    </p>
                   </div>
                   {selectedCustomer.npwp && (
                     <div>
