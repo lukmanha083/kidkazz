@@ -82,6 +82,7 @@ export const customerRouter = router({
         email: z.string().email().optional(),
         phone: z.string().optional(),
         customerType: z.enum(['retail', 'wholesale']),
+        birthDate: z.string().optional(), // ISO date string for retail customers
         companyName: z.string().optional(),
         npwp: z.string().optional(),
         creditLimit: z.number().min(0).optional(),
@@ -104,6 +105,9 @@ export const customerRouter = router({
 
       const customerData = customer.toData();
 
+      // Parse birthDate if provided (for retail customers)
+      const dateOfBirth = input.birthDate ? new Date(input.birthDate).getTime() : null;
+
       await db
         .insert(customers)
         .values({
@@ -123,6 +127,7 @@ export const customerRouter = router({
           totalOrders: customerData.totalOrders,
           totalSpent: customerData.totalSpent,
           lastOrderDate: customerData.lastOrderDate?.getTime() || null,
+          dateOfBirth,
           status: customerData.status,
           notes: customerData.notes,
           createdAt: customerData.createdAt.getTime(),
@@ -144,6 +149,7 @@ export const customerRouter = router({
           name: z.string().min(1).optional(),
           email: z.string().email().optional(),
           phone: z.string().optional(),
+          birthDate: z.string().optional(), // ISO date string for retail customers
           companyName: z.string().optional(),
           npwp: z.string().optional(),
           creditLimit: z.number().min(0).optional(),
@@ -160,11 +166,14 @@ export const customerRouter = router({
         throw new Error('Customer not found');
       }
 
-      await db
-        .update(customers)
-        .set({ ...input.data, updatedAt: Date.now() })
-        .where(eq(customers.id, input.id))
-        .run();
+      // Extract birthDate and convert to timestamp if provided
+      const { birthDate, ...restData } = input.data;
+      const updateData: Record<string, unknown> = { ...restData, updatedAt: Date.now() };
+      if (birthDate !== undefined) {
+        updateData.dateOfBirth = birthDate ? new Date(birthDate).getTime() : null;
+      }
+
+      await db.update(customers).set(updateData).where(eq(customers.id, input.id)).run();
 
       const updated = await db.select().from(customers).where(eq(customers.id, input.id)).get();
 

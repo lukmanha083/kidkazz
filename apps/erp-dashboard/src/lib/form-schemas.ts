@@ -435,6 +435,7 @@ export const customerFormSchema = z
     email: z.string().email('Invalid email address').optional().or(z.literal('')),
     phone: phoneSchema,
     customerType: z.enum(['retail', 'wholesale']),
+    birthDate: z.string().optional(), // For retail customers
     companyName: z.string().optional(),
     npwp: z.string().optional(),
     creditLimit: z.coerce.number().min(0, 'Credit limit must be non-negative').optional(),

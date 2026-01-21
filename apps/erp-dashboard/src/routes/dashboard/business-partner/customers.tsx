@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import {
@@ -28,6 +29,7 @@ import {
 } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Select,
   SelectContent,
@@ -38,12 +40,15 @@ import {
 import { type Customer, customerApi } from '@/lib/api';
 import { type CustomerFormData, customerFormSchema } from '@/lib/form-schemas';
 import { queryKeys } from '@/lib/query-client';
+import { cn } from '@/lib/utils';
 import { useForm } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { zodValidator } from '@tanstack/zod-form-adapter';
+import { format } from 'date-fns';
 import {
   Ban,
+  CalendarIcon,
   CheckCircle,
   Edit,
   Loader2,
@@ -82,6 +87,7 @@ function CustomersManagementPage() {
       email: '',
       phone: '',
       customerType: 'retail' as const,
+      birthDate: '',
       companyName: '',
       npwp: '',
       creditLimit: 0,
@@ -96,6 +102,7 @@ function CustomersManagementPage() {
         ...value,
         email: value.email || undefined,
         phone: value.phone || undefined,
+        birthDate: value.birthDate || undefined,
         companyName: value.companyName || undefined,
         npwp: value.npwp || undefined,
         creditLimit: value.creditLimit ?? undefined,
@@ -661,6 +668,57 @@ function CustomersManagementPage() {
                 )}
               </form.Field>
             </div>
+
+            {/* Birth date only for retail customers */}
+            <form.Subscribe selector={(state) => state.values.customerType}>
+              {(customerType) =>
+                customerType === 'retail' && (
+                  <form.Field name="birthDate">
+                    {(field) => (
+                      <div className="space-y-2">
+                        <Label htmlFor={field.name}>Birth Date</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              id={field.name}
+                              variant="outline"
+                              className={cn(
+                                'w-full justify-start text-left font-normal',
+                                !field.state.value && 'text-muted-foreground'
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {field.state.value
+                                ? format(new Date(field.state.value), 'PPP')
+                                : 'Pick a date'}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              captionLayout="dropdown"
+                              selected={field.state.value ? new Date(field.state.value) : undefined}
+                              onSelect={(date) =>
+                                field.handleChange(date ? date.toISOString().split('T')[0] : '')
+                              }
+                              defaultMonth={
+                                field.state.value ? new Date(field.state.value) : new Date(1990, 0)
+                              }
+                              startMonth={new Date(1920, 0)}
+                              endMonth={new Date()}
+                              disabled={(date) =>
+                                date > new Date() || date < new Date('1920-01-01')
+                              }
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    )}
+                  </form.Field>
+                )
+              }
+            </form.Subscribe>
 
             <form.Field name="companyName">
               {(field) => (
