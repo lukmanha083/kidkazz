@@ -98,8 +98,8 @@ function CustomersManagementPage() {
         phone: value.phone || undefined,
         companyName: value.companyName || undefined,
         npwp: value.npwp || undefined,
-        creditLimit: value.creditLimit || undefined,
-        paymentTermDays: value.paymentTermDays || undefined,
+        creditLimit: value.creditLimit ?? undefined,
+        paymentTermDays: value.paymentTermDays ?? undefined,
       };
       if (formMode === 'add') {
         await createCustomerMutation.mutateAsync(submitData);

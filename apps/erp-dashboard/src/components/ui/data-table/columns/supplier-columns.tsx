@@ -116,7 +116,12 @@ export function getSupplierColumns(options: SupplierColumnOptions = {}): ColumnD
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="Orders" className="hidden lg:table-cell" />
       ),
-      cell: ({ row }) => <span className="hidden lg:inline">{row.getValue('totalOrders')}</span>,
+      cell: ({ row }) => {
+        const totalOrders = row.getValue('totalOrders') as number | null;
+        if (totalOrders == null)
+          return <span className="hidden lg:inline text-muted-foreground">-</span>;
+        return <span className="hidden lg:inline">{totalOrders}</span>;
+      },
     },
     {
       accessorKey: 'status',

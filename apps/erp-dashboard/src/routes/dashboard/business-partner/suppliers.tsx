@@ -466,21 +466,31 @@ function SuppliersManagementPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">Payment Terms</p>
-                    <p className="font-medium">{selectedSupplier.paymentTermDays} days</p>
+                    <p className="font-medium">
+                      {selectedSupplier.paymentTermDays != null
+                        ? `${selectedSupplier.paymentTermDays} days`
+                        : '-'}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Lead Time</p>
-                    <p className="font-medium">{selectedSupplier.leadTimeDays} days</p>
+                    <p className="font-medium">
+                      {selectedSupplier.leadTimeDays != null
+                        ? `${selectedSupplier.leadTimeDays} days`
+                        : '-'}
+                    </p>
                   </div>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Minimum Order Amount</p>
                   <p className="font-medium">
-                    {new Intl.NumberFormat('id-ID', {
-                      style: 'currency',
-                      currency: 'IDR',
-                      maximumFractionDigits: 0,
-                    }).format(selectedSupplier.minimumOrderAmount)}
+                    {selectedSupplier.minimumOrderAmount != null
+                      ? new Intl.NumberFormat('id-ID', {
+                          style: 'currency',
+                          currency: 'IDR',
+                          maximumFractionDigits: 0,
+                        }).format(selectedSupplier.minimumOrderAmount)
+                      : '-'}
                   </p>
                 </div>
               </div>
@@ -523,13 +533,19 @@ function SuppliersManagementPage() {
                   <div>
                     <p className="text-sm text-muted-foreground">Rating</p>
                     <div className="flex items-center gap-1">
-                      <span className="font-medium">{selectedSupplier.rating.toFixed(1)}</span>
-                      <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                      {selectedSupplier.rating != null ? (
+                        <>
+                          <span className="font-medium">{selectedSupplier.rating.toFixed(1)}</span>
+                          <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                        </>
+                      ) : (
+                        <span className="font-medium text-muted-foreground">-</span>
+                      )}
                     </div>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Total Orders</p>
-                    <p className="font-medium">{selectedSupplier.totalOrders}</p>
+                    <p className="font-medium">{selectedSupplier.totalOrders ?? 0}</p>
                   </div>
                 </div>
                 <div>
@@ -539,7 +555,7 @@ function SuppliersManagementPage() {
                       style: 'currency',
                       currency: 'IDR',
                       maximumFractionDigits: 0,
-                    }).format(selectedSupplier.totalPurchased)}
+                    }).format(selectedSupplier.totalPurchased ?? 0)}
                   </p>
                 </div>
               </div>
