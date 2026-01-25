@@ -24,6 +24,9 @@
   },
   "dependencies": {
     "@kidkazz/ddd-core": "workspace:*",
+    "@hono/zod-validator": "^0.2.2",
+    "@kidkazz/ddd-core": "workspace:*",
+    "@kidkazz/trpc": "workspace:*",
     "drizzle-orm": "^0.33.0",
     "hono": "^4.6.0",
     "nanoid": "^5.0.0",
@@ -35,6 +38,6 @@
     "drizzle-kit": "^0.31.7",
     "typescript": "^5.6.0",
     "vitest": "^4.0.17",
-    "wrangler": "^4.59.2"
+    "wrangler": "^4.59.3"
   }
 }

@@ -8,6 +8,81 @@
 import { z } from 'zod';
 
 // ============================================================================
+// PHONE NUMBER VALIDATION
+// ============================================================================
+
+/**
+ * Indonesian mobile phone number validation regex
+ * Accepts formats:
+ * - +62XXXXXXXXXX (international with +)
+ * - 62XXXXXXXXXX (international without +)
+ * - 08XXXXXXXXXX (local format)
+ * - Allows 9-13 digits after country code/prefix
+ */
+const indonesianMobileRegex = /^(?:\+62|62|0)8[1-9][0-9]{7,11}$/;
+
+/**
+ * Indonesian landline phone number validation regex
+ * Accepts formats:
+ * - 0[area code][number] (e.g., 021 72786383, 022 1234567)
+ * - Area code: 2-3 digits (21=Jakarta, 22=Bandung, 31=Surabaya, etc.)
+ * - Number: 6-8 digits
+ */
+const indonesianLandlineRegex = /^0[1-9][0-9]{1,2}[0-9]{6,8}$/;
+
+/**
+ * International phone number validation regex (E.164 format)
+ * Accepts formats:
+ * - +[country code][number] (e.g., +1234567890, +44123456789)
+ * - Country code: 1-3 digits
+ * - Number: 6-14 digits (total 7-15 digits per E.164 standard)
+ */
+const internationalPhoneRegex = /^\+[1-9][0-9]{6,14}$/;
+
+/**
+ * Validates phone number for Indonesian mobile, landline, and international formats
+ */
+function isValidPhoneNumber(phone: string): boolean {
+  // Remove spaces and dashes for validation
+  const cleaned = phone.replace(/[\s-]/g, '');
+
+  // Check Indonesian mobile format (08xxx)
+  if (indonesianMobileRegex.test(cleaned)) {
+    return true;
+  }
+
+  // Check Indonesian landline format (021xxx, 022xxx, etc.)
+  if (indonesianLandlineRegex.test(cleaned)) {
+    return true;
+  }
+
+  // Check international E.164 format
+  if (internationalPhoneRegex.test(cleaned)) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Phone number schema with validation
+ * - Optional field (empty string allowed)
+ * - When provided, must match Indonesian or international phone format
+ *
+ * Supported formats:
+ * - Indonesian mobile: +628xxx, 628xxx, 08xxx
+ * - Indonesian landline: 021xxx, 022xxx (area code + number)
+ * - International: +[country code][number] (E.164)
+ */
+export const phoneSchema = z
+  .string()
+  .optional()
+  .refine((val) => !val || isValidPhoneNumber(val), {
+    message:
+      'Invalid phone number. Use format: +628xxx, 08xxx, 021xxx (ID) or +[country code][number]',
+  });
+
+// ============================================================================
 // WAREHOUSE FORM SCHEMA
 // ============================================================================
 
@@ -365,3 +440,97 @@ export const transferStockFormSchema = z
   });
 
 export type TransferStockFormData = z.infer<typeof transferStockFormSchema>;
+
+// ============================================================================
+// BUSINESS PARTNER - CUSTOMER FORM SCHEMA
+// ============================================================================
+
+export const customerFormSchema = z
+  .object({
+    name: z.string().min(1, 'Customer name is required'),
+    email: z.string().email('Invalid email address').optional().or(z.literal('')),
+    phone: phoneSchema,
+    customerType: z.enum(['retail', 'wholesale']),
+    birthDate: z.string().optional(), // For retail customers
+    companyName: z.string().optional(),
+    npwp: z.string().optional(),
+    creditLimit: z.coerce.number().min(0, 'Credit limit must be non-negative').optional(),
+    paymentTermDays: z.coerce.number().min(0, 'Payment term days must be non-negative').optional(),
+  })
+  // Business Rule: At least one contact method (phone or email) is required
+  .refine(
+    (data) => {
+      const hasPhone = data.phone && data.phone.trim().length > 0;
+      const hasEmail = data.email && data.email.trim().length > 0;
+      return hasPhone || hasEmail;
+    },
+    {
+      message: 'Either phone number or email is required',
+      path: ['phone'], // Show error on phone field (user can fill either)
+    }
+  );
+
+export type CustomerFormData = z.infer<typeof customerFormSchema>;
+
+// ============================================================================
+// BUSINESS PARTNER - SUPPLIER FORM SCHEMA
+// ============================================================================
+
+export const supplierFormSchema = z
+  .object({
+    name: z.string().min(1, 'Supplier name is required'),
+    email: z.string().email('Invalid email address').optional().or(z.literal('')),
+    phone: phoneSchema,
+    companyName: z.string().optional(),
+    npwp: z.string().optional(),
+    paymentTermDays: z.coerce.number().min(0, 'Payment term days must be non-negative').optional(),
+    leadTimeDays: z.coerce.number().min(0, 'Lead time days must be non-negative').optional(),
+    minimumOrderAmount: z.coerce
+      .number()
+      .min(0, 'Minimum order amount must be non-negative')
+      .optional(),
+  })
+  // Business Rule: At least one contact method (phone or email) is required
+  .refine(
+    (data) => {
+      const hasPhone = data.phone && data.phone.trim().length > 0;
+      const hasEmail = data.email && data.email.trim().length > 0;
+      return hasPhone || hasEmail;
+    },
+    {
+      message: 'Either phone number or email is required',
+      path: ['phone'],
+    }
+  );
+
+export type SupplierFormData = z.infer<typeof supplierFormSchema>;
+
+export const supplierBankInfoFormSchema = z.object({
+  bankName: z.string().min(1, 'Bank name is required'),
+  bankAccountNumber: z.string().min(10, 'Account number must be at least 10 characters'),
+  bankAccountName: z.string().min(1, 'Account name is required'),
+});
+
+export type SupplierBankInfoFormData = z.infer<typeof supplierBankInfoFormSchema>;
+
+// ============================================================================
+// BUSINESS PARTNER - EMPLOYEE FORM SCHEMA
+// ============================================================================
+
+export const employeeFormSchema = z.object({
+  name: z.string().min(1, 'Employee name is required'),
+  email: z.string().email('Invalid email address').optional().or(z.literal('')),
+  phone: phoneSchema,
+  employeeNumber: z.string().min(1, 'Employee number is required'),
+  department: z.string().optional(),
+  position: z.string().optional(),
+  managerId: z.string().optional(),
+  dateOfBirth: z.string().optional(),
+  gender: z.enum(['male', 'female']).optional(),
+  nationalId: z.string().optional(),
+  npwp: z.string().optional(),
+  joinDate: z.string().optional(),
+  baseSalary: z.coerce.number().min(0, 'Base salary must be non-negative').optional(),
+});
+
+export type EmployeeFormData = z.infer<typeof employeeFormSchema>;

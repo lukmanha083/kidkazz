@@ -48,7 +48,6 @@ Domain-Driven Design refactoring documentation - **THE SOURCE OF TRUTH**.
 | [DDD_REFACTORING_COMPLETE_SUMMARY.md](ddd/DDD_REFACTORING_COMPLETE_SUMMARY.md) | Phases 1-6 completion summary | High |
 | [DDD_PHASE4_TYPE_ERRORS_FIX.md](ddd/DDD_PHASE4_TYPE_ERRORS_FIX.md) | Phase 4 TypeScript errors resolution (69 errors fixed) | High |
 | [BUSINESS_RULES.md](ddd/BUSINESS_RULES.md) | All business rules and constraints | High |
-| [DDD_MIGRATION_GUIDE.md](ddd/DDD_MIGRATION_GUIDE.md) | Step-by-step migration guide | Medium |
 | [DDD_ANALYSIS_AND_FIX.md](ddd/DDD_ANALYSIS_AND_FIX.md) | Original DDD violations analysis | Reference |
 
 **Current Status**:
@@ -96,23 +95,7 @@ Domain-specific documentation organized by microservice.
 ---
 
 ### 🔨 Implementation (`implementation/`)
-Phase-by-phase implementation tracking and strategies.
-
-#### Phases (`implementation/phases/`)
-| Document | Phase | Status |
-|----------|-------|--------|
-| [PHASE1_IMPLEMENTATION_SUMMARY.md](implementation/phases/PHASE1_IMPLEMENTATION_SUMMARY.md) | Inventory Integration | ✅ Complete |
-| [PHASE1_TESTING_GUIDE.md](implementation/phases/PHASE1_TESTING_GUIDE.md) | Phase 1 Tests | ✅ Complete |
-| [PHASE1_TROUBLESHOOTING.md](implementation/phases/PHASE1_TROUBLESHOOTING.md) | Phase 1 Debugging | Reference |
-| [PHASE2_IMPLEMENTATION_SUMMARY.md](implementation/phases/PHASE2_IMPLEMENTATION_SUMMARY.md) | Single Source of Truth | ✅ Complete |
-| [PHASE2_STATUS.md](implementation/phases/PHASE2_STATUS.md) | Phase 2 Status | ✅ Complete |
-| [PHASE2B_2C_COMPLETION_SUMMARY.md](implementation/phases/PHASE2B_2C_COMPLETION_SUMMARY.md) | Phase 2 Completion | ✅ Complete |
-| [PHASE2B_FRONTEND_MIGRATION_GUIDE.md](implementation/phases/PHASE2B_FRONTEND_MIGRATION_GUIDE.md) | Frontend Migration | Reference |
-| [PHASE_3_IMPLEMENTATION.md](implementation/phases/PHASE_3_IMPLEMENTATION.md) | Batch Tracking & FEFO | ✅ Complete |
-| [PHASE_7_8_COMPLETE.md](implementation/phases/PHASE_7_8_COMPLETE.md) | WebSocket Real-Time | ✅ Complete |
-| [ALL_PHASES_COMPLETE.md](implementation/phases/ALL_PHASES_COMPLETE.md) | Frontend Integration (6 phases) | ✅ Complete |
-| [PHASE_1_COMPLETION_REPORT.md](implementation/phases/PHASE_1_COMPLETION_REPORT.md) | Phase 1 Report | ✅ Complete |
-| [ISSUE_1_AND_2_IMPLEMENTATION_SUMMARY.md](implementation/phases/ISSUE_1_AND_2_IMPLEMENTATION_SUMMARY.md) | Negative Stock + Physical Attrs | ✅ Complete |
+Implementation strategies and architectural decisions.
 
 #### Strategies (`implementation/strategies/`)
 | Document | Description |
@@ -121,7 +104,7 @@ Phase-by-phase implementation tracking and strategies.
 | [LOCATION_FIELDS_STRATEGY.md](implementation/strategies/LOCATION_FIELDS_STRATEGY.md) | Physical location tracking |
 | [MULTI_WAREHOUSE_REFACTOR_PLAN.md](implementation/strategies/MULTI_WAREHOUSE_REFACTOR_PLAN.md) | Multi-warehouse allocation strategy |
 
-**Start here if you want to**: Track implementation progress, review phase summaries, or understand implementation strategies.
+**Start here if you want to**: Understand implementation strategies and architectural decisions.
 
 ---
 
@@ -212,11 +195,10 @@ Development tools and CI/CD.
 1. Check: [Business Rules](ddd/BUSINESS_RULES.md) - ensure you understand constraints
 2. Review: [Architecture](architecture/ARCHITECTURE.md) - understand service boundaries
 3. Test: [Testing Guide](testing/DDD_REFACTORING_TESTING_GUIDE.md) - run relevant tests
-4. Debug: Phase-specific troubleshooting guides
 
 ### I want to add a new feature
 1. Design: [Architecture Proposal](architecture/ARCHITECTURE_PROPOSAL_HEXAGONAL_DDD.md) - follow patterns
-2. Plan: [DDD Migration Guide](ddd/DDD_MIGRATION_GUIDE.md) - migration strategy
+2. Review: [DDD Refactoring Roadmap](ddd/DDD_REFACTORING_ROADMAP.md) - understand context
 3. Implement: Follow hexagonal architecture (Domain → Application → Infrastructure)
 4. Test: [Testing Guide](testing/DDD_REFACTORING_TESTING_GUIDE.md)
 5. Document: Update relevant bounded context docs
@@ -236,8 +218,7 @@ Development tools and CI/CD.
 1. **START HERE**: [UI Design Guideline](guides/UI_DESIGN_GUIDELINE.md) - ⭐ **MUST READ** for ALL frontend work
 2. Architecture: [Frontend Architecture](bounded-contexts/frontend/FRONTEND_ARCHITECTURE.md)
 3. Roadmap: [Frontend Refactoring Roadmap](bounded-contexts/frontend/FRONTEND_REFACTORING_ROADMAP.md)
-4. Migration: [Phase 2B Frontend Migration](implementation/phases/PHASE2B_FRONTEND_MIGRATION_GUIDE.md)
-5. Components: [ShadCN UI Refactoring Guide](guides/SHADCN_UI_REFACTORING_GUIDE.md)
+4. Components: [ShadCN UI Refactoring Guide](guides/SHADCN_UI_REFACTORING_GUIDE.md)
 
 ### I want to create a new UI page/component
 1. **MANDATORY**: Read [UI Design Guideline](guides/UI_DESIGN_GUIDELINE.md) - Complete design system

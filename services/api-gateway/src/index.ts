@@ -7,7 +7,7 @@ type Bindings = {
   PRODUCT_SERVICE: Fetcher;
   ORDER_SERVICE: Fetcher;
   PAYMENT_SERVICE: Fetcher;
-  USER_SERVICE: Fetcher;
+  BUSINESS_PARTNER_SERVICE: Fetcher;
   INVENTORY_SERVICE: Fetcher;
   SHIPPING_SERVICE: Fetcher;
 };
@@ -41,7 +41,7 @@ app.get('/health/all', async (c) => {
     { name: 'Product Service', key: 'PRODUCT_SERVICE' },
     { name: 'Order Service', key: 'ORDER_SERVICE' },
     { name: 'Payment Service', key: 'PAYMENT_SERVICE' },
-    { name: 'User Service', key: 'USER_SERVICE' },
+    { name: 'Business Partner Service', key: 'BUSINESS_PARTNER_SERVICE' },
     { name: 'Inventory Service', key: 'INVENTORY_SERVICE' },
     { name: 'Shipping Service', key: 'SHIPPING_SERVICE' },
   ];
@@ -128,16 +128,31 @@ app.all('/api/webhooks/*', async (c) => {
 });
 
 // ========================================
-// USER SERVICE ROUTES
+// BUSINESS PARTNER SERVICE ROUTES
 // ========================================
-// Route all /api/users/* requests to User Service
-app.all('/api/users/*', async (c) => {
-  return c.env.USER_SERVICE.fetch(c.req.raw);
+// Route all /api/customers/* requests to Business Partner Service
+app.all('/api/customers/*', async (c) => {
+  return c.env.BUSINESS_PARTNER_SERVICE.fetch(c.req.raw);
 });
 
-// Authentication routes
-app.all('/api/auth/*', async (c) => {
-  return c.env.USER_SERVICE.fetch(c.req.raw);
+// Route all /api/suppliers/* requests to Business Partner Service
+app.all('/api/suppliers/*', async (c) => {
+  return c.env.BUSINESS_PARTNER_SERVICE.fetch(c.req.raw);
+});
+
+// Route all /api/employees/* requests to Business Partner Service
+app.all('/api/employees/*', async (c) => {
+  return c.env.BUSINESS_PARTNER_SERVICE.fetch(c.req.raw);
+});
+
+// Route all /api/addresses/* requests to Business Partner Service
+app.all('/api/addresses/*', async (c) => {
+  return c.env.BUSINESS_PARTNER_SERVICE.fetch(c.req.raw);
+});
+
+// Route all /api/geo/* requests to Business Partner Service (geospatial endpoints)
+app.all('/api/geo/*', async (c) => {
+  return c.env.BUSINESS_PARTNER_SERVICE.fetch(c.req.raw);
 });
 
 // ========================================
@@ -198,8 +213,14 @@ app.all('/api/admin/*', async (c) => {
   if (path.includes('/orders')) {
     return c.env.ORDER_SERVICE.fetch(c.req.raw);
   }
-  if (path.includes('/users')) {
-    return c.env.USER_SERVICE.fetch(c.req.raw);
+  if (path.includes('/customers')) {
+    return c.env.BUSINESS_PARTNER_SERVICE.fetch(c.req.raw);
+  }
+  if (path.includes('/suppliers')) {
+    return c.env.BUSINESS_PARTNER_SERVICE.fetch(c.req.raw);
+  }
+  if (path.includes('/employees')) {
+    return c.env.BUSINESS_PARTNER_SERVICE.fetch(c.req.raw);
   }
   if (path.includes('/inventory')) {
     return c.env.INVENTORY_SERVICE.fetch(c.req.raw);
