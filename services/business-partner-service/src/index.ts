@@ -5,12 +5,15 @@ import { logger } from 'hono/logger';
 import { appRouter } from './infrastructure/trpc';
 import addressesRoutes from './routes/addresses';
 import customersRoutes from './routes/customers';
+import documentsRoutes from './routes/documents';
 import employeesRoutes from './routes/employees';
 import geospatialRoutes from './routes/geospatial';
 import suppliersRoutes from './routes/suppliers';
 
 type Bindings = {
   DB: D1Database;
+  PARTNER_DOCUMENTS: R2Bucket;
+  DOCUMENT_CACHE: KVNamespace;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -46,6 +49,7 @@ app.all('/trpc/*', async (c) => {
 app.route('/api/customers', customersRoutes);
 app.route('/api/suppliers', suppliersRoutes);
 app.route('/api/employees', employeesRoutes);
+app.route('/api/employees/documents', documentsRoutes); // Document upload/download
 app.route('/api/addresses', addressesRoutes);
 app.route('/api/geo', geospatialRoutes); // Geospatial & export endpoints
 

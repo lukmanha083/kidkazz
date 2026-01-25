@@ -24,11 +24,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { type Category, categoryApi } from '@/lib/api';
-import { type CategoryFormData, categoryFormSchema } from '@/lib/form-schemas';
+import { type CategoryFormData, categoryFormSchema, createFormValidator } from '@/lib/form-schemas';
 import { useForm } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { zodValidator } from '@tanstack/zod-form-adapter';
 import { FolderTree, Loader2, Plus, X } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -115,9 +114,8 @@ function CategoryPage() {
       status: 'active' as const,
       parentId: null as string | null,
     },
-    validatorAdapter: zodValidator(),
     validators: {
-      onChange: categoryFormSchema,
+      onChange: createFormValidator(categoryFormSchema),
     },
     onSubmit: async ({ value }) => {
       if (formMode === 'add') {

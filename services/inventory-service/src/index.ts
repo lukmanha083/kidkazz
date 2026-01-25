@@ -3,7 +3,6 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { appRouter } from './infrastructure/trpc';
-import cleanupRoutes from './routes/cleanup';
 import inventoryRoutes from './routes/inventory';
 import inventoryBatchesRoutes from './routes/inventory-batches';
 import warehousesRoutes from './routes/warehouses';
@@ -59,7 +58,6 @@ app.all('/trpc/*', async (c) => {
 app.route('/api/warehouses', warehousesRoutes);
 app.route('/api/inventory', inventoryRoutes);
 app.route('/api/batches', inventoryBatchesRoutes);
-app.route('/api/cleanup', cleanupRoutes);
 
 // WebSocket endpoint for real-time inventory updates
 app.get('/ws', async (c) => {

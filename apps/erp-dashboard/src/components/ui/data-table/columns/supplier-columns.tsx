@@ -1,6 +1,6 @@
 import type { Supplier } from '@/lib/api';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Building2, Mail, Phone, Star } from 'lucide-react';
+import { Award, Building2, Mail, Phone, Star } from 'lucide-react';
 import { Badge } from '../../badge';
 import { DataTableColumnHeader } from '../data-table-column-header';
 import { DataTableRowActions } from '../data-table-row-actions';
@@ -69,29 +69,28 @@ export function getSupplierColumns(options: SupplierColumnOptions = {}): ColumnD
       },
     },
     {
-      accessorKey: 'paymentTermDays',
+      id: 'terms',
       header: ({ column }) => (
-        <DataTableColumnHeader
-          column={column}
-          title="Payment Terms"
-          className="hidden lg:table-cell"
-        />
+        <DataTableColumnHeader column={column} title="Terms" className="hidden lg:table-cell" />
       ),
       cell: ({ row }) => {
-        const days = row.getValue('paymentTermDays') as number | null;
-        if (days == null) return <span className="hidden lg:inline text-muted-foreground">-</span>;
-        return <span className="hidden lg:inline">{days} days</span>;
-      },
-    },
-    {
-      accessorKey: 'leadTimeDays',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Lead Time" className="hidden lg:table-cell" />
-      ),
-      cell: ({ row }) => {
-        const days = row.getValue('leadTimeDays') as number | null;
-        if (days == null) return <span className="hidden lg:inline text-muted-foreground">-</span>;
-        return <span className="hidden lg:inline">{days} days</span>;
+        const paymentDays = row.original.paymentTermDays;
+        // Lead time is auto-calculated from purchase orders, show "-" if no data yet
+        const leadDays = row.original.leadTimeDays;
+        const hasPayment = paymentDays != null && paymentDays > 0;
+        const hasLead = leadDays != null && leadDays > 0;
+        return (
+          <div className="hidden lg:block space-y-0.5 text-sm">
+            <div>
+              <span className="text-muted-foreground">Pay:</span>{' '}
+              {hasPayment ? `${paymentDays}d` : <span className="text-muted-foreground">-</span>}
+            </div>
+            <div>
+              <span className="text-muted-foreground">Lead:</span>{' '}
+              {hasLead ? `${leadDays}d` : <span className="text-muted-foreground">-</span>}
+            </div>
+          </div>
+        );
       },
     },
     {
@@ -112,15 +111,24 @@ export function getSupplierColumns(options: SupplierColumnOptions = {}): ColumnD
       },
     },
     {
-      accessorKey: 'totalOrders',
+      accessorKey: 'bestSellerProductCount',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Orders" className="hidden lg:table-cell" />
+        <DataTableColumnHeader
+          column={column}
+          title="Best Sellers"
+          className="hidden lg:table-cell"
+        />
       ),
       cell: ({ row }) => {
-        const totalOrders = row.getValue('totalOrders') as number | null;
-        if (totalOrders == null)
+        const count = row.getValue('bestSellerProductCount') as number | null;
+        if (count == null || count === 0)
           return <span className="hidden lg:inline text-muted-foreground">-</span>;
-        return <span className="hidden lg:inline">{totalOrders}</span>;
+        return (
+          <div className="hidden lg:flex items-center gap-1">
+            <Award className="h-3 w-3 text-amber-500" />
+            <span>{count}</span>
+          </div>
+        );
       },
     },
     {

@@ -501,9 +501,119 @@ public validateCode(code: string): void {
 
 ---
 
+### Rule 14: Warehouse Lifecycle & Delete Strategy
+
+**Rule**: Warehouses use soft delete by default. Hard delete is only allowed when the warehouse has no historical data.
+
+**Business Rationale**:
+- Warehouses may be leased (not owned) and closed when lease ends
+- New warehouses open at different locations frequently
+- Historical data integrity must be preserved for:
+  - Inventory movements audit trail
+  - Financial reporting and inventory valuation
+  - Order fulfillment history
+  - Stock transfer records
+
+**Warehouse Status Lifecycle**:
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    WAREHOUSE LIFECYCLE                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   active ──→ inactive ──→ closed (soft delete)                  │
+│                              │                                  │
+│                              ▼                                  │
+│                     [If no history]                             │
+│                              │                                  │
+│                              ▼                                  │
+│                    HARD DELETE allowed                          │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Status Definitions**:
+- `active` - Warehouse is operational, can receive/ship stock
+- `inactive` - Temporarily closed, no new operations allowed
+- `closed` - Soft deleted, preserved for historical reference
+
+**Data That References Warehouse**:
+
+| Table | Impact of Hard Delete | Recommendation |
+|-------|----------------------|----------------|
+| `inventory` | CASCADE - loses all stock records | Soft delete |
+| `inventoryMovements` | Loses audit trail | Soft delete |
+| `inventoryBatches` | Loses batch/expiration history | Soft delete |
+| Orders (future) | Loses fulfillment location | Soft delete |
+| Stock Transfers | Loses transfer history | Soft delete |
+
+**Implementation**:
+```typescript
+// Warehouse can be HARD DELETED only if:
+public canHardDelete(): boolean {
+  return (
+    this.totalInventoryRecords === 0 &&    // No stock ever existed
+    this.totalMovements === 0 &&            // No movement history
+    this.status === 'inactive'              // Must be deactivated first
+  );
+}
+
+// Otherwise, use SOFT DELETE (close warehouse):
+public closeWarehouse(closedBy: string): void {
+  // 1. Verify no active inventory
+  if (this.hasActiveInventory()) {
+    throw new Error('Transfer all stock before closing warehouse');
+  }
+
+  this.status = 'closed';
+  this.deletedAt = new Date();
+  this.deletedBy = closedBy;
+}
+
+// Reopen a closed warehouse (if needed)
+public reopenWarehouse(): void {
+  if (this.status !== 'closed') {
+    throw new Error('Only closed warehouses can be reopened');
+  }
+
+  this.status = 'active';
+  this.deletedAt = null;
+  this.deletedBy = null;
+}
+```
+
+**Workflow for Closing Leased Warehouse**:
+1. **Transfer all stock** to another warehouse (use Stock Transfer feature)
+2. **Deactivate warehouse** (status = 'inactive') - prevents new operations
+3. **Close warehouse** (soft delete with `deletedAt` timestamp)
+4. **Hard delete** only if no historical data exists (optional cleanup)
+
+**Error Messages**:
+- "Transfer all stock before closing warehouse"
+- "Cannot hard delete warehouse with historical data"
+- "Only closed warehouses can be reopened"
+
+**Query Considerations**:
+```typescript
+// Default queries exclude closed warehouses
+const activeWarehouses = await db.select()
+  .from(warehouses)
+  .where(isNull(warehouses.deletedAt));
+
+// Include closed warehouses for historical reports
+const allWarehouses = await db.select()
+  .from(warehouses);
+
+// Get movements from a closed warehouse (for audit)
+const historicalMovements = await db.select()
+  .from(inventoryMovements)
+  .where(eq(inventoryMovements.warehouseId, closedWarehouseId));
+```
+
+---
+
 ## UOM Conversion Rules
 
-### Rule 14: Base Unit Conversion Factor
+### Rule 15: Base Unit Conversion Factor
 
 **Rule**: Base unit (PCS, KG, L, M, etc.) always has conversion factor of 1. All other UOMs convert relative to the base unit.
 

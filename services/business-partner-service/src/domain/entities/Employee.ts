@@ -22,6 +22,10 @@ interface EmployeeProps {
   endDate: Date | null;
   employmentStatus: EmploymentStatus;
   baseSalary: number | null;
+  // Bank Info (for salary payment)
+  bankName: string | null;
+  bankAccountNumber: string | null;
+  bankAccountName: string | null;
   notes: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -75,12 +79,16 @@ export class Employee extends AggregateRoot {
     npwp?: string;
     joinDate?: Date;
     baseSalary?: number;
+    // Bank Info
+    bankName?: string;
+    bankAccountNumber?: string;
+    bankAccountName?: string;
   }): Employee {
     Employee.validate(input);
 
     const now = new Date();
     const id = `emp-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-    const code = PartnerCode.create('employee').getValue();
+    const code = PartnerCode.create('employee').toString();
 
     return new Employee({
       id,
@@ -100,6 +108,9 @@ export class Employee extends AggregateRoot {
       endDate: null,
       employmentStatus: 'active',
       baseSalary: input.baseSalary ?? null,
+      bankName: input.bankName || null,
+      bankAccountNumber: input.bankAccountNumber || null,
+      bankAccountName: input.bankAccountName || null,
       notes: null,
       createdAt: now,
       updatedAt: now,
@@ -290,6 +301,9 @@ export class Employee extends AggregateRoot {
       endDate: this.props.endDate,
       employmentStatus: this.props.employmentStatus,
       baseSalary: this.props.baseSalary,
+      bankName: this.props.bankName,
+      bankAccountNumber: this.props.bankAccountNumber,
+      bankAccountName: this.props.bankAccountName,
       notes: this.props.notes,
       createdAt: this.props.createdAt,
       updatedAt: this.props.updatedAt,

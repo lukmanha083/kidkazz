@@ -1,3 +1,4 @@
+import { DocumentUpload } from '@/components/DocumentUpload';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,6 +11,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { employeeStatusOptions, getEmployeeColumns } from '@/components/ui/data-table/columns';
@@ -24,6 +26,7 @@ import {
 } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Select,
   SelectContent,
@@ -32,17 +35,21 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { type Employee, employeeApi } from '@/lib/api';
-import { type EmployeeFormData, employeeFormSchema } from '@/lib/form-schemas';
+import { type EmployeeFormData, createFormValidator, employeeFormSchema } from '@/lib/form-schemas';
 import { queryKeys } from '@/lib/query-client';
+import { cn } from '@/lib/utils';
 import { useForm } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { zodValidator } from '@tanstack/zod-form-adapter';
+import { format } from 'date-fns';
 import {
   Briefcase,
   Building,
+  CalendarIcon,
   CheckCircle,
+  Download,
   Edit,
+  FileText,
   Loader2,
   LogOut,
   Plus,
@@ -74,6 +81,15 @@ function EmployeesManagementPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
 
+  // KTP document upload state
+  const [ktpPendingFile, setKtpPendingFile] = useState<File | null>(null);
+  // Viewed employee documents state
+  const [viewedKtpDocument, setViewedKtpDocument] = useState<{
+    url: string;
+    filename: string;
+  } | null>(null);
+  const [ktpDocumentUrl, setKtpDocumentUrl] = useState<string | null>(null);
+
   const form = useForm({
     defaultValues: {
       name: '',
@@ -89,30 +105,38 @@ function EmployeesManagementPage() {
       npwp: '',
       joinDate: '',
       baseSalary: 0,
+      // Bank Info
+      bankName: '',
+      bankAccountNumber: '',
+      bankAccountName: '',
     },
-    validatorAdapter: zodValidator(),
     validators: {
-      onChange: employeeFormSchema,
+      onChange: createFormValidator(employeeFormSchema),
     },
     onSubmit: async ({ value }) => {
       const submitData = {
-        ...value,
+        name: value.name,
+        department: value.department,
+        position: value.position,
+        baseSalary: value.baseSalary,
         email: value.email || undefined,
         phone: value.phone || undefined,
-        department: value.department || undefined,
-        position: value.position || undefined,
+        employeeNumber: value.employeeNumber || undefined,
         managerId: value.managerId || undefined,
         dateOfBirth: value.dateOfBirth || undefined,
         gender: value.gender || undefined,
         nationalId: value.nationalId || undefined,
         npwp: value.npwp || undefined,
         joinDate: value.joinDate || undefined,
-        baseSalary: value.baseSalary ?? undefined,
+        // Bank Info
+        bankName: value.bankName || undefined,
+        bankAccountNumber: value.bankAccountNumber || undefined,
+        bankAccountName: value.bankAccountName || undefined,
       };
       if (formMode === 'add') {
         await createEmployeeMutation.mutateAsync(submitData);
       } else if (formMode === 'edit' && selectedEmployee) {
-        const { employeeNumber, ...updateData } = submitData;
+        const { employeeNumber: _, ...updateData } = submitData;
         await updateEmployeeMutation.mutateAsync({ id: selectedEmployee.id, data: updateData });
       }
     },
@@ -131,9 +155,42 @@ function EmployeesManagementPage() {
 
   const createEmployeeMutation = useMutation({
     mutationFn: (data: EmployeeFormData) => employeeApi.create(data),
-    onSuccess: () => {
+    onSuccess: async (createdEmployee) => {
+      // Upload pending KTP file if exists
+      if (ktpPendingFile && createdEmployee.id) {
+        try {
+          const formData = new FormData();
+          formData.append('file', ktpPendingFile, ktpPendingFile.name);
+          formData.append('employeeId', createdEmployee.id);
+          formData.append('documentType', 'ktp');
+
+          const response = await fetch(
+            `${import.meta.env.VITE_BUSINESS_PARTNER_SERVICE_URL || 'http://localhost:8793'}/api/employees/documents/upload`,
+            {
+              method: 'POST',
+              body: formData,
+            }
+          );
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: 'Upload failed' }));
+            console.error('KTP upload failed:', errorData.error);
+            toast.error('Employee created but KTP upload failed', {
+              description: errorData.error,
+            });
+          } else {
+            toast.success('Employee created with KTP document');
+          }
+        } catch (err) {
+          console.error('KTP upload error:', err);
+          toast.error('Employee created but KTP upload failed');
+        }
+        setKtpPendingFile(null);
+      } else {
+        toast.success('Employee created successfully');
+      }
+
       queryClient.invalidateQueries({ queryKey: queryKeys.employees.all });
-      toast.success('Employee created successfully');
       setFormDrawerOpen(false);
       form.reset();
     },
@@ -210,18 +267,35 @@ function EmployeesManagementPage() {
     },
   });
 
-  const handleViewEmployee = (employee: Employee) => {
+  const handleViewEmployee = async (employee: Employee) => {
     setSelectedEmployee(employee);
+    setViewedKtpDocument(null);
     setViewDrawerOpen(true);
+
+    // Fetch employee's KTP document
+    try {
+      const docs = await employeeApi.getDocuments(employee.id);
+      const ktpDoc = docs.documents?.find((d) => d.type === 'ktp');
+      if (ktpDoc) {
+        // Store relative URL - will construct full URL when displaying
+        setViewedKtpDocument({ url: ktpDoc.url, filename: ktpDoc.filename });
+      }
+    } catch (err) {
+      console.error('Failed to fetch documents:', err);
+    }
   };
 
   const handleAddEmployee = () => {
     setFormMode('add');
+    setSelectedEmployee(null);
     form.reset();
+    // Reset KTP document state for new employee
+    setKtpPendingFile(null);
+    setKtpDocumentUrl(null);
     setFormDrawerOpen(true);
   };
 
-  const handleEditEmployee = (employee: Employee) => {
+  const handleEditEmployee = async (employee: Employee) => {
     setFormMode('edit');
     setSelectedEmployee(employee);
     form.setFieldValue('name', employee.name);
@@ -243,6 +317,29 @@ function EmployeesManagementPage() {
       employee.joinDate ? new Date(employee.joinDate).toISOString().split('T')[0] : ''
     );
     form.setFieldValue('baseSalary', employee.baseSalary || 0);
+    // Bank Info
+    form.setFieldValue('bankName', employee.bankName || '');
+    form.setFieldValue('bankAccountNumber', employee.bankAccountNumber || '');
+    form.setFieldValue('bankAccountName', employee.bankAccountName || '');
+
+    // Reset pending file and load existing KTP document
+    setKtpPendingFile(null);
+    setKtpDocumentUrl(null);
+
+    // Fetch existing KTP document
+    try {
+      const docs = await employeeApi.getDocuments(employee.id);
+      const ktpDoc = docs.documents?.find((d) => d.type === 'ktp');
+      if (ktpDoc) {
+        // Construct full URL for the document
+        const baseUrl =
+          import.meta.env.VITE_BUSINESS_PARTNER_SERVICE_URL || 'http://localhost:8793';
+        setKtpDocumentUrl(`${baseUrl}${ktpDoc.url}`);
+      }
+    } catch (err) {
+      console.error('Failed to fetch documents:', err);
+    }
+
     setViewDrawerOpen(false);
     setFormDrawerOpen(true);
   };
@@ -431,7 +528,7 @@ function EmployeesManagementPage() {
                           : 'secondary'
                     }
                   >
-                    {selectedEmployee.employmentStatus.replaceAll('_', ' ')}
+                    {(selectedEmployee.employmentStatus as string).replace(/_/g, ' ')}
                   </Badge>
                 </div>
               </div>
@@ -512,6 +609,78 @@ function EmployeesManagementPage() {
                     }).format(selectedEmployee.baseSalary)}
                   </p>
                 </div>
+              </div>
+
+              <div className="space-y-4 border-t pt-4">
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase">
+                  Bank Account
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Bank Name</p>
+                    <p className="font-medium">{selectedEmployee.bankName || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Account Number</p>
+                    <p className="font-mono font-medium">
+                      {selectedEmployee.bankAccountNumber || '-'}
+                    </p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Account Holder Name</p>
+                  <p className="font-medium">{selectedEmployee.bankAccountName || '-'}</p>
+                </div>
+              </div>
+
+              <div className="space-y-4 border-t pt-4">
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase">Documents</h3>
+                {viewedKtpDocument ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <FileText className="h-8 w-8 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium text-sm">KTP Document</p>
+                          <p className="text-xs text-muted-foreground">
+                            {viewedKtpDocument.filename}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          // Construct full URL and open in new tab for download
+                          const baseUrl =
+                            import.meta.env.VITE_BUSINESS_PARTNER_SERVICE_URL ||
+                            'http://localhost:8793';
+                          const fullUrl = `${baseUrl}${viewedKtpDocument.url}`;
+                          window.open(fullUrl, '_blank');
+                        }}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Download
+                      </Button>
+                    </div>
+                    {/* Preview image if it's an image file */}
+                    {viewedKtpDocument.url && (
+                      <div className="rounded-lg overflow-hidden border">
+                        <img
+                          src={`${import.meta.env.VITE_BUSINESS_PARTNER_SERVICE_URL || 'http://localhost:8793'}${viewedKtpDocument.url}`}
+                          alt="KTP Document"
+                          className="w-full h-auto max-h-48 object-contain bg-muted"
+                          onError={(e) => {
+                            // Hide image if it fails to load (e.g., PDF)
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No documents uploaded</p>
+                )}
               </div>
             </div>
           )}
@@ -596,10 +765,11 @@ function EmployeesManagementPage() {
               <form.Field name="name">
                 {(field) => (
                   <div className="space-y-2">
-                    <Label htmlFor={field.name}>Name *</Label>
+                    <Label htmlFor={field.name}>Full Name *</Label>
                     <Input
                       id={field.name}
                       placeholder="John Doe"
+                      maxLength={100}
                       value={field.state.value}
                       onChange={(e) => field.handleChange(e.target.value)}
                       onBlur={field.handleBlur}
@@ -616,18 +786,19 @@ function EmployeesManagementPage() {
               <form.Field name="employeeNumber">
                 {(field) => (
                   <div className="space-y-2">
-                    <Label htmlFor={field.name}>Employee Number *</Label>
+                    <Label htmlFor={field.name}>Employee Number</Label>
                     <Input
                       id={field.name}
-                      placeholder="EMP001"
+                      placeholder={formMode === 'add' ? 'Auto-generated' : 'EMP001'}
                       value={field.state.value}
                       onChange={(e) => field.handleChange(e.target.value)}
                       onBlur={field.handleBlur}
-                      disabled={formMode === 'edit'}
+                      disabled={true}
+                      className="bg-muted"
                     />
-                    {field.state.meta.errors.length > 0 && (
-                      <p className="text-sm text-destructive">
-                        {field.state.meta.errors.map(getErrorMessage).join(', ')}
+                    {formMode === 'add' && (
+                      <p className="text-xs text-muted-foreground">
+                        Employee number will be auto-generated
                       </p>
                     )}
                   </div>
@@ -660,46 +831,101 @@ function EmployeesManagementPage() {
               <form.Field name="phone">
                 {(field) => (
                   <div className="space-y-2">
-                    <Label htmlFor={field.name}>Phone</Label>
+                    <Label htmlFor={field.name}>Mobile Phone</Label>
                     <Input
                       id={field.name}
-                      placeholder="+62812345678"
+                      placeholder="08123456789"
                       value={field.state.value}
                       onChange={(e) => field.handleChange(e.target.value)}
                       onBlur={field.handleBlur}
                     />
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-destructive">
+                        {field.state.meta.errors.map(getErrorMessage).join(', ')}
+                      </p>
+                    )}
                   </div>
                 )}
               </form.Field>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <form.Field name="department">
+              <form.Field
+                name="department"
+                validators={{
+                  onChange: ({ value }) => {
+                    if (!value || value.trim().length === 0) {
+                      return 'Department is required';
+                    }
+                    if (value.length < 2) {
+                      return 'Department must be at least 2 characters';
+                    }
+                    if (/\d/.test(value)) {
+                      return 'Department should not contain numbers';
+                    }
+                    return undefined;
+                  },
+                }}
+              >
                 {(field) => (
                   <div className="space-y-2">
-                    <Label htmlFor={field.name}>Department</Label>
+                    <Label htmlFor={field.name}>
+                      Department <span className="text-destructive">*</span>
+                    </Label>
                     <Input
                       id={field.name}
                       placeholder="Engineering"
+                      maxLength={50}
                       value={field.state.value}
                       onChange={(e) => field.handleChange(e.target.value)}
                       onBlur={field.handleBlur}
+                      className={field.state.meta.errors.length > 0 ? 'border-destructive' : ''}
                     />
+                    {field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-destructive">
+                        {field.state.meta.errors.map(getErrorMessage).join(', ')}
+                      </p>
+                    )}
                   </div>
                 )}
               </form.Field>
 
-              <form.Field name="position">
+              <form.Field
+                name="position"
+                validators={{
+                  onChange: ({ value }) => {
+                    if (!value || value.trim().length === 0) {
+                      return 'Position is required';
+                    }
+                    if (value.length < 2) {
+                      return 'Position must be at least 2 characters';
+                    }
+                    if (/\d/.test(value)) {
+                      return 'Position should not contain numbers';
+                    }
+                    return undefined;
+                  },
+                }}
+              >
                 {(field) => (
                   <div className="space-y-2">
-                    <Label htmlFor={field.name}>Position</Label>
+                    <Label htmlFor={field.name}>
+                      Position <span className="text-destructive">*</span>
+                    </Label>
                     <Input
                       id={field.name}
                       placeholder="Software Engineer"
+                      maxLength={50}
                       value={field.state.value}
                       onChange={(e) => field.handleChange(e.target.value)}
                       onBlur={field.handleBlur}
+                      className={field.state.meta.errors.length > 0 ? 'border-destructive' : ''}
                     />
+                    {field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-destructive">
+                        {field.state.meta.errors.map(getErrorMessage).join(', ')}
+                      </p>
+                    )}
                   </div>
                 )}
               </form.Field>
@@ -710,13 +936,40 @@ function EmployeesManagementPage() {
                 {(field) => (
                   <div className="space-y-2">
                     <Label htmlFor={field.name}>Date of Birth</Label>
-                    <Input
-                      id={field.name}
-                      type="date"
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      onBlur={field.handleBlur}
-                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          id={field.name}
+                          variant="outline"
+                          className={cn(
+                            'w-full justify-start text-left font-normal',
+                            !field.state.value && 'text-muted-foreground'
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {field.state.value
+                            ? format(new Date(field.state.value), 'PPP')
+                            : 'Pick a date'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          captionLayout="dropdown"
+                          selected={field.state.value ? new Date(field.state.value) : undefined}
+                          onSelect={(date) =>
+                            field.handleChange(date ? date.toISOString().split('T')[0] : '')
+                          }
+                          defaultMonth={
+                            field.state.value ? new Date(field.state.value) : new Date(1990, 0)
+                          }
+                          startMonth={new Date(1920, 0)}
+                          endMonth={new Date()}
+                          disabled={(date) => date > new Date() || date < new Date('1920-01-01')}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 )}
               </form.Field>
@@ -746,14 +999,25 @@ function EmployeesManagementPage() {
               <form.Field name="nationalId">
                 {(field) => (
                   <div className="space-y-2">
-                    <Label htmlFor={field.name}>National ID (KTP)</Label>
+                    <Label htmlFor={field.name}>National ID (KTP/NIK)</Label>
                     <Input
                       id={field.name}
                       placeholder="3201234567890001"
+                      maxLength={16}
                       value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
+                      onChange={(e) => {
+                        // Only allow digits
+                        const value = e.target.value.replace(/\D/g, '');
+                        field.handleChange(value);
+                      }}
                       onBlur={field.handleBlur}
                     />
+                    <p className="text-xs text-muted-foreground">16 digit NIK number</p>
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-destructive">
+                        {field.state.meta.errors.map(getErrorMessage).join(', ')}
+                      </p>
+                    )}
                   </div>
                 )}
               </form.Field>
@@ -766,9 +1030,19 @@ function EmployeesManagementPage() {
                       id={field.name}
                       placeholder="01.234.567.8-901.000"
                       value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
+                      onChange={(e) => {
+                        // Allow digits, dots, and dashes for NPWP format
+                        const value = e.target.value.replace(/[^\d.-]/g, '');
+                        field.handleChange(value);
+                      }}
                       onBlur={field.handleBlur}
                     />
+                    <p className="text-xs text-muted-foreground">Format: XX.XXX.XXX.X-XXX.XXX</p>
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-destructive">
+                        {field.state.meta.errors.map(getErrorMessage).join(', ')}
+                      </p>
+                    )}
                   </div>
                 )}
               </form.Field>
@@ -779,33 +1053,244 @@ function EmployeesManagementPage() {
                 {(field) => (
                   <div className="space-y-2">
                     <Label htmlFor={field.name}>Join Date</Label>
-                    <Input
-                      id={field.name}
-                      type="date"
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      onBlur={field.handleBlur}
-                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          id={field.name}
+                          variant="outline"
+                          className={cn(
+                            'w-full justify-start text-left font-normal',
+                            !field.state.value && 'text-muted-foreground'
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {field.state.value
+                            ? format(new Date(field.state.value), 'PPP')
+                            : 'Pick a date'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          captionLayout="dropdown"
+                          selected={field.state.value ? new Date(field.state.value) : undefined}
+                          onSelect={(date) =>
+                            field.handleChange(date ? date.toISOString().split('T')[0] : '')
+                          }
+                          defaultMonth={
+                            field.state.value ? new Date(field.state.value) : new Date()
+                          }
+                          startMonth={new Date(2000, 0)}
+                          endMonth={new Date(2030, 11)}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 )}
               </form.Field>
 
-              <form.Field name="baseSalary">
+              <form.Field
+                name="baseSalary"
+                validators={{
+                  onChange: ({ value }) => {
+                    if (value === undefined || value === 0) return undefined;
+                    if (value < 0) {
+                      return 'Base salary cannot be negative';
+                    }
+                    if (value > 999999999999) {
+                      return 'Base salary cannot exceed Rp 999.999.999.999';
+                    }
+                    return undefined;
+                  },
+                }}
+              >
+                {(field) => {
+                  // Format number to Rupiah display (with dots as thousand separators)
+                  const formatRupiah = (num: number | undefined): string => {
+                    if (num === undefined || num === 0) return '';
+                    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                  };
+
+                  // Parse Rupiah string back to number
+                  const parseRupiah = (str: string): number => {
+                    const cleaned = str.replace(/\./g, '');
+                    const num = Number.parseInt(cleaned, 10);
+                    return isNaN(num) ? 0 : num;
+                  };
+
+                  return (
+                    <div className="space-y-2">
+                      <Label htmlFor={field.name}>
+                        Base Salary <span className="text-destructive">*</span>
+                      </Label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                          Rp
+                        </span>
+                        <Input
+                          id={field.name}
+                          type="text"
+                          placeholder="0"
+                          className={`pl-10 ${field.state.meta.errors.length > 0 ? 'border-destructive' : ''}`}
+                          value={formatRupiah(field.state.value)}
+                          onChange={(e) => {
+                            // Only allow digits and dots
+                            const value = e.target.value.replace(/[^\d.]/g, '');
+                            const numValue = parseRupiah(value);
+                            field.handleChange(Math.max(0, numValue));
+                          }}
+                          onBlur={field.handleBlur}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">Max: Rp 999.999.999.999</p>
+                      {field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+                        <p className="text-sm text-destructive">
+                          {field.state.meta.errors.map(getErrorMessage).join(', ')}
+                        </p>
+                      )}
+                    </div>
+                  );
+                }}
+              </form.Field>
+            </div>
+
+            {/* Bank Info Section */}
+            <div className="space-y-4 border-t pt-4">
+              <h3 className="font-semibold text-sm text-muted-foreground uppercase">
+                Bank Account (for salary payment)
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <form.Field
+                  name="bankName"
+                  validators={{
+                    onChange: ({ value }) => {
+                      if (!value) return undefined;
+                      if (value.length > 50) {
+                        return 'Bank name must be less than 50 characters';
+                      }
+                      return undefined;
+                    },
+                  }}
+                >
+                  {(field) => (
+                    <div className="space-y-2">
+                      <Label htmlFor={field.name}>Bank Name</Label>
+                      <Input
+                        id={field.name}
+                        placeholder="BCA, Mandiri, BRI, etc."
+                        maxLength={50}
+                        value={field.state.value}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        onBlur={field.handleBlur}
+                        className={field.state.meta.errors.length > 0 ? 'border-destructive' : ''}
+                      />
+                      {field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+                        <p className="text-sm text-destructive">
+                          {field.state.meta.errors.map(getErrorMessage).join(', ')}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </form.Field>
+
+                <form.Field
+                  name="bankAccountNumber"
+                  validators={{
+                    onChange: ({ value }) => {
+                      if (!value) return undefined;
+                      // Remove non-digits for validation
+                      const digitsOnly = value.replace(/\D/g, '');
+                      if (
+                        digitsOnly.length > 0 &&
+                        (digitsOnly.length < 10 || digitsOnly.length > 20)
+                      ) {
+                        return 'Bank account number must be 10-20 digits';
+                      }
+                      return undefined;
+                    },
+                  }}
+                >
+                  {(field) => (
+                    <div className="space-y-2">
+                      <Label htmlFor={field.name}>Account Number</Label>
+                      <Input
+                        id={field.name}
+                        placeholder="1234567890"
+                        maxLength={20}
+                        value={field.state.value}
+                        onChange={(e) => {
+                          // Only allow digits
+                          const value = e.target.value.replace(/\D/g, '');
+                          field.handleChange(value);
+                        }}
+                        onBlur={field.handleBlur}
+                        className={field.state.meta.errors.length > 0 ? 'border-destructive' : ''}
+                      />
+                      <p className="text-xs text-muted-foreground">10-20 digits</p>
+                      {field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+                        <p className="text-sm text-destructive">
+                          {field.state.meta.errors.map(getErrorMessage).join(', ')}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </form.Field>
+              </div>
+
+              <form.Field
+                name="bankAccountName"
+                validators={{
+                  onChange: ({ value }) => {
+                    if (!value) return undefined;
+                    if (value.length > 100) {
+                      return 'Account name must be less than 100 characters';
+                    }
+                    return undefined;
+                  },
+                }}
+              >
                 {(field) => (
                   <div className="space-y-2">
-                    <Label htmlFor={field.name}>Base Salary</Label>
+                    <Label htmlFor={field.name}>Account Holder Name</Label>
                     <Input
                       id={field.name}
-                      type="number"
-                      placeholder="5000000"
+                      placeholder="Name as on bank account"
+                      maxLength={100}
                       value={field.state.value}
-                      onChange={(e) => field.handleChange(Number(e.target.value))}
+                      onChange={(e) => field.handleChange(e.target.value)}
                       onBlur={field.handleBlur}
+                      className={field.state.meta.errors.length > 0 ? 'border-destructive' : ''}
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Must match the name registered with the bank
+                    </p>
+                    {field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-destructive">
+                        {field.state.meta.errors.map(getErrorMessage).join(', ')}
+                      </p>
+                    )}
                   </div>
                 )}
               </form.Field>
             </div>
+
+            {/* KTP Document Upload */}
+            <DocumentUpload
+              employeeId={formMode === 'edit' ? selectedEmployee?.id : undefined}
+              documentType="ktp"
+              label="KTP Document"
+              currentDocument={ktpDocumentUrl || undefined}
+              onFileSelect={(file) => setKtpPendingFile(file)}
+              onUploadSuccess={(result) => {
+                setKtpDocumentUrl(result.url);
+                setKtpPendingFile(null);
+                toast.success('KTP document uploaded successfully');
+              }}
+              onUploadError={(error) => {
+                toast.error('Failed to upload KTP document', { description: error });
+              }}
+            />
 
             <DrawerFooter className="px-0">
               <div className="flex flex-col sm:flex-row gap-2 w-full">

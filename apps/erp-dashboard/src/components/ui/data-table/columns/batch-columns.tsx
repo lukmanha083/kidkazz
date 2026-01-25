@@ -6,7 +6,7 @@ import { DataTableColumnHeader } from '../data-table-column-header';
 import { DataTableRowActions } from '../data-table-row-actions';
 
 // Helper function to calculate days until expiration
-const calculateDaysUntilExpiration = (expirationDate: string | null): number => {
+const calculateDaysUntilExpiration = (expirationDate: string | null | undefined): number => {
   if (!expirationDate) return Number.POSITIVE_INFINITY;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -16,7 +16,7 @@ const calculateDaysUntilExpiration = (expirationDate: string | null): number => 
 };
 
 // Helper function to get expiration badge
-const getExpirationBadge = (expirationDate: string | null) => {
+const getExpirationBadge = (expirationDate: string | null | undefined) => {
   if (!expirationDate) {
     return (
       <Badge variant="outline" className="bg-gray-100">
@@ -69,6 +69,7 @@ const getStatusBadgeColor = (status: InventoryBatch['status']) => {
   const styles = {
     active: 'bg-green-100 text-green-800 border-green-300',
     expired: 'bg-red-100 text-red-800 border-red-300',
+    depleted: 'bg-gray-100 text-gray-800 border-gray-300',
     quarantined: 'bg-yellow-100 text-yellow-800 border-yellow-300',
     recalled: 'bg-orange-100 text-orange-800 border-orange-300',
   };

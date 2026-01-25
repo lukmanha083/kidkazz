@@ -8,6 +8,7 @@ describe('Phone Number Validation', () => {
         name: 'Test Customer',
         phone: '+6281234567890',
         customerType: 'retail',
+        entityType: 'person',
       });
       expect(result.success).toBe(true);
     });
@@ -17,6 +18,7 @@ describe('Phone Number Validation', () => {
         name: 'Test Customer',
         phone: '6281234567890',
         customerType: 'retail',
+        entityType: 'person',
       });
       expect(result.success).toBe(true);
     });
@@ -26,6 +28,7 @@ describe('Phone Number Validation', () => {
         name: 'Test Customer',
         phone: '081234567890',
         customerType: 'retail',
+        entityType: 'person',
       });
       expect(result.success).toBe(true);
     });
@@ -35,6 +38,7 @@ describe('Phone Number Validation', () => {
         name: 'Test Customer',
         phone: '+62 812 3456 7890',
         customerType: 'retail',
+        entityType: 'person',
       });
       expect(result.success).toBe(true);
     });
@@ -44,6 +48,7 @@ describe('Phone Number Validation', () => {
         name: 'Test Customer',
         phone: '+62-812-3456-7890',
         customerType: 'retail',
+        entityType: 'person',
       });
       expect(result.success).toBe(true);
     });
@@ -54,6 +59,7 @@ describe('Phone Number Validation', () => {
       const result = supplierFormSchema.safeParse({
         name: 'Test Supplier',
         phone: '02172786383',
+        entityType: 'person',
       });
       expect(result.success).toBe(true);
     });
@@ -62,6 +68,7 @@ describe('Phone Number Validation', () => {
       const result = supplierFormSchema.safeParse({
         name: 'Test Supplier',
         phone: '021 7278 6383',
+        entityType: 'person',
       });
       expect(result.success).toBe(true);
     });
@@ -70,6 +77,7 @@ describe('Phone Number Validation', () => {
       const result = supplierFormSchema.safeParse({
         name: 'Test Supplier',
         phone: '021-7278-6383',
+        entityType: 'person',
       });
       expect(result.success).toBe(true);
     });
@@ -78,6 +86,7 @@ describe('Phone Number Validation', () => {
       const result = supplierFormSchema.safeParse({
         name: 'Test Supplier',
         phone: '0221234567',
+        entityType: 'person',
       });
       expect(result.success).toBe(true);
     });
@@ -86,6 +95,7 @@ describe('Phone Number Validation', () => {
       const result = supplierFormSchema.safeParse({
         name: 'Test Supplier',
         phone: '03112345678',
+        entityType: 'person',
       });
       expect(result.success).toBe(true);
     });
@@ -94,6 +104,7 @@ describe('Phone Number Validation', () => {
       const result = supplierFormSchema.safeParse({
         name: 'Test Supplier',
         phone: '0274123456',
+        entityType: 'person',
       });
       expect(result.success).toBe(true);
     });
@@ -105,6 +116,7 @@ describe('Phone Number Validation', () => {
         name: 'Test Customer',
         phone: '+12025551234',
         customerType: 'retail',
+        entityType: 'person',
       });
       expect(result.success).toBe(true);
     });
@@ -114,6 +126,7 @@ describe('Phone Number Validation', () => {
         name: 'Test Customer',
         phone: '+442071234567',
         customerType: 'retail',
+        entityType: 'person',
       });
       expect(result.success).toBe(true);
     });
@@ -123,6 +136,7 @@ describe('Phone Number Validation', () => {
         name: 'Test Customer',
         phone: '+6591234567',
         customerType: 'retail',
+        entityType: 'person',
       });
       expect(result.success).toBe(true);
     });
@@ -132,6 +146,7 @@ describe('Phone Number Validation', () => {
         name: 'Test Customer',
         phone: '+60123456789',
         customerType: 'retail',
+        entityType: 'person',
       });
       expect(result.success).toBe(true);
     });
@@ -141,6 +156,7 @@ describe('Phone Number Validation', () => {
         name: 'Test Customer',
         phone: '+61412345678',
         customerType: 'retail',
+        entityType: 'person',
       });
       expect(result.success).toBe(true);
     });
@@ -152,6 +168,7 @@ describe('Phone Number Validation', () => {
         name: 'Test Customer',
         phone: '12345678',
         customerType: 'retail',
+        entityType: 'person',
       });
       expect(result.success).toBe(false);
     });
@@ -161,6 +178,7 @@ describe('Phone Number Validation', () => {
         name: 'Test Customer',
         phone: '+62812',
         customerType: 'retail',
+        entityType: 'person',
       });
       expect(result.success).toBe(false);
     });
@@ -170,6 +188,7 @@ describe('Phone Number Validation', () => {
         name: 'Test Customer',
         phone: '+62812abc4567',
         customerType: 'retail',
+        entityType: 'person',
       });
       expect(result.success).toBe(false);
     });
@@ -179,6 +198,7 @@ describe('Phone Number Validation', () => {
         name: 'Test Customer',
         phone: '001234567890',
         customerType: 'retail',
+        entityType: 'person',
       });
       expect(result.success).toBe(false);
     });
@@ -190,6 +210,7 @@ describe('Phone Number Validation', () => {
         name: 'Test Customer',
         phone: '+6281234567890',
         customerType: 'retail',
+        entityType: 'person',
       });
       expect(result.success).toBe(true);
     });
@@ -199,6 +220,7 @@ describe('Phone Number Validation', () => {
         name: 'Test Customer',
         email: 'customer@example.com',
         customerType: 'retail',
+        entityType: 'person',
       });
       expect(result.success).toBe(true);
     });
@@ -209,6 +231,7 @@ describe('Phone Number Validation', () => {
         phone: '+6281234567890',
         email: 'customer@example.com',
         customerType: 'retail',
+        entityType: 'person',
       });
       expect(result.success).toBe(true);
     });
@@ -217,6 +240,7 @@ describe('Phone Number Validation', () => {
       const result = customerFormSchema.safeParse({
         name: 'Test Customer',
         customerType: 'retail',
+        entityType: 'person',
       });
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -229,6 +253,7 @@ describe('Phone Number Validation', () => {
         name: 'Test Customer',
         phone: '',
         customerType: 'retail',
+        entityType: 'person',
       });
       expect(result.success).toBe(false);
     });
@@ -238,6 +263,7 @@ describe('Phone Number Validation', () => {
         name: 'Test Customer',
         email: '',
         customerType: 'retail',
+        entityType: 'person',
       });
       expect(result.success).toBe(false);
     });
@@ -248,6 +274,7 @@ describe('Phone Number Validation', () => {
         phone: '',
         email: 'customer@example.com',
         customerType: 'retail',
+        entityType: 'person',
       });
       expect(result.success).toBe(true);
     });
@@ -258,6 +285,65 @@ describe('Phone Number Validation', () => {
         phone: '+6281234567890',
         email: '',
         customerType: 'retail',
+        entityType: 'person',
+      });
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('Entity Type Validation (Customer)', () => {
+    it('should accept person entity type without company name', () => {
+      const result = customerFormSchema.safeParse({
+        name: 'John Doe',
+        phone: '+6281234567890',
+        customerType: 'retail',
+        entityType: 'person',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept company entity type with company name', () => {
+      const result = customerFormSchema.safeParse({
+        name: 'PT Example Corp',
+        phone: '+6281234567890',
+        customerType: 'wholesale',
+        entityType: 'company',
+        companyName: 'PT Example Corp',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject company entity type without company name', () => {
+      const result = customerFormSchema.safeParse({
+        name: 'Test',
+        phone: '+6281234567890',
+        customerType: 'wholesale',
+        entityType: 'company',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toBe('Company name is required for company entity');
+      }
+    });
+
+    it('should reject company entity type with empty company name', () => {
+      const result = customerFormSchema.safeParse({
+        name: 'Test',
+        phone: '+6281234567890',
+        customerType: 'wholesale',
+        entityType: 'company',
+        companyName: '',
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('should accept person entity with optional company name', () => {
+      const result = customerFormSchema.safeParse({
+        name: 'John Doe',
+        phone: '+6281234567890',
+        customerType: 'retail',
+        entityType: 'person',
+        companyName: 'Freelancer Inc', // Person can optionally have company name
       });
       expect(result.success).toBe(true);
     });
@@ -268,6 +354,7 @@ describe('Phone Number Validation', () => {
       const result = supplierFormSchema.safeParse({
         name: 'Test Supplier',
         phone: '+6281234567890',
+        entityType: 'person',
       });
       expect(result.success).toBe(true);
     });
@@ -277,6 +364,7 @@ describe('Phone Number Validation', () => {
         name: 'Test Supplier',
         phone: 'invalid',
         email: 'supplier@example.com', // Need email since phone is invalid
+        entityType: 'person',
       });
       expect(result.success).toBe(false);
     });
@@ -287,6 +375,7 @@ describe('Phone Number Validation', () => {
       const result = supplierFormSchema.safeParse({
         name: 'Test Supplier',
         phone: '+6281234567890',
+        entityType: 'person',
       });
       expect(result.success).toBe(true);
     });
@@ -295,6 +384,7 @@ describe('Phone Number Validation', () => {
       const result = supplierFormSchema.safeParse({
         name: 'Test Supplier',
         email: 'supplier@example.com',
+        entityType: 'person',
       });
       expect(result.success).toBe(true);
     });
@@ -304,6 +394,7 @@ describe('Phone Number Validation', () => {
         name: 'Test Supplier',
         phone: '+6281234567890',
         email: 'supplier@example.com',
+        entityType: 'person',
       });
       expect(result.success).toBe(true);
     });
@@ -311,6 +402,7 @@ describe('Phone Number Validation', () => {
     it('should reject when neither phone nor email is provided', () => {
       const result = supplierFormSchema.safeParse({
         name: 'Test Supplier',
+        entityType: 'person',
       });
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -322,6 +414,50 @@ describe('Phone Number Validation', () => {
       const result = supplierFormSchema.safeParse({
         name: 'Test Supplier',
         phone: '',
+        entityType: 'person',
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('Entity Type Validation (Supplier)', () => {
+    it('should accept person entity type without company name', () => {
+      const result = supplierFormSchema.safeParse({
+        name: 'John Supplier',
+        phone: '+6281234567890',
+        entityType: 'person',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept company entity type with company name', () => {
+      const result = supplierFormSchema.safeParse({
+        name: 'PT Supplier Corp',
+        phone: '+6281234567890',
+        entityType: 'company',
+        companyName: 'PT Supplier Corp',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should reject company entity type without company name', () => {
+      const result = supplierFormSchema.safeParse({
+        name: 'Test',
+        phone: '+6281234567890',
+        entityType: 'company',
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0].message).toBe('Company name is required for company entity');
+      }
+    });
+
+    it('should reject company entity type with empty company name', () => {
+      const result = supplierFormSchema.safeParse({
+        name: 'Test',
+        phone: '+6281234567890',
+        entityType: 'company',
+        companyName: '',
       });
       expect(result.success).toBe(false);
     });

@@ -37,17 +37,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { type Customer, customerApi } from '@/lib/api';
-import { type CustomerFormData, customerFormSchema } from '@/lib/form-schemas';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { type Customer, type CustomerType, type EntityType, customerApi } from '@/lib/api';
+import { type CustomerFormData, createFormValidator, customerFormSchema } from '@/lib/form-schemas';
 import { queryKeys } from '@/lib/query-client';
 import { cn } from '@/lib/utils';
 import { useForm } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { zodValidator } from '@tanstack/zod-form-adapter';
 import { format } from 'date-fns';
 import {
   Ban,
+  Building2,
   CalendarIcon,
   CheckCircle,
   Edit,
@@ -55,6 +56,7 @@ import {
   Plus,
   ShoppingBag,
   TrendingUp,
+  User,
   Users,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -62,10 +64,20 @@ import { toast } from 'sonner';
 
 function getErrorMessage(error: unknown): string {
   if (typeof error === 'string') return error;
-  if (error && typeof error === 'object' && 'message' in error) {
-    return (error as { message: string }).message;
+  if (error && typeof error === 'object') {
+    const errorObj = error as Record<string, unknown>;
+    // Handle direct message property
+    if ('message' in errorObj) {
+      const msg = errorObj.message;
+      if (typeof msg === 'string') return msg;
+      // Handle nested message object (TanStack Form + Zod refine can nest errors)
+      if (msg && typeof msg === 'object' && 'message' in (msg as object)) {
+        const nestedMsg = (msg as { message: unknown }).message;
+        if (typeof nestedMsg === 'string') return nestedMsg;
+      }
+    }
   }
-  return String(error);
+  return 'Validation error';
 }
 
 export const Route = createFileRoute('/dashboard/business-partner/customers')({
@@ -86,16 +98,15 @@ function CustomersManagementPage() {
       name: '',
       email: '',
       phone: '',
-      customerType: 'retail' as const,
+      customerType: 'retail' as CustomerType,
+      entityType: 'person' as EntityType,
       birthDate: '',
-      companyName: '',
       npwp: '',
       creditLimit: 0,
       paymentTermDays: 0,
     },
-    validatorAdapter: zodValidator(),
     validators: {
-      onChange: customerFormSchema,
+      onChange: createFormValidator(customerFormSchema),
     },
     onSubmit: async ({ value }) => {
       const submitData = {
@@ -103,7 +114,6 @@ function CustomersManagementPage() {
         email: value.email || undefined,
         phone: value.phone || undefined,
         birthDate: value.birthDate || undefined,
-        companyName: value.companyName || undefined,
         npwp: value.npwp || undefined,
         creditLimit: value.creditLimit ?? undefined,
         paymentTermDays: value.paymentTermDays ?? undefined,
@@ -209,7 +219,14 @@ function CustomersManagementPage() {
     form.setFieldValue('email', customer.email || '');
     form.setFieldValue('phone', customer.phone || '');
     form.setFieldValue('customerType', customer.customerType);
-    form.setFieldValue('companyName', customer.companyName || '');
+    // Determine entity type: if has birth date, it's a person; otherwise assume company
+    // Company name field is for persons who represent a company
+    const entityType = customer.dateOfBirth ? 'person' : 'company';
+    form.setFieldValue('entityType', entityType);
+    form.setFieldValue(
+      'birthDate',
+      customer.dateOfBirth ? new Date(customer.dateOfBirth).toISOString().split('T')[0] : ''
+    );
     form.setFieldValue('npwp', customer.npwp || '');
     form.setFieldValue('creditLimit', customer.creditLimit || 0);
     form.setFieldValue('paymentTermDays', customer.paymentTermDays || 0);
@@ -622,6 +639,31 @@ function CustomersManagementPage() {
               )}
             </form.Field>
 
+            {/* Entity Type Tabs (Person/Company) */}
+            <form.Field name="entityType">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label>Entity Type *</Label>
+                  <Tabs
+                    value={field.state.value}
+                    onValueChange={(v) => field.handleChange(v as 'person' | 'company')}
+                    className="w-full"
+                  >
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="person" className="gap-2">
+                        <User className="h-4 w-4" />
+                        Person
+                      </TabsTrigger>
+                      <TabsTrigger value="company" className="gap-2">
+                        <Building2 className="h-4 w-4" />
+                        Company
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+              )}
+            </form.Field>
+
             <div className="grid grid-cols-2 gap-4">
               <form.Field name="email">
                 {(field) => (
@@ -669,10 +711,10 @@ function CustomersManagementPage() {
               </form.Field>
             </div>
 
-            {/* Birth date only for retail customers */}
-            <form.Subscribe selector={(state) => state.values.customerType}>
-              {(customerType) =>
-                customerType === 'retail' && (
+            {/* Birth date for person entity type (retail or wholesale) */}
+            <form.Subscribe selector={(state) => state.values.entityType}>
+              {(entityType) =>
+                entityType === 'person' && (
                   <form.Field name="birthDate">
                     {(field) => (
                       <div className="space-y-2">
@@ -720,22 +762,24 @@ function CustomersManagementPage() {
               }
             </form.Subscribe>
 
-            <form.Field name="companyName">
-              {(field) => (
-                <div className="space-y-2">
-                  <Label htmlFor={field.name}>Company Name</Label>
-                  <Input
-                    id={field.name}
-                    placeholder="PT Example Corp"
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                  />
-                </div>
-              )}
-            </form.Field>
-
-            <form.Field name="npwp">
+            <form.Field
+              name="npwp"
+              validators={{
+                onChange: ({ value }) => {
+                  if (!value) return undefined;
+                  // Check for invalid characters (only digits, dots, dashes allowed)
+                  if (/[^\d.-]/.test(value)) {
+                    return 'NPWP can only contain numbers, dots, and dashes';
+                  }
+                  // Check format: XX.XXX.XXX.X-XXX.XXX (15 digits) or just 15 digits
+                  const digitsOnly = value.replace(/[.-]/g, '');
+                  if (digitsOnly.length > 0 && digitsOnly.length !== 15) {
+                    return `NPWP must be 15 digits (currently ${digitsOnly.length})`;
+                  }
+                  return undefined;
+                },
+              }}
+            >
               {(field) => (
                 <div className="space-y-2">
                   <Label htmlFor={field.name}>NPWP</Label>
@@ -743,9 +787,19 @@ function CustomersManagementPage() {
                     id={field.name}
                     placeholder="01.234.567.8-901.000"
                     value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
+                    onChange={(e) => {
+                      // Allow digits, dots, and dashes only
+                      const value = e.target.value.replace(/[^\d.-]/g, '');
+                      field.handleChange(value);
+                    }}
                     onBlur={field.handleBlur}
                   />
+                  <p className="text-xs text-muted-foreground">Format: XX.XXX.XXX.X-XXX.XXX</p>
+                  {field.state.meta.errors.length > 0 && (
+                    <p className="text-sm text-destructive">
+                      {field.state.meta.errors.map(getErrorMessage).join(', ')}
+                    </p>
+                  )}
                 </div>
               )}
             </form.Field>
@@ -755,20 +809,66 @@ function CustomersManagementPage() {
               {(customerType) =>
                 customerType === 'wholesale' && (
                   <div className="grid grid-cols-2 gap-4">
-                    <form.Field name="creditLimit">
-                      {(field) => (
-                        <div className="space-y-2">
-                          <Label htmlFor={field.name}>Credit Limit</Label>
-                          <Input
-                            id={field.name}
-                            type="number"
-                            placeholder="0"
-                            value={field.state.value}
-                            onChange={(e) => field.handleChange(Number(e.target.value))}
-                            onBlur={field.handleBlur}
-                          />
-                        </div>
-                      )}
+                    <form.Field
+                      name="creditLimit"
+                      validators={{
+                        onChange: ({ value }) => {
+                          if (value === undefined || value === 0) return undefined;
+                          if (value < 0) {
+                            return 'Credit limit cannot be negative';
+                          }
+                          if (value > 999999999999) {
+                            return 'Credit limit cannot exceed Rp 999.999.999.999';
+                          }
+                          return undefined;
+                        },
+                      }}
+                    >
+                      {(field) => {
+                        // Format number to Rupiah display (with dots as thousand separators)
+                        const formatRupiah = (num: number | undefined): string => {
+                          if (num === undefined || num === 0) return '';
+                          return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                        };
+
+                        // Parse Rupiah string back to number
+                        const parseRupiah = (str: string): number => {
+                          const cleaned = str.replace(/\./g, '');
+                          const num = Number.parseInt(cleaned, 10);
+                          return isNaN(num) ? 0 : num;
+                        };
+
+                        return (
+                          <div className="space-y-2">
+                            <Label htmlFor={field.name}>Credit Limit</Label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                                Rp
+                              </span>
+                              <Input
+                                id={field.name}
+                                type="text"
+                                placeholder="0"
+                                className="pl-10"
+                                value={formatRupiah(field.state.value)}
+                                onChange={(e) => {
+                                  // Only allow digits and dots
+                                  const value = e.target.value.replace(/[^\d.]/g, '');
+                                  const numValue = parseRupiah(value);
+                                  field.handleChange(Math.max(0, numValue));
+                                }}
+                                onBlur={field.handleBlur}
+                              />
+                            </div>
+                            <p className="text-xs text-muted-foreground">Max: Rp 999.999.999.999</p>
+                            {field.state.meta.errors.length > 0 && (
+                              <p className="text-sm text-destructive">
+                                {field.state.meta.errors.map(getErrorMessage).join(', ')}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      }}
                     </form.Field>
 
                     <form.Field name="paymentTermDays">
@@ -778,11 +878,19 @@ function CustomersManagementPage() {
                           <Input
                             id={field.name}
                             type="number"
+                            min="0"
                             placeholder="0"
                             value={field.state.value}
-                            onChange={(e) => field.handleChange(Number(e.target.value))}
+                            onChange={(e) =>
+                              field.handleChange(Math.max(0, Number(e.target.value)))
+                            }
                             onBlur={field.handleBlur}
                           />
+                          {field.state.meta.errors.length > 0 && (
+                            <p className="text-sm text-destructive">
+                              {field.state.meta.errors.map(getErrorMessage).join(', ')}
+                            </p>
+                          )}
                         </div>
                       )}
                     </form.Field>

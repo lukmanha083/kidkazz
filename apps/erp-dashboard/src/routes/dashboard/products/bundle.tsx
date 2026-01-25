@@ -43,11 +43,10 @@ import {
   productLocationApi,
   warehouseApi,
 } from '@/lib/api';
-import { type BundleFormData, bundleFormSchema } from '@/lib/form-schemas';
+import { type BundleFormData, bundleFormSchema, createFormValidator } from '@/lib/form-schemas';
 import { useForm } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { zodValidator } from '@tanstack/zod-form-adapter';
 import { Edit, Film, Gift, ImageIcon, Loader2, Plus, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -178,9 +177,8 @@ function ProductBundlePage() {
       status: 'active' as const,
       warehouseId: null as string | null,
     },
-    validatorAdapter: zodValidator(),
     validators: {
-      onChange: bundleFormSchema,
+      onChange: createFormValidator(bundleFormSchema),
     },
     onSubmit: async ({ value }) => {
       if (selectedProducts.length === 0) {

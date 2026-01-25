@@ -1308,6 +1308,7 @@ export interface InventoryAdjustmentInput {
   version: number; // Required for optimistic locking - must match current stored version
   reason?: string;
   performedBy?: string;
+  source?: 'warehouse' | 'pos' | 'transfer' | 'adjustment'; // warehouse=online sales, pos=offline sales, transfer=inter-warehouse, adjustment=manual correction
 }
 
 export interface InventoryMovement {
@@ -1884,6 +1885,7 @@ export const variantLocationApi = {
 export type CustomerType = 'retail' | 'wholesale';
 export type CustomerStatus = 'active' | 'inactive' | 'blocked';
 export type MembershipTier = 'bronze' | 'silver' | 'gold';
+export type EntityType = 'person' | 'company';
 
 export interface Customer {
   id: string;
@@ -1892,6 +1894,7 @@ export interface Customer {
   email?: string | null;
   phone?: string | null;
   customerType: CustomerType;
+  entityType: EntityType;
   companyName?: string | null;
   npwp?: string | null;
   creditLimit: number;
@@ -1902,6 +1905,7 @@ export interface Customer {
   totalOrders: number;
   totalSpent: number;
   lastOrderDate?: number | null;
+  dateOfBirth?: number | null;
   status: CustomerStatus;
   notes?: string | null;
   createdAt: number;
@@ -1915,6 +1919,8 @@ export interface CreateCustomerInput {
   email?: string;
   phone?: string;
   customerType: CustomerType;
+  entityType: EntityType;
+  birthDate?: string;
   companyName?: string;
   npwp?: string;
   creditLimit?: number;
@@ -2029,6 +2035,7 @@ export interface Supplier {
   name: string;
   email?: string | null;
   phone?: string | null;
+  entityType: EntityType;
   companyName?: string | null;
   npwp?: string | null;
   paymentTermDays: number;
@@ -2040,6 +2047,7 @@ export interface Supplier {
   rating: number;
   totalOrders: number;
   totalPurchased: number;
+  bestSellerProductCount: number;
   lastOrderDate?: number | null;
   status: SupplierStatus;
   notes?: string | null;
@@ -2053,6 +2061,7 @@ export interface CreateSupplierInput {
   name: string;
   email?: string;
   phone?: string;
+  entityType: EntityType;
   companyName?: string;
   npwp?: string;
   paymentTermDays?: number;
@@ -2175,6 +2184,90 @@ export const supplierApi = {
 };
 
 // ============================================
+// BUSINESS PARTNER API - SUPPLIER CONTACTS (Sales Persons)
+// ============================================
+
+export interface SupplierContact {
+  id: string;
+  supplierId: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  position?: string | null;
+  isPrimary: number;
+  status: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface CreateSupplierContactInput {
+  name: string;
+  email?: string;
+  phone?: string;
+  position?: string;
+  isPrimary?: boolean;
+}
+
+export const supplierContactsApi = {
+  getAll: async (supplierId: string): Promise<{ contacts: SupplierContact[] }> => {
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/suppliers/${supplierId}/contacts`;
+    const response = await fetch(url, { headers: { 'Content-Type': 'application/json' } });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch contacts: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  create: async (
+    supplierId: string,
+    data: CreateSupplierContactInput
+  ): Promise<SupplierContact> => {
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/suppliers/${supplierId}/contacts`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.error || `Failed to create contact: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  update: async (
+    supplierId: string,
+    contactId: string,
+    data: Partial<CreateSupplierContactInput>
+  ): Promise<SupplierContact> => {
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/suppliers/${supplierId}/contacts/${contactId}`;
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.error || `Failed to update contact: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  delete: async (supplierId: string, contactId: string): Promise<{ message: string }> => {
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/suppliers/${supplierId}/contacts/${contactId}`;
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.error || `Failed to delete contact: ${response.statusText}`);
+    }
+    return response.json();
+  },
+};
+
+// ============================================
 // BUSINESS PARTNER API - EMPLOYEES
 // ============================================
 
@@ -2199,6 +2292,10 @@ export interface Employee {
   endDate?: number | null;
   employmentStatus: EmploymentStatus;
   baseSalary: number;
+  // Bank Info (for salary payment)
+  bankName?: string | null;
+  bankAccountNumber?: string | null;
+  bankAccountName?: string | null;
   notes?: string | null;
   createdAt: number;
   updatedAt: number;
@@ -2208,18 +2305,22 @@ export interface Employee {
 
 export interface CreateEmployeeInput {
   name: string;
+  department: string;
+  position: string;
+  baseSalary: number;
   email?: string;
   phone?: string;
-  employeeNumber: string;
-  department?: string;
-  position?: string;
+  employeeNumber?: string;
   managerId?: string;
   dateOfBirth?: string;
   gender?: Gender;
   nationalId?: string;
   npwp?: string;
   joinDate?: string;
-  baseSalary?: number;
+  // Bank Info (for salary payment)
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankAccountName?: string;
 }
 
 export const employeeApi = {
@@ -2331,6 +2432,56 @@ export const employeeApi = {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: response.statusText }));
       throw new Error(errorData.error || `Failed to activate employee: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  uploadDocument: async (
+    employeeId: string,
+    file: File,
+    documentType: 'ktp' | 'npwp' | 'other'
+  ): Promise<{ url: string; filename: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('employeeId', employeeId);
+    formData.append('documentType', documentType);
+
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/employees/documents/upload`;
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+      // Note: Don't set Content-Type header for FormData - browser will set it with boundary
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.error || `Failed to upload document: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  getDocuments: async (
+    employeeId: string
+  ): Promise<{
+    documents: { id: string; type: string; url: string; filename: string; uploadedAt: string }[];
+  }> => {
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/employees/documents/${employeeId}`;
+    const response = await fetch(url, { headers: { 'Content-Type': 'application/json' } });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.error || `Failed to fetch documents: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  deleteDocument: async (documentId: string): Promise<{ message: string }> => {
+    const url = `${BUSINESS_PARTNER_SERVICE_URL}/api/employees/documents/${documentId}`;
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(errorData.error || `Failed to delete document: ${response.statusText}`);
     }
     return response.json();
   },

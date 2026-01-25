@@ -34,7 +34,6 @@ import { Route as DashboardInventoryBatchesRouteImport } from './routes/dashboar
 import { Route as DashboardBusinessPartnerSuppliersRouteImport } from './routes/dashboard/business-partner/suppliers'
 import { Route as DashboardBusinessPartnerEmployeesRouteImport } from './routes/dashboard/business-partner/employees'
 import { Route as DashboardBusinessPartnerCustomersRouteImport } from './routes/dashboard/business-partner/customers'
-import { Route as DashboardAdminMaintenanceRouteImport } from './routes/dashboard/admin/maintenance'
 import { Route as DashboardAccountingJournalEntryRouteImport } from './routes/dashboard/accounting/journal-entry'
 import { Route as DashboardAccountingIncomeStatementRouteImport } from './routes/dashboard/accounting/income-statement'
 import { Route as DashboardAccountingGeneralLedgerRouteImport } from './routes/dashboard/accounting/general-ledger'
@@ -182,12 +181,6 @@ const DashboardBusinessPartnerCustomersRoute =
     path: '/business-partner/customers',
     getParentRoute: () => DashboardRoute,
   } as any)
-const DashboardAdminMaintenanceRoute =
-  DashboardAdminMaintenanceRouteImport.update({
-    id: '/admin/maintenance',
-    path: '/admin/maintenance',
-    getParentRoute: () => DashboardRoute,
-  } as any)
 const DashboardAccountingJournalEntryRoute =
   DashboardAccountingJournalEntryRouteImport.update({
     id: '/accounting/journal-entry',
@@ -243,7 +236,6 @@ export interface FileRoutesByFullPath {
   '/dashboard/accounting/general-ledger': typeof DashboardAccountingGeneralLedgerRoute
   '/dashboard/accounting/income-statement': typeof DashboardAccountingIncomeStatementRoute
   '/dashboard/accounting/journal-entry': typeof DashboardAccountingJournalEntryRoute
-  '/dashboard/admin/maintenance': typeof DashboardAdminMaintenanceRoute
   '/dashboard/business-partner/customers': typeof DashboardBusinessPartnerCustomersRoute
   '/dashboard/business-partner/employees': typeof DashboardBusinessPartnerEmployeesRoute
   '/dashboard/business-partner/suppliers': typeof DashboardBusinessPartnerSuppliersRoute
@@ -277,7 +269,6 @@ export interface FileRoutesByTo {
   '/dashboard/accounting/general-ledger': typeof DashboardAccountingGeneralLedgerRoute
   '/dashboard/accounting/income-statement': typeof DashboardAccountingIncomeStatementRoute
   '/dashboard/accounting/journal-entry': typeof DashboardAccountingJournalEntryRoute
-  '/dashboard/admin/maintenance': typeof DashboardAdminMaintenanceRoute
   '/dashboard/business-partner/customers': typeof DashboardBusinessPartnerCustomersRoute
   '/dashboard/business-partner/employees': typeof DashboardBusinessPartnerEmployeesRoute
   '/dashboard/business-partner/suppliers': typeof DashboardBusinessPartnerSuppliersRoute
@@ -313,7 +304,6 @@ export interface FileRoutesById {
   '/dashboard/accounting/general-ledger': typeof DashboardAccountingGeneralLedgerRoute
   '/dashboard/accounting/income-statement': typeof DashboardAccountingIncomeStatementRoute
   '/dashboard/accounting/journal-entry': typeof DashboardAccountingJournalEntryRoute
-  '/dashboard/admin/maintenance': typeof DashboardAdminMaintenanceRoute
   '/dashboard/business-partner/customers': typeof DashboardBusinessPartnerCustomersRoute
   '/dashboard/business-partner/employees': typeof DashboardBusinessPartnerEmployeesRoute
   '/dashboard/business-partner/suppliers': typeof DashboardBusinessPartnerSuppliersRoute
@@ -350,7 +340,6 @@ export interface FileRouteTypes {
     | '/dashboard/accounting/general-ledger'
     | '/dashboard/accounting/income-statement'
     | '/dashboard/accounting/journal-entry'
-    | '/dashboard/admin/maintenance'
     | '/dashboard/business-partner/customers'
     | '/dashboard/business-partner/employees'
     | '/dashboard/business-partner/suppliers'
@@ -384,7 +373,6 @@ export interface FileRouteTypes {
     | '/dashboard/accounting/general-ledger'
     | '/dashboard/accounting/income-statement'
     | '/dashboard/accounting/journal-entry'
-    | '/dashboard/admin/maintenance'
     | '/dashboard/business-partner/customers'
     | '/dashboard/business-partner/employees'
     | '/dashboard/business-partner/suppliers'
@@ -419,7 +407,6 @@ export interface FileRouteTypes {
     | '/dashboard/accounting/general-ledger'
     | '/dashboard/accounting/income-statement'
     | '/dashboard/accounting/journal-entry'
-    | '/dashboard/admin/maintenance'
     | '/dashboard/business-partner/customers'
     | '/dashboard/business-partner/employees'
     | '/dashboard/business-partner/suppliers'
@@ -625,13 +612,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardBusinessPartnerCustomersRouteImport
       parentRoute: typeof DashboardRoute
     }
-    '/dashboard/admin/maintenance': {
-      id: '/dashboard/admin/maintenance'
-      path: '/admin/maintenance'
-      fullPath: '/dashboard/admin/maintenance'
-      preLoaderRoute: typeof DashboardAdminMaintenanceRouteImport
-      parentRoute: typeof DashboardRoute
-    }
     '/dashboard/accounting/journal-entry': {
       id: '/dashboard/accounting/journal-entry'
       path: '/accounting/journal-entry'
@@ -694,7 +674,6 @@ interface DashboardRouteChildren {
   DashboardAccountingGeneralLedgerRoute: typeof DashboardAccountingGeneralLedgerRoute
   DashboardAccountingIncomeStatementRoute: typeof DashboardAccountingIncomeStatementRoute
   DashboardAccountingJournalEntryRoute: typeof DashboardAccountingJournalEntryRoute
-  DashboardAdminMaintenanceRoute: typeof DashboardAdminMaintenanceRoute
   DashboardBusinessPartnerCustomersRoute: typeof DashboardBusinessPartnerCustomersRoute
   DashboardBusinessPartnerEmployeesRoute: typeof DashboardBusinessPartnerEmployeesRoute
   DashboardBusinessPartnerSuppliersRoute: typeof DashboardBusinessPartnerSuppliersRoute
@@ -730,7 +709,6 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardAccountingIncomeStatementRoute:
     DashboardAccountingIncomeStatementRoute,
   DashboardAccountingJournalEntryRoute: DashboardAccountingJournalEntryRoute,
-  DashboardAdminMaintenanceRoute: DashboardAdminMaintenanceRoute,
   DashboardBusinessPartnerCustomersRoute:
     DashboardBusinessPartnerCustomersRoute,
   DashboardBusinessPartnerEmployeesRoute:

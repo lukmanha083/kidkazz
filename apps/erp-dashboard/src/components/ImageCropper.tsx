@@ -43,6 +43,8 @@ export function ImageCropper({
 }: ImageCropperProps) {
   const [crop, setCrop] = useState<CropArea>({ x: 0, y: 0, width: 100, height: 100 });
   const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizeCorner, setResizeCorner] = useState<'nw' | 'ne' | 'sw' | 'se' | null>(null);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const imageRef = useRef<HTMLImageElement>(null);
@@ -108,12 +110,82 @@ export function ImageCropper({
   }, []);
 
   /**
-   * Resize crop area
+   * Start resizing crop area from a corner
    */
-  const _handleResize = useCallback((_corner: 'nw' | 'ne' | 'sw' | 'se', e: React.MouseEvent) => {
-    e.stopPropagation();
-    // Implement resize logic here if needed
-    // For simplicity, using fixed size or slider
+  const handleResizeStart = useCallback(
+    (corner: 'nw' | 'ne' | 'sw' | 'se', e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsResizing(true);
+      setResizeCorner(corner);
+      setDragStart({ x: e.clientX, y: e.clientY });
+    },
+    []
+  );
+
+  /**
+   * Handle resize movement
+   */
+  const handleResizeMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isResizing || !resizeCorner || !containerRef.current) return;
+
+      const container = containerRef.current.getBoundingClientRect();
+      const deltaX = ((e.clientX - dragStart.x) / container.width) * 100;
+      const deltaY = ((e.clientY - dragStart.y) / container.height) * 100;
+
+      setCrop((prev) => {
+        let newX = prev.x;
+        let newY = prev.y;
+        let newWidth = prev.width;
+        let newHeight = prev.height;
+
+        switch (resizeCorner) {
+          case 'nw': // Top-left corner
+            newX = Math.max(0, Math.min(prev.x + prev.width - 10, prev.x + deltaX));
+            newY = Math.max(0, Math.min(prev.y + prev.height - 10, prev.y + deltaY));
+            newWidth = prev.width - (newX - prev.x);
+            newHeight = prev.height - (newY - prev.y);
+            break;
+          case 'ne': // Top-right corner
+            newY = Math.max(0, Math.min(prev.y + prev.height - 10, prev.y + deltaY));
+            newWidth = Math.max(10, Math.min(100 - prev.x, prev.width + deltaX));
+            newHeight = prev.height - (newY - prev.y);
+            break;
+          case 'sw': // Bottom-left corner
+            newX = Math.max(0, Math.min(prev.x + prev.width - 10, prev.x + deltaX));
+            newWidth = prev.width - (newX - prev.x);
+            newHeight = Math.max(10, Math.min(100 - prev.y, prev.height + deltaY));
+            break;
+          case 'se': // Bottom-right corner
+            newWidth = Math.max(10, Math.min(100 - prev.x, prev.width + deltaX));
+            newHeight = Math.max(10, Math.min(100 - prev.y, prev.height + deltaY));
+            break;
+        }
+
+        // Apply aspect ratio constraint if specified
+        if (aspectRatio) {
+          if (resizeCorner === 'nw' || resizeCorner === 'sw') {
+            newHeight = newWidth / aspectRatio;
+          } else {
+            newWidth = newHeight * aspectRatio;
+          }
+        }
+
+        return { x: newX, y: newY, width: newWidth, height: newHeight };
+      });
+
+      setDragStart({ x: e.clientX, y: e.clientY });
+    },
+    [isResizing, resizeCorner, dragStart, aspectRatio]
+  );
+
+  /**
+   * Stop resizing
+   */
+  const handleResizeEnd = useCallback(() => {
+    setIsResizing(false);
+    setResizeCorner(null);
   }, []);
 
   /**
@@ -146,7 +218,7 @@ export function ImageCropper({
     onCropComplete(pixelCrop);
   };
 
-  // Add mouse event listeners
+  // Add mouse event listeners for dragging
   useEffect(() => {
     if (isDragging) {
       const handleGlobalMouseMove = (e: MouseEvent) => {
@@ -165,6 +237,19 @@ export function ImageCropper({
       };
     }
   }, [isDragging, handleMouseMove, handleMouseUp]);
+
+  // Add mouse event listeners for resizing
+  useEffect(() => {
+    if (isResizing) {
+      window.addEventListener('mousemove', handleResizeMove);
+      window.addEventListener('mouseup', handleResizeEnd);
+
+      return () => {
+        window.removeEventListener('mousemove', handleResizeMove);
+        window.removeEventListener('mouseup', handleResizeEnd);
+      };
+    }
+  }, [isResizing, handleResizeMove, handleResizeEnd]);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
@@ -230,10 +315,22 @@ export function ImageCropper({
                   onMouseDown={handleMouseDown}
                 >
                   {/* Corner handles */}
-                  <div className="absolute w-3 h-3 bg-white border border-gray-300 -top-1.5 -left-1.5 cursor-nw-resize" />
-                  <div className="absolute w-3 h-3 bg-white border border-gray-300 -top-1.5 -right-1.5 cursor-ne-resize" />
-                  <div className="absolute w-3 h-3 bg-white border border-gray-300 -bottom-1.5 -left-1.5 cursor-sw-resize" />
-                  <div className="absolute w-3 h-3 bg-white border border-gray-300 -bottom-1.5 -right-1.5 cursor-se-resize" />
+                  <div
+                    className="absolute w-3 h-3 bg-white border border-gray-300 -top-1.5 -left-1.5 cursor-nw-resize hover:bg-blue-100"
+                    onMouseDown={(e) => handleResizeStart('nw', e)}
+                  />
+                  <div
+                    className="absolute w-3 h-3 bg-white border border-gray-300 -top-1.5 -right-1.5 cursor-ne-resize hover:bg-blue-100"
+                    onMouseDown={(e) => handleResizeStart('ne', e)}
+                  />
+                  <div
+                    className="absolute w-3 h-3 bg-white border border-gray-300 -bottom-1.5 -left-1.5 cursor-sw-resize hover:bg-blue-100"
+                    onMouseDown={(e) => handleResizeStart('sw', e)}
+                  />
+                  <div
+                    className="absolute w-3 h-3 bg-white border border-gray-300 -bottom-1.5 -right-1.5 cursor-se-resize hover:bg-blue-100"
+                    onMouseDown={(e) => handleResizeStart('se', e)}
+                  />
 
                   {/* Grid lines */}
                   <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none">

@@ -18,6 +18,8 @@ const createCustomerSchema = z.object({
   email: z.string().email().optional(),
   phone: z.string().optional(),
   customerType: z.enum(['retail', 'wholesale']),
+  entityType: z.enum(['person', 'company']).default('person'),
+  birthDate: z.string().optional(), // ISO date string for person entities
   companyName: z.string().optional(),
   npwp: z.string().optional(),
   creditLimit: z.number().min(0).optional(),
@@ -91,6 +93,9 @@ app.post('/', zValidator('json', createCustomerSchema), async (c) => {
 
   const customerData = customer.toData();
 
+  // Parse birthDate if provided (for person entities)
+  const dateOfBirth = data.birthDate ? new Date(data.birthDate).getTime() : null;
+
   await db
     .insert(customers)
     .values({
@@ -100,6 +105,7 @@ app.post('/', zValidator('json', createCustomerSchema), async (c) => {
       email: customerData.email,
       phone: customerData.phone,
       customerType: customerData.customerType,
+      entityType: data.entityType,
       companyName: customerData.companyName,
       npwp: customerData.npwp,
       creditLimit: customerData.creditLimit,
@@ -110,6 +116,7 @@ app.post('/', zValidator('json', createCustomerSchema), async (c) => {
       totalOrders: customerData.totalOrders,
       totalSpent: customerData.totalSpent,
       lastOrderDate: customerData.lastOrderDate?.getTime() || null,
+      dateOfBirth,
       status: customerData.status,
       notes: customerData.notes,
       createdAt: customerData.createdAt.getTime(),
@@ -134,11 +141,14 @@ app.put('/:id', zValidator('json', updateCustomerSchema), async (c) => {
     return c.json({ error: 'Customer not found' }, 404);
   }
 
-  await db
-    .update(customers)
-    .set({ ...data, updatedAt: Date.now() })
-    .where(eq(customers.id, id))
-    .run();
+  // Extract birthDate and convert to timestamp if provided
+  const { birthDate, ...restData } = data;
+  const updateData: Record<string, unknown> = { ...restData, updatedAt: Date.now() };
+  if (birthDate !== undefined) {
+    updateData.dateOfBirth = birthDate ? new Date(birthDate).getTime() : null;
+  }
+
+  await db.update(customers).set(updateData).where(eq(customers.id, id)).run();
 
   const updated = await db.select().from(customers).where(eq(customers.id, id)).get();
 

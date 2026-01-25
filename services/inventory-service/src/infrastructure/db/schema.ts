@@ -184,6 +184,10 @@ export const inventoryBatches = sqliteTable('inventory_batches', {
   version: integer('version').default(1),
   lastModifiedAt: text('last_modified_at'),
 
+  // Soft delete fields
+  deletedAt: integer('deleted_at', { mode: 'timestamp' }),
+  deletedBy: text('deleted_by'),
+
   // Audit fields
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),

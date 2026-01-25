@@ -1,5 +1,5 @@
 import { zValidator } from '@hono/zod-validator';
-import { and, eq, like } from 'drizzle-orm';
+import { and, eq, isNull, like } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -55,17 +55,21 @@ const createProductSchema = z.object({
 
 const updateProductSchema = createProductSchema.partial();
 
-// GET /api/products - List all products
+// GET /api/products - List all products (excluding soft-deleted)
 app.get('/', async (c) => {
   const db = drizzle(c.env.DB);
   const status = c.req.query('status');
   const category = c.req.query('category');
   const search = c.req.query('search');
+  const includeDeleted = c.req.query('includeDeleted') === 'true';
 
   const query = db.select().from(products);
 
-  // Apply filters
+  // Apply filters (always exclude soft-deleted unless explicitly requested)
   const conditions = [];
+  if (!includeDeleted) {
+    conditions.push(isNull(products.deletedAt));
+  }
   if (status) {
     conditions.push(eq(products.status, status));
   }
@@ -85,12 +89,16 @@ app.get('/', async (c) => {
   });
 });
 
-// GET /api/products/:id - Get product by ID with variants and UOMs
+// GET /api/products/:id - Get product by ID with variants and UOMs (excluding soft-deleted)
 app.get('/:id', async (c) => {
   const id = c.req.param('id');
   const db = drizzle(c.env.DB);
 
-  const product = await db.select().from(products).where(eq(products.id, id)).get();
+  const product = await db
+    .select()
+    .from(products)
+    .where(and(eq(products.id, id), isNull(products.deletedAt)))
+    .get();
 
   if (!product) {
     return c.json({ error: 'Product not found' }, 404);
@@ -1002,19 +1010,23 @@ app.delete('/:id', async (c) => {
   }
   */
 
-  // 3. Delete product (CASCADE will handle dependent data)
-  // This will cascade to:
-  // - productUOMs (and their productUOMLocations)
-  // - productVariants (and their variantLocations)
-  // - productLocations (already validated as zero quantity above)
-  // - productBundles/bundleItems
-  // - productImages, productVideos
-  // - pricingTiers, customPricing
-  await db.delete(products).where(eq(products.id, id)).run();
+  // 3. Soft delete product (set deletedAt timestamp)
+  // Related data (UOMs, variants, locations, bundles, images, videos) remains intact
+  // for historical reference and potential recovery
+  await db
+    .update(products)
+    .set({
+      deletedAt: new Date(),
+      deletedBy: null, // TODO: Get from auth context when implemented
+      status: 'inactive',
+      updatedAt: new Date(),
+    })
+    .where(eq(products.id, id))
+    .run();
 
-  // 4. Clean up ALL inventory records in Inventory Service (cross-service cascade delete)
+  // 4. Soft delete related inventory records in Inventory Service
   // NOTE: At this point inventory should be zero (validated above), but we still
-  // call the cascade delete to clean up any orphaned inventory records
+  // mark inventory records as deleted for consistency
   let inventoryDeleted = false;
   let inventoryDeletedCount = 0;
   try {
@@ -1028,18 +1040,17 @@ app.delete('/:id', async (c) => {
       };
       inventoryDeleted = true;
       inventoryDeletedCount = deleteResult.deletedInventoryRecords || 0;
-      console.log(`Deleted ${inventoryDeletedCount} inventory records for product ${id}`);
+      console.log(`Soft deleted ${inventoryDeletedCount} inventory records for product ${id}`);
     } else {
-      console.error(`Failed to delete inventory: ${deleteResponse.status}`);
+      console.error(`Failed to soft delete inventory: ${deleteResponse.status}`);
     }
   } catch (err) {
-    console.error(`Failed to delete inventory for product ${id}:`, err);
-    // Continue - product is already deleted, inventory cleanup can be done manually if needed
+    console.error(`Failed to soft delete inventory for product ${id}:`, err);
+    // Continue - product is already soft deleted, inventory cleanup can be done manually if needed
   }
 
   return c.json({
     message: 'Product deleted successfully',
-    // deletedLocations removed - was part of deprecated stock validation
     deletedInventoryRecords: inventoryDeletedCount,
     inventoryCleaned: inventoryDeleted,
   });

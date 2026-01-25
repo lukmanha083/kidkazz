@@ -48,11 +48,10 @@ import {
   variantLocationApi,
   warehouseApi,
 } from '@/lib/api';
-import { type VariantFormData, variantFormSchema } from '@/lib/form-schemas';
+import { type VariantFormData, createFormValidator, variantFormSchema } from '@/lib/form-schemas';
 import { useForm } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { zodValidator } from '@tanstack/zod-form-adapter';
 import { Edit, Package, Plus, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -156,9 +155,8 @@ function ProductVariantPage() {
       status: 'active' as const,
       image: null as string | null,
     },
-    validatorAdapter: zodValidator(),
     validators: {
-      onChange: variantFormSchema,
+      onChange: createFormValidator(variantFormSchema),
     },
     onSubmit: async ({ value }) => {
       const variantData: CreateVariantInput = value as any;

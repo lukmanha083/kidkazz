@@ -28,7 +28,7 @@ export class Phone extends ValueObject<PhoneProps> {
     }
   }
 
-  public getValue(): string {
+  public toString(): string {
     return this._value.value;
   }
 

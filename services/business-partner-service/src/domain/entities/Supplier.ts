@@ -12,7 +12,7 @@ interface SupplierProps {
   companyName: string | null;
   npwp: string | null;
   paymentTermDays: number;
-  leadTimeDays: number;
+  leadTimeDays: number | null; // Calculated from purchase orders, null until data exists
   minimumOrderAmount: number;
   bankName: string | null;
   bankAccountNumber: string | null;
@@ -20,6 +20,7 @@ interface SupplierProps {
   rating: number | null;
   totalOrders: number;
   totalPurchased: number;
+  bestSellerProductCount: number;
   lastOrderDate: Date | null;
   status: SupplierStatus;
   notes: string | null;
@@ -75,7 +76,7 @@ export class Supplier extends AggregateRoot {
 
     const now = new Date();
     const id = `sup-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-    const code = PartnerCode.create('supplier').getValue();
+    const code = PartnerCode.create('supplier').toString();
 
     return new Supplier({
       id,
@@ -86,7 +87,7 @@ export class Supplier extends AggregateRoot {
       companyName: input.companyName || null,
       npwp: input.npwp || null,
       paymentTermDays: input.paymentTermDays ?? 30,
-      leadTimeDays: input.leadTimeDays ?? 7,
+      leadTimeDays: input.leadTimeDays ?? null, // Calculated from purchase orders
       minimumOrderAmount: input.minimumOrderAmount ?? 0,
       bankName: null,
       bankAccountNumber: null,
@@ -94,6 +95,7 @@ export class Supplier extends AggregateRoot {
       rating: null,
       totalOrders: 0,
       totalPurchased: 0,
+      bestSellerProductCount: 0,
       lastOrderDate: null,
       status: 'active',
       notes: null,
@@ -137,7 +139,7 @@ export class Supplier extends AggregateRoot {
     return this.props.paymentTermDays;
   }
 
-  public getLeadTimeDays(): number {
+  public getLeadTimeDays(): number | null {
     return this.props.leadTimeDays;
   }
 
@@ -169,6 +171,10 @@ export class Supplier extends AggregateRoot {
     return this.props.totalPurchased;
   }
 
+  public getBestSellerProductCount(): number {
+    return this.props.bestSellerProductCount;
+  }
+
   public getStatus(): SupplierStatus {
     return this.props.status;
   }
@@ -194,6 +200,15 @@ export class Supplier extends AggregateRoot {
       throw new Error('Rating must be between 1 and 5');
     }
     this.props.rating = rating;
+    this.props.updatedAt = new Date();
+  }
+
+  // Best Seller Product Count (updated by Product Service via tRPC)
+  public updateBestSellerProductCount(count: number): void {
+    if (count < 0) {
+      throw new Error('Best seller product count cannot be negative');
+    }
+    this.props.bestSellerProductCount = count;
     this.props.updatedAt = new Date();
   }
 
@@ -285,6 +300,7 @@ export class Supplier extends AggregateRoot {
       rating: this.props.rating,
       totalOrders: this.props.totalOrders,
       totalPurchased: this.props.totalPurchased,
+      bestSellerProductCount: this.props.bestSellerProductCount,
       lastOrderDate: this.props.lastOrderDate,
       status: this.props.status,
       notes: this.props.notes,

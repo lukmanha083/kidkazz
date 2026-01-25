@@ -1,7 +1,6 @@
 import { Hono } from 'hono';
 import bundlesRoutes from './routes/bundles';
 import categoriesRoutes from './routes/categories';
-import cleanupRoutes from './routes/cleanup';
 import productLocationsRoutes from './routes/product-locations';
 import productUOMLocationsRoutes from './routes/product-uom-locations';
 import productsRoutes from './routes/products';
@@ -35,7 +34,6 @@ app.route('/uoms', uomsRoutes);
 app.route('/product-locations', productLocationsRoutes);
 app.route('/variant-locations', variantLocationsRoutes);
 app.route('/product-uom-locations', productUOMLocationsRoutes);
-app.route('/cleanup', cleanupRoutes);
 app.route('/validation', validationRoutes);
 
 export default app;

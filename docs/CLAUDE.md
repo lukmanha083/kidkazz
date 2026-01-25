@@ -3,7 +3,7 @@
 **Project**: Kidkazz - Real-Time Omnichannel ERP
 **Architecture**: Microservices + DDD + Hexagonal + Event-Driven (Cloudflare Workers)
 **Status**: Phases 1-6 Complete | Phases 7-8 Pending
-**Last Updated**: 2026-01-20
+**Last Updated**: 2026-01-22
 
 ---
 
@@ -29,6 +29,7 @@ Kidkazz is Real-Time Omnichannel ERP with Real-Time multi-warehouse inventory ma
 5. **User Service** - Authentication, RBAC
 6. **Accounting Service** - Double-entry bookkeeping
 7. **Shipping Service** - Lalamove & J&T integration through Rest-Api
+8. **Chatbot Service** - AI-powered customer service (Grok API + Vercel AI SDK)
 
 ---
 
@@ -216,15 +217,75 @@ inventory.version  // Incremented on every update
 
 ### Frontend Context
 **Technologies**:
-- Tanstack Framework
+- Tanstack Framework (Router, Query, Table, Form)
 - ShadCN UI components
 - Zustand (state management)
 - TanStack Query (API caching)
+- Zod (form validation schemas)
+
+**Form Validation Pattern** (IMPORTANT):
+We use `createFormValidator` wrapper instead of the deprecated `zodValidator()` adapter.
+This provides clean Zod integration without type hacks.
+
+```typescript
+// ✅ CORRECT - Use createFormValidator wrapper
+import { createFormValidator, customerFormSchema } from '@/lib/form-schemas';
+
+const form = useForm({
+  defaultValues: { name: '', email: '' },
+  validators: {
+    onChange: createFormValidator(customerFormSchema),
+  },
+});
+
+// ❌ WRONG - Don't use deprecated zodValidator adapter
+import { zodValidator } from '@tanstack/zod-form-adapter';  // DON'T USE
+
+const form = useForm({
+  validatorAdapter: zodValidator(),  // DON'T USE
+  validators: { onChange: schema },   // Type errors with .refine()
+});
+```
+
+**Why `createFormValidator`**:
+- `zodValidator()` is deprecated in Zod 3.24.0+
+- Zod schemas with `.refine()` cause type inference issues
+- `createFormValidator` properly handles field-level errors
+- No `as never` or `@ts-expect-error` hacks needed
 
 **Key Files**:
-- API Client: `apps/web/lib/api/`
-- Components: `apps/web/components/`
+- Form Schemas: `apps/erp-dashboard/src/lib/form-schemas.ts`
+- API Client: `apps/erp-dashboard/src/lib/api.ts`
+- Components: `apps/erp-dashboard/src/components/`
 - Docs: `docs/bounded-contexts/frontend/`
+
+### Chatbot Context (Chatbot Service)
+**Responsibilities**:
+- AI-powered customer service automation
+- FAQ question-answering via Grok RAG
+- Transactional queries (product search, stock check, order status)
+- Per-user conversation memory (stored in D1)
+- Tool calling to internal services (Product, Inventory, Order)
+- Intelligent escalation to human agents
+- Ticket/case management for escalations
+
+**Technology Stack**:
+- LLM Provider: Grok API (xAI) - $0.20/$0.50 per M tokens
+- Orchestration: Vercel AI SDK
+- Database: Cloudflare D1 (per-user conversation history)
+- FAQ Knowledge: Grok built-in RAG (uploaded documents)
+
+**Key Concepts**:
+- **FAQ via RAG**: General docs uploaded to Grok project context
+- **Per-User Memory**: Conversation history stored in D1, fetched by userId
+- **Tool Calling**: LLM executes internal APIs (search_products, check_stock, etc.)
+- **Escalation Triggers**: Frustration, refund requests, explicit human request
+
+**Key Files**:
+- Schema: `services/chatbot-service/src/infrastructure/db/schema.ts`
+- Domain: `services/chatbot-service/src/domain/`
+- LLM: `services/chatbot-service/src/infrastructure/llm/`
+- Docs: `docs/bounded-contexts/chatbot/`
 
 ---
 
@@ -498,6 +559,41 @@ ALTER TABLE inventory ADD COLUMN version INTEGER;
 UPDATE inventory SET version = 1 WHERE version IS NULL;
 ```
 
+### Migration Idempotency (IMPORTANT)
+**All migrations MUST be idempotent** - safe to run multiple times without errors.
+
+Since SQLite/D1 doesn't support `ADD COLUMN IF NOT EXISTS`, use the **table recreation pattern**:
+
+```sql
+-- Migration: Add new columns to existing table
+-- This migration is IDEMPOTENT - safe to run multiple times
+
+-- 1. Create new table with all columns (including new ones)
+CREATE TABLE IF NOT EXISTS table_new (
+  id TEXT PRIMARY KEY NOT NULL,
+  existing_column TEXT,
+  new_column TEXT,  -- New column
+  created_at INTEGER NOT NULL
+);
+
+-- 2. Copy existing data (new columns will be NULL on first run, preserved on re-runs)
+INSERT OR IGNORE INTO table_new (id, existing_column, created_at)
+SELECT id, existing_column, created_at FROM table_name;
+
+-- 3. Drop old table and rename new one
+DROP TABLE IF EXISTS table_name;
+ALTER TABLE table_new RENAME TO table_name;
+
+-- 4. Recreate indexes
+CREATE INDEX IF NOT EXISTS idx_table_column ON table_name(column);
+```
+
+**Why Idempotent Migrations?**
+- D1 tracks migrations in `d1_migrations` table (normally runs once)
+- Manual execution or retry scenarios need safe re-runs
+- Prevents "duplicate column" errors during development
+- Ensures consistent state across environments
+
 ### Migration Files Location
 - Product Service: `services/product-service/migrations/`
 - Inventory Service: `services/inventory-service/migrations/`
@@ -673,6 +769,17 @@ wrangler d1 execute kidkazz-db --file=services/inventory-service/migrations/0006
 ### For Notification Work (sent.dm, Paperless Receipts, OTP)
 - [Notification Service Architecture](bounded-contexts/notification/NOTIFICATION_SERVICE_ARCHITECTURE.md) - **sent.dm integration, channel auto-detection, templates**
 
+### For Chatbot Work (AI Customer Service, FAQ, Tool Calling)
+- [Chatbot Service Architecture](bounded-contexts/chatbot/CHATBOT_SERVICE_ARCHITECTURE.md) - **Grok API, Vercel AI SDK, tool definitions, memory architecture**
+- [Chatbot Business Rules](bounded-contexts/chatbot/BUSINESS_RULES.md) - **25 rules: conversations, messages, escalation, costs, security**
+- [Chatbot Implementation Plan](bounded-contexts/chatbot/CHATBOT_IMPLEMENTATION_PLAN.md) - **8-phase implementation roadmap**
+- **Key Concepts**:
+  - Per-user memory: Conversation history in D1, fetched by userId
+  - FAQ: Upload docs to Grok's built-in RAG
+  - Tools: search_products, check_stock, get_order_status, escalate_to_human
+  - Escalation: Auto-trigger on frustration, refund requests, or explicit request
+- **Tech Stack**: Grok 4.1 Fast ($0.20/$0.50 per M tokens), Vercel AI SDK, D1
+
 ### For Reporting Work (OLAP, Analytics, Data Archival)
 - [Reporting Service Architecture](bounded-contexts/reporting/REPORTING_SERVICE_ARCHITECTURE.md) - **CQRS query side, data archival, aggregation pipeline**
 - [Reporting Business Rules](bounded-contexts/reporting/BUSINESS_RULES.md) - **64 rules: archival, purging (7-year retention), aggregation, export, caching**
@@ -716,6 +823,7 @@ docs/
 ├── bounded-contexts/            ← Domain boundaries
 │   ├── accounting/
 │   ├── business-partner/
+│   ├── chatbot/                 ← NEW: AI customer service
 │   ├── frontend/
 │   ├── inventory/
 │   ├── notification/
@@ -979,6 +1087,6 @@ pnpm check         # Verify no issues
 
 **Version**: 1.0
 **Maintained by**: Claude AI Assistant
-**Last Sync**: 2026-01-20
+**Last Sync**: 2026-01-22
 
 For navigation help, see: [README.md](README.md)

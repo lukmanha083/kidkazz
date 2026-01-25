@@ -24,19 +24,27 @@ import {
 } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { type Supplier, supplierApi } from '@/lib/api';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  type SupplierBankInfoFormData,
+  type CreateSupplierContactInput,
+  type EntityType,
+  type Supplier,
+  supplierApi,
+  supplierContactsApi,
+} from '@/lib/api';
+import {
   type SupplierFormData,
+  createFormValidator,
   supplierBankInfoFormSchema,
+  supplierContactFormSchema,
   supplierFormSchema,
 } from '@/lib/form-schemas';
 import { queryKeys } from '@/lib/query-client';
 import { useForm } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { zodValidator } from '@tanstack/zod-form-adapter';
 import {
+  Award,
   Ban,
   Building2,
   CheckCircle,
@@ -45,7 +53,11 @@ import {
   Loader2,
   Plus,
   Star,
+  Trash2,
   TrendingUp,
+  User,
+  UserPlus,
+  Users,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -77,25 +89,21 @@ function SuppliersManagementPage() {
       name: '',
       email: '',
       phone: '',
-      companyName: '',
+      entityType: 'person' as EntityType,
       npwp: '',
       paymentTermDays: 0,
-      leadTimeDays: 0,
       minimumOrderAmount: 0,
     },
-    validatorAdapter: zodValidator(),
     validators: {
-      onChange: supplierFormSchema,
+      onChange: createFormValidator(supplierFormSchema),
     },
     onSubmit: async ({ value }) => {
       const submitData = {
         ...value,
         email: value.email || undefined,
         phone: value.phone || undefined,
-        companyName: value.companyName || undefined,
         npwp: value.npwp || undefined,
         paymentTermDays: value.paymentTermDays ?? undefined,
-        leadTimeDays: value.leadTimeDays ?? undefined,
         minimumOrderAmount: value.minimumOrderAmount ?? undefined,
       };
       if (formMode === 'add') {
@@ -112,13 +120,35 @@ function SuppliersManagementPage() {
       bankAccountNumber: '',
       bankAccountName: '',
     },
-    validatorAdapter: zodValidator(),
     validators: {
-      onChange: supplierBankInfoFormSchema,
+      onChange: createFormValidator(supplierBankInfoFormSchema),
     },
     onSubmit: async ({ value }) => {
       if (selectedSupplier) {
         await updateBankInfoMutation.mutateAsync({ id: selectedSupplier.id, data: value });
+      }
+    },
+  });
+
+  // Sales person (contact) form for company entity type
+  const contactForm = useForm({
+    defaultValues: {
+      name: '',
+      phone: '',
+    },
+    validators: {
+      onChange: createFormValidator(supplierContactFormSchema),
+    },
+    onSubmit: async ({ value }) => {
+      if (selectedSupplier) {
+        await createContactMutation.mutateAsync({
+          supplierId: selectedSupplier.id,
+          data: {
+            name: value.name,
+            phone: value.phone,
+          },
+        });
+        contactForm.reset();
       }
     },
   });
@@ -217,6 +247,42 @@ function SuppliersManagementPage() {
     },
   });
 
+  // Fetch contacts for the selected supplier (when viewing or editing company type)
+  const { data: contactsData, refetch: refetchContacts } = useQuery({
+    queryKey: ['supplierContacts', selectedSupplier?.id],
+    queryFn: () =>
+      selectedSupplier
+        ? supplierContactsApi.getAll(selectedSupplier.id)
+        : Promise.resolve({ contacts: [] }),
+    enabled: !!selectedSupplier && (formDrawerOpen || viewDrawerOpen),
+  });
+
+  // Contact mutations
+  const createContactMutation = useMutation({
+    mutationFn: ({ supplierId, data }: { supplierId: string; data: CreateSupplierContactInput }) =>
+      supplierContactsApi.create(supplierId, data),
+    onSuccess: () => {
+      refetchContacts();
+      toast.success('Sales person added');
+      contactForm.reset();
+    },
+    onError: (error: Error) => {
+      toast.error('Failed to add sales person', { description: error.message });
+    },
+  });
+
+  const deleteContactMutation = useMutation({
+    mutationFn: ({ supplierId, contactId }: { supplierId: string; contactId: string }) =>
+      supplierContactsApi.delete(supplierId, contactId),
+    onSuccess: () => {
+      refetchContacts();
+      toast.success('Sales person removed');
+    },
+    onError: (error: Error) => {
+      toast.error('Failed to remove sales person', { description: error.message });
+    },
+  });
+
   const handleViewSupplier = (supplier: Supplier) => {
     setSelectedSupplier(supplier);
     setViewDrawerOpen(true);
@@ -234,10 +300,9 @@ function SuppliersManagementPage() {
     form.setFieldValue('name', supplier.name);
     form.setFieldValue('email', supplier.email || '');
     form.setFieldValue('phone', supplier.phone || '');
-    form.setFieldValue('companyName', supplier.companyName || '');
+    form.setFieldValue('entityType', supplier.entityType || 'person');
     form.setFieldValue('npwp', supplier.npwp || '');
     form.setFieldValue('paymentTermDays', supplier.paymentTermDays || 0);
-    form.setFieldValue('leadTimeDays', supplier.leadTimeDays || 0);
     form.setFieldValue('minimumOrderAmount', supplier.minimumOrderAmount || 0);
     setViewDrawerOpen(false);
     setFormDrawerOpen(true);
@@ -276,6 +341,10 @@ function SuppliersManagementPage() {
 
   const activeSuppliers = suppliers.filter((s) => s.status === 'active').length;
   const totalPurchased = suppliers.reduce((sum, s) => sum + (s.totalPurchased ?? 0), 0);
+  const totalBestSellerProducts = suppliers.reduce(
+    (sum, s) => sum + (s.bestSellerProductCount ?? 0),
+    0
+  );
   const ratedSuppliers = suppliers.filter((s) => s.rating != null);
   const avgRating =
     ratedSuppliers.length > 0
@@ -324,7 +393,7 @@ function SuppliersManagementPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Suppliers</CardTitle>
@@ -350,6 +419,17 @@ function SuppliersManagementPage() {
               }).format(totalPurchased)}
             </div>
             <p className="text-xs text-muted-foreground">All time</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Best Seller Products</CardTitle>
+            <Award className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalBestSellerProducts}</div>
+            <p className="text-xs text-muted-foreground">From all suppliers</p>
           </CardContent>
         </Card>
 
@@ -435,15 +515,27 @@ function SuppliersManagementPage() {
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Name</p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedSupplier.entityType === 'company' ? 'Company Name' : 'Name'}
+                  </p>
                   <p className="font-medium">{selectedSupplier.name}</p>
                 </div>
-                {selectedSupplier.companyName && (
-                  <div>
-                    <p className="text-sm text-muted-foreground">Company</p>
-                    <p className="font-medium">{selectedSupplier.companyName}</p>
-                  </div>
-                )}
+                <div>
+                  <p className="text-sm text-muted-foreground">Entity Type</p>
+                  <Badge variant="outline">
+                    {selectedSupplier.entityType === 'company' ? (
+                      <>
+                        <Building2 className="h-3 w-3 mr-1" />
+                        Company
+                      </>
+                    ) : (
+                      <>
+                        <User className="h-3 w-3 mr-1" />
+                        Person
+                      </>
+                    )}
+                  </Badge>
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground">Email</p>
@@ -462,6 +554,30 @@ function SuppliersManagementPage() {
                 )}
               </div>
 
+              {/* Sales Persons section for company entity type */}
+              {selectedSupplier.entityType === 'company' &&
+                contactsData?.contacts &&
+                contactsData.contacts.length > 0 && (
+                  <div className="space-y-4 border-t pt-4">
+                    <h3 className="font-semibold text-sm text-muted-foreground uppercase flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      Sales Persons
+                    </h3>
+                    <div className="space-y-2">
+                      {contactsData.contacts.map((contact) => (
+                        <div key={contact.id} className="p-3 rounded-lg border bg-muted/30">
+                          <p className="font-medium">{contact.name}</p>
+                          {contact.phone && (
+                            <p className="text-sm font-mono text-muted-foreground mt-1">
+                              {contact.phone}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
               <div className="space-y-4 border-t pt-4">
                 <h3 className="font-semibold text-sm text-muted-foreground uppercase">
                   Terms & Conditions
@@ -476,25 +592,17 @@ function SuppliersManagementPage() {
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Lead Time</p>
+                    <p className="text-sm text-muted-foreground">Min. Order Amount</p>
                     <p className="font-medium">
-                      {selectedSupplier.leadTimeDays != null
-                        ? `${selectedSupplier.leadTimeDays} days`
+                      {selectedSupplier.minimumOrderAmount != null
+                        ? new Intl.NumberFormat('id-ID', {
+                            style: 'currency',
+                            currency: 'IDR',
+                            maximumFractionDigits: 0,
+                          }).format(selectedSupplier.minimumOrderAmount)
                         : '-'}
                     </p>
                   </div>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Minimum Order Amount</p>
-                  <p className="font-medium">
-                    {selectedSupplier.minimumOrderAmount != null
-                      ? new Intl.NumberFormat('id-ID', {
-                          style: 'currency',
-                          currency: 'IDR',
-                          maximumFractionDigits: 0,
-                        }).format(selectedSupplier.minimumOrderAmount)
-                      : '-'}
-                  </p>
                 </div>
               </div>
 
@@ -551,15 +659,26 @@ function SuppliersManagementPage() {
                     <p className="font-medium">{selectedSupplier.totalOrders ?? 0}</p>
                   </div>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Purchased</p>
-                  <p className="font-medium">
-                    {new Intl.NumberFormat('id-ID', {
-                      style: 'currency',
-                      currency: 'IDR',
-                      maximumFractionDigits: 0,
-                    }).format(selectedSupplier.totalPurchased ?? 0)}
-                  </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Purchased</p>
+                    <p className="font-medium">
+                      {new Intl.NumberFormat('id-ID', {
+                        style: 'currency',
+                        currency: 'IDR',
+                        maximumFractionDigits: 0,
+                      }).format(selectedSupplier.totalPurchased ?? 0)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Best Seller Products</p>
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium">
+                        {selectedSupplier.bestSellerProductCount ?? 0}
+                      </span>
+                      <Award className="h-4 w-4 text-amber-500" />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -627,22 +746,55 @@ function SuppliersManagementPage() {
             }}
             className="flex-1 overflow-y-auto p-4 space-y-4"
           >
-            <form.Field name="name">
+            <form.Subscribe selector={(state) => state.values.entityType}>
+              {(entityType) => (
+                <form.Field name="name">
+                  {(field) => (
+                    <div className="space-y-2">
+                      <Label htmlFor={field.name}>
+                        {entityType === 'company' ? 'Company Name *' : 'Name *'}
+                      </Label>
+                      <Input
+                        id={field.name}
+                        placeholder={
+                          entityType === 'company' ? 'PT Supplier Utama' : 'Supplier Name'
+                        }
+                        value={field.state.value}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        onBlur={field.handleBlur}
+                      />
+                      {field.state.meta.errors.length > 0 && (
+                        <p className="text-sm text-destructive">
+                          {field.state.meta.errors.map(getErrorMessage).join(', ')}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </form.Field>
+              )}
+            </form.Subscribe>
+
+            {/* Entity Type Tabs (Person/Company) */}
+            <form.Field name="entityType">
               {(field) => (
                 <div className="space-y-2">
-                  <Label htmlFor={field.name}>Name *</Label>
-                  <Input
-                    id={field.name}
-                    placeholder="PT Supplier Utama"
+                  <Label>Entity Type *</Label>
+                  <Tabs
                     value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                  />
-                  {field.state.meta.errors.length > 0 && (
-                    <p className="text-sm text-destructive">
-                      {field.state.meta.errors.map(getErrorMessage).join(', ')}
-                    </p>
-                  )}
+                    onValueChange={(v) => field.handleChange(v as 'person' | 'company')}
+                    className="w-full"
+                  >
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="person" className="gap-2">
+                        <User className="h-4 w-4" />
+                        Person
+                      </TabsTrigger>
+                      <TabsTrigger value="company" className="gap-2">
+                        <Building2 className="h-4 w-4" />
+                        Company
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
                 </div>
               )}
             </form.Field>
@@ -694,22 +846,155 @@ function SuppliersManagementPage() {
               </form.Field>
             </div>
 
-            <form.Field name="companyName">
-              {(field) => (
-                <div className="space-y-2">
-                  <Label htmlFor={field.name}>Company Name</Label>
-                  <Input
-                    id={field.name}
-                    placeholder="PT Supplier Utama Indonesia"
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                  />
-                </div>
-              )}
-            </form.Field>
+            {/* Sales Persons section for company entity type (only in edit mode) */}
+            <form.Subscribe selector={(state) => state.values.entityType}>
+              {(entityType) =>
+                entityType === 'company' &&
+                formMode === 'edit' &&
+                selectedSupplier && (
+                  <div className="space-y-4 border rounded-lg p-4 bg-muted/30">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <Label className="text-sm font-medium">Sales Persons</Label>
+                      </div>
+                    </div>
 
-            <form.Field name="npwp">
+                    {/* Existing contacts list */}
+                    {contactsData?.contacts && contactsData.contacts.length > 0 && (
+                      <div className="space-y-2">
+                        {contactsData.contacts.map((contact) => (
+                          <div
+                            key={contact.id}
+                            className="flex items-center justify-between p-3 bg-background rounded-md border"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">{contact.name}</p>
+                              {contact.phone && (
+                                <p className="text-xs text-muted-foreground font-mono mt-1">
+                                  {contact.phone}
+                                </p>
+                              )}
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={() =>
+                                deleteContactMutation.mutate({
+                                  supplierId: selectedSupplier.id,
+                                  contactId: contact.id,
+                                })
+                              }
+                              disabled={deleteContactMutation.isPending}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Add new contact form */}
+                    <div className="space-y-3 pt-2 border-t">
+                      <p className="text-xs text-muted-foreground">Add new sales person</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <contactForm.Field name="name">
+                          {(field) => (
+                            <div className="space-y-1">
+                              <Input
+                                placeholder="Name *"
+                                value={field.state.value}
+                                onChange={(e) => field.handleChange(e.target.value)}
+                                onBlur={field.handleBlur}
+                                className={`h-9 ${field.state.meta.errors.length > 0 ? 'border-destructive' : ''}`}
+                              />
+                              {field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+                                <p className="text-xs text-destructive">
+                                  {field.state.meta.errors.join(', ')}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </contactForm.Field>
+                        <contactForm.Field name="phone">
+                          {(field) => (
+                            <div className="space-y-1">
+                              <Input
+                                placeholder="Phone *"
+                                value={field.state.value}
+                                onChange={(e) => field.handleChange(e.target.value)}
+                                onBlur={field.handleBlur}
+                                className={`h-9 ${field.state.meta.errors.length > 0 ? 'border-destructive' : ''}`}
+                              />
+                              {field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+                                <p className="text-xs text-destructive">
+                                  {field.state.meta.errors.join(', ')}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </contactForm.Field>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => contactForm.handleSubmit()}
+                        disabled={createContactMutation.isPending}
+                      >
+                        {createContactMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <UserPlus className="h-4 w-4 mr-1" />
+                            Add
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )
+              }
+            </form.Subscribe>
+
+            {/* Message for company entity type in add mode */}
+            <form.Subscribe selector={(state) => state.values.entityType}>
+              {(entityType) => {
+                if (entityType === 'company' && formMode === 'add') {
+                  return (
+                    <div className="flex items-center gap-3 p-4 border rounded-lg bg-muted/30">
+                      <Users className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                      <p className="text-sm text-muted-foreground">
+                        Sales persons can be added after creating the supplier.
+                      </p>
+                    </div>
+                  );
+                }
+                return null;
+              }}
+            </form.Subscribe>
+
+            <form.Field
+              name="npwp"
+              validators={{
+                onChange: ({ value }) => {
+                  if (!value) return undefined;
+                  // Check for invalid characters (only digits, dots, dashes allowed)
+                  if (/[^\d.-]/.test(value)) {
+                    return 'NPWP can only contain numbers, dots, and dashes';
+                  }
+                  // Check format: XX.XXX.XXX.X-XXX.XXX (15 digits) or just 15 digits
+                  const digitsOnly = value.replace(/[.-]/g, '');
+                  if (digitsOnly.length > 0 && digitsOnly.length !== 15) {
+                    return `NPWP must be 15 digits (currently ${digitsOnly.length})`;
+                  }
+                  return undefined;
+                },
+              }}
+            >
               {(field) => (
                 <div className="space-y-2">
                   <Label htmlFor={field.name}>NPWP</Label>
@@ -717,9 +1002,19 @@ function SuppliersManagementPage() {
                     id={field.name}
                     placeholder="01.234.567.8-901.000"
                     value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
+                    onChange={(e) => {
+                      // Allow digits, dots, and dashes only
+                      const value = e.target.value.replace(/[^\d.-]/g, '');
+                      field.handleChange(value);
+                    }}
                     onBlur={field.handleBlur}
                   />
+                  <p className="text-xs text-muted-foreground">Format: XX.XXX.XXX.X-XXX.XXX</p>
+                  {field.state.meta.errors.length > 0 && (
+                    <p className="text-sm text-destructive">
+                      {field.state.meta.errors.map(getErrorMessage).join(', ')}
+                    </p>
+                  )}
                 </div>
               )}
             </form.Field>
@@ -732,47 +1027,83 @@ function SuppliersManagementPage() {
                     <Input
                       id={field.name}
                       type="number"
+                      min="0"
                       placeholder="30"
                       value={field.state.value}
-                      onChange={(e) => field.handleChange(Number(e.target.value))}
+                      onChange={(e) => field.handleChange(Math.max(0, Number(e.target.value)))}
                       onBlur={field.handleBlur}
                     />
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-destructive">
+                        {field.state.meta.errors.map(getErrorMessage).join(', ')}
+                      </p>
+                    )}
                   </div>
                 )}
               </form.Field>
 
-              <form.Field name="leadTimeDays">
-                {(field) => (
-                  <div className="space-y-2">
-                    <Label htmlFor={field.name}>Lead Time (days)</Label>
-                    <Input
-                      id={field.name}
-                      type="number"
-                      placeholder="7"
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(Number(e.target.value))}
-                      onBlur={field.handleBlur}
-                    />
-                  </div>
-                )}
+              <form.Field
+                name="minimumOrderAmount"
+                validators={{
+                  onChange: ({ value }) => {
+                    if (value === undefined || value === 0) return undefined;
+                    if (value < 0) {
+                      return 'Minimum order amount cannot be negative';
+                    }
+                    if (value > 999999999999) {
+                      return 'Amount cannot exceed Rp 999.999.999.999';
+                    }
+                    return undefined;
+                  },
+                }}
+              >
+                {(field) => {
+                  // Format number to Rupiah display (with dots as thousand separators)
+                  const formatRupiah = (num: number | undefined): string => {
+                    if (num === undefined || num === 0) return '';
+                    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                  };
+
+                  // Parse Rupiah string back to number
+                  const parseRupiah = (str: string): number => {
+                    const cleaned = str.replace(/\./g, '');
+                    const num = Number.parseInt(cleaned, 10);
+                    return isNaN(num) ? 0 : num;
+                  };
+
+                  return (
+                    <div className="space-y-2">
+                      <Label htmlFor={field.name}>Min. Order Amount</Label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                          Rp
+                        </span>
+                        <Input
+                          id={field.name}
+                          type="text"
+                          placeholder="1.000.000"
+                          className="pl-10"
+                          value={formatRupiah(field.state.value)}
+                          onChange={(e) => {
+                            // Only allow digits and dots
+                            const value = e.target.value.replace(/[^\d.]/g, '');
+                            const numValue = parseRupiah(value);
+                            field.handleChange(Math.max(0, numValue));
+                          }}
+                          onBlur={field.handleBlur}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">Max: Rp 999.999.999.999</p>
+                      {field.state.meta.errors.length > 0 && (
+                        <p className="text-sm text-destructive">
+                          {field.state.meta.errors.map(getErrorMessage).join(', ')}
+                        </p>
+                      )}
+                    </div>
+                  );
+                }}
               </form.Field>
             </div>
-
-            <form.Field name="minimumOrderAmount">
-              {(field) => (
-                <div className="space-y-2">
-                  <Label htmlFor={field.name}>Minimum Order Amount</Label>
-                  <Input
-                    id={field.name}
-                    type="number"
-                    placeholder="1000000"
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(Number(e.target.value))}
-                    onBlur={field.handleBlur}
-                  />
-                </div>
-              )}
-            </form.Field>
 
             <DrawerFooter className="px-0">
               <div className="flex flex-col sm:flex-row gap-2 w-full">

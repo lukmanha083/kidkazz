@@ -1,5 +1,5 @@
 import { zValidator } from '@hono/zod-validator';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -24,10 +24,12 @@ const createCategorySchema = z.object({
 
 const updateCategorySchema = createCategorySchema.partial();
 
-// Helper function to get categories with parent names
-async function getCategoriesWithParentNames(db: any) {
-  // Get all categories
-  const allCategories = await db.select().from(categories).all();
+// Helper function to get categories with parent names (excluding soft-deleted)
+async function getCategoriesWithParentNames(db: any, includeDeleted = false) {
+  // Get all categories (optionally including soft-deleted)
+  const allCategories = includeDeleted
+    ? await db.select().from(categories).all()
+    : await db.select().from(categories).where(isNull(categories.deletedAt)).all();
 
   type Category = typeof categories.$inferSelect;
 
@@ -82,12 +84,16 @@ app.get('/', async (c) => {
   });
 });
 
-// GET /api/categories/active - List active categories
+// GET /api/categories/active - List active categories (excluding soft-deleted)
 app.get('/active', async (c) => {
   const db = drizzle(c.env.DB);
 
-  // Get all categories first
-  const allCategories = await db.select().from(categories).all();
+  // Get all non-deleted categories first
+  const allCategories = await db
+    .select()
+    .from(categories)
+    .where(isNull(categories.deletedAt))
+    .all();
 
   // Create a map for quick parent lookup
   const categoryMap = new Map(allCategories.map((cat) => [cat.id, cat]));
@@ -106,12 +112,16 @@ app.get('/active', async (c) => {
   });
 });
 
-// GET /api/categories/:id - Get category by ID
+// GET /api/categories/:id - Get category by ID (excluding soft-deleted)
 app.get('/:id', async (c) => {
   const id = c.req.param('id');
   const db = drizzle(c.env.DB);
 
-  const category = await db.select().from(categories).where(eq(categories.id, id)).get();
+  const category = await db
+    .select()
+    .from(categories)
+    .where(and(eq(categories.id, id), isNull(categories.deletedAt)))
+    .get();
 
   if (!category) {
     return c.json({ error: 'Category not found' }, 404);
@@ -229,12 +239,33 @@ app.put('/:id', zValidator('json', updateCategorySchema), async (c) => {
   return c.json(updated);
 });
 
-// DELETE /api/categories/:id - Delete category
+// DELETE /api/categories/:id - Soft delete category
 app.delete('/:id', async (c) => {
   const id = c.req.param('id');
   const db = drizzle(c.env.DB);
 
-  await db.delete(categories).where(eq(categories.id, id)).run();
+  // Check if category exists and is not already deleted
+  const existing = await db
+    .select()
+    .from(categories)
+    .where(and(eq(categories.id, id), isNull(categories.deletedAt)))
+    .get();
+
+  if (!existing) {
+    return c.json({ error: 'Category not found' }, 404);
+  }
+
+  // Soft delete the category
+  await db
+    .update(categories)
+    .set({
+      deletedAt: new Date(),
+      deletedBy: null, // TODO: Get from auth context when implemented
+      status: 'inactive',
+      updatedAt: new Date(),
+    })
+    .where(eq(categories.id, id))
+    .run();
 
   return c.json({ message: 'Category deleted successfully' });
 });

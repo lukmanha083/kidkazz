@@ -24,11 +24,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { inventoryApi, productApi, warehouseApi } from '@/lib/api';
-import { type TransferStockFormData, transferStockFormSchema } from '@/lib/form-schemas';
+import {
+  type TransferStockFormData,
+  createFormValidator,
+  transferStockFormSchema,
+} from '@/lib/form-schemas';
 import { useForm } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { zodValidator } from '@tanstack/zod-form-adapter';
 import {
   ArrowRightLeft,
   Calendar,
@@ -133,9 +136,8 @@ function TransferStockPage() {
       destinationWarehouseId: '',
       notes: '',
     } satisfies TransferStockFormData,
-    validatorAdapter: zodValidator(),
     validators: {
-      onChange: transferStockFormSchema,
+      onChange: createFormValidator(transferStockFormSchema),
     },
     onSubmit: async ({ value }) => {
       if (transferItems.length === 0) {

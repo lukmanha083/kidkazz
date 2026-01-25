@@ -451,8 +451,8 @@ export const customerFormSchema = z
     email: z.string().email('Invalid email address').optional().or(z.literal('')),
     phone: phoneSchema,
     customerType: z.enum(['retail', 'wholesale']),
-    birthDate: z.string().optional(), // For retail customers
-    companyName: z.string().optional(),
+    entityType: z.enum(['person', 'company']), // Person or Company entity
+    birthDate: z.string().optional(), // For person entities (retail customers)
     npwp: z.string().optional(),
     creditLimit: z.coerce.number().min(0, 'Credit limit must be non-negative').optional(),
     paymentTermDays: z.coerce.number().min(0, 'Payment term days must be non-negative').optional(),
@@ -481,24 +481,32 @@ export const supplierFormSchema = z
     name: z.string().min(1, 'Supplier name is required'),
     email: z.string().email('Invalid email address').optional().or(z.literal('')),
     phone: phoneSchema,
-    companyName: z.string().optional(),
+    entityType: z.enum(['person', 'company']), // Person or Company entity
+    // Note: For company entity type, the "name" field IS the company name
+    // Sales contacts are managed separately via supplierContactsApi
     npwp: z.string().optional(),
     paymentTermDays: z.coerce.number().min(0, 'Payment term days must be non-negative').optional(),
-    leadTimeDays: z.coerce.number().min(0, 'Lead time days must be non-negative').optional(),
+    // Note: leadTimeDays removed - tracked per purchase order in procurement service
+    // See: docs/bounded-contexts/procurement/LEAD_TIME_TRACKING.md
     minimumOrderAmount: z.coerce
       .number()
       .min(0, 'Minimum order amount must be non-negative')
       .optional(),
   })
-  // Business Rule: At least one contact method (phone or email) is required
+  // Business Rule: For person entity, at least one contact method (phone or email) is required
+  // For company entity, contacts are managed via sales persons
   .refine(
     (data) => {
+      // Company entities manage contacts via sales persons, so email/phone on supplier is optional
+      if (data.entityType === 'company') {
+        return true;
+      }
       const hasPhone = data.phone && data.phone.trim().length > 0;
       const hasEmail = data.email && data.email.trim().length > 0;
       return hasPhone || hasEmail;
     },
     {
-      message: 'Either phone number or email is required',
+      message: 'Either phone number or email is required for person entity',
       path: ['phone'],
     }
   );
@@ -514,23 +522,176 @@ export const supplierBankInfoFormSchema = z.object({
 export type SupplierBankInfoFormData = z.infer<typeof supplierBankInfoFormSchema>;
 
 // ============================================================================
+// BUSINESS PARTNER - SUPPLIER CONTACT (SALES PERSON) FORM SCHEMA
+// ============================================================================
+
+// Required phone schema for sales persons - must have valid phone number
+const requiredPhoneSchema = z
+  .string()
+  .min(1, 'Phone number is required')
+  .refine((val) => isValidPhoneNumber(val), {
+    message:
+      'Invalid phone number. Use format: +628xxx, 08xxx, 021xxx (ID) or +[country code][number]',
+  });
+
+export const supplierContactFormSchema = z.object({
+  name: z
+    .string()
+    .min(1, 'Sales person name is required')
+    .min(2, 'Name must be at least 2 characters'),
+  phone: requiredPhoneSchema,
+});
+
+export type SupplierContactFormData = z.infer<typeof supplierContactFormSchema>;
+
+// ============================================================================
 // BUSINESS PARTNER - EMPLOYEE FORM SCHEMA
 // ============================================================================
 
+/**
+ * Indonesian KTP/NIK (National ID) validation
+ * NIK format: 16 digits
+ * Structure: PPKKCC DDMMYY XXXX
+ * - PP: Province code (2 digits)
+ * - KK: City/Regency code (2 digits)
+ * - CC: District code (2 digits)
+ * - DDMMYY: Birth date (6 digits, DD+40 for female)
+ * - XXXX: Sequential number (4 digits)
+ */
+const ktpRegex = /^[0-9]{16}$/;
+
+/**
+ * Indonesian NPWP validation
+ * Format: XX.XXX.XXX.X-XXX.XXX (with formatting) or 15 digits (without formatting)
+ * Structure: 15 digits total
+ */
+const npwpFormattedRegex = /^[0-9]{2}\.[0-9]{3}\.[0-9]{3}\.[0-9]-[0-9]{3}\.[0-9]{3}$/;
+const npwpDigitsOnlyRegex = /^[0-9]{15}$/;
+
+function isValidNPWP(npwp: string): boolean {
+  // Remove spaces
+  const cleaned = npwp.replace(/\s/g, '');
+  // Check formatted version or digits only
+  return npwpFormattedRegex.test(cleaned) || npwpDigitsOnlyRegex.test(cleaned);
+}
+
 export const employeeFormSchema = z.object({
-  name: z.string().min(1, 'Employee name is required'),
+  // Name - required string
+  name: z
+    .string()
+    .min(1, 'Employee name is required')
+    .min(2, 'Name must be at least 2 characters')
+    .max(100, 'Name must be less than 100 characters'),
+
+  // Email - optional but must be valid if provided
   email: z.string().email('Invalid email address').optional().or(z.literal('')),
+
+  // Phone - using shared phone schema (Indonesian mobile/landline or international)
   phone: phoneSchema,
-  employeeNumber: z.string().min(1, 'Employee number is required'),
-  department: z.string().optional(),
-  position: z.string().optional(),
+
+  // Employee number - auto-generated by backend, not required from form
+  // When provided (edit mode), it's read-only
+  employeeNumber: z.string().optional(),
+
+  // Department - required string
+  department: z
+    .string()
+    .min(1, 'Department is required')
+    .min(2, 'Department must be at least 2 characters')
+    .max(50, 'Department must be less than 50 characters'),
+
+  // Position - required string
+  position: z
+    .string()
+    .min(1, 'Position is required')
+    .min(2, 'Position must be at least 2 characters')
+    .max(50, 'Position must be less than 50 characters'),
+
+  // Manager ID - optional reference to another employee
   managerId: z.string().optional(),
+
+  // Date of Birth - optional date string
   dateOfBirth: z.string().optional(),
+
+  // Gender - optional enum
   gender: z.enum(['male', 'female']).optional(),
-  nationalId: z.string().optional(),
-  npwp: z.string().optional(),
+
+  // National ID (KTP/NIK) - exactly 16 digits
+  nationalId: z
+    .string()
+    .optional()
+    .refine((val) => !val || ktpRegex.test(val), {
+      message: 'KTP/NIK must be exactly 16 digits',
+    }),
+
+  // NPWP - 15 digits, formatted as XX.XXX.XXX.X-XXX.XXX or just digits
+  npwp: z
+    .string()
+    .optional()
+    .refine((val) => !val || isValidNPWP(val), {
+      message: 'NPWP must be 15 digits (format: XX.XXX.XXX.X-XXX.XXX)',
+    }),
+
+  // Join Date - optional date string
   joinDate: z.string().optional(),
-  baseSalary: z.coerce.number().min(0, 'Base salary must be non-negative').optional(),
+
+  // Base Salary - required non-negative number with max limit
+  baseSalary: z.coerce
+    .number()
+    .min(0, 'Base salary must be non-negative')
+    .max(999999999999, 'Base salary cannot exceed Rp 999.999.999.999'),
+
+  // Bank Info (for salary payment) - all optional but validated when provided
+  bankName: z.string().max(50, 'Bank name must be less than 50 characters').optional(),
+
+  bankAccountNumber: z
+    .string()
+    .optional()
+    .refine((val) => !val || /^[0-9]{10,20}$/.test(val), {
+      message: 'Bank account number must be 10-20 digits',
+    }),
+
+  bankAccountName: z.string().max(100, 'Account name must be less than 100 characters').optional(),
 });
 
 export type EmployeeFormData = z.infer<typeof employeeFormSchema>;
+
+// ============================================================================
+// FORM VALIDATION HELPER
+// ============================================================================
+
+/**
+ * Creates a TanStack Form validator function from a Zod schema.
+ *
+ * This is the clean way to integrate Zod validation with TanStack Form
+ * when using schemas with .refine() or complex transformations that cause
+ * type inference issues.
+ *
+ * @param schema - A Zod schema to use for validation
+ * @returns A validation function compatible with TanStack Form's validators
+ *
+ * @example
+ * const form = useForm({
+ *   defaultValues: { name: '', email: '' },
+ *   validators: {
+ *     onChange: createFormValidator(customerFormSchema),
+ *   },
+ * });
+ */
+export function createFormValidator<TFormData>(schema: z.ZodType<TFormData>) {
+  return ({ value }: { value: TFormData }) => {
+    const result = schema.safeParse(value);
+    if (result.success) {
+      return undefined;
+    }
+    // Return field-level errors as a map
+    const fieldErrors: Record<string, string> = {};
+    for (const issue of result.error.issues) {
+      const path = issue.path.join('.');
+      if (path && !fieldErrors[path]) {
+        fieldErrors[path] = issue.message;
+      }
+    }
+    return { fields: fieldErrors };
+  };
+}
