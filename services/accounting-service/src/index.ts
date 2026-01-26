@@ -1,24 +1,33 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
-import reportsRoutes from './routes/reports';
+import { databaseMiddleware, errorMiddleware } from '@/infrastructure/http/middleware';
+import { accountRoutes, journalEntryRoutes } from '@/infrastructure/http/routes';
 
 type Bindings = {
   DB: D1Database;
+  ACCOUNTING_EVENTS_QUEUE: Queue;
+  ENVIRONMENT: string;
 };
 
-const app = new Hono<{ Bindings: Bindings }>();
+type Variables = {
+  db: unknown;
+  userId: string;
+};
 
-// Middleware
-app.use('/*', logger());
-app.use(
-  '/*',
-  cors({
-    origin: '*',
-    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization', 'x-user-id'],
-  })
-);
+const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+
+// Global middleware
+app.use('*', logger());
+app.use('*', cors());
+app.use('*', errorMiddleware);
+app.use('*', databaseMiddleware);
+
+// Set default userId (in production, this would come from auth middleware)
+app.use('*', async (c, next) => {
+  c.set('userId', c.req.header('X-User-Id') || 'anonymous');
+  await next();
+});
 
 // Health check
 app.get('/health', (c) => {
@@ -29,30 +38,32 @@ app.get('/health', (c) => {
   });
 });
 
-// Reports API routes
-app.route('/api/reports', reportsRoutes);
+// API routes
+app.route('/api/v1/accounts', accountRoutes);
+app.route('/api/v1/journal-entries', journalEntryRoutes);
+
+// Root endpoint
+app.get('/', (c) => {
+  return c.json({
+    name: 'Accounting Service',
+    version: '1.0.0',
+    description: 'Core accounting service for KidKazz ERP',
+    endpoints: {
+      health: '/health',
+      accounts: '/api/v1/accounts',
+      journalEntries: '/api/v1/journal-entries',
+    },
+  });
+});
 
 // 404 handler
 app.notFound((c) => {
   return c.json(
     {
-      error: 'Not Found',
-      message: 'The requested endpoint does not exist',
-      path: c.req.url,
+      success: false,
+      error: 'Not found',
     },
     404
-  );
-});
-
-// Error handler
-app.onError((err, c) => {
-  console.error('Accounting Service Error:', err);
-  return c.json(
-    {
-      error: 'Internal Server Error',
-      message: err.message,
-    },
-    500
   );
 });
 
