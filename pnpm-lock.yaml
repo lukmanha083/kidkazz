@@ -90,8 +90,8 @@ importers:
         specifier: ^5.90.10
         version: 5.90.10(react@18.3.1)
       '@tanstack/react-query-devtools':
-        specifier: ^5.91.1
-        version: 5.91.1(@tanstack/react-query@5.90.10(react@18.3.1))(react@18.3.1)
+        specifier: ^5.91.2
+        version: 5.91.2(@tanstack/react-query@5.90.10(react@18.3.1))(react@18.3.1)
       '@tanstack/react-router':
         specifier: ^1.150.0
         version: 1.150.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -2117,8 +2117,8 @@ packages:
   '@tanstack/query-core@5.90.10':
     resolution: {integrity: sha512-EhZVFu9rl7GfRNuJLJ3Y7wtbTnENsvzp+YpcAV7kCYiXni1v8qZh++lpw4ch4rrwC0u/EZRnBHIehzCGzwXDSQ==}
 
-  '@tanstack/query-devtools@5.91.1':
-    resolution: {integrity: sha512-l8bxjk6BMsCaVQH6NzQEE/bEgFy1hAs5qbgXl0xhzezlaQbPk6Mgz9BqEg2vTLPOHD8N4k+w/gdgCbEzecGyNg==}
+  '@tanstack/query-devtools@5.92.0':
+    resolution: {integrity: sha512-N8D27KH1vEpVacvZgJL27xC6yPFUy0Zkezn5gnB3L3gRCxlDeSuiya7fKge8Y91uMTnC8aSxBQhcK6ocY7alpQ==}
 
   '@tanstack/react-form@1.27.4':
     resolution: {integrity: sha512-cbNoCDeL9yZGVOltHYZjEVofu61BLXohC3Kmfh7NFJ4Y9GhIZtA+TA3XcySkCbGHBFTJqS2QkbUXGBKMbm2NSg==}
@@ -2129,10 +2129,10 @@ packages:
       '@tanstack/react-start':
         optional: true
 
-  '@tanstack/react-query-devtools@5.91.1':
-    resolution: {integrity: sha512-tRnJYwEbH0kAOuToy8Ew7bJw1lX3AjkkgSlf/vzb+NpnqmHPdWM+lA2DSdGQSLi1SU0PDRrrCI1vnZnci96CsQ==}
+  '@tanstack/react-query-devtools@5.91.2':
+    resolution: {integrity: sha512-ZJ1503ay5fFeEYFUdo7LMNFzZryi6B0Cacrgr2h1JRkvikK1khgIq6Nq2EcblqEdIlgB/r7XDW8f8DQ89RuUgg==}
     peerDependencies:
-      '@tanstack/react-query': ^5.90.10
+      '@tanstack/react-query': ^5.90.14
       react: ^18 || ^19
 
   '@tanstack/react-query@5.90.10':
@@ -6417,7 +6417,7 @@ snapshots:
 
   '@tanstack/query-core@5.90.10': {}
 
-  '@tanstack/query-devtools@5.91.1': {}
+  '@tanstack/query-devtools@5.92.0': {}
 
   '@tanstack/react-form@1.27.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
@@ -6427,9 +6427,9 @@ snapshots:
     transitivePeerDependencies:
       - react-dom
 
-  '@tanstack/react-query-devtools@5.91.1(@tanstack/react-query@5.90.10(react@18.3.1))(react@18.3.1)':
+  '@tanstack/react-query-devtools@5.91.2(@tanstack/react-query@5.90.10(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@tanstack/query-devtools': 5.91.1
+      '@tanstack/query-devtools': 5.92.0
       '@tanstack/react-query': 5.90.10(react@18.3.1)
       react: 18.3.1
 
@@ -6785,7 +6785,7 @@ snapshots:
       sirv: 3.0.2
       tinyglobby: 0.2.15
       tinyrainbow: 3.0.3
-      vitest: 4.0.17(@types/node@24.10.1)(@vitest/ui@4.0.17)(jiti@2.6.1)(jsdom@23.2.0)(msw@2.12.4(@types/node@24.10.1)(typescript@5.9.3))(terser@5.44.1)(tsx@4.20.6)
+      vitest: 4.0.17(@types/node@24.10.1)(@vitest/ui@4.0.17)(jiti@1.21.7)(jsdom@23.2.0)(msw@2.12.4(@types/node@24.10.1)(typescript@5.9.3))(terser@5.44.1)(tsx@4.20.6)
 
   '@vitest/utils@4.0.17':
     dependencies:
