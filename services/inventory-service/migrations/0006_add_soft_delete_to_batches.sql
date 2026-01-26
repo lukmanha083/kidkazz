@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS inventory_batches_new (
   last_modified_at TEXT
 );
 
+-- Note: Include deleted_at and deleted_by to preserve soft-delete data on re-runs
 INSERT OR IGNORE INTO inventory_batches_new (
   id, inventory_id, product_id, warehouse_id,
   batch_number, lot_number,
@@ -47,6 +48,7 @@ INSERT OR IGNORE INTO inventory_batches_new (
   quantity_available, quantity_reserved,
   received_date, supplier, purchase_order_id, cost,
   status, quarantine_reason, recall_reason,
+  deleted_at, deleted_by,
   created_at, updated_at, created_by, updated_by, version, last_modified_at
 )
 SELECT
@@ -56,6 +58,7 @@ SELECT
   quantity_available, quantity_reserved,
   received_date, supplier, purchase_order_id, cost,
   status, quarantine_reason, recall_reason,
+  deleted_at, deleted_by,
   created_at, updated_at, created_by, updated_by, version, last_modified_at
 FROM inventory_batches;
 

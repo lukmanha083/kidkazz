@@ -292,7 +292,7 @@ describe('Phone Number Validation', () => {
   });
 
   describe('Entity Type Validation (Customer)', () => {
-    it('should accept person entity type without company name', () => {
+    it('should accept person entity type', () => {
       const result = customerFormSchema.safeParse({
         name: 'John Doe',
         phone: '+6281234567890',
@@ -302,48 +302,33 @@ describe('Phone Number Validation', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should accept company entity type with company name', () => {
+    it('should accept company entity type', () => {
+      // For company entity, the "name" field IS the company name
       const result = customerFormSchema.safeParse({
         name: 'PT Example Corp',
         phone: '+6281234567890',
         customerType: 'wholesale',
         entityType: 'company',
-        companyName: 'PT Example Corp',
       });
       expect(result.success).toBe(true);
     });
 
-    it('should reject company entity type without company name', () => {
-      const result = customerFormSchema.safeParse({
-        name: 'Test',
-        phone: '+6281234567890',
-        customerType: 'wholesale',
-        entityType: 'company',
-      });
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.issues[0].message).toBe('Company name is required for company entity');
-      }
-    });
-
-    it('should reject company entity type with empty company name', () => {
-      const result = customerFormSchema.safeParse({
-        name: 'Test',
-        phone: '+6281234567890',
-        customerType: 'wholesale',
-        entityType: 'company',
-        companyName: '',
-      });
-      expect(result.success).toBe(false);
-    });
-
-    it('should accept person entity with optional company name', () => {
+    it('should accept retail customer with person entity', () => {
       const result = customerFormSchema.safeParse({
         name: 'John Doe',
         phone: '+6281234567890',
         customerType: 'retail',
         entityType: 'person',
-        companyName: 'Freelancer Inc', // Person can optionally have company name
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should accept wholesale customer with company entity', () => {
+      const result = customerFormSchema.safeParse({
+        name: 'PT Wholesale Corp',
+        phone: '+6281234567890',
+        customerType: 'wholesale',
+        entityType: 'company',
       });
       expect(result.success).toBe(true);
     });
@@ -406,7 +391,9 @@ describe('Phone Number Validation', () => {
       });
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues[0].message).toBe('Either phone number or email is required');
+        expect(result.error.issues[0].message).toBe(
+          'Either phone number or email is required for person entity'
+        );
       }
     });
 
@@ -421,7 +408,7 @@ describe('Phone Number Validation', () => {
   });
 
   describe('Entity Type Validation (Supplier)', () => {
-    it('should accept person entity type without company name', () => {
+    it('should accept person entity type', () => {
       const result = supplierFormSchema.safeParse({
         name: 'John Supplier',
         phone: '+6281234567890',
@@ -430,36 +417,24 @@ describe('Phone Number Validation', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should accept company entity type with company name', () => {
+    it('should accept company entity type', () => {
+      // For company entity, the "name" field IS the company name
+      // Sales contacts are managed separately via supplier_contacts table
       const result = supplierFormSchema.safeParse({
         name: 'PT Supplier Corp',
         phone: '+6281234567890',
         entityType: 'company',
-        companyName: 'PT Supplier Corp',
       });
       expect(result.success).toBe(true);
     });
 
-    it('should reject company entity type without company name', () => {
+    it('should allow company entity without phone/email (contacts managed via sales persons)', () => {
+      // Company entities manage contacts via sales persons, so direct contact info is optional
       const result = supplierFormSchema.safeParse({
-        name: 'Test',
-        phone: '+6281234567890',
+        name: 'PT Supplier Corp',
         entityType: 'company',
       });
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.issues[0].message).toBe('Company name is required for company entity');
-      }
-    });
-
-    it('should reject company entity type with empty company name', () => {
-      const result = supplierFormSchema.safeParse({
-        name: 'Test',
-        phone: '+6281234567890',
-        entityType: 'company',
-        companyName: '',
-      });
-      expect(result.success).toBe(false);
+      expect(result.success).toBe(true);
     });
   });
 
@@ -469,6 +444,9 @@ describe('Phone Number Validation', () => {
         name: 'Test Employee',
         employeeNumber: 'EMP001',
         phone: '+6281234567890',
+        department: 'IT',
+        position: 'Developer',
+        baseSalary: 5000000,
       });
       expect(result.success).toBe(true);
     });
@@ -478,6 +456,9 @@ describe('Phone Number Validation', () => {
         name: 'Test Employee',
         employeeNumber: 'EMP001',
         phone: 'invalid',
+        department: 'IT',
+        position: 'Developer',
+        baseSalary: 5000000,
       });
       expect(result.success).toBe(false);
     });

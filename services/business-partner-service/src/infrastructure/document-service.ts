@@ -140,7 +140,7 @@ export class DocumentService {
       uploadedBy: options.uploadedBy,
     };
 
-    // Generate URL
+    // Generate URL - use generic documents endpoint
     const url = `/api/employees/documents/file/${filename}`;
 
     return { filename, url, metadata };

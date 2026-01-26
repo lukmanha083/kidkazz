@@ -22,12 +22,15 @@ CREATE TABLE IF NOT EXISTS categories_new (
   updated_at INTEGER NOT NULL
 );
 
+-- Note: Include deleted_at and deleted_by to preserve soft-delete data on re-runs
 INSERT OR IGNORE INTO categories_new (
   id, name, description, icon, color, parent_id, status,
+  deleted_at, deleted_by,
   created_at, updated_at
 )
 SELECT
   id, name, description, icon, color, parent_id, status,
+  deleted_at, deleted_by,
   created_at, updated_at
 FROM categories;
 
@@ -99,6 +102,7 @@ CREATE TABLE IF NOT EXISTS products_new (
   updated_by TEXT
 );
 
+-- Note: Include deleted_at and deleted_by to preserve soft-delete data on re-runs
 INSERT OR IGNORE INTO products_new (
   id, barcode, sku, name, description, image, category_id,
   price, retail_price, wholesale_price,
@@ -112,6 +116,7 @@ INSERT OR IGNORE INTO products_new (
   cost_price, costing_method,
   taxable, tax_category_id,
   gl_segment1, gl_segment2, gl_segment3,
+  deleted_at, deleted_by,
   created_at, updated_at, created_by, updated_by
 )
 SELECT
@@ -127,6 +132,7 @@ SELECT
   cost_price, costing_method,
   taxable, tax_category_id,
   gl_segment1, gl_segment2, gl_segment3,
+  deleted_at, deleted_by,
   created_at, updated_at, created_by, updated_by
 FROM products;
 
