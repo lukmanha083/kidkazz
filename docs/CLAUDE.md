@@ -708,6 +708,36 @@ wrangler d1 execute kidkazz-db --file=services/inventory-service/migrations/0006
 
 ## Git Workflow
 
+### GitHub CLI (gh) - ALWAYS USE
+**IMPORTANT**: Always use `gh` CLI for all GitHub operations instead of raw git commands for remote operations.
+
+```bash
+# Push changes
+gh repo sync --push
+
+# Create PR
+gh pr create --title "Title" --body "Description"
+
+# Merge PR
+gh pr merge <number> --squash --delete-branch
+
+# View PR/issues
+gh pr view <number>
+gh issue view <number>
+
+# List workflows
+gh run list --limit 5
+
+# Setup git credentials
+gh auth setup-git
+```
+
+**Why gh CLI?**
+- Handles authentication automatically
+- Has proper scopes for workflow files
+- Better error messages
+- Consistent across environments
+
 ### Branch Strategy
 - **Main**: `main` (production-ready)
 - **Feature Branches**: `claude/{description}-{session-id}`
