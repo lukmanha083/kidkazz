@@ -133,7 +133,7 @@ accountRoutes.post('/', zValidator('json', createAccountSchema), async (c) => {
     return c.json(
       {
         success: true,
-        data: result,
+        data: toAccountResponse(result),
       },
       201
     );
@@ -159,7 +159,7 @@ accountRoutes.put('/:id', zValidator('json', updateAccountSchema), async (c) => 
 
     return c.json({
       success: true,
-      data: result,
+      data: toAccountResponse(result),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to update account';

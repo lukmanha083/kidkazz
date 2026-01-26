@@ -74,6 +74,8 @@ export const listJournalEntriesQuerySchema = z.object({
   toDate: z.string().datetime().transform(s => new Date(s)).optional(),
   accountId: z.string().optional(),
   createdBy: z.string().optional(),
+  sourceService: z.string().optional(),
+  sourceReferenceId: z.string().optional(),
   search: z.string().optional(),
   page: z.string().transform(Number).pipe(z.number().int().positive()).optional(),
   limit: z.string().transform(Number).pipe(z.number().int().positive().max(100)).optional(),

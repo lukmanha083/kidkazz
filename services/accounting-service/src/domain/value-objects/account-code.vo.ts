@@ -184,11 +184,13 @@ export class AccountCode {
 
   /**
    * Get financial statement type based on code range
+   * 0000-3999: Balance Sheet (Assets, Liabilities, Equity)
+   * 4000-9999: Income Statement (Revenue, COGS, Expenses)
    */
   getFinancialStatementType(): FinancialStatementType {
     const codeNum = parseInt(this.value, 10);
 
-    if (codeNum >= 1000 && codeNum <= 3999) {
+    if (codeNum >= 0 && codeNum <= 3999) {
       return FinancialStatementType.BALANCE_SHEET;
     }
     return FinancialStatementType.INCOME_STATEMENT;

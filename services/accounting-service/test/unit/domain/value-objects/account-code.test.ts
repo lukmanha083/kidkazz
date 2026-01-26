@@ -192,6 +192,18 @@ describe('AccountCode', () => {
   });
 
   describe('getFinancialStatementType', () => {
+    it('should return BALANCE_SHEET for codes 0000-0999 (asset range)', () => {
+      expect(new AccountCode('0000').getFinancialStatementType()).toBe(
+        FinancialStatementType.BALANCE_SHEET
+      );
+      expect(new AccountCode('0500').getFinancialStatementType()).toBe(
+        FinancialStatementType.BALANCE_SHEET
+      );
+      expect(new AccountCode('0999').getFinancialStatementType()).toBe(
+        FinancialStatementType.BALANCE_SHEET
+      );
+    });
+
     it('should return BALANCE_SHEET for codes 1000-3999', () => {
       expect(new AccountCode('1000').getFinancialStatementType()).toBe(
         FinancialStatementType.BALANCE_SHEET
