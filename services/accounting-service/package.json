@@ -1,38 +1,45 @@
 {
   "name": "accounting-service",
   "version": "1.0.0",
-  "description": "Accounting microservice with DDD and hexagonal architecture",
-  "main": "src/index.ts",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run --dir test/unit",
+    "test:integration": "vitest run --dir test/integration",
+    "test:e2e": "vitest run --dir test/e2e",
+    "test:coverage": "vitest run --coverage",
+    "lint": "biome lint ./src",
+    "lint:fix": "biome lint --write ./src",
+    "format": "biome format --write ./src",
+    "check": "biome check ./src",
+    "check:fix": "biome check --write ./src",
     "type-check": "tsc --noEmit",
-    "test": "vitest",
-    "test:watch": "vitest --watch",
-    "test:coverage": "vitest --coverage",
-    "lint": "biome lint .",
-    "lint:fix": "biome lint --write .",
-    "format": "biome format --write .",
-    "format:check": "biome format .",
-    "check": "biome check .",
-    "check:fix": "biome check --write .",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "wrangler d1 migrations apply accounting-db --local",
-    "db:migrate:prod": "wrangler d1 migrations apply accounting-db --remote",
-    "db:studio": "drizzle-kit studio"
+    "db:migrate:prod": "wrangler d1 migrations apply accounting-db --remote"
   },
   "dependencies": {
+    "@hono/zod-validator": "^0.7.6",
     "drizzle-orm": "^0.33.0",
     "hono": "^4.11.5",
-    "nanoid": "^5.0.0"
+    "nanoid": "^5.0.9",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260124.0",
-    "@vitest/coverage-v8": "^4.0.17",
-    "drizzle-kit": "^0.31.7",
-    "typescript": "^5.6.0",
-    "vitest": "^4.0.17",
-    "wrangler": "^4.60.0"
+    "@biomejs/biome": "^1.9.4",
+    "@cloudflare/vitest-pool-workers": "^0.8.5",
+    "@cloudflare/workers-types": "^4.20250121.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.10.10",
+    "@vitest/coverage-v8": "2.1.8",
+    "better-sqlite3": "^12.6.2",
+    "drizzle-kit": "^0.24.2",
+    "typescript": "^5.6.3",
+    "vitest": "2.1.8",
+    "wrangler": "^3.105.0"
   }
 }

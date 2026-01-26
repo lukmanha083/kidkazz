@@ -1,179 +1,213 @@
-import { integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, real, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 /**
  * Chart of Accounts table
- * Hierarchical account structure following double-entry bookkeeping
+ * Stores all GL accounts with hierarchy support
+ * Based on Indonesian Trading COA (PSAK-compliant)
  */
-export const chartOfAccounts = sqliteTable('chart_of_accounts', {
-  id: text('id').primaryKey(),
-  code: text('code').unique().notNull(), // 4-digit code (e.g., "1000", "4010")
-  name: text('name').notNull(),
-  description: text('description'),
-
-  // Account Type and Classification
-  accountType: text('account_type', {
-    enum: ['Asset', 'Liability', 'Equity', 'Revenue', 'COGS', 'Expense'],
-  }).notNull(),
-  normalBalance: text('normal_balance', {
-    enum: ['Debit', 'Credit'],
-  }).notNull(),
-
-  // Financial Statement Classification
-  // BALANCE_SHEET: Assets (1000-1999), Liabilities (2000-2999), Equity (3000-3999)
-  // INCOME_STATEMENT: Revenue (4000-4999), COGS (5000-5999), Expenses (6000-8999)
-  financialStatementType: text('financial_statement_type', {
-    enum: ['BALANCE_SHEET', 'INCOME_STATEMENT'],
-  }).notNull(),
-
-  currency: text('currency').default('IDR').notNull(),
-
-  // Hierarchy (for sub-accounts)
-  parentAccountId: text('parent_account_id').references((): any => chartOfAccounts.id, {
-    onDelete: 'restrict',
-  }),
-  level: integer('level').default(0).notNull(), // 0 = top level, 1 = sub, 2 = sub-sub
-  isDetailAccount: integer('is_detail_account', { mode: 'boolean' }).default(true).notNull(), // Can post transactions?
-  isSystemAccount: integer('is_system_account', { mode: 'boolean' }).default(false).notNull(), // Protected from deletion
-
-  // Status
-  status: text('status', {
-    enum: ['Active', 'Inactive', 'Archived'],
+export const chartOfAccounts = sqliteTable(
+  'chart_of_accounts',
+  {
+    id: text('id').primaryKey(),
+    code: text('code').notNull().unique(),
+    name: text('name').notNull(), // Indonesian name
+    nameEn: text('name_en'), // English name
+    description: text('description'),
+    accountType: text('account_type', {
+      enum: ['Asset', 'Liability', 'Equity', 'Revenue', 'COGS', 'Expense'],
+    }).notNull(),
+    // Account category for detailed classification
+    accountCategory: text('account_category', {
+      enum: [
+        'CURRENT_ASSET',
+        'FIXED_ASSET',
+        'OTHER_NON_CURRENT_ASSET',
+        'CURRENT_LIABILITY',
+        'LONG_TERM_LIABILITY',
+        'EQUITY',
+        'REVENUE',
+        'COGS',
+        'OPERATING_EXPENSE',
+        'OTHER_INCOME_EXPENSE',
+        'TAX',
+      ],
+    }).notNull(),
+    normalBalance: text('normal_balance', { enum: ['Debit', 'Credit'] }).notNull(),
+    parentAccountId: text('parent_account_id'),
+    level: integer('level').notNull().default(0),
+    isDetailAccount: integer('is_detail_account', { mode: 'boolean' }).notNull().default(true),
+    isSystemAccount: integer('is_system_account', { mode: 'boolean' }).notNull().default(false),
+    financialStatementType: text('financial_statement_type', {
+      enum: ['BALANCE_SHEET', 'INCOME_STATEMENT'],
+    }).notNull(),
+    status: text('status', { enum: ['Active', 'Inactive', 'Archived'] })
+      .notNull()
+      .default('Active'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+    createdBy: text('created_by'),
+    updatedBy: text('updated_by'),
+  },
+  (table) => ({
+    codeIdx: index('idx_coa_code').on(table.code),
+    accountTypeIdx: index('idx_coa_account_type').on(table.accountType),
+    accountCategoryIdx: index('idx_coa_account_category').on(table.accountCategory),
+    parentIdx: index('idx_coa_parent').on(table.parentAccountId),
+    statusIdx: index('idx_coa_status').on(table.status),
+    levelIdx: index('idx_coa_level').on(table.level),
+    financialStatementIdx: index('idx_coa_financial_statement').on(table.financialStatementType),
   })
-    .default('Active')
-    .notNull(),
-
-  // Audit fields
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
-  createdBy: text('created_by'),
-  updatedBy: text('updated_by'),
-});
+);
 
 /**
- * Journal Entries table (Header)
- * Represents a complete financial transaction
+ * Journal Entries header table
+ * Stores journal entry metadata
  */
-export const journalEntries = sqliteTable('journal_entries', {
-  id: text('id').primaryKey(),
-  entryNumber: text('entry_number').unique().notNull(), // Auto-generated: "JE-2025-0001"
-
-  // Entry Details
-  entryDate: integer('entry_date', { mode: 'timestamp' }).notNull(),
-  description: text('description').notNull(),
-  reference: text('reference'), // Invoice #, PO #, Order #, etc.
-  notes: text('notes'),
-
-  // Type and Status
-  entryType: text('entry_type', {
-    enum: ['Manual', 'System', 'Recurring', 'Adjusting', 'Closing'],
+export const journalEntries = sqliteTable(
+  'journal_entries',
+  {
+    id: text('id').primaryKey(),
+    entryNumber: text('entry_number').notNull().unique(),
+    entryDate: text('entry_date').notNull(),
+    description: text('description').notNull(),
+    reference: text('reference'),
+    notes: text('notes'),
+    entryType: text('entry_type', {
+      enum: ['Manual', 'System', 'Recurring', 'Adjusting', 'Closing'],
+    })
+      .notNull()
+      .default('Manual'),
+    status: text('status', { enum: ['Draft', 'Posted', 'Voided'] })
+      .notNull()
+      .default('Draft'),
+    fiscalYear: integer('fiscal_year').notNull(),
+    fiscalMonth: integer('fiscal_month').notNull(),
+    // Source tracking for system-generated entries
+    sourceService: text('source_service'),
+    sourceReferenceId: text('source_reference_id'),
+    // Audit fields
+    createdBy: text('created_by').notNull(),
+    createdAt: text('created_at').notNull(),
+    postedBy: text('posted_by'),
+    postedAt: text('posted_at'),
+    voidedBy: text('voided_by'),
+    voidedAt: text('voided_at'),
+    voidReason: text('void_reason'),
+    updatedAt: text('updated_at').notNull(),
+    // Soft delete
+    deletedAt: text('deleted_at'),
+    deletedBy: text('deleted_by'),
+    deleteReason: text('delete_reason'),
+  },
+  (table) => ({
+    entryNumberIdx: index('idx_je_entry_number').on(table.entryNumber),
+    entryDateIdx: index('idx_je_entry_date').on(table.entryDate),
+    statusIdx: index('idx_je_status').on(table.status),
+    entryTypeIdx: index('idx_je_entry_type').on(table.entryType),
+    fiscalPeriodIdx: index('idx_je_fiscal_period').on(table.fiscalYear, table.fiscalMonth),
+    sourceIdx: index('idx_je_source').on(table.sourceService, table.sourceReferenceId),
+    createdByIdx: index('idx_je_created_by').on(table.createdBy),
+    deletedIdx: index('idx_je_deleted').on(table.deletedAt),
   })
-    .default('Manual')
-    .notNull(),
-  status: text('status', {
-    enum: ['Draft', 'Posted', 'Voided'],
-  })
-    .default('Draft')
-    .notNull(),
-
-  // Source tracking (which service/module created this entry)
-  sourceService: text('source_service'), // 'order-service', 'inventory-service', 'manual'
-  sourceReferenceId: text('source_reference_id'), // ID from source service
-
-  // Audit trail
-  createdBy: text('created_by'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-  postedBy: text('posted_by'),
-  postedAt: integer('posted_at', { mode: 'timestamp' }),
-  voidedBy: text('voided_by'),
-  voidedAt: integer('voided_at', { mode: 'timestamp' }),
-  voidReason: text('void_reason'),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
-
-  // Soft delete fields (financial records - never hard delete)
-  deletedAt: integer('deleted_at', { mode: 'timestamp' }),
-  deletedBy: text('deleted_by'),
-  deleteReason: text('delete_reason'),
-});
+);
 
 /**
- * Journal Lines table (Individual Debit/Credit Postings)
- * Each line represents one account being debited or credited
+ * Journal Lines table
+ * Stores individual debit/credit postings
  */
-export const journalLines = sqliteTable('journal_lines', {
-  id: text('id').primaryKey(),
-  journalEntryId: text('journal_entry_id')
-    .notNull()
-    .references(() => journalEntries.id, { onDelete: 'cascade' }),
-  accountId: text('account_id')
-    .notNull()
-    .references(() => chartOfAccounts.id, { onDelete: 'restrict' }),
-
-  // Amount and Direction
-  direction: text('direction', {
-    enum: ['Debit', 'Credit'],
-  }).notNull(),
-  amount: real('amount').notNull(), // Always positive, direction determines +/-
-
-  // Line description
-  memo: text('memo'),
-
-  // GL Segmentation (for advanced tracking)
-  // Segment 1: Sales Person ID (commission tracking)
-  salesPersonId: text('sales_person_id'),
-
-  // Segment 2: Warehouse ID (location tracking)
-  warehouseId: text('warehouse_id'),
-
-  // Segment 3: Sales Channel (POS, Online, B2B, Marketplace)
-  salesChannel: text('sales_channel', {
-    enum: ['POS', 'Online', 'B2B', 'Marketplace', 'Wholesale'],
-  }),
-
-  // Additional tracking fields
-  customerId: text('customer_id'), // Reference to customer (for A/R tracking)
-  vendorId: text('vendor_id'), // Reference to vendor (for A/P tracking)
-  productId: text('product_id'), // Reference to product (for product-level reporting)
-
-  // Line sequence (for display order)
-  lineNumber: integer('line_number').default(0).notNull(),
-
-  // Audit
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-});
+export const journalLines = sqliteTable(
+  'journal_lines',
+  {
+    id: text('id').primaryKey(),
+    journalEntryId: text('journal_entry_id')
+      .notNull()
+      .references(() => journalEntries.id, { onDelete: 'cascade' }),
+    lineSequence: integer('line_sequence').notNull(),
+    accountId: text('account_id')
+      .notNull()
+      .references(() => chartOfAccounts.id, { onDelete: 'restrict' }),
+    direction: text('direction', { enum: ['Debit', 'Credit'] }).notNull(),
+    amount: real('amount').notNull(),
+    memo: text('memo'),
+    // GL Segmentation for analytics
+    salesPersonId: text('sales_person_id'),
+    warehouseId: text('warehouse_id'),
+    salesChannel: text('sales_channel', {
+      enum: ['POS', 'Online', 'B2B', 'Marketplace', 'Wholesale'],
+    }),
+    customerId: text('customer_id'),
+    vendorId: text('vendor_id'),
+    productId: text('product_id'),
+  },
+  (table) => ({
+    journalEntryIdx: index('idx_jl_journal_entry').on(table.journalEntryId),
+    accountIdx: index('idx_jl_account').on(table.accountId),
+    directionIdx: index('idx_jl_direction').on(table.direction),
+    salesPersonIdx: index('idx_jl_sales_person').on(table.salesPersonId),
+    warehouseIdx: index('idx_jl_warehouse').on(table.warehouseId),
+    salesChannelIdx: index('idx_jl_sales_channel').on(table.salesChannel),
+    customerIdx: index('idx_jl_customer').on(table.customerId),
+    vendorIdx: index('idx_jl_vendor').on(table.vendorId),
+    // Unique constraint on journal_entry_id + line_sequence
+    entryLineSeqIdx: uniqueIndex('idx_jl_entry_line_seq').on(table.journalEntryId, table.lineSequence),
+  })
+);
 
 /**
- * Account Balances table (Materialized View for Performance)
- * Stores pre-calculated balances per account per fiscal period
+ * Account Balances table (materialized view for performance)
+ * Pre-calculated balances per account per fiscal period
  */
-export const accountBalances = sqliteTable('account_balances', {
-  id: text('id').primaryKey(),
-  accountId: text('account_id')
-    .notNull()
-    .references(() => chartOfAccounts.id, { onDelete: 'cascade' }),
+export const accountBalances = sqliteTable(
+  'account_balances',
+  {
+    id: text('id').primaryKey(),
+    accountId: text('account_id')
+      .notNull()
+      .references(() => chartOfAccounts.id),
+    fiscalYear: integer('fiscal_year').notNull(),
+    fiscalMonth: integer('fiscal_month').notNull(),
+    openingBalance: real('opening_balance').notNull().default(0),
+    debitTotal: real('debit_total').notNull().default(0),
+    creditTotal: real('credit_total').notNull().default(0),
+    closingBalance: real('closing_balance').notNull().default(0),
+    lastUpdatedAt: text('last_updated_at').notNull(),
+  },
+  (table) => ({
+    accountPeriodIdx: uniqueIndex('idx_ab_account_period').on(table.accountId, table.fiscalYear, table.fiscalMonth),
+    fiscalPeriodIdx: index('idx_ab_fiscal_period').on(table.fiscalYear, table.fiscalMonth),
+  })
+);
 
-  // Fiscal Period
-  fiscalYear: integer('fiscal_year').notNull(),
-  fiscalMonth: integer('fiscal_month').notNull(), // 1-12
+/**
+ * Fiscal Periods table
+ * Tracks fiscal period status (open/closed)
+ */
+export const fiscalPeriods = sqliteTable(
+  'fiscal_periods',
+  {
+    id: text('id').primaryKey(),
+    fiscalYear: integer('fiscal_year').notNull(),
+    fiscalMonth: integer('fiscal_month').notNull(),
+    status: text('status', { enum: ['Open', 'Closed', 'Locked'] })
+      .notNull()
+      .default('Open'),
+    closedAt: text('closed_at'),
+    closedBy: text('closed_by'),
+    reopenedAt: text('reopened_at'),
+    reopenedBy: text('reopened_by'),
+    reopenReason: text('reopen_reason'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (table) => ({
+    yearMonthIdx: uniqueIndex('idx_fp_year_month').on(table.fiscalYear, table.fiscalMonth),
+    statusIdx: index('idx_fp_status').on(table.status),
+  })
+);
 
-  // Balances
-  openingBalance: real('opening_balance').default(0).notNull(),
-  debitTotal: real('debit_total').default(0).notNull(),
-  creditTotal: real('credit_total').default(0).notNull(),
-  closingBalance: real('closing_balance').default(0).notNull(),
-
-  // Timestamps
-  lastUpdated: integer('last_updated', { mode: 'timestamp' }).notNull(),
-});
-
-// Type exports
-export type Account = typeof chartOfAccounts.$inferSelect;
-export type InsertAccount = typeof chartOfAccounts.$inferInsert;
-
-export type JournalEntry = typeof journalEntries.$inferSelect;
-export type InsertJournalEntry = typeof journalEntries.$inferInsert;
-
-export type JournalLine = typeof journalLines.$inferSelect;
-export type InsertJournalLine = typeof journalLines.$inferInsert;
-
-export type AccountBalance = typeof accountBalances.$inferSelect;
-export type InsertAccountBalance = typeof accountBalances.$inferInsert;
+// Type exports for use in repositories
+export type ChartOfAccountsRecord = typeof chartOfAccounts.$inferSelect;
+export type JournalEntryRecord = typeof journalEntries.$inferSelect;
+export type JournalLineRecord = typeof journalLines.$inferSelect;
+export type AccountBalanceRecord = typeof accountBalances.$inferSelect;
+export type FiscalPeriodRecord = typeof fiscalPeriods.$inferSelect;

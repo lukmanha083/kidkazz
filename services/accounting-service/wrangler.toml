@@ -2,25 +2,18 @@ name = "accounting-service"
 main = "src/index.ts"
 compatibility_date = "2024-11-19"
 
-[observability]
-enabled = true
-
-# Development settings
 [dev]
 port = 8794
 
-# D1 Database binding
 [[d1_databases]]
 binding = "DB"
 database_name = "accounting-db"
-database_id = "local-accounting-db"  # Replace with actual DB ID for production
+database_id = "accounting-db"
+migrations_dir = "migrations"
 
-# Queue for publishing events
 [[queues.producers]]
 binding = "ACCOUNTING_EVENTS_QUEUE"
 queue = "accounting-events"
 
-# Example: If accounting service needs to call other services
-# [[services]]
-# binding = "PRODUCT_SERVICE"
-# service = "product-service"
+[vars]
+ENVIRONMENT = "development"
