@@ -234,6 +234,9 @@ importers:
 
   services/accounting-service:
     dependencies:
+      '@hono/zod-validator':
+        specifier: ^0.7.6
+        version: 0.7.6(hono@4.11.5)(zod@3.25.76)
       drizzle-orm:
         specifier: ^0.33.0
         version: 0.33.0(@cloudflare/workers-types@4.20260124.0)(@types/better-sqlite3@7.6.13)(@types/react@18.3.26)(better-sqlite3@12.6.2)(react@18.3.1)
@@ -249,7 +252,7 @@ importers:
     devDependencies:
       '@cloudflare/vitest-pool-workers':
         specifier: ^0.8.5
-        version: 0.8.71(@cloudflare/workers-types@4.20260124.0)(@vitest/runner@4.0.17)(@vitest/snapshot@4.0.17)(vitest@2.1.8(@types/node@22.19.7)(@vitest/ui@4.0.17)(jsdom@23.2.0)(msw@2.12.4(@types/node@22.19.7)(typescript@5.9.3))(terser@5.44.1))
+        version: 0.8.71(@cloudflare/workers-types@4.20260124.0)(@vitest/runner@4.0.17)(@vitest/snapshot@4.0.17)(vitest@2.1.8(@types/node@22.19.7)(@vitest/ui@4.0.17(vitest@4.0.17))(jsdom@23.2.0)(msw@2.12.4(@types/node@22.19.7)(typescript@5.9.3))(terser@5.44.1))
       '@cloudflare/workers-types':
         specifier: ^4.20250121.0
         version: 4.20260124.0
@@ -270,7 +273,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 2.1.8
-        version: 2.1.8(@types/node@22.19.7)(@vitest/ui@4.0.17)(jsdom@23.2.0)(msw@2.12.4(@types/node@22.19.7)(typescript@5.9.3))(terser@5.44.1)
+        version: 2.1.8(@types/node@22.19.7)(@vitest/ui@4.0.17(vitest@4.0.17))(jsdom@23.2.0)(msw@2.12.4(@types/node@22.19.7)(typescript@5.9.3))(terser@5.44.1)
       wrangler:
         specifier: ^3.105.0
         version: 3.114.17(@cloudflare/workers-types@4.20260124.0)
@@ -1219,6 +1222,12 @@ packages:
     peerDependencies:
       hono: '>=3.9.0'
       zod: ^3.19.1
+
+  '@hono/zod-validator@0.7.6':
+    resolution: {integrity: sha512-Io1B6d011Gj1KknV4rXYz4le5+5EubcWEU/speUjuw9XMMIaP3n78yXLhjd2A3PXaXaUwEAluOiAyLqhBEJgsw==}
+    peerDependencies:
+      hono: '>=3.9.0'
+      zod: ^3.25.0 || ^4.0.0
 
   '@img/colour@1.0.0':
     resolution: {integrity: sha512-A5P/LfWGFSl6nsckYtjw9da+19jB8hkJ6ACTGcDfEJ0aE+l2n2El7dsVM7UVHZQ9s2lmYMWlrS21YLy2IR1LUw==}
@@ -5869,7 +5878,7 @@ snapshots:
     optionalDependencies:
       workerd: 1.20250906.0
 
-  '@cloudflare/vitest-pool-workers@0.8.71(@cloudflare/workers-types@4.20260124.0)(@vitest/runner@4.0.17)(@vitest/snapshot@4.0.17)(vitest@2.1.8(@types/node@22.19.7)(@vitest/ui@4.0.17)(jsdom@23.2.0)(msw@2.12.4(@types/node@22.19.7)(typescript@5.9.3))(terser@5.44.1))':
+  '@cloudflare/vitest-pool-workers@0.8.71(@cloudflare/workers-types@4.20260124.0)(@vitest/runner@4.0.17)(@vitest/snapshot@4.0.17)(vitest@2.1.8(@types/node@22.19.7)(@vitest/ui@4.0.17(vitest@4.0.17))(jsdom@23.2.0)(msw@2.12.4(@types/node@22.19.7)(typescript@5.9.3))(terser@5.44.1))':
     dependencies:
       '@vitest/runner': 4.0.17
       '@vitest/snapshot': 4.0.17
@@ -5878,7 +5887,7 @@ snapshots:
       devalue: 5.6.2
       miniflare: 4.20250906.0
       semver: 7.7.3
-      vitest: 2.1.8(@types/node@22.19.7)(@vitest/ui@4.0.17)(jsdom@23.2.0)(msw@2.12.4(@types/node@22.19.7)(typescript@5.9.3))(terser@5.44.1)
+      vitest: 2.1.8(@types/node@22.19.7)(@vitest/ui@4.0.17(vitest@4.0.17))(jsdom@23.2.0)(msw@2.12.4(@types/node@22.19.7)(typescript@5.9.3))(terser@5.44.1)
       wrangler: 4.35.0(@cloudflare/workers-types@4.20260124.0)
       zod: 3.25.76
     transitivePeerDependencies:
@@ -6104,6 +6113,11 @@ snapshots:
       hono: 4.11.5
 
   '@hono/zod-validator@0.2.2(hono@4.11.5)(zod@3.25.76)':
+    dependencies:
+      hono: 4.11.5
+      zod: 3.25.76
+
+  '@hono/zod-validator@0.7.6(hono@4.11.5)(zod@3.25.76)':
     dependencies:
       hono: 4.11.5
       zod: 3.25.76
@@ -10136,7 +10150,7 @@ snapshots:
       terser: 5.44.1
       tsx: 4.20.6
 
-  vitest@2.1.8(@types/node@22.19.7)(@vitest/ui@4.0.17)(jsdom@23.2.0)(msw@2.12.4(@types/node@22.19.7)(typescript@5.9.3))(terser@5.44.1):
+  vitest@2.1.8(@types/node@22.19.7)(@vitest/ui@4.0.17(vitest@4.0.17))(jsdom@23.2.0)(msw@2.12.4(@types/node@22.19.7)(typescript@5.9.3))(terser@5.44.1):
     dependencies:
       '@vitest/expect': 2.1.8
       '@vitest/mocker': 2.1.8(msw@2.12.4(@types/node@22.19.7)(typescript@5.9.3))(vite@5.4.21(@types/node@22.19.7)(terser@5.44.1))
