@@ -30,7 +30,7 @@
     "@kidkazz/utils": "workspace:*",
     "@trpc/client": "^11.0.0",
     "@trpc/server": "^11.0.0",
-    "drizzle-orm": "^0.36.4",
+    "drizzle-orm": "^0.45.1",
     "hono": "^4.0.0",
     "nanoid": "^5.0.0",
     "zod": "^3.22.0"
@@ -40,7 +40,7 @@
     "@types/better-sqlite3": "^7.6.12",
     "@vitest/coverage-v8": "^4.0.17",
     "better-sqlite3": "^11.6.0",
-    "drizzle-kit": "^0.29.1",
+    "drizzle-kit": "^0.31.8",
     "typescript": "^5.6.0",
     "vitest": "^4.0.17",
     "wrangler": "^4.59.3"
