@@ -1,1213 +1,145 @@
 # CLAUDE.md - AI Assistant Quick Reference
 
 **Project**: Kidkazz - Real-Time Omnichannel ERP
-**Architecture**: Microservices + DDD + Hexagonal + Event-Driven (Cloudflare Workers)
-**Status**: Phases 1-6 Complete | Phases 7-8 Pending
-**Last Updated**: 2026-01-26
+**Stack**: Cloudflare Workers (Hono) + D1 + Durable Objects + Tanstack + ShadCN
+**Architecture**: Microservices + DDD + Hexagonal + Event-Driven
 
 ---
 
-## Quick Start: What You Need to Know
+## Essential Reading Order
 
-### Project Overview
-
-Kidkazz is Real-Time Omnichannel ERP with Real-Time multi-warehouse inventory management using websocket, built on Cloudflare Workers using microservices architecture for backend. The frontend will using tanstack router, query, table, virtual table, form. For UIDesign it will leverage Shadcn UI as UI Component. We will have several frontend app such as erp-dashboard web for internal ERP, Point of Sale for on-store offline sales, E-Commerce Web for Retail, E-Commerce Web for Wholesale, Mobile Android App for kidkazz admin, Mobile Android and IOS App for Retail.
-
-**Key Technologies**:
-- Backend: Cloudflare Workers (Hono framework)
-- Database: D1 (SQLite-based)
-- Saga Pattern: Cloudflare workflow
-- Real-time: Durable Objects + WebSocket
-- Frontend: Tanstack + ShadCN UI
-- Testing: Vitest
-
-**Core Services**:
-1. **Product Service** - Catalog, pricing, bundles (virtual)
-2. **Inventory Service** - Stock management, batches, movements (single source of truth)
-3. **Order Service** - Retail/wholesale orders, Saga pattern
-4. **Payment Service** - midtrans integration/direct rest api integration for BCA, BRI and CIMB Niaga
-5. **User Service** - Authentication, RBAC
-6. **Accounting Service** - Double-entry bookkeeping
-7. **Shipping Service** - Lalamove & J&T integration through Rest-Api
-8. **Chatbot Service** - AI-powered customer service (Grok API + Vercel AI SDK)
+1. **SERVICE_GRAPH.yaml** - Codebase knowledge graph (auto-updated)
+2. **docs/ddd/BUSINESS_RULES.md** - Domain constraints (source of truth)
+3. **docs/bounded-contexts/{context}/** - Service-specific docs
 
 ---
 
-## Codebase Knowledge Graph (SERVICE_GRAPH.yaml)
+## Core Services
 
-**IMPORTANT**: Before making changes, read `SERVICE_GRAPH.yaml` to understand service relationships.
+| Service | Responsibility |
+|---------|---------------|
+| Product | Catalog, pricing, UOM, variants, virtual bundles (NO stock) |
+| Inventory | Stock (single source of truth), batches, FEFO, movements |
+| Order | Retail/wholesale orders, Saga pattern |
+| Accounting | Double-entry bookkeeping, assets, depreciation |
+| Payment | Midtrans, QRIS, EDC integration |
+| Chatbot | AI customer service (Grok + Vercel AI SDK) |
 
-### What It Contains
-- **Bounded Contexts**: All services with their endpoints, entities, and dependencies
-- **Documentation Links**: Maps each context to its docs in `docs/bounded-contexts/`
-- **Business Flows**: Cross-service processes (order creation, purchase-to-pay, etc.)
-- **Doc Index**: All 114 docs categorized by topic
+---
 
-### Quick Commands
+## Critical Architecture Rules
 
-```bash
-# Read the full graph
-cat SERVICE_GRAPH.yaml
-
-# Find a specific context
-grep -A 30 "business-partner:" SERVICE_GRAPH.yaml
-
-# Find what consumes a service
-grep -B 5 "service: inventory-service" SERVICE_GRAPH.yaml
-
-# Find all business flows
-grep -A 5 "^  create-sales-order:" SERVICE_GRAPH.yaml
-
-# Find all business rules docs
-grep "business-rules:" SERVICE_GRAPH.yaml
+### 1. Inventory is Single Source of Truth
 ```
-
-### When to Read SERVICE_GRAPH.yaml
-
-**ALWAYS READ WHEN:**
-- Modifying code that might affect other services
-- Adding/changing API endpoints
-- Debugging cross-service issues
-- Understanding a business flow
-- Before deleting/renaming endpoints
-
-### Reading Order for Tasks
-
-1. **SERVICE_GRAPH.yaml** → Find relevant bounded context
-2. **docs/bounded-contexts/{context}/BUSINESS_RULES.md** → Understand domain rules
-3. **docs/bounded-contexts/{context}/*_ARCHITECTURE.md** → Understand structure
-4. **SERVICE_GRAPH.yaml `consumes`** → Check dependencies
-
-### Auto-Update
-
-The graph is automatically updated:
-- On every push to `main` (GitHub Actions)
-- On every PR that modifies `services/`, `apps/`, or `docs/`
-
-To regenerate manually:
-```bash
-pnpm generate:service-graph
-```
-
----
-
-## Current Status: DDD Refactoring Progress
-
-| Phase | Description | Status | Related Docs |
-|-------|-------------|--------|--------------|
-| **Phase 1** | Inventory Integration | ✅ Complete | [Inventory Business Rules](bounded-contexts/inventory/BUSINESS_RULES.md) |
-| **Phase 2** | Single Source of Truth | ✅ Complete | [Inventory Business Rules](bounded-contexts/inventory/BUSINESS_RULES.md) |
-| **Phase 3** | Batch Tracking & FEFO | ✅ Complete | [Product Bundles](bounded-contexts/inventory/PRODUCT_BUNDLES_STOCK_HANDLING.md) |
-| **Phase 4** | Schema Cleanup | ✅ Complete | [Business Rules](ddd/BUSINESS_RULES.md) |
-| **Phase 5** | API Refactoring | ✅ Complete | [Business Rules](ddd/BUSINESS_RULES.md) |
-| **Phase 6** | Testing & Validation | ✅ Complete | [Testing Guide](testing/DDD_REFACTORING_TESTING_GUIDE.md) |
-| **Phase 7** | Inter-Warehouse Transfer | ⏳ **PENDING** | [Phase 7 Spec](bounded-contexts/inventory/PHASE_7_INTER_WAREHOUSE_TRANSFER.md) |
-| **Phase 8** | Stock Opname & Physical Bundles | ⏳ **PENDING** | [Product Bundles](bounded-contexts/inventory/PRODUCT_BUNDLES_STOCK_HANDLING.md) |
-
-**Note**: Outdated roadmap docs were cleaned up. Current specs live in `docs/bounded-contexts/`.
-
----
-
-## Architecture Principles: What NOT to Break
-
-### 1. Single Source of Truth for Inventory
-**CRITICAL**: Inventory Service is the ONLY source of stock data.
-
-```
-✅ CORRECT:
 Product Service → delegates to → Inventory Service (GET /api/inventory/product/:id/total-stock)
-
-❌ WRONG:
-Product Service → returns products.stock (REMOVED in Phase 4!)
 ```
+**Never** store stock in Product Service.
 
-**Why**: Previously, stock was duplicated in 3 places (products.stock, productBundles.availableStock, inventory.quantityAvailable), causing data divergence and empty Low Stock Reports.
+### 2. Bundles
+- **Virtual**: Stock calculated real-time from components (Product Service)
+- **Physical**: Pre-assembled with own stock (Inventory Service, Phase 8)
 
-### 2. Virtual Bundles vs Physical Bundles
+### 3. Batch-Level Expiration
+Expiration tracked per batch (`inventoryBatches.expirationDate`), not per product.
 
-**Virtual Bundles** (Phase 2):
-- NO stock stored
-- Stock calculated real-time from components
-- Lives in Product Service
-- Example: "Holiday Gift Set" = 1 Mug + 2 Cookies
+### 4. Negative Stock
+Only POS sales can create negative stock. Warehouse operations must validate.
 
-**Physical Bundles** (Phase 8 - Pending):
-- Pre-assembled inventory
-- Has own stock in Inventory Service
-- Can be nested (bundle from bundle)
-- ONLY Physical Bundles can be nested
-- Tracked in stock opname as single unit
-
-### 3. Batch-Level Expiration (Not Product-Level!)
-
-**Before (WRONG)**:
-```typescript
-products.expirationDate  // ❌ Single date for all batches
-```
-
-**After (CORRECT)**:
-```typescript
-inventoryBatches.expirationDate  // ✅ Each batch has own expiration
-```
-
-**Why**: Products can have multiple batches with different expiration dates. FEFO (First Expired, First Out) requires batch-level tracking.
-
-### 4. Negative Stock Rules
-
-**Business Rule**: Only POS sales can create negative stock. Warehouse operations CANNOT.
-
-```typescript
-// POS Sale - Allows negative (customer always gets product)
-POST /api/inventory/adjust { source: "pos" }  // ✅ Can go negative
-
-// Warehouse Adjustment - Strict validation
-POST /api/inventory/adjust { source: "warehouse" }  // ❌ Fails if insufficient stock
-```
-
-**Implementation**: `docs/ddd/BUSINESS_RULES.md` Line 13
-
-### 5. Optimistic Locking for Race Conditions
-
-All inventory mutations use `version` field:
-
-```typescript
-inventory.version  // Incremented on every update
-```
-
-**WebSocket Events**: Real-time stock updates broadcast to all connected clients when inventory changes.
-
-### 6. Hexagonal Architecture Layers
-
-```
-┌─────────────────────────────────────┐
-│  Infrastructure (HTTP, DB, Queue)   │  ← Routes, Repositories
-├─────────────────────────────────────┤
-│  Application (Use Cases)            │  ← Orchestration logic
-├─────────────────────────────────────┤
-│  Domain (Business Logic)            │  ← Aggregates, Entities, Value Objects
-└─────────────────────────────────────┘
-```
-
-**Golden Rule**: Domain layer NEVER depends on infrastructure. Use dependency injection.
+### 5. Optimistic Locking
+All inventory mutations use `version` field.
 
 ---
 
-## Bounded Context Map
+## Development Workflow
 
-### Product Context (Product Service)
-**Responsibilities**:
-- Product catalog (name, SKU, barcode, description)
-- Pricing (retail, wholesale, minimum order quantity)
-- UOM definitions (conversion factors)
-- Variants (size, color, etc.)
-- Physical locations (rack, bin, zone, aisle)
-- Virtual bundles (composition only, NO stock)
+### TDD (Mandatory)
+```bash
+# 1. Write failing test first
+# 2. Write minimal code to pass
+# 3. Refactor while green
+pnpm test                    # Run all tests
+pnpm test:unit              # Unit tests only
+pnpm test:coverage          # With coverage
+```
 
-**What it does NOT own**:
-- ❌ Stock quantities (delegated to Inventory Service)
-- ❌ Batch/lot tracking (owned by Inventory Service)
+### Code Quality
+```bash
+pnpm check:fix              # Auto-fix lint/format (Biome)
+pnpm type-check             # TypeScript validation
+```
 
-**Key Files**:
-- Schema: `services/product-service/src/infrastructure/db/schema.ts`
-- Domain: `services/product-service/src/domain/`
-- Docs: `docs/bounded-contexts/product/`
+### Git
+```bash
+gh pr create --title "..." --body "..."   # Create PR
+gh pr merge <num> --squash --delete-branch # Merge PR
+```
 
-### Inventory Context (Inventory Service)
-**Responsibilities**:
-- Stock quantities (quantityAvailable, quantityReserved, quantityInTransit)
-- Batch/lot tracking (expiration, FEFO)
-- Inventory movements (audit trail)
-- Stock transfers (inter-warehouse - Phase 7)
-- Stock opname/cycle count (Phase 8)
-- Physical bundles (Phase 8)
-- Real-time WebSocket broadcasts
+---
 
-**Single Source of Truth**: ALL stock data lives here.
+## Quick Commands
 
-**Key Files**:
-- Schema: `services/inventory-service/src/infrastructure/db/schema.ts`
-- Domain: `services/inventory-service/src/domain/`
-- WebSocket: `services/inventory-service/src/websocket/`
-- Docs: `docs/bounded-contexts/inventory/`
+```bash
+# SERVICE_GRAPH
+pnpm generate:service-graph  # Regenerate
+cat SERVICE_GRAPH.yaml       # View
 
-### Accounting Context (Accounting Service)
-**Responsibilities**:
-- Double-entry bookkeeping
-- Chart of accounts
-- Journal entries (automatic from sales/purchases)
-- Financial reports (balance sheet, P&L, trial balance)
-- **Full Accounting Cycle** implementation:
-  1. Record Transactions (Manual, System, Recurring entries)
-  2. Post to General Ledger
-  3. Reconcile Accounts (Bank, AR, AP, Inventory)
-  4. Generate Trial Balance
-  5. Post Adjusting Entries (accruals, deferrals, depreciation)
-  6. Generate Financial Statements
-  7. Close the Books (monthly/year-end)
-- **Cash Flow Management** (for accrual accounting):
-  - Cash Flow Statement (Indirect Method)
-  - Cash Position Report (real-time)
-  - Cash Forecast (30-day projection)
-  - Cash Threshold Alerts
-- **Asset Accounting Module** (integrated, not separate service):
-  - Fixed asset register & lifecycle management
-  - Depreciation calculation (Straight-line, Declining Balance, SYD, Units of Production)
-  - Asset categories (POS, Warehouse, Vehicles, IT, Fixtures, Furniture, Building)
-  - Asset disposal with gain/loss calculation
-  - Maintenance tracking
+# Migrations (SQLite/D1)
+wrangler d1 execute db --local --file=migrations/000X.sql
 
-**Integration Points**:
-- Listens to OrderCompleted events → creates journal entries
-- Listens to PaymentReceived events → creates payment entries
-- Publishes AssetRegistered, DepreciationPosted, AssetDisposed events → Reporting Service
+# Tests
+pnpm test -- --grep "FeatureName"
+```
 
-**Data Separation Strategy** (D1 10GB limit):
-- Accounting Service: Active data (current + 1 year)
-- Reporting Service: Historical data archive (OLAP)
+---
 
-**Key Files**:
-- Schema: `services/accounting-service/src/infrastructure/db/schema.ts`
-- Docs: `docs/bounded-contexts/accounting/`
+## SQLite Migration Rules
 
-### Frontend Context
-**Technologies**:
-- Tanstack Framework (Router, Query, Table, Form)
-- ShadCN UI components
-- Zustand (state management)
-- TanStack Query (API caching)
-- Zod (form validation schemas)
+- **No** `ALTER TABLE ADD COLUMN ... DEFAULT CURRENT_TIMESTAMP`
+- **Yes** Use `UPDATE` after adding column
+- **All migrations must be idempotent** (use table recreation pattern)
 
-**Form Validation Pattern** (IMPORTANT):
-We use `createFormValidator` wrapper instead of the deprecated `zodValidator()` adapter.
-This provides clean Zod integration without type hacks.
+---
 
+## Common Pitfalls
+
+- Don't add stock fields to Product Service
+- Don't use product-level expirationDate (use batches)
+- Don't bypass optimistic locking
+- Don't skip migrations order
+- Don't mix POS/warehouse adjustment logic
+
+---
+
+## Key Documentation Links
+
+| Topic | Doc |
+|-------|-----|
+| Business Rules | `docs/ddd/BUSINESS_RULES.md` |
+| Inventory | `docs/bounded-contexts/inventory/BUSINESS_RULES.md` |
+| Accounting | `docs/bounded-contexts/accounting/ACCOUNTING_SERVICE_ARCHITECTURE.md` |
+| Frontend/UI | `docs/guides/UI_DESIGN_GUIDELINE.md` |
+| Testing | `docs/testing/DDD_REFACTORING_TESTING_GUIDE.md` |
+| Saga Pattern | `docs/architecture/SAGA_PATTERN_DISTRIBUTED_TRANSACTIONS.md` |
+
+### Frontend Form Validation
 ```typescript
-// ✅ CORRECT - Use createFormValidator wrapper
-import { createFormValidator, customerFormSchema } from '@/lib/form-schemas';
-
+// Use createFormValidator (not deprecated zodValidator)
+import { createFormValidator, schema } from '@/lib/form-schemas';
 const form = useForm({
-  defaultValues: { name: '', email: '' },
-  validators: {
-    onChange: createFormValidator(customerFormSchema),
-  },
-});
-
-// ❌ WRONG - Don't use deprecated zodValidator adapter
-import { zodValidator } from '@tanstack/zod-form-adapter';  // DON'T USE
-
-const form = useForm({
-  validatorAdapter: zodValidator(),  // DON'T USE
-  validators: { onChange: schema },   // Type errors with .refine()
+  validators: { onChange: createFormValidator(schema) }
 });
 ```
 
-**Why `createFormValidator`**:
-- `zodValidator()` is deprecated in Zod 3.24.0+
-- Zod schemas with `.refine()` cause type inference issues
-- `createFormValidator` properly handles field-level errors
-- No `as never` or `@ts-expect-error` hacks needed
+---
 
-**Key Files**:
-- Form Schemas: `apps/erp-dashboard/src/lib/form-schemas.ts`
-- API Client: `apps/erp-dashboard/src/lib/api.ts`
-- Components: `apps/erp-dashboard/src/components/`
-- Docs: `docs/bounded-contexts/frontend/`
+## Project Status
 
-### Chatbot Context (Chatbot Service)
-**Responsibilities**:
-- AI-powered customer service automation
-- FAQ question-answering via Grok RAG
-- Transactional queries (product search, stock check, order status)
-- Per-user conversation memory (stored in D1)
-- Tool calling to internal services (Product, Inventory, Order)
-- Intelligent escalation to human agents
-- Ticket/case management for escalations
-
-**Technology Stack**:
-- LLM Provider: Grok API (xAI) - $0.20/$0.50 per M tokens
-- Orchestration: Vercel AI SDK
-- Database: Cloudflare D1 (per-user conversation history)
-- FAQ Knowledge: Grok built-in RAG (uploaded documents)
-
-**Key Concepts**:
-- **FAQ via RAG**: General docs uploaded to Grok project context
-- **Per-User Memory**: Conversation history stored in D1, fetched by userId
-- **Tool Calling**: LLM executes internal APIs (search_products, check_stock, etc.)
-- **Escalation Triggers**: Frustration, refund requests, explicit human request
-
-**Key Files**:
-- Schema: `services/chatbot-service/src/infrastructure/db/schema.ts`
-- Domain: `services/chatbot-service/src/domain/`
-- LLM: `services/chatbot-service/src/infrastructure/llm/`
-- Docs: `docs/bounded-contexts/chatbot/`
+| Phase | Description | Status |
+|-------|-------------|--------|
+| 1-6 | DDD Refactoring (Inventory integration, batches, FEFO) | Complete |
+| 7 | Inter-Warehouse Transfer | Pending |
+| 8 | Stock Opname & Physical Bundles | Pending |
 
 ---
 
-## Common Tasks: Where to Look
-
-### Task: Create New Frontend Feature/UI Component
-1. **Read First**: `docs/guides/UI_DESIGN_GUIDELINE.md` - **MANDATORY**
-2. **Review**: Responsive design patterns section (comprehensive checklist)
-3. **Key Concepts**:
-   - Standard Tailwind breakpoints (sm:, md:, lg:, xl:)
-   - Button patterns (page headers, drawer footers)
-   - Card/grid layouts (responsive grids)
-   - Table column visibility (hide non-essential on mobile)
-   - Search component (global search, compact width)
-   - Form layouts (responsive grids)
-   - Drawer positioning (left for forms, right for details)
-4. **Follow Checklist**:
-   - Page header buttons: `self-start sm:self-auto`
-   - Stat cards: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-X`
-   - Table columns: `hidden lg:table-cell` for non-essential
-   - Form grids: `grid-cols-1 sm:grid-cols-2`
-   - Drawer buttons: `flex flex-col sm:flex-row gap-2 w-full`
-5. **Test**: Multiple breakpoints (320px, 375px, 768px, 1024px, 1440px)
-
-### Task: Implement Phase 7 (Inter-Warehouse Transfer)
-1. **Read First**: `docs/bounded-contexts/inventory/PHASE_7_INTER_WAREHOUSE_TRANSFER.md`
-2. **Review**: Workflow diagram, state machine, schema design
-3. **Key Concepts**:
-   - Inbound workflow (destination requests)
-   - Outbound workflow (source approves, picks, packs, ships)
-   - State transitions: REQUESTED → APPROVED → PICKING → PACKED → IN_TRANSIT → COMPLETED
-   - Inventory updates: deduct from source, add to quantityInTransit, then add to destination
-4. **Deliverables**:
-   - Migration: `services/inventory-service/migrations/0006_stock_transfer.sql`
-   - Schema: Update `services/inventory-service/src/infrastructure/db/schema.ts`
-   - Routes: `services/inventory-service/src/routes/transfers.ts`
-   - WebSocket events for real-time transfer tracking
-
-### Task: Implement Phase 8 (Stock Opname & Physical Bundles)
-1. **Read First**: `docs/bounded-contexts/inventory/PRODUCT_BUNDLES_STOCK_HANDLING.md`
-2. **Review**: Stock opname workflow, physical bundle assembly
-3. **Key Concepts**:
-   - Stock opname: Reconcile system inventory with physical count
-   - Physical bundles: Pre-assembled inventory with own stock
-   - Nested bundles: ONLY from physical bundles (not virtual)
-   - Variance adjustments with approval workflow
-4. **Deliverables**:
-   - Migration: `0007_stock_opname.sql` and `0008_physical_bundles.sql`
-   - Routes: `stock-opname.ts` and `bundle-assembly.ts`
-
-### Task: Add New Business Rule
-1. **Document**: `docs/ddd/BUSINESS_RULES.md`
-2. **Implement**: Domain layer (`src/domain/` in relevant service)
-3. **Validate**: Application layer (use cases)
-4. **Test**: Unit tests + integration tests
-
-### Task: Add New API Endpoint
-1. **Route**: `services/{service}/src/routes/{domain}.ts`
-2. **Validation**: Zod schema for request/response
-3. **Use Case**: Application layer orchestration
-4. **Domain Logic**: Domain layer aggregates/entities
-5. **Test**: E2E test in `services/{service}/test/`
-
-### Task: Fix Failing Tests
-1. **Check**: `docs/testing/DDD_REFACTORING_TESTING_GUIDE.md`
-2. **Run**: `pnpm test` (unit) or `pnpm test:e2e` (integration)
-3. **Debug**: Check migration order, seed data, schema changes
-
-### Task: Understand Saga Pattern
-1. **Read**: `docs/architecture/SAGA_PATTERN_DISTRIBUTED_TRANSACTIONS.md`
-2. **Example**: Order creation with payment coordination
-3. **Compensating Actions**: Automatic rollback on failure
-
-### Task: WebSocket Real-Time Updates
-1. **Read**: `docs/bounded-contexts/inventory/WEBSOCKET_REALTIME_INVENTORY.md`
-2. **Implementation**: Durable Objects in `services/inventory-service/src/websocket/`
-3. **Events**: Stock updates, low stock alerts, transfer tracking
-
----
-
-## Testing Strategy - Test-Driven Development (TDD)
-
-### ⚠️ CRITICAL: We Use TDD Approach
-
-**ALWAYS write tests BEFORE implementation.** This is mandatory for all new features.
-
-### TDD Workflow (Red-Green-Refactor)
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        TDD CYCLE (MANDATORY)                                │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│   1. RED: Write failing test first                                          │
-│      ↓                                                                      │
-│   2. GREEN: Write minimal code to pass test                                 │
-│      ↓                                                                      │
-│   3. REFACTOR: Improve code while keeping tests green                       │
-│      ↓                                                                      │
-│   4. REPEAT for next feature/requirement                                    │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Implementation Order (TDD)
-
-When implementing any feature, follow this order:
-
-1. **Write Unit Tests First**
-   ```typescript
-   // test/unit/domain/fixed-asset.test.ts
-   describe('FixedAsset', () => {
-     it('should calculate straight-line depreciation correctly', () => {
-       const asset = new FixedAsset({
-         acquisitionCost: 12000000,
-         salvageValue: 2000000,
-         usefulLifeMonths: 60
-       });
-       expect(asset.calculateMonthlyDepreciation()).toBe(166666.67);
-     });
-   });
-   ```
-
-2. **Run Test (Should FAIL - Red)**
-   ```bash
-   pnpm test -- --grep "FixedAsset"
-   # Expected: FAIL (class doesn't exist yet)
-   ```
-
-3. **Implement Minimal Code to Pass**
-   ```typescript
-   // src/domain/entities/fixed-asset.entity.ts
-   export class FixedAsset {
-     calculateMonthlyDepreciation(): number {
-       return (this.acquisitionCost - this.salvageValue) / this.usefulLifeMonths;
-     }
-   }
-   ```
-
-4. **Run Test (Should PASS - Green)**
-   ```bash
-   pnpm test -- --grep "FixedAsset"
-   # Expected: PASS
-   ```
-
-5. **Refactor if Needed (Keep Green)**
-
-### Test Types and Locations
-
-| Test Type | Location | When to Write | What to Test |
-|-----------|----------|---------------|--------------|
-| **Unit Tests** | `test/unit/` | FIRST - before any code | Domain logic, business rules, value objects |
-| **Integration Tests** | `test/integration/` | After unit tests pass | Repositories, database operations |
-| **E2E Tests** | `test/e2e/` | After integration tests | Full API workflows, user scenarios |
-
-### Test File Naming Convention
-
-```
-services/{service}/
-├── src/
-│   └── domain/
-│       └── entities/
-│           └── fixed-asset.entity.ts
-└── test/
-    ├── unit/
-    │   └── domain/
-    │       └── fixed-asset.test.ts        # Unit tests for entity
-    ├── integration/
-    │   └── repositories/
-    │       └── fixed-asset.repository.test.ts
-    └── e2e/
-        └── assets.e2e.test.ts             # Full API workflow tests
-```
-
-### Running Tests
-
-```bash
-# Run all tests
-pnpm test
-
-# Run unit tests only
-pnpm test:unit
-
-# Run integration tests
-pnpm test:integration
-
-# Run E2E tests
-pnpm test:e2e
-
-# Run specific test file
-pnpm test -- --grep "FixedAsset"
-
-# Run with coverage
-pnpm test:coverage
-```
-
-### Test Coverage Targets
-
-| Layer | Target Coverage | Rationale |
-|-------|-----------------|-----------|
-| Domain | >90% | Core business logic must be thoroughly tested |
-| Application | >80% | Use cases should be well-covered |
-| Infrastructure | >70% | Integration points need testing |
-| Overall | >80% | Minimum acceptable coverage |
-
-### Test Guidelines
-- ✅ Write test BEFORE implementation (TDD)
-- ✅ One assertion per test when possible
-- ✅ Use descriptive test names (should...when...)
-- ✅ Use `beforeAll` for database setup
-- ✅ Use `afterAll` for cleanup
-- ✅ Run migrations before tests
-- ✅ Seed data in fixtures
-- ❌ Don't share state between tests
-- ❌ Don't mock domain logic (only infrastructure)
-- ❌ Don't skip writing tests
-
-### Example TDD Session
-
-```typescript
-// Step 1: Write test FIRST (Red)
-describe('DepreciationCalculator', () => {
-  describe('straightLine', () => {
-    it('should return monthly depreciation amount', () => {
-      const result = DepreciationCalculator.straightLine({
-        cost: 10000000,
-        salvage: 1000000,
-        lifeMonths: 60
-      });
-      expect(result).toBe(150000);
-    });
-
-    it('should throw error if cost is less than salvage', () => {
-      expect(() => DepreciationCalculator.straightLine({
-        cost: 1000000,
-        salvage: 2000000,
-        lifeMonths: 60
-      })).toThrow('Cost must be greater than salvage value');
-    });
-  });
-});
-
-// Step 2: Run test - it FAILS (no implementation yet)
-// Step 3: Write minimal implementation
-// Step 4: Run test - it PASSES
-// Step 5: Refactor if needed
-// Step 6: Repeat for next test case
-```
-
-**Reference**: `docs/testing/DDD_REFACTORING_TESTING_GUIDE.md`
-
----
-
-## Database Migrations
-
-### Naming Convention
-```
-0001_initial.sql
-0002_add_variants.sql
-0003_ddd_enhancement.sql
-...
-```
-
-### SQLite Limitations
-❌ **NO** `ALTER TABLE ADD COLUMN ... DEFAULT CURRENT_TIMESTAMP`
-❌ **NO** `ALTER TABLE ADD COLUMN ... DEFAULT gen_random_uuid()`
-
-✅ **YES** - Use `UPDATE` statement after adding column:
-```sql
-ALTER TABLE inventory ADD COLUMN version INTEGER;
-UPDATE inventory SET version = 1 WHERE version IS NULL;
-```
-
-### Migration Idempotency (IMPORTANT)
-**All migrations MUST be idempotent** - safe to run multiple times without errors.
-
-Since SQLite/D1 doesn't support `ADD COLUMN IF NOT EXISTS`, use the **table recreation pattern**:
-
-```sql
--- Migration: Add new columns to existing table
--- This migration is IDEMPOTENT - safe to run multiple times
-
--- 1. Create new table with all columns (including new ones)
-CREATE TABLE IF NOT EXISTS table_new (
-  id TEXT PRIMARY KEY NOT NULL,
-  existing_column TEXT,
-  new_column TEXT,  -- New column
-  created_at INTEGER NOT NULL
-);
-
--- 2. Copy existing data (new columns will be NULL on first run, preserved on re-runs)
-INSERT OR IGNORE INTO table_new (id, existing_column, created_at)
-SELECT id, existing_column, created_at FROM table_name;
-
--- 3. Drop old table and rename new one
-DROP TABLE IF EXISTS table_name;
-ALTER TABLE table_new RENAME TO table_name;
-
--- 4. Recreate indexes
-CREATE INDEX IF NOT EXISTS idx_table_column ON table_name(column);
-```
-
-**Why Idempotent Migrations?**
-- D1 tracks migrations in `d1_migrations` table (normally runs once)
-- Manual execution or retry scenarios need safe re-runs
-- Prevents "duplicate column" errors during development
-- Ensures consistent state across environments
-
-### Migration Files Location
-- Product Service: `services/product-service/migrations/`
-- Inventory Service: `services/inventory-service/migrations/`
-- Accounting Service: `services/accounting-service/migrations/`
-
-### Running Migrations
-```bash
-# Local D1
-wrangler d1 execute kidkazz-db --local --file=services/inventory-service/migrations/0006_stock_transfer.sql
-
-# Production
-wrangler d1 execute kidkazz-db --file=services/inventory-service/migrations/0006_stock_transfer.sql
-```
-
----
-
-## Key Business Rules to Remember
-
-### Inventory Management
-1. **Negative Stock**: Only POS can go negative (warehouse operations must validate)
-2. **Minimum Stock**: Cannot be negative
-3. **Reserved Quantity**: Auto-created on order placement, released on cancellation/completion
-4. **Batch Expiration**: First Expired, First Out (FEFO) picking
-5. **UOM Conversion**: Always convert to base UOM (e.g., BOX6 → PCS * 6)
-
-### Bundles
-1. **Virtual Bundles**: Stock calculated from components (real-time)
-2. **Physical Bundles**: Pre-assembled inventory (Phase 8)
-3. **Nested Bundles**: ONLY physical bundles can contain other bundles
-4. **Stock Opname**: Virtual bundles not counted (only components); Physical bundles counted as units
-
-### Orders
-1. **Retail (B2C)**: Minimum order quantity = 1
-2. **Wholesale (B2B)**: Minimum order quantity per product
-3. **Order States**: PENDING → PAID → PROCESSING → PACKED → SHIPPED → DELIVERED
-4. **Saga Pattern**: Payment failure → auto-cancel order → release reserved stock
-
-### Accounting
-1. **Double Entry**: Every transaction has debit and credit
-2. **Auto Journal Entries**: Created from order completion, not order creation
-3. **Payment Methods**: Cash/Bank affects different accounts (see `docs/bounded-contexts/accounting/PAYMENT_METHOD_AND_JOURNAL_ENTRY_LOGIC.md`)
-
-### Asset Accounting
-1. **Capitalization Threshold**: Rp 2,500,000 minimum to be classified as fixed asset
-2. **Depreciation Methods**: Straight-line (default), Declining Balance, Sum-of-Years-Digits, Units of Production
-3. **Asset Lifecycle**: DRAFT → ACTIVE → FULLY_DEPRECIATED / DISPOSED
-4. **Monthly Depreciation**: Scheduled cron runs on 1st of each month
-5. **Asset Numbering**: Auto-generated `FA-{CATEGORY}-{YYYYMM}-{SEQ}`
-6. **Tax Compliance**: Indonesian PSAK 16 and PMK 96/PMK.03/2009
-
-**Full Reference**: `docs/ddd/BUSINESS_RULES.md`
-
----
-
-## Git Workflow
-
-### GitHub CLI (gh) - ALWAYS USE
-**IMPORTANT**: Always use `gh` CLI for all GitHub operations instead of raw git commands for remote operations.
-
-```bash
-# Setup gh credentials for git (run once)
-gh auth setup-git
-
-# Push changes (uses gh credentials automatically)
-git push origin main
-
-# Create PR
-gh pr create --title "Title" --body "Description"
-
-# Merge PR
-gh pr merge <number> --squash --delete-branch
-
-# View PR/issues
-gh pr view <number>
-gh issue view <number>
-
-# List workflows
-gh run list --limit 5
-
-# Setup git credentials
-gh auth setup-git
-```
-
-**Why gh CLI?**
-- Handles authentication automatically
-- Has proper scopes for workflow files
-- Better error messages
-- Consistent across environments
-
-### Branch Strategy
-- **Main**: `main` (production-ready)
-- **Feature Branches**: `claude/{description}-{session-id}`
-- **Current Branch**: `claude/read-docs-phase-7-01Po6Jw3mnWRJbuEn8J7vJSg`
-
-### Commit Guidelines
-- feat: New feature
-- fix: Bug fix
-- refactor: Code restructuring
-- docs: Documentation only
-- test: Test additions/fixes
-- chore: Build/tooling changes
-
-### Push Requirements
-- Always use: `git push -u origin <branch-name>`
-- Branch naming: MUST start with `claude/` and end with session ID
-- Retry logic: Up to 4 times with exponential backoff (2s, 4s, 8s, 16s)
-
----
-
-## Performance Targets
-
-| Operation | Target | Notes |
-|-----------|--------|-------|
-| Product stock query | < 100ms | Aggregate across warehouses |
-| Bundle stock calculation | < 200ms | Component lookup + math |
-| Batch FEFO query | < 50ms | Indexed by expirationDate |
-| Order creation | < 300ms | Includes payment + inventory reserve |
-| WebSocket message | < 10ms | Broadcast to all connections |
-
-**Optimization**: Use caching (30s TTL) for frequently accessed data.
-
----
-
-## Common Pitfalls to Avoid
-
-1. ❌ **Don't add stock fields to Product Service** - Inventory Service owns all stock
-2. ❌ **Don't query products.stock** - Field was removed in Phase 4
-3. ❌ **Don't use product-level expirationDate** - Use inventoryBatches instead
-4. ❌ **Don't bypass optimistic locking** - Always include version in updates
-5. ❌ **Don't create inventory directly** - Use productLocations/variants to auto-create
-6. ❌ **Don't mix POS and warehouse adjustment logic** - Different validation rules
-7. ❌ **Don't forget compensating actions** - Every saga step needs rollback handler
-8. ❌ **Don't skip migrations** - Run them sequentially in order
-
----
-
-## Quick Links to Essential Docs
-
-### Must Read Before Any Task
-- [Business Rules](ddd/BUSINESS_RULES.md) - Domain constraints (THE master reference)
-- [Architecture Overview](architecture/ARCHITECTURE.md) - System design
-- [SERVICE_GRAPH.yaml](../SERVICE_GRAPH.yaml) - Codebase knowledge graph
-
-### For Phase 7 (Inter-Warehouse Transfer)
-- [Phase 7 Specification](bounded-contexts/inventory/PHASE_7_INTER_WAREHOUSE_TRANSFER.md)
-- [Good Receipt/Issue Workflow](bounded-contexts/inventory/GOOD_RECEIPT_ISSUE_WORKFLOW.md)
-
-### For Phase 8 (Stock Opname & Physical Bundles)
-- [Bundle Handling](bounded-contexts/inventory/PRODUCT_BUNDLES_STOCK_HANDLING.md)
-- [Stock Opname Journal Entry](bounded-contexts/accounting/STOCK_OPNAME_JOURNAL_ENTRY.md)
-
-### For Inventory Work
-- [Inventory Business Rules](bounded-contexts/inventory/BUSINESS_RULES.md) - **Stock, batches, FEFO, multi-warehouse**
-- [UOM Conversion Procedure](bounded-contexts/inventory/UOM_CONVERSION_PROCEDURE.md)
-- [WebSocket Real-Time Inventory](bounded-contexts/inventory/WEBSOCKET_REALTIME_INVENTORY.md)
-- [Product Bundles Stock Handling](bounded-contexts/inventory/PRODUCT_BUNDLES_STOCK_HANDLING.md)
-
-### For Testing
-- [Testing Guide](testing/DDD_REFACTORING_TESTING_GUIDE.md) - Comprehensive E2E scenarios
-- [Inventory Integration Testing](testing/INVENTORY_INTEGRATION_TESTING.md)
-- [Manual Testing Checklist](testing/MANUAL_TESTING_CHECKLIST.md)
-
-### For Accounting Work
-- [Accounting Business Rules](bounded-contexts/accounting/BUSINESS_RULES.md) - **Double-entry bookkeeping rules, reconciliation, cash flow**
-- [Accounting Service Architecture](bounded-contexts/accounting/ACCOUNTING_SERVICE_ARCHITECTURE.md) - **Includes Accounting Cycle & Cash Flow Management**
-- [Accounting Tutorial](bounded-contexts/accounting/ACCOUNTING_TUTORIAL.md)
-- **Accounting Cycle** (7 steps documented in Architecture):
-  1. Record Transactions → 2. Post to GL → 3. Reconcile Accounts → 4. Trial Balance → 5. Adjusting Entries → 6. Financial Statements → 7. Close the Books
-- **Reconciliation** (Rules 20-25 in Business Rules):
-  - Bank reconciliation, AR/AP reconciliation, Inventory reconciliation
-- **Cash Flow Management** (Rules 28-35 in Business Rules):
-  - Cash Flow Statement (Indirect Method) - reconcile accrual profit to actual cash
-  - Cash Position Report - real-time cash across all accounts
-  - Cash Forecast - 30-day projection based on AR/AP aging
-  - Cash Threshold Alerts - Warning/Critical/Emergency levels
-- **Asset Accounting Module** (Fixed Assets & Depreciation):
-  - [Asset Accounting Architecture](bounded-contexts/accounting/ASSET_ACCOUNTING_ARCHITECTURE.md) - **Domain model, depreciation methods, asset lifecycle**
-  - [Asset Accounting Business Rules](bounded-contexts/accounting/ASSET_ACCOUNTING_BUSINESS_RULES.md) - **34 rules: capitalization, depreciation, disposal, tax compliance**
-  - [Asset Accounting Implementation Plan](bounded-contexts/accounting/ASSET_ACCOUNTING_IMPLEMENTATION_PLAN.md) - **8-phase implementation roadmap**
-
-### For Product Work
-- [Product Business Rules](bounded-contexts/product/BUSINESS_RULES.md) - **SKU, pricing, UOM, variants, bundles**
-- [Product Service Implementation Plan](bounded-contexts/product/PRODUCT_SERVICE_IMPLEMENTATION_PLAN.md)
-
-### For Business Partner Work (Employees, Suppliers, Customers)
-- [Business Partner Service Architecture](bounded-contexts/business-partner/BUSINESS_PARTNER_SERVICE_ARCHITECTURE.md) - **Service design & domain model**
-- [Business Partner Business Rules](bounded-contexts/business-partner/BUSINESS_RULES.md) - **RBAC, employee, supplier, customer rules**
-- [Business Partner Implementation Plan](bounded-contexts/business-partner/BUSINESS_PARTNER_IMPLEMENTATION_PLAN.md) - **Step-by-step implementation**
-- [RBAC Implementation Plan](integration/RBAC_IMPLEMENTATION_PLAN.md) - Detailed RBAC design
-
-### For Procurement Work (Purchase Orders, Forecasting, Market Intelligence)
-- [Procurement Service Architecture](bounded-contexts/procurement/PROCUREMENT_SERVICE_ARCHITECTURE.md) - **Service design & domain model**
-- [Procurement Business Rules](bounded-contexts/procurement/BUSINESS_RULES.md) - **PO lifecycle, forecasting, seasonal analytics, market intelligence**
-- [Procurement Implementation Plan](bounded-contexts/procurement/PROCUREMENT_IMPLEMENTATION_PLAN.md) - **12-phase implementation roadmap**
-
-### For Sales Work (Orders, POS, E-Commerce, Mobile, Live Streaming)
-- [Sales Service Architecture](bounded-contexts/sales/SALES_SERVICE_ARCHITECTURE.md) - **Multi-channel sales, Saga orchestration**
-- [Sales Business Rules](bounded-contexts/sales/BUSINESS_RULES.md) - **46 rules: channels, pricing, POS, fulfillment, i18n**
-- [Sales Implementation Plan](bounded-contexts/sales/SALES_IMPLEMENTATION_PLAN.md) - **14-phase implementation roadmap**
-
-### For Payment Work (Midtrans, QRIS, EDC, Cash, Refunds)
-- [Payment Service Architecture](bounded-contexts/payment/PAYMENT_SERVICE_ARCHITECTURE.md) - **Multi-provider integration, Saga compensation**
-- [Payment Business Rules](bounded-contexts/payment/BUSINESS_RULES.md) - **38 rules: methods, channels, refunds, fees, PCI compliance**
-- [Payment Implementation Plan](bounded-contexts/payment/PAYMENT_IMPLEMENTATION_PLAN.md) - **10-phase implementation roadmap**
-
-### For Notification Work (sent.dm, Paperless Receipts, OTP)
-- [Notification Service Architecture](bounded-contexts/notification/NOTIFICATION_SERVICE_ARCHITECTURE.md) - **sent.dm integration, channel auto-detection, templates**
-
-### For Chatbot Work (AI Customer Service, FAQ, Tool Calling)
-- [Chatbot Service Architecture](bounded-contexts/chatbot/CHATBOT_SERVICE_ARCHITECTURE.md) - **Grok API, Vercel AI SDK, tool definitions, memory architecture**
-- [Chatbot Business Rules](bounded-contexts/chatbot/BUSINESS_RULES.md) - **25 rules: conversations, messages, escalation, costs, security**
-- [Chatbot Implementation Plan](bounded-contexts/chatbot/CHATBOT_IMPLEMENTATION_PLAN.md) - **8-phase implementation roadmap**
-- **Key Concepts**:
-  - Per-user memory: Conversation history in D1, fetched by userId
-  - FAQ: Upload docs to Grok's built-in RAG
-  - Tools: search_products, check_stock, get_order_status, escalate_to_human
-  - Escalation: Auto-trigger on frustration, refund requests, or explicit request
-- **Tech Stack**: Grok 4.1 Fast ($0.20/$0.50 per M tokens), Vercel AI SDK, D1
-
-### For Reporting Work (OLAP, Analytics, Data Archival)
-- [Reporting Service Architecture](bounded-contexts/reporting/REPORTING_SERVICE_ARCHITECTURE.md) - **CQRS query side, data archival, aggregation pipeline**
-- [Reporting Business Rules](bounded-contexts/reporting/BUSINESS_RULES.md) - **64 rules: archival, purging (7-year retention), aggregation, export, caching**
-- [Reporting Implementation Plan](bounded-contexts/reporting/REPORTING_IMPLEMENTATION_PLAN.md) - **12-phase implementation roadmap**
-
-### For Frontend Work
-- ⭐ [UI Design Guideline](guides/UI_DESIGN_GUIDELINE.md) - **MUST READ** for all frontend features
-- [Frontend Architecture](bounded-contexts/frontend/FRONTEND_ARCHITECTURE.md) - Tanstack ecosystem, ShadCN UI, responsive design
-- [ERP Dashboard Structure](bounded-contexts/erp-dashboard/DASHBOARD_STRUCTURE.md)
-- [Virtual Scrolling Guide](bounded-contexts/erp-dashboard/VIRTUAL_SCROLLING_GUIDE.md)
-
-### For POS Work (Future)
-- [POS Variant Selection Workflow](bounded-contexts/pos/POS_VARIANT_SELECTION_WORKFLOW.md)
-
-### For HRM Work (Employee Management)
-- [HRM Service Architecture](bounded-contexts/hrm/HRM_SERVICE_ARCHITECTURE.md)
-- [HRM Business Rules](bounded-contexts/hrm/BUSINESS_RULES.md)
-
-### For Integration
-- [Backend Integration Requirements](integration/BACKEND_INTEGRATION_REQUIREMENTS.md)
-- [Saga Pattern](architecture/SAGA_PATTERN_DISTRIBUTED_TRANSACTIONS.md)
-- [Event-Driven Architecture](architecture/EVENT_DRIVEN_ARCHITECTURE_CLOUDFLARE.md)
-
-### For Development Setup
-- [Development Setup Guide](guides/DEVELOPMENT_SETUP_GUIDE.md)
-- [Integration Quick Start](guides/INTEGRATION_QUICK_START.md)
-
----
-
-## Documentation Organization
-
-```
-docs/
-├── CLAUDE.md                    ← YOU ARE HERE (Quick context for AI)
-├── README.md                    ← Navigation guide for humans
-│
-├── architecture/                ← System architecture
-│   ├── ARCHITECTURE.md
-│   ├── DDD_HEXAGONAL_BOUNDARY_REVIEW.md
-│   ├── EVENT_DRIVEN_ARCHITECTURE_CLOUDFLARE.md
-│   └── SAGA_PATTERN_DISTRIBUTED_TRANSACTIONS.md
-│
-├── ddd/                         ← DDD core
-│   └── BUSINESS_RULES.md        ⭐ THE SOURCE OF TRUTH
-│
-├── bounded-contexts/            ← Domain boundaries (main documentation)
-│   ├── accounting/              ← 27 docs: journal entries, COA, assets
-│   ├── business-partner/        ← Employees, suppliers, customers, RBAC
-│   ├── chatbot/                 ← AI customer service (Grok + Vercel AI)
-│   ├── erp-dashboard/           ← Dashboard structure, audit trail
-│   ├── frontend/                ← Tanstack, ShadCN UI architecture
-│   ├── hrm/                     ← Employee management (payroll, attendance)
-│   ├── inventory/               ← Stock, batches, FEFO, transfers, bundles
-│   ├── notification/            ← sent.dm integration, templates
-│   ├── payment/                 ← Midtrans, QRIS, EDC, refunds
-│   ├── pos/                     ← Point of Sale (future)
-│   ├── procurement/             ← Purchase orders, forecasting
-│   ├── product/                 ← Catalog, pricing, UOM, variants
-│   ├── reporting/               ← OLAP, analytics, archival
-│   └── sales/                   ← Orders, channels, fulfillment
-│
-├── implementation/              ← Implementation tracking
-│   └── strategies/              ← Multi-warehouse, location strategies
-│
-├── testing/                     ← Testing documentation
-│   ├── DDD_REFACTORING_TESTING_GUIDE.md
-│   ├── INVENTORY_INTEGRATION_TESTING.md
-│   └── MANUAL_TESTING_CHECKLIST.md
-│
-├── guides/                      ← How-to guides (20+ guides)
-│   ├── UI_DESIGN_GUIDELINE.md   ⭐ MUST READ for frontend
-│   ├── DEVELOPMENT_SETUP_GUIDE.md
-│   └── ...
-│
-├── integration/                 ← Integration docs
-│   ├── BACKEND_INTEGRATION_REQUIREMENTS.md
-│   └── RBAC_IMPLEMENTATION_PLAN.md
-│
-├── tooling/                     ← Dev tools docs
-│   └── DEPENDENCY_STATUS.md
-│
-└── decisions/                   ← Architecture Decision Records
-    └── TESTING_PRIORITY_ANALYSIS.md
-```
-
-**Note**: See `SERVICE_GRAPH.yaml` for auto-generated index of all 100+ docs.
-
----
-
-## Development Workflow (TDD + Biome)
-
-### ⚠️ MANDATORY: Test-Driven Development (TDD)
-
-Every feature MUST follow TDD workflow. No exceptions.
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                     FEATURE DEVELOPMENT WORKFLOW                             │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│   1. PLAN      → Read docs, understand requirements                         │
-│      ↓                                                                      │
-│   2. TEST      → Write failing tests FIRST (Red)                            │
-│      ↓                                                                      │
-│   3. CODE      → Write minimal code to pass (Green)                         │
-│      ↓                                                                      │
-│   4. REFACTOR  → Improve code, keep tests green                             │
-│      ↓                                                                      │
-│   5. REVIEW    → Code review (PR or self-review)                            │
-│      ↓                                                                      │
-│   6. FORMAT    → Run `pnpm check:fix` (Biome)                               │
-│      ↓                                                                      │
-│   7. COMMIT    → Commit with meaningful message                             │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Step 1: Plan - Read Relevant Documentation
-- Check `docs/ddd/DDD_REFACTORING_ROADMAP.md` for context
-- Review `docs/ddd/BUSINESS_RULES.md` for constraints
-- Read bounded context docs for affected services
-- Check git status and recent commits
-- Review existing schemas and migrations
-
-### Step 2: Test First (TDD Red Phase)
-```bash
-# Write test BEFORE implementation
-# test/unit/domain/your-feature.test.ts
-
-describe('YourFeature', () => {
-  it('should do something specific', () => {
-    // Arrange
-    // Act
-    // Assert
-  });
-});
-
-# Run test - it MUST FAIL (no implementation yet)
-pnpm test -- --grep "YourFeature"
-```
-
-### Step 3: Code (TDD Green Phase)
-- Write MINIMAL code to make the test pass
-- Follow hexagonal architecture: Domain → Application → Infrastructure
-- Create migration files if needed
-- Update schemas if needed
-
-```bash
-# Run test - it MUST PASS now
-pnpm test -- --grep "YourFeature"
-```
-
-### Step 4: Refactor (TDD Refactor Phase)
-- Improve code quality while keeping tests green
-- Extract common logic
-- Improve naming
-- Remove duplication
-
-```bash
-# Tests must still pass after refactoring
-pnpm test
-```
-
-### Step 5: Review
-- Self-review or PR review
-- Check business rules compliance
-- Verify no DDD violations
-- Ensure all tests pass
-
-```bash
-# Run all tests
-pnpm test
-
-# Run type checking
-pnpm type-check
-```
-
-### Step 6: Format with Biome (Post-Review)
-**IMPORTANT**: Always run Biome AFTER code review to ensure consistent formatting.
-
-```bash
-# Auto-fix all linting, formatting, and import issues
-pnpm check:fix
-
-# Verify no issues remain
-pnpm check
-```
-
-### Step 7: Commit
-```bash
-# Stage changes
-git add .
-
-# Commit with meaningful message
-git commit -m "feat(service): add feature description"
-```
-
-### Quick Reference Commands
-```bash
-# TDD Cycle
-pnpm test -- --grep "FeatureName"  # Run specific tests
-pnpm test                           # Run all tests
-pnpm test:coverage                  # Run with coverage
-
-# Code Quality (AFTER review)
-pnpm check:fix                      # Fix all issues
-pnpm check                          # Verify no issues
-
-# Type Safety
-pnpm type-check                     # TypeScript validation
-```
-
----
-
-## When Working on a New Task (Detailed)
-
-### Step 1: Read Relevant Documentation
-- Check `docs/ddd/DDD_REFACTORING_ROADMAP.md` for context
-- Review `docs/ddd/BUSINESS_RULES.md` for constraints
-- Read bounded context docs for affected services
-
-### Step 2: Understand Current State
-- Check git status and recent commits
-- Review existing schemas and migrations
-- Run tests to ensure clean baseline
-
-### Step 3: Implement with TDD
-- Write failing test FIRST
-- Implement minimal code to pass
-- Refactor while keeping tests green
-- Repeat for each requirement
-
-### Step 4: Validate
-- Run unit tests: `pnpm test`
-- Run integration tests: `pnpm test:integration`
-- Check business rules compliance
-- Verify no DDD violations
-
-### Step 5: Format & Lint (Post-Review)
-- Run `pnpm check:fix` to auto-fix all issues
-- Verify with `pnpm check`
-
-### Step 6: Document
-- Update relevant docs (if needed)
-- Add inline comments for complex logic
-- Update CHANGELOG (if exists)
-
----
-
-## Code Quality & Tooling
-
-### Biome - Linting, Formatting & Import Sorting
-
-We use **Biome** (not ESLint + Prettier) for all code quality tasks. Biome is a fast, Rust-based toolchain that combines linting, formatting, and import sorting in a single tool.
-
-**Why Biome?**
-- 10-100x faster than ESLint + Prettier (Rust-based)
-- Single config file (`biome.json` in root)
-- Built-in TypeScript support (no plugins needed)
-- Unified toolchain: lint + format + import sorting
-
-**Commands**:
-```bash
-# Run all checks (lint + format + imports)
-pnpm check
-
-# Auto-fix all issues
-pnpm check:fix
-
-# Lint only
-pnpm lint
-pnpm lint:fix
-
-# Format only
-pnpm format
-pnpm format:check
-```
-
-**Configuration**: `biome.json` at project root
-```json
-{
-  "linter": { "enabled": true, "rules": { "recommended": true } },
-  "formatter": { "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },
-  "javascript": { "formatter": { "quoteStyle": "single", "semicolons": "always" } },
-  "organizeImports": { "enabled": true }
-}
-```
-
-**Key Rules**:
-- Single quotes for strings
-- Semicolons always
-- 2-space indentation
-- 100 character line width
-- ES5 trailing commas
-- Auto-sorted imports
-
-**Before Committing**:
-```bash
-pnpm check:fix  # Auto-fix all issues
-```
-
----
-
-## Final Reminders
-
-1. **TDD is MANDATORY** - Write tests BEFORE implementation (Red → Green → Refactor)
-2. **Format with Biome AFTER review** - Run `pnpm check:fix` before committing
-3. **Always use TodoWrite** to track multi-step tasks
-4. **Read documentation BEFORE coding** - avoid reinventing wheels
-5. **Follow hexagonal architecture** - keep domain pure
-6. **Respect bounded contexts** - no cross-service data duplication
-7. **Version everything** - optimistic locking for inventory
-8. **Document business rules** - update BUSINESS_RULES.md when adding constraints
-9. **Git hygiene** - meaningful commits, clear messages
-
-### Pre-Commit Checklist
-```bash
-pnpm test          # All tests pass
-pnpm type-check    # No TypeScript errors
-pnpm check:fix     # Format & lint (AFTER review)
-pnpm check         # Verify no issues
-```
-
----
-
-**Version**: 1.1
-**Maintained by**: Claude AI Assistant
-**Last Sync**: 2026-01-26
-
-For navigation help, see: [README.md](README.md)
-
-## Automation
-
-### SERVICE_GRAPH.yaml
-Auto-generated codebase knowledge graph. Updated on every push to main.
-```bash
-pnpm generate:service-graph      # Regenerate manually
-pnpm validate:service-graph      # Validate only
-```
-
-### Dependabot
-Automated dependency updates every Monday 09:00 WIB.
-- Groups: cloudflare, tanstack, hono, database, dev-tools
-- Config: `.github/dependabot.yml`
+**Last Updated**: 2026-01-27
