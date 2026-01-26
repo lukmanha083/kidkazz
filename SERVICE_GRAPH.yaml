@@ -1,0 +1,604 @@
+# SERVICE_GRAPH.yaml
+# Auto-generated codebase knowledge graph
+#
+# This file maps:
+# - Service relationships and dependencies
+# - API endpoints (REST and tRPC)
+# - Entity definitions
+# - Documentation links
+# - Cross-service business flows
+#
+# Generated: 2026-01-26T09:59:01.032Z
+# Generator: scripts/generate-service-graph.ts
+#
+# DO NOT EDIT MANUALLY - Run: pnpm generate:service-graph
+
+generated: "2026-01-26T09:59:01.032Z"
+generator: scripts/generate-service-graph.ts
+boundedContexts:
+  accounting:
+    docs:
+      research: docs/bounded-contexts/accounting/ACCOUNTING_RESEARCH.md
+      service-architecture: docs/bounded-contexts/accounting/ACCOUNTING_SERVICE_ARCHITECTURE.md
+      tutorial: docs/bounded-contexts/accounting/ACCOUNTING_TUTORIAL.md
+      accounts-payable-payment-entry: docs/bounded-contexts/accounting/ACCOUNTS_PAYABLE_PAYMENT_ENTRY.md
+      accounts-receivable-collection-entry: docs/bounded-contexts/accounting/ACCOUNTS_RECEIVABLE_COLLECTION_ENTRY.md
+      accrual-entry-journal: docs/bounded-contexts/accounting/ACCRUAL_ENTRY_JOURNAL.md
+      asset-architecture: docs/bounded-contexts/accounting/ASSET_ACCOUNTING_ARCHITECTURE.md
+      asset-business-rules: docs/bounded-contexts/accounting/ASSET_ACCOUNTING_BUSINESS_RULES.md
+      asset-implementation-plan: docs/bounded-contexts/accounting/ASSET_ACCOUNTING_IMPLEMENTATION_PLAN.md
+      asset-disposal-journal-entry: docs/bounded-contexts/accounting/ASSET_DISPOSAL_JOURNAL_ENTRY.md
+      automated-journal-entry-gap-analysis: docs/bounded-contexts/accounting/AUTOMATED_JOURNAL_ENTRY_GAP_ANALYSIS.md
+      automatic-expense-journal-entry: docs/bounded-contexts/accounting/AUTOMATIC_EXPENSE_JOURNAL_ENTRY.md
+      automatic-income-receipt-entry: docs/bounded-contexts/accounting/AUTOMATIC_INCOME_RECEIPT_ENTRY.md
+      bank-reconciliation-journal-entry: docs/bounded-contexts/accounting/BANK_RECONCILIATION_JOURNAL_ENTRY.md
+      business-rules: docs/bounded-contexts/accounting/BUSINESS_RULES.md
+      capital-and-prepaid-expense-entry: docs/bounded-contexts/accounting/CAPITAL_AND_PREPAID_EXPENSE_ENTRY.md
+      credit-card-expense-workflow: docs/bounded-contexts/accounting/CREDIT_CARD_EXPENSE_WORKFLOW.md
+      fund-transfer-between-accounts: docs/bounded-contexts/accounting/FUND_TRANSFER_BETWEEN_ACCOUNTS.md
+      indonesian-trading-coa: docs/bounded-contexts/accounting/INDONESIAN_TRADING_COA.md
+      inventory-purchase-entry: docs/bounded-contexts/accounting/INVENTORY_PURCHASE_ENTRY.md
+      loan-entry-journal: docs/bounded-contexts/accounting/LOAN_ENTRY_JOURNAL.md
+      owner-equity-transaction-entry: docs/bounded-contexts/accounting/OWNER_EQUITY_TRANSACTION_ENTRY.md
+      payment-method-and-journal-entry-logic: docs/bounded-contexts/accounting/PAYMENT_METHOD_AND_JOURNAL_ENTRY_LOGIC.md
+      payroll-module-journal-entry: docs/bounded-contexts/accounting/PAYROLL_MODULE_JOURNAL_ENTRY.md
+      pph-final-umkm-entry: docs/bounded-contexts/accounting/PPH_FINAL_UMKM_ENTRY.md
+      sales-journal-entry: docs/bounded-contexts/accounting/SALES_JOURNAL_ENTRY.md
+      stock-opname-journal-entry: docs/bounded-contexts/accounting/STOCK_OPNAME_JOURNAL_ENTRY.md
+      supplier-invoice-processing: docs/bounded-contexts/accounting/SUPPLIER_INVOICE_PROCESSING.md
+    service: accounting-service
+    path: services/accounting-service
+    status: implemented
+    infrastructure:{}
+    endpoints:
+      rest:
+        - method: GET
+          path: /sales-by-warehouse
+          handler: services/accounting-service/src/routes/reports.ts
+        - method: GET
+          path: /sales-by-person
+          handler: services/accounting-service/src/routes/reports.ts
+        - method: GET
+          path: /sales-by-channel
+          handler: services/accounting-service/src/routes/reports.ts
+        - method: GET
+          path: /sales-multi-dimensional
+          handler: services/accounting-service/src/routes/reports.ts
+    consumes:
+      - service: inventory-service
+        reason: Stock management integration
+      - service: order-service
+        reason: Order management integration
+  api-gateway:
+    docs:{}
+    service: api-gateway
+    path: services/api-gateway
+    status: implemented
+    infrastructure:{}
+    consumes:
+      - service: product-service
+        reason: Product data integration
+      - service: inventory-service
+        reason: Stock management integration
+      - service: business-partner-service
+        reason: Business partner data integration
+      - service: order-service
+        reason: Order management integration
+  business-partner:
+    docs:
+      implementation-plan: docs/bounded-contexts/business-partner/BUSINESS_PARTNER_IMPLEMENTATION_PLAN.md
+      service-architecture: docs/bounded-contexts/business-partner/BUSINESS_PARTNER_SERVICE_ARCHITECTURE.md
+      business-rules: docs/bounded-contexts/business-partner/BUSINESS_RULES.md
+      customer-analytics: docs/bounded-contexts/business-partner/CUSTOMER_ANALYTICS.md
+      database-migration-guide: docs/bounded-contexts/business-partner/DATABASE_MIGRATION_GUIDE.md
+      employee-auth-rbac-plan: docs/bounded-contexts/business-partner/EMPLOYEE_AUTH_RBAC_PLAN.md
+    service: business-partner-service
+    path: services/business-partner-service
+    status: implemented
+    infrastructure:
+      database: D1 (business-partner-db)
+      storage: ["R2 (kidkazz-partner-documents)", "KV (DOCUMENT_CACHE)"]
+    entities:
+      - name: Customer
+        file: src/domain/entities/Customer.ts
+      - name: Employee
+        file: src/domain/entities/Employee.ts
+      - name: Supplier
+        file: src/domain/entities/Supplier.ts
+    endpoints:
+      rest:
+        - method: GET
+          path: /
+          handler: services/business-partner-service/src/routes/addresses.ts
+        - method: GET
+          path: "/:id"
+          handler: services/business-partner-service/src/routes/addresses.ts
+        - method: POST
+          path: /
+          handler: services/business-partner-service/src/routes/addresses.ts
+        - method: PUT
+          path: "/:id"
+          handler: services/business-partner-service/src/routes/addresses.ts
+        - method: DELETE
+          path: "/:id"
+          handler: services/business-partner-service/src/routes/addresses.ts
+        - method: POST
+          path: "/:id/set-primary"
+          handler: services/business-partner-service/src/routes/addresses.ts
+        - method: GET
+          path: /
+          handler: services/business-partner-service/src/routes/customers.ts
+        - method: GET
+          path: "/:id"
+          handler: services/business-partner-service/src/routes/customers.ts
+        - method: POST
+          path: /
+          handler: services/business-partner-service/src/routes/customers.ts
+        - method: PUT
+          path: "/:id"
+          handler: services/business-partner-service/src/routes/customers.ts
+        - method: DELETE
+          path: "/:id"
+          handler: services/business-partner-service/src/routes/customers.ts
+        - method: POST
+          path: "/:id/block"
+          handler: services/business-partner-service/src/routes/customers.ts
+        - method: POST
+          path: "/:id/activate"
+          handler: services/business-partner-service/src/routes/customers.ts
+        - method: POST
+          path: /upload
+          handler: services/business-partner-service/src/routes/documents.ts
+        - method: GET
+          path: file
+          handler: services/business-partner-service/src/routes/documents.ts
+        - method: GET
+          path: employeeId
+          handler: services/business-partner-service/src/routes/documents.ts
+        - method: GET
+          path: documentType
+          handler: services/business-partner-service/src/routes/documents.ts
+        - method: GET
+          path: "/:employeeId"
+          handler: services/business-partner-service/src/routes/documents.ts
+        - method: GET
+          path: "/file/:filename{.+}"
+          handler: services/business-partner-service/src/routes/documents.ts
+        - method: DELETE
+          path: "/:documentId"
+          handler: services/business-partner-service/src/routes/documents.ts
+        - method: GET
+          path: /
+          handler: services/business-partner-service/src/routes/employees.ts
+        - method: GET
+          path: "/:id"
+          handler: services/business-partner-service/src/routes/employees.ts
+        - method: POST
+          path: /
+          handler: services/business-partner-service/src/routes/employees.ts
+        - method: PUT
+          path: "/:id"
+          handler: services/business-partner-service/src/routes/employees.ts
+        - method: DELETE
+          path: "/:id"
+          handler: services/business-partner-service/src/routes/employees.ts
+        - method: POST
+          path: "/:id/terminate"
+          handler: services/business-partner-service/src/routes/employees.ts
+        - method: POST
+          path: "/:id/resign"
+          handler: services/business-partner-service/src/routes/employees.ts
+        - method: POST
+          path: "/:id/activate"
+          handler: services/business-partner-service/src/routes/employees.ts
+        - method: GET
+          path: /export/customers
+          handler: services/business-partner-service/src/routes/geospatial.ts
+        - method: GET
+          path: /export/addresses
+          handler: services/business-partner-service/src/routes/geospatial.ts
+        - method: GET
+          path: "/export/location-history/:customerId"
+          handler: services/business-partner-service/src/routes/geospatial.ts
+        - method: GET
+          path: /export/location-history
+          handler: services/business-partner-service/src/routes/geospatial.ts
+        - method: GET
+          path: /clusters/customers
+          handler: services/business-partner-service/src/routes/geospatial.ts
+        - method: GET
+          path: /nearby/customers
+          handler: services/business-partner-service/src/routes/geospatial.ts
+        - method: POST
+          path: /capture
+          handler: services/business-partner-service/src/routes/geospatial.ts
+        - method: GET
+          path: /
+          handler: services/business-partner-service/src/routes/suppliers.ts
+        - method: GET
+          path: "/:id"
+          handler: services/business-partner-service/src/routes/suppliers.ts
+        - method: POST
+          path: /
+          handler: services/business-partner-service/src/routes/suppliers.ts
+        - method: PUT
+          path: "/:id"
+          handler: services/business-partner-service/src/routes/suppliers.ts
+        - method: PUT
+          path: "/:id/bank-info"
+          handler: services/business-partner-service/src/routes/suppliers.ts
+        - method: DELETE
+          path: "/:id"
+          handler: services/business-partner-service/src/routes/suppliers.ts
+        - method: POST
+          path: "/:id/block"
+          handler: services/business-partner-service/src/routes/suppliers.ts
+        - method: POST
+          path: "/:id/activate"
+          handler: services/business-partner-service/src/routes/suppliers.ts
+        - method: GET
+          path: "/:id/contacts"
+          handler: services/business-partner-service/src/routes/suppliers.ts
+        - method: POST
+          path: "/:id/contacts"
+          handler: services/business-partner-service/src/routes/suppliers.ts
+        - method: PUT
+          path: "/:id/contacts/:contactId"
+          handler: services/business-partner-service/src/routes/suppliers.ts
+        - method: DELETE
+          path: "/:id/contacts/:contactId"
+          handler: services/business-partner-service/src/routes/suppliers.ts
+      trpc: [customer.getById, customer.getByCode, customer.list, customer.create, customer.update, customer.block, customer.activate, customer.addLoyaltyPoints, customer.recordOrder, customer.checkCredit, customer.useCredit, customer.releaseCredit, employee.getById, employee.getByCode, employee.getByEmployeeNumber, employee.list, employee.getActive, employee.getByDepartment, employee.getSubordinates, employee.create, employee.update, employee.terminate, employee.resign, employee.activate, employee.validateForAuth, supplier.getById, supplier.getByCode, supplier.list, supplier.getActive, supplier.create, supplier.update, supplier.updateBankInfo, supplier.block, supplier.activate, supplier.recordOrder, supplier.updateRating, supplier.updateBestSellerProductCount, supplier.getBankInfo, supplier.getContacts, supplier.addContact, supplier.updateContact, supplier.deleteContact]
+  inventory:
+    docs:
+      business-rules: docs/bounded-contexts/inventory/BUSINESS_RULES.md
+      good-receipt-issue-workflow: docs/bounded-contexts/inventory/GOOD_RECEIPT_ISSUE_WORKFLOW.md
+      phase-7-inter-warehouse-transfer: docs/bounded-contexts/inventory/PHASE_7_INTER_WAREHOUSE_TRANSFER.md
+      product-bundles-stock-handling: docs/bounded-contexts/inventory/PRODUCT_BUNDLES_STOCK_HANDLING.md
+      uom-conversion-procedure: docs/bounded-contexts/inventory/UOM_CONVERSION_PROCEDURE.md
+      websocket-realtime-inventory: docs/bounded-contexts/inventory/WEBSOCKET_REALTIME_INVENTORY.md
+    service: inventory-service
+    path: services/inventory-service
+    status: implemented
+    infrastructure:
+      database: D1 (inventory-db)
+    entities:
+      - name: Inventory
+        file: src/domain/entities/Inventory.ts
+      - name: Warehouse
+        file: src/domain/entities/Warehouse.ts
+    endpoints:
+      rest:
+        - method: GET
+          path: /
+          handler: services/inventory-service/src/routes/inventory-batches.ts
+        - method: GET
+          path: /expiring
+          handler: services/inventory-service/src/routes/inventory-batches.ts
+        - method: GET
+          path: /expired
+          handler: services/inventory-service/src/routes/inventory-batches.ts
+        - method: GET
+          path: "/product/:productId/warehouse/:warehouseId"
+          handler: services/inventory-service/src/routes/inventory-batches.ts
+        - method: GET
+          path: "/:id"
+          handler: services/inventory-service/src/routes/inventory-batches.ts
+        - method: POST
+          path: /
+          handler: services/inventory-service/src/routes/inventory-batches.ts
+        - method: PUT
+          path: "/:id"
+          handler: services/inventory-service/src/routes/inventory-batches.ts
+        - method: PATCH
+          path: "/:id/adjust"
+          handler: services/inventory-service/src/routes/inventory-batches.ts
+        - method: PATCH
+          path: "/:id/status"
+          handler: services/inventory-service/src/routes/inventory-batches.ts
+        - method: DELETE
+          path: "/:id"
+          handler: services/inventory-service/src/routes/inventory-batches.ts
+        - method: GET
+          path: /
+          handler: services/inventory-service/src/routes/inventory.ts
+        - method: GET
+          path: "/movements/:productId"
+          handler: services/inventory-service/src/routes/inventory.ts
+        - method: POST
+          path: /adjust
+          handler: services/inventory-service/src/routes/inventory.ts
+        - method: PATCH
+          path: "/:id/minimum-stock"
+          handler: services/inventory-service/src/routes/inventory.ts
+        - method: GET
+          path: "/:productId"
+          handler: services/inventory-service/src/routes/inventory.ts
+        - method: GET
+          path: "/:productId/:warehouseId"
+          handler: services/inventory-service/src/routes/inventory.ts
+        - method: GET
+          path: "/product/:id/total-stock"
+          handler: services/inventory-service/src/routes/inventory.ts
+        - method: GET
+          path: "/product/:id/low-stock-status"
+          handler: services/inventory-service/src/routes/inventory.ts
+        - method: GET
+          path: "/warehouse/:warehouseId/report"
+          handler: services/inventory-service/src/routes/inventory.ts
+        - method: DELETE
+          path: "/warehouse/:warehouseId"
+          handler: services/inventory-service/src/routes/inventory.ts
+        - method: DELETE
+          path: "/product/:productId"
+          handler: services/inventory-service/src/routes/inventory.ts
+        - method: POST
+          path: /admin/sync-minimum-stock
+          handler: services/inventory-service/src/routes/inventory.ts
+        - method: GET
+          path: "/variant/:variantId"
+          handler: services/inventory-service/src/routes/inventory.ts
+        - method: GET
+          path: "/uom/:uomId"
+          handler: services/inventory-service/src/routes/inventory.ts
+        - method: GET
+          path: /low-stock
+          handler: services/inventory-service/src/routes/inventory.ts
+        - method: GET
+          path: /
+          handler: services/inventory-service/src/routes/warehouses.ts
+        - method: GET
+          path: /active
+          handler: services/inventory-service/src/routes/warehouses.ts
+        - method: GET
+          path: "/:id"
+          handler: services/inventory-service/src/routes/warehouses.ts
+        - method: POST
+          path: /
+          handler: services/inventory-service/src/routes/warehouses.ts
+        - method: PUT
+          path: "/:id"
+          handler: services/inventory-service/src/routes/warehouses.ts
+        - method: DELETE
+          path: "/:id"
+          handler: services/inventory-service/src/routes/warehouses.ts
+      trpc: [inventory.getByProduct, inventory.getByProductAndWarehouse, inventory.list, inventory.adjust, inventory.setMinimumStock, warehouse.getById, warehouse.list, warehouse.listActive, warehouse.create, warehouse.update, warehouse.delete]
+    consumes:
+      - service: product-service
+        reason: Product data integration
+  order:
+    docs:{}
+    service: order-service
+    path: services/order-service
+    status: implemented
+    infrastructure:
+      database: D1 (order-db)
+    entities:
+      - name: Order
+        file: src/domain/entities/Order.ts
+    consumes:
+      - service: product-service
+        reason: Product data integration
+      - service: inventory-service
+        reason: Stock management integration
+  payment:
+    docs:
+      business-rules: docs/bounded-contexts/payment/BUSINESS_RULES.md
+      implementation-plan: docs/bounded-contexts/payment/PAYMENT_IMPLEMENTATION_PLAN.md
+      service-architecture: docs/bounded-contexts/payment/PAYMENT_SERVICE_ARCHITECTURE.md
+    service: payment-service
+    path: services/payment-service
+    status: implemented
+    infrastructure:
+      database: D1 (payment-db)
+  product:
+    docs:
+      business-rules: docs/bounded-contexts/product/BUSINESS_RULES.md
+      service-implementation-plan: docs/bounded-contexts/product/PRODUCT_SERVICE_IMPLEMENTATION_PLAN.md
+    service: product-service
+    path: services/product-service
+    status: implemented
+    infrastructure:
+      database: D1 (product-db)
+      storage: ["R2 (kidkazz-product-images)", "R2 (kidkazz-product-videos)", "KV (IMAGE_CACHE)", "KV (VIDEO_CACHE)"]
+    entities:
+      - name: Product.test
+        file: src/domain/entities/Product.test.ts
+      - name: Product
+        file: src/domain/entities/Product.ts
+    endpoints:
+      rest:
+        - method: POST
+          path: /upload
+          handler: services/product-service/src/routes/images.ts
+        - method: GET
+          path: file
+          handler: services/product-service/src/routes/images.ts
+        - method: GET
+          path: productId
+          handler: services/product-service/src/routes/images.ts
+        - method: GET
+          path: cropArea
+          handler: services/product-service/src/routes/images.ts
+        - method: GET
+          path: watermark
+          handler: services/product-service/src/routes/images.ts
+        - method: GET
+          path: isPrimary
+          handler: services/product-service/src/routes/images.ts
+        - method: GET
+          path: sortOrder
+          handler: services/product-service/src/routes/images.ts
+        - method: GET
+          path: "/product/:productId"
+          handler: services/product-service/src/routes/images.ts
+        - method: GET
+          path: "/:filename{.+}"
+          handler: services/product-service/src/routes/images.ts
+        - method: DELETE
+          path: "/image/:imageId"
+          handler: services/product-service/src/routes/images.ts
+        - method: DELETE
+          path: "/product/delete/:productId"
+          handler: services/product-service/src/routes/images.ts
+        - method: GET
+          path: "/metadata/:filename{.+}"
+          handler: services/product-service/src/routes/images.ts
+        - method: POST
+          path: /upload
+          handler: services/product-service/src/routes/videos.ts
+        - method: GET
+          path: file
+          handler: services/product-service/src/routes/videos.ts
+        - method: GET
+          path: productId
+          handler: services/product-service/src/routes/videos.ts
+        - method: GET
+          path: mode
+          handler: services/product-service/src/routes/videos.ts
+        - method: GET
+          path: isPrimary
+          handler: services/product-service/src/routes/videos.ts
+        - method: GET
+          path: sortOrder
+          handler: services/product-service/src/routes/videos.ts
+        - method: GET
+          path: "/product/:productId"
+          handler: services/product-service/src/routes/videos.ts
+        - method: GET
+          path: "/:filename{.+}"
+          handler: services/product-service/src/routes/videos.ts
+        - method: GET
+          path: "/stream/:videoId"
+          handler: services/product-service/src/routes/videos.ts
+        - method: DELETE
+          path: "/video/:videoId"
+          handler: services/product-service/src/routes/videos.ts
+        - method: DELETE
+          path: "/stream/:videoId"
+          handler: services/product-service/src/routes/videos.ts
+        - method: DELETE
+          path: "/product/delete/:productId"
+          handler: services/product-service/src/routes/videos.ts
+      trpc: [product.getById, product.getBySKU, product.list, product.create, product.updateStock, product.changePrice, product.delete]
+    consumes:
+      - service: inventory-service
+        reason: Stock management integration
+  shipping:
+    docs:{}
+    service: shipping-service
+    path: services/shipping-service
+    status: implemented
+    infrastructure:{}
+  erp-dashboard:
+    docs:
+      audit-trail: docs/bounded-contexts/erp-dashboard/AUDIT_TRAIL.md
+      dashboard-structure: docs/bounded-contexts/erp-dashboard/DASHBOARD_STRUCTURE.md
+      readme: docs/bounded-contexts/erp-dashboard/README.md
+      testing-workflow: docs/bounded-contexts/erp-dashboard/TESTING_WORKFLOW.md
+      virtual-scrolling-guide: docs/bounded-contexts/erp-dashboard/VIRTUAL_SCROLLING_GUIDE.md
+    app: erp-dashboard
+    path: apps/erp-dashboard
+    framework: React + TanStack Router + TanStack Query
+    apiClient: src/lib/api.ts
+    pages:
+      sales by person: src/routes/dashboard/accounting/reports/sales-by-person.tsx
+      sales by warehouse: src/routes/dashboard/accounting/reports/sales-by-warehouse.tsx
+      journal entry: src/routes/dashboard/accounting/journal-entry.tsx
+      chart of accounts: src/routes/dashboard/accounting/chart-of-accounts.tsx
+      general ledger: src/routes/dashboard/accounting/general-ledger.tsx
+      balance sheet: src/routes/dashboard/accounting/balance-sheet.tsx
+      income statement: src/routes/dashboard/accounting/income-statement.tsx
+      customers: src/routes/dashboard/business-partner/customers.tsx
+      low stock: src/routes/dashboard/inventory/low-stock.tsx
+      uom conversion: src/routes/dashboard/inventory/uom-conversion.tsx
+      expired stock: src/routes/dashboard/inventory/expired-stock.tsx
+      batches: src/routes/dashboard/inventory/batches.tsx
+      product locations: src/routes/dashboard/inventory/product-locations.tsx
+      transfer stock: src/routes/dashboard/inventory/transfer-stock.tsx
+      warehouse: src/routes/dashboard/inventory/warehouse.tsx
+      all: src/routes/dashboard/products/all.tsx
+      bundle: src/routes/dashboard/products/bundle.tsx
+      category: src/routes/dashboard/products/category.tsx
+      uom: src/routes/dashboard/products/uom.tsx
+      variant: src/routes/dashboard/products/variant.tsx
+      settings: src/routes/dashboard/settings.tsx
+      orders: src/routes/dashboard/orders.tsx
+      employees: src/routes/dashboard/business-partner/employees.tsx
+      suppliers: src/routes/dashboard/business-partner/suppliers.tsx
+      root: src/routes/__root.tsx
+      dashboard: src/routes/dashboard.tsx
+  sales:
+    docs:
+      business-rules: docs/bounded-contexts/sales/BUSINESS_RULES.md
+      implementation-plan: docs/bounded-contexts/sales/SALES_IMPLEMENTATION_PLAN.md
+      service-architecture: docs/bounded-contexts/sales/SALES_SERVICE_ARCHITECTURE.md
+    service: sales-service
+    status: planned
+  procurement:
+    docs:
+      business-rules: docs/bounded-contexts/procurement/BUSINESS_RULES.md
+      lead-time-tracking: docs/bounded-contexts/procurement/LEAD_TIME_TRACKING.md
+      implementation-plan: docs/bounded-contexts/procurement/PROCUREMENT_IMPLEMENTATION_PLAN.md
+      service-architecture: docs/bounded-contexts/procurement/PROCUREMENT_SERVICE_ARCHITECTURE.md
+    service: procurement-service
+    status: planned
+  notification:
+    docs:
+      service-architecture: docs/bounded-contexts/notification/NOTIFICATION_SERVICE_ARCHITECTURE.md
+    service: notification-service
+    status: planned
+  reporting:
+    docs:
+      business-rules: docs/bounded-contexts/reporting/BUSINESS_RULES.md
+      implementation-plan: docs/bounded-contexts/reporting/REPORTING_IMPLEMENTATION_PLAN.md
+      service-architecture: docs/bounded-contexts/reporting/REPORTING_SERVICE_ARCHITECTURE.md
+    service: reporting-service
+    status: planned
+  hrm:
+    docs:
+      business-rules: docs/bounded-contexts/hrm/BUSINESS_RULES.md
+      service-architecture: docs/bounded-contexts/hrm/HRM_SERVICE_ARCHITECTURE.md
+    service: hrm-service
+    status: planned
+  chatbot:
+    docs:
+      business-rules: docs/bounded-contexts/chatbot/BUSINESS_RULES.md
+      implementation-plan: docs/bounded-contexts/chatbot/CHATBOT_IMPLEMENTATION_PLAN.md
+      service-architecture: docs/bounded-contexts/chatbot/CHATBOT_SERVICE_ARCHITECTURE.md
+    service: chatbot-service
+    status: planned
+  pos:
+    docs:
+      variant-selection-workflow: docs/bounded-contexts/pos/POS_VARIANT_SELECTION_WORKFLOW.md
+    service: pos-service
+    status: planned
+flows:
+  create-sales-order:
+    doc: docs/bounded-contexts/sales/BUSINESS_RULES.md
+    description: Customer places order through any sales channel
+    services: [erp-dashboard, sales, business-partner, product, inventory, accounting]
+  purchase-to-pay:
+    doc: docs/bounded-contexts/procurement/BUSINESS_RULES.md
+    description: Purchase order through to supplier payment
+    services: [procurement, business-partner, product, inventory, accounting, payment]
+  stock-adjustment:
+    doc: docs/bounded-contexts/inventory/BUSINESS_RULES.md
+    description: Manual stock adjustment with journal entry
+    services: [erp-dashboard, inventory, accounting]
+  product-deletion:
+    doc: docs/bounded-contexts/product/BUSINESS_RULES.md
+    description: Soft/hard delete product based on stock
+    services: [erp-dashboard, product, inventory]
+  employee-onboarding:
+    doc: docs/bounded-contexts/business-partner/BUSINESS_RULES.md
+    description: Create employee with KTP upload
+    services: [erp-dashboard, business-partner]
+docIndex:
+  byTopic:
+    business-rules: [docs/bounded-contexts/accounting/ASSET_ACCOUNTING_BUSINESS_RULES.md, docs/bounded-contexts/accounting/BUSINESS_RULES.md, docs/bounded-contexts/business-partner/BUSINESS_RULES.md, docs/bounded-contexts/chatbot/BUSINESS_RULES.md, docs/bounded-contexts/hrm/BUSINESS_RULES.md, docs/bounded-contexts/inventory/BUSINESS_RULES.md, docs/bounded-contexts/payment/BUSINESS_RULES.md, docs/bounded-contexts/procurement/BUSINESS_RULES.md, docs/bounded-contexts/product/BUSINESS_RULES.md, docs/bounded-contexts/reporting/BUSINESS_RULES.md, docs/bounded-contexts/sales/BUSINESS_RULES.md, docs/ddd/BUSINESS_RULES.md]
+    architecture: [docs/architecture/ARCHITECTURE.md, docs/architecture/ARCHITECTURE_PROPOSAL_HEXAGONAL_DDD.md, docs/architecture/EVENT_DRIVEN_ARCHITECTURE_CLOUDFLARE.md, docs/architecture/RETAIL_WHOLESALE_ARCHITECTURE.md, docs/bounded-contexts/accounting/ACCOUNTING_SERVICE_ARCHITECTURE.md, docs/bounded-contexts/accounting/ASSET_ACCOUNTING_ARCHITECTURE.md, docs/bounded-contexts/business-partner/BUSINESS_PARTNER_SERVICE_ARCHITECTURE.md, docs/bounded-contexts/chatbot/CHATBOT_SERVICE_ARCHITECTURE.md, docs/bounded-contexts/frontend/FRONTEND_ARCHITECTURE.md, docs/bounded-contexts/hrm/HRM_SERVICE_ARCHITECTURE.md, docs/bounded-contexts/notification/NOTIFICATION_SERVICE_ARCHITECTURE.md, docs/bounded-contexts/payment/PAYMENT_SERVICE_ARCHITECTURE.md, docs/bounded-contexts/procurement/PROCUREMENT_SERVICE_ARCHITECTURE.md, docs/bounded-contexts/reporting/REPORTING_SERVICE_ARCHITECTURE.md, docs/bounded-contexts/sales/SALES_SERVICE_ARCHITECTURE.md]
+    implementation: [docs/bounded-contexts/accounting/ASSET_ACCOUNTING_IMPLEMENTATION_PLAN.md, docs/bounded-contexts/business-partner/BUSINESS_PARTNER_IMPLEMENTATION_PLAN.md, docs/bounded-contexts/business-partner/EMPLOYEE_AUTH_RBAC_PLAN.md, docs/bounded-contexts/chatbot/CHATBOT_IMPLEMENTATION_PLAN.md, docs/bounded-contexts/payment/PAYMENT_IMPLEMENTATION_PLAN.md, docs/bounded-contexts/procurement/PROCUREMENT_IMPLEMENTATION_PLAN.md, docs/bounded-contexts/product/PRODUCT_SERVICE_IMPLEMENTATION_PLAN.md, docs/bounded-contexts/reporting/REPORTING_IMPLEMENTATION_PLAN.md, docs/bounded-contexts/sales/SALES_IMPLEMENTATION_PLAN.md, docs/guides/ADMIN_DASHBOARD_RESPONSIVE_DESIGN_PLAN.md, docs/guides/MULTI_UOM_BARCODE_IMPLEMENTATION.md, docs/implementation/strategies/MULTI_WAREHOUSE_REFACTOR_PLAN.md, docs/integration/RBAC_IMPLEMENTATION_PLAN.md, docs/testing/TESTING_PLAN.md]
+    guides: [docs/bounded-contexts/accounting/ACCOUNTING_TUTORIAL.md, docs/bounded-contexts/business-partner/DATABASE_MIGRATION_GUIDE.md, docs/bounded-contexts/erp-dashboard/VIRTUAL_SCROLLING_GUIDE.md, docs/guides/DEVELOPMENT_SETUP_GUIDE.md, docs/guides/EXPIRATION_DATE_FEATURE_GUIDE.md, docs/guides/IMAGE_ENHANCEMENTS_GUIDE.md, docs/guides/IMAGE_HANDLING_GUIDE.md, docs/guides/INTEGRATION_TUTORIAL.md, docs/guides/MOBILE_APP_EXPO_GUIDE.md, docs/guides/MULTI_WAREHOUSE_UOM_API_GUIDE.md, docs/guides/SERVICE_STARTUP_GUIDE.md, docs/guides/SHADCN_PRESET_SETUP_GUIDE.md, docs/guides/SHADCN_UI_REFACTORING_GUIDE.md, docs/guides/UI_DESIGN_GUIDELINE.md, docs/guides/VIDEO_HANDLING_GUIDE.md, docs/guides/WEIGHT_BASED_BARCODE_GUIDE.md, docs/testing/DDD_REFACTORING_TESTING_GUIDE.md]
+    testing: [docs/bounded-contexts/erp-dashboard/TESTING_WORKFLOW.md, docs/decisions/TESTING_PRIORITY_ANALYSIS.md, docs/testing/INVENTORY_INTEGRATION_TESTING.md, docs/testing/MANUAL_TESTING_CHECKLIST.md, docs/testing/MULTI_WAREHOUSE_TESTING.md, docs/testing/TESTING.md, docs/testing/TESTING_ROADMAP.md]
+  total: 114

@@ -33,6 +33,64 @@ Kidkazz is Real-Time Omnichannel ERP with Real-Time multi-warehouse inventory ma
 
 ---
 
+## Codebase Knowledge Graph (SERVICE_GRAPH.yaml)
+
+**IMPORTANT**: Before making changes, read `SERVICE_GRAPH.yaml` to understand service relationships.
+
+### What It Contains
+- **Bounded Contexts**: All services with their endpoints, entities, and dependencies
+- **Documentation Links**: Maps each context to its docs in `docs/bounded-contexts/`
+- **Business Flows**: Cross-service processes (order creation, purchase-to-pay, etc.)
+- **Doc Index**: All 114 docs categorized by topic
+
+### Quick Commands
+
+```bash
+# Read the full graph
+cat SERVICE_GRAPH.yaml
+
+# Find a specific context
+grep -A 30 "business-partner:" SERVICE_GRAPH.yaml
+
+# Find what consumes a service
+grep -B 5 "service: inventory-service" SERVICE_GRAPH.yaml
+
+# Find all business flows
+grep -A 5 "^  create-sales-order:" SERVICE_GRAPH.yaml
+
+# Find all business rules docs
+grep "business-rules:" SERVICE_GRAPH.yaml
+```
+
+### When to Read SERVICE_GRAPH.yaml
+
+**ALWAYS READ WHEN:**
+- Modifying code that might affect other services
+- Adding/changing API endpoints
+- Debugging cross-service issues
+- Understanding a business flow
+- Before deleting/renaming endpoints
+
+### Reading Order for Tasks
+
+1. **SERVICE_GRAPH.yaml** → Find relevant bounded context
+2. **docs/bounded-contexts/{context}/BUSINESS_RULES.md** → Understand domain rules
+3. **docs/bounded-contexts/{context}/*_ARCHITECTURE.md** → Understand structure
+4. **SERVICE_GRAPH.yaml `consumes`** → Check dependencies
+
+### Auto-Update
+
+The graph is automatically updated:
+- On every push to `main` (GitHub Actions)
+- On every PR that modifies `services/`, `apps/`, or `docs/`
+
+To regenerate manually:
+```bash
+pnpm generate:service-graph
+```
+
+---
+
 ## Current Status: DDD Refactoring Progress
 
 | Phase | Description | Status | Docs |
