@@ -44,11 +44,14 @@ import {
   productLocationApi,
   warehouseApi,
 } from '@/lib/api';
-import { type ProductLocationFormData, productLocationFormSchema } from '@/lib/form-schemas';
+import {
+  type ProductLocationFormData,
+  createFormValidator,
+  productLocationFormSchema,
+} from '@/lib/form-schemas';
 import { useForm } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { zodValidator } from '@tanstack/zod-form-adapter';
 import { Edit, Loader2, MapPin, Package, Plus, Search, Trash2, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -100,9 +103,8 @@ function ProductLocationsPage() {
       aisle: '',
       quantity: 0,
     } satisfies ProductLocationFormData,
-    validatorAdapter: zodValidator(),
     validators: {
-      onChange: productLocationFormSchema,
+      onChange: createFormValidator(productLocationFormSchema),
     },
     onSubmit: async ({ value }) => {
       const quantity = value.quantity;

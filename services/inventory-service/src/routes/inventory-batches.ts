@@ -1,5 +1,5 @@
 import { zValidator } from '@hono/zod-validator';
-import { and, asc, desc, eq, gte, isNotNull, lt } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, isNotNull, isNull, lt } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -51,16 +51,21 @@ const updateBatchSchema = z.object({
   updatedBy: z.string().optional().nullable(),
 });
 
-// GET /api/batches - Get all batches with optional filters
+// GET /api/batches - Get all batches with optional filters (excluding soft-deleted)
 app.get('/', async (c) => {
   const db = drizzle(c.env.DB);
   const productId = c.req.query('productId');
   const warehouseId = c.req.query('warehouseId');
   const status = c.req.query('status');
+  const includeDeleted = c.req.query('includeDeleted') === 'true';
 
   const query = db.select().from(inventoryBatches);
 
+  // Always exclude soft-deleted unless explicitly requested
   const conditions = [];
+  if (!includeDeleted) {
+    conditions.push(isNull(inventoryBatches.deletedAt));
+  }
   if (productId) {
     conditions.push(eq(inventoryBatches.productId, productId));
   }
@@ -80,7 +85,7 @@ app.get('/', async (c) => {
   });
 });
 
-// GET /api/batches/expiring - Get batches expiring within X days
+// GET /api/batches/expiring - Get batches expiring within X days (excluding soft-deleted)
 // NOTE: This must come BEFORE /:id route to avoid "expiring" being treated as an ID
 app.get('/expiring', async (c) => {
   const days = Number.parseInt(c.req.query('days') || '30');
@@ -95,6 +100,7 @@ app.get('/expiring', async (c) => {
     .from(inventoryBatches)
     .where(
       and(
+        isNull(inventoryBatches.deletedAt),
         eq(inventoryBatches.status, 'active'),
         isNotNull(inventoryBatches.expirationDate),
         gte(inventoryBatches.expirationDate, now.toISOString()),
@@ -111,7 +117,7 @@ app.get('/expiring', async (c) => {
   });
 });
 
-// GET /api/batches/expired - Get expired batches
+// GET /api/batches/expired - Get expired batches (excluding soft-deleted)
 app.get('/expired', async (c) => {
   const db = drizzle(c.env.DB);
   const now = new Date().toISOString();
@@ -121,6 +127,7 @@ app.get('/expired', async (c) => {
     .from(inventoryBatches)
     .where(
       and(
+        isNull(inventoryBatches.deletedAt),
         eq(inventoryBatches.status, 'active'), // Still marked as active but expired
         isNotNull(inventoryBatches.expirationDate),
         lt(inventoryBatches.expirationDate, now)
@@ -135,7 +142,7 @@ app.get('/expired', async (c) => {
   });
 });
 
-// GET /api/batches/product/:productId/warehouse/:warehouseId - Get batches for product at warehouse (FEFO order)
+// GET /api/batches/product/:productId/warehouse/:warehouseId - Get batches for product at warehouse (FEFO order, excluding soft-deleted)
 app.get('/product/:productId/warehouse/:warehouseId', async (c) => {
   const productId = c.req.param('productId');
   const warehouseId = c.req.param('warehouseId');
@@ -147,6 +154,7 @@ app.get('/product/:productId/warehouse/:warehouseId', async (c) => {
     .from(inventoryBatches)
     .where(
       and(
+        isNull(inventoryBatches.deletedAt),
         eq(inventoryBatches.productId, productId),
         eq(inventoryBatches.warehouseId, warehouseId),
         eq(inventoryBatches.status, 'active')
@@ -168,13 +176,17 @@ app.get('/product/:productId/warehouse/:warehouseId', async (c) => {
   });
 });
 
-// GET /api/batches/:id - Get batch by ID
+// GET /api/batches/:id - Get batch by ID (excluding soft-deleted)
 // NOTE: This must come AFTER all specific routes to avoid matching them as IDs
 app.get('/:id', async (c) => {
   const id = c.req.param('id');
   const db = drizzle(c.env.DB);
 
-  const batch = await db.select().from(inventoryBatches).where(eq(inventoryBatches.id, id)).get();
+  const batch = await db
+    .select()
+    .from(inventoryBatches)
+    .where(and(eq(inventoryBatches.id, id), isNull(inventoryBatches.deletedAt)))
+    .get();
 
   if (!batch) {
     return c.json({ error: 'Batch not found' }, 404);
@@ -426,12 +438,16 @@ app.patch(
   }
 );
 
-// DELETE /api/batches/:id - Delete batch
+// DELETE /api/batches/:id - Soft delete batch
 app.delete('/:id', async (c) => {
   const id = c.req.param('id');
   const db = drizzle(c.env.DB);
 
-  const batch = await db.select().from(inventoryBatches).where(eq(inventoryBatches.id, id)).get();
+  const batch = await db
+    .select()
+    .from(inventoryBatches)
+    .where(and(eq(inventoryBatches.id, id), isNull(inventoryBatches.deletedAt)))
+    .get();
 
   if (!batch) {
     return c.json({ error: 'Batch not found' }, 404);
@@ -451,7 +467,17 @@ app.delete('/:id', async (c) => {
       .run();
   }
 
-  await db.delete(inventoryBatches).where(eq(inventoryBatches.id, id)).run();
+  // Soft delete the batch
+  await db
+    .update(inventoryBatches)
+    .set({
+      deletedAt: new Date(),
+      deletedBy: null, // TODO: Get from auth context when implemented
+      status: 'expired', // Mark as expired when soft deleted
+      updatedAt: new Date(),
+    })
+    .where(eq(inventoryBatches.id, id))
+    .run();
 
   return c.json({ message: 'Batch deleted successfully' });
 });

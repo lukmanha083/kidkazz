@@ -58,7 +58,7 @@ import {
   variantLocationApi,
   warehouseApi,
 } from '@/lib/api';
-import { type ProductFormData, productFormSchema } from '@/lib/form-schemas';
+import { type ProductFormData, createFormValidator, productFormSchema } from '@/lib/form-schemas';
 import {
   buildProductPayload,
   createBaseUnitUOM,
@@ -76,7 +76,6 @@ import { validationApi } from '@/lib/validation-api';
 import { useForm } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { zodValidator } from '@tanstack/zod-form-adapter';
 import {
   CheckCircle2,
   Edit,
@@ -314,9 +313,8 @@ function AllProductsPage() {
       zone: '',
       aisle: '',
     } as ProductFormData,
-    validatorAdapter: zodValidator(),
     validators: {
-      onChange: productFormSchema,
+      onChange: createFormValidator(productFormSchema),
     },
     onSubmit: async ({ value }) => {
       // Form submission will be handled by handleSubmitForm

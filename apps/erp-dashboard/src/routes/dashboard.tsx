@@ -26,7 +26,6 @@ import {
   Building2,
   Calculator,
   ChevronRight,
-  Database,
   DollarSign,
   LayoutDashboard,
   LogOut,
@@ -147,13 +146,6 @@ const navItems: NavItem[] = [
     title: 'Price Lists',
     href: '/dashboard/price-lists',
     icon: DollarSign,
-  },
-  {
-    id: 'admin',
-    title: 'Admin',
-    href: '/dashboard/admin',
-    icon: Database,
-    submenu: [{ title: 'Database Maintenance', href: '/dashboard/admin/maintenance' }],
   },
 ];
 

@@ -21,7 +21,7 @@ export class Email extends ValueObject<EmailProps> {
     }
   }
 
-  public getValue(): string {
+  public toString(): string {
     return this._value.value;
   }
 

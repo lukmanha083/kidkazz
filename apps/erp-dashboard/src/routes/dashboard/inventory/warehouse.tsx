@@ -32,13 +32,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { type Warehouse, warehouseApi } from '@/lib/api';
-import { type WarehouseFormData, warehouseFormSchema } from '@/lib/form-schemas';
+import {
+  type WarehouseFormData,
+  createFormValidator,
+  warehouseFormSchema,
+} from '@/lib/form-schemas';
 import { queryKeys } from '@/lib/query-client';
 import { warehouseListSearchSchema } from '@/lib/route-search-schemas';
 import { useForm } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { zodValidator } from '@tanstack/zod-form-adapter';
 import {
   Building2,
   Edit,
@@ -116,9 +119,8 @@ function WarehouseManagementPage() {
       contactEmail: '',
       status: 'active' as const,
     },
-    validatorAdapter: zodValidator(),
     validators: {
-      onChange: warehouseFormSchema,
+      onChange: createFormValidator(warehouseFormSchema),
     },
     onSubmit: async ({ value }) => {
       if (formMode === 'add') {

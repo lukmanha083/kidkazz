@@ -26,11 +26,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { type UOM, uomApi } from '@/lib/api';
-import { type UOMFormData, uomFormSchema } from '@/lib/form-schemas';
+import { type UOMFormData, createFormValidator, uomFormSchema } from '@/lib/form-schemas';
 import { useForm } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { zodValidator } from '@tanstack/zod-form-adapter';
 import { Loader2, Package, Plus, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -82,9 +81,8 @@ function UOMPage() {
       baseUnitCode: null as string | null,
       conversionFactor: 1,
     },
-    validatorAdapter: zodValidator(),
     validators: {
-      onChange: uomFormSchema,
+      onChange: createFormValidator(uomFormSchema),
     },
     onSubmit: async ({ value }) => {
       // Conditional validation: baseUnitCode is required only for non-base units

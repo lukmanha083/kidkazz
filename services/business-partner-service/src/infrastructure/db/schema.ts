@@ -16,6 +16,7 @@ export const customers = sqliteTable(
 
     // Customer Type
     customerType: text('customer_type').notNull(), // 'retail' | 'wholesale'
+    entityType: text('entity_type').notNull().default('person'), // 'person' | 'company'
 
     // B2B Fields (for wholesale)
     companyName: text('company_name'),
@@ -150,22 +151,24 @@ export const customers = sqliteTable(
     createdBy: text('created_by'),
     updatedBy: text('updated_by'),
   },
-  (table) => [
-    index('idx_customers_code').on(table.code),
-    index('idx_customers_email').on(table.email),
-    index('idx_customers_status').on(table.status),
-    index('idx_customers_type').on(table.customerType),
+  (table) => ({
+    idx_customers_code: index('idx_customers_code').on(table.code),
+    idx_customers_email: index('idx_customers_email').on(table.email),
+    idx_customers_status: index('idx_customers_status').on(table.status),
+    idx_customers_type: index('idx_customers_type').on(table.customerType),
     // Geospatial indexes
-    index('idx_customers_geohash').on(table.lastKnownGeohash),
-    index('idx_customers_delivery_zone').on(table.preferredDeliveryZone),
+    idx_customers_geohash: index('idx_customers_geohash').on(table.lastKnownGeohash),
+    idx_customers_delivery_zone: index('idx_customers_delivery_zone').on(
+      table.preferredDeliveryZone
+    ),
     // Analytics indexes
-    index('idx_customers_rfm_segment').on(table.rfmSegment),
-    index('idx_customers_churn_risk').on(table.churnRiskScore),
-    index('idx_customers_clv_percentile').on(table.clvPercentile),
-    index('idx_customers_face_id').on(table.faceId),
-    index('idx_customers_referred_by').on(table.referredByCustomerId),
-    index('idx_customers_acquisition').on(table.acquisitionSource),
-  ]
+    idx_customers_rfm_segment: index('idx_customers_rfm_segment').on(table.rfmSegment),
+    idx_customers_churn_risk: index('idx_customers_churn_risk').on(table.churnRiskScore),
+    idx_customers_clv_percentile: index('idx_customers_clv_percentile').on(table.clvPercentile),
+    idx_customers_face_id: index('idx_customers_face_id').on(table.faceId),
+    idx_customers_referred_by: index('idx_customers_referred_by').on(table.referredByCustomerId),
+    idx_customers_acquisition: index('idx_customers_acquisition').on(table.acquisitionSource),
+  })
 );
 
 // ============================================================================
@@ -181,6 +184,7 @@ export const suppliers = sqliteTable(
     name: text('name').notNull(),
     email: text('email'),
     phone: text('phone'),
+    entityType: text('entity_type').notNull().default('person'), // 'person' | 'company'
 
     // Company Info
     companyName: text('company_name'),
@@ -188,7 +192,7 @@ export const suppliers = sqliteTable(
 
     // Business Terms
     paymentTermDays: integer('payment_term_days').default(30),
-    leadTimeDays: integer('lead_time_days').default(7),
+    leadTimeDays: integer('lead_time_days'), // Calculated from purchase orders, null until data exists
     minimumOrderAmount: integer('minimum_order_amount').default(0),
 
     // Bank Info (for payment)
@@ -200,6 +204,7 @@ export const suppliers = sqliteTable(
     rating: real('rating'),
     totalOrders: integer('total_orders').default(0),
     totalPurchased: integer('total_purchased').default(0),
+    bestSellerProductCount: integer('best_seller_product_count').default(0),
     lastOrderDate: integer('last_order_date'),
 
     // Status
@@ -214,10 +219,45 @@ export const suppliers = sqliteTable(
     createdBy: text('created_by'),
     updatedBy: text('updated_by'),
   },
-  (table) => [
-    index('idx_suppliers_code').on(table.code),
-    index('idx_suppliers_status').on(table.status),
-  ]
+  (table) => ({
+    idx_suppliers_code: index('idx_suppliers_code').on(table.code),
+    idx_suppliers_status: index('idx_suppliers_status').on(table.status),
+  })
+);
+
+// ============================================================================
+// SUPPLIER CONTACTS TABLE (Sales persons for company suppliers)
+// ============================================================================
+export const supplierContacts = sqliteTable(
+  'supplier_contacts',
+  {
+    id: text('id').primaryKey(),
+    supplierId: text('supplier_id').notNull(),
+
+    // Contact Info
+    name: text('name').notNull(),
+    email: text('email'),
+    phone: text('phone'),
+    position: text('position'), // e.g., "Sales Manager", "Account Executive"
+
+    // Flags
+    isPrimary: integer('is_primary').default(0),
+
+    // Status
+    status: text('status').notNull().default('active'), // 'active' | 'inactive'
+
+    // Soft delete fields
+    deletedAt: integer('deleted_at', { mode: 'timestamp' }),
+    deletedBy: text('deleted_by'),
+
+    // Audit
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at').notNull(),
+  },
+  (table) => ({
+    idx_supplier_contacts_supplier: index('idx_supplier_contacts_supplier').on(table.supplierId),
+    idx_supplier_contacts_status: index('idx_supplier_contacts_status').on(table.status),
+  })
 );
 
 // ============================================================================
@@ -257,6 +297,11 @@ export const employees = sqliteTable(
     // Salary (basic info, detailed in HRM module)
     baseSalary: integer('base_salary'),
 
+    // Bank Info (for salary payment)
+    bankName: text('bank_name'),
+    bankAccountNumber: text('bank_account_number'),
+    bankAccountName: text('bank_account_name'),
+
     // Notes
     notes: text('notes'),
 
@@ -266,13 +311,13 @@ export const employees = sqliteTable(
     createdBy: text('created_by'),
     updatedBy: text('updated_by'),
   },
-  (table) => [
-    index('idx_employees_code').on(table.code),
-    index('idx_employees_email').on(table.email),
-    index('idx_employees_status').on(table.employmentStatus),
-    index('idx_employees_department').on(table.department),
-    index('idx_employees_manager').on(table.managerId),
-  ]
+  (table) => ({
+    idx_employees_code: index('idx_employees_code').on(table.code),
+    idx_employees_email: index('idx_employees_email').on(table.email),
+    idx_employees_status: index('idx_employees_status').on(table.employmentStatus),
+    idx_employees_department: index('idx_employees_department').on(table.department),
+    idx_employees_manager: index('idx_employees_manager').on(table.managerId),
+  })
 );
 
 // ============================================================================
@@ -328,17 +373,25 @@ export const addresses = sqliteTable(
     // Notes
     notes: text('notes'),
 
+    // Soft delete fields
+    deletedAt: integer('deleted_at', { mode: 'timestamp' }),
+    deletedBy: text('deleted_by'),
+
     // Audit
     createdAt: integer('created_at').notNull(),
     updatedAt: integer('updated_at').notNull(),
   },
-  (table) => [
-    index('idx_addresses_owner').on(table.ownerType, table.ownerId),
-    index('idx_addresses_primary').on(table.ownerType, table.ownerId, table.isPrimary),
+  (table) => ({
+    idx_addresses_owner: index('idx_addresses_owner').on(table.ownerType, table.ownerId),
+    idx_addresses_primary: index('idx_addresses_primary').on(
+      table.ownerType,
+      table.ownerId,
+      table.isPrimary
+    ),
     // Geospatial indexes
-    index('idx_addresses_geohash').on(table.geohash),
-    index('idx_addresses_coords').on(table.latitude, table.longitude),
-  ]
+    idx_addresses_geohash: index('idx_addresses_geohash').on(table.geohash),
+    idx_addresses_coords: index('idx_addresses_coords').on(table.latitude, table.longitude),
+  })
 );
 
 // ============================================================================
@@ -378,13 +431,62 @@ export const customerLocationHistory = sqliteTable(
     capturedAt: integer('captured_at').notNull(),
     createdAt: integer('created_at').notNull(),
   },
-  (table) => [
-    index('idx_location_history_customer').on(table.customerId),
-    index('idx_location_history_geohash').on(table.geohash),
-    index('idx_location_history_captured').on(table.capturedAt),
-    index('idx_location_history_captured_by').on(table.capturedBy),
-    index('idx_location_history_visit_type').on(table.visitType),
-  ]
+  (table) => ({
+    idx_location_history_customer: index('idx_location_history_customer').on(table.customerId),
+    idx_location_history_geohash: index('idx_location_history_geohash').on(table.geohash),
+    idx_location_history_captured: index('idx_location_history_captured').on(table.capturedAt),
+    idx_location_history_captured_by: index('idx_location_history_captured_by').on(
+      table.capturedBy
+    ),
+    idx_location_history_visit_type: index('idx_location_history_visit_type').on(table.visitType),
+  })
+);
+
+// ============================================================================
+// PARTNER DOCUMENTS TABLE (KTP, NPWP, contracts, etc.)
+// ============================================================================
+export const partnerDocuments = sqliteTable(
+  'partner_documents',
+  {
+    id: text('id').primaryKey(),
+
+    // Owner (polymorphic - employee, customer, supplier)
+    ownerType: text('owner_type').notNull(), // 'employee' | 'customer' | 'supplier'
+    ownerId: text('owner_id').notNull(),
+
+    // Document Type
+    documentType: text('document_type').notNull(), // 'ktp' | 'npwp' | 'contract' | 'other'
+
+    // File Info
+    filename: text('filename').notNull(), // R2 key
+    originalName: text('original_name').notNull(),
+    mimeType: text('mime_type').notNull(),
+    size: integer('size').notNull(), // bytes
+
+    // R2 URL
+    url: text('url').notNull(),
+
+    // Status
+    status: text('status').notNull().default('active'), // 'active' | 'archived' | 'deleted'
+
+    // Soft delete fields
+    deletedAt: integer('deleted_at', { mode: 'timestamp' }),
+    deletedBy: text('deleted_by'),
+
+    // Audit
+    uploadedAt: integer('uploaded_at').notNull(),
+    uploadedBy: text('uploaded_by'),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at').notNull(),
+  },
+  (table) => ({
+    idx_partner_documents_owner: index('idx_partner_documents_owner').on(
+      table.ownerType,
+      table.ownerId
+    ),
+    idx_partner_documents_type: index('idx_partner_documents_type').on(table.documentType),
+    idx_partner_documents_status: index('idx_partner_documents_status').on(table.status),
+  })
 );
 
 // Type exports for type safety
@@ -402,3 +504,6 @@ export type NewAddressRecord = typeof addresses.$inferInsert;
 
 export type CustomerLocationHistoryRecord = typeof customerLocationHistory.$inferSelect;
 export type NewCustomerLocationHistoryRecord = typeof customerLocationHistory.$inferInsert;
+
+export type PartnerDocumentRecord = typeof partnerDocuments.$inferSelect;
+export type NewPartnerDocumentRecord = typeof partnerDocuments.$inferInsert;

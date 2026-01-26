@@ -43,13 +43,13 @@ import {
   batchCreationFormSchema,
   batchQuantityAdjustmentFormSchema,
   batchStatusUpdateFormSchema,
+  createFormValidator,
 } from '@/lib/form-schemas';
 import { queryKeys } from '@/lib/query-client';
 import { type BatchListSearch, batchListSearchSchema } from '@/lib/route-search-schemas';
 import { useForm } from '@tanstack/react-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { zodValidator } from '@tanstack/zod-form-adapter';
 import { AlertTriangle, Loader2, Package, Plus, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -136,9 +136,8 @@ function BatchManagementPage() {
       supplier: '',
       notes: '',
     } satisfies BatchCreationFormData,
-    validatorAdapter: zodValidator(),
     validators: {
-      onChange: batchCreationFormSchema,
+      onChange: createFormValidator(batchCreationFormSchema),
     },
     onSubmit: async ({ value }) => {
       await createBatchMutation.mutateAsync({
@@ -154,9 +153,8 @@ function BatchManagementPage() {
       status: 'active' as InventoryBatch['status'],
       reason: '',
     } satisfies BatchStatusUpdateFormData,
-    validatorAdapter: zodValidator(),
     validators: {
-      onChange: batchStatusUpdateFormSchema,
+      onChange: createFormValidator(batchStatusUpdateFormSchema),
     },
     onSubmit: async ({ value }) => {
       if (!selectedBatch) return;
@@ -173,9 +171,8 @@ function BatchManagementPage() {
       quantity: 0,
       reason: '',
     } satisfies BatchQuantityAdjustmentFormData,
-    validatorAdapter: zodValidator(),
     validators: {
-      onChange: batchQuantityAdjustmentFormSchema,
+      onChange: createFormValidator(batchQuantityAdjustmentFormSchema),
     },
     onSubmit: async ({ value }) => {
       if (!selectedBatch) return;

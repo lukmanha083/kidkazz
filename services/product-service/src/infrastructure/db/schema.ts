@@ -15,6 +15,10 @@ export const categories = sqliteTable('categories', {
   // Subcategory support
   parentId: text('parent_id'), // Reference to parent category (self-referential)
 
+  // Soft delete fields
+  deletedAt: integer('deleted_at', { mode: 'timestamp' }),
+  deletedBy: text('deleted_by'),
+
   // Audit fields
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
@@ -112,6 +116,10 @@ export const products = sqliteTable('products', {
   glSegment1: text('gl_segment1'), // Department
   glSegment2: text('gl_segment2'), // Location
   glSegment3: text('gl_segment3'), // Project
+
+  // Soft delete fields
+  deletedAt: integer('deleted_at', { mode: 'timestamp' }),
+  deletedBy: text('deleted_by'),
 
   // Audit fields
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),

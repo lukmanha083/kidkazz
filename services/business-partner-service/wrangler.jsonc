@@ -1,23 +1,39 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "business-partner-service",
-  "main": "src/index.ts",
-  "compatibility_date": "2024-11-14",
-  "compatibility_flags": ["nodejs_compat"],
-  "observability": {
-    "enabled": true,
-    "head_sampling_rate": 1
-  },
-  // D1 Database binding
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "business-partner-db",
-      "database_id": "placeholder-run-wrangler-d1-create"
-    }
-  ],
-  // Development settings
-  "dev": {
-    "port": 8793
-  }
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "business-partner-service",
+	"main": "src/index.ts",
+	"compatibility_date": "2024-11-14",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"observability": {
+		"enabled": true,
+		"head_sampling_rate": 1
+	},
+	// D1 Database binding
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "business-partner-db",
+			"database_id": "placeholder-run-wrangler-d1-create"
+		}
+	],
+	// R2 bucket for employee/partner documents (KTP, NPWP, contracts)
+	"r2_buckets": [
+		{
+			"binding": "PARTNER_DOCUMENTS",
+			"bucket_name": "kidkazz-partner-documents"
+		}
+	],
+	// KV namespace for document cache
+	"kv_namespaces": [
+		{
+			"binding": "DOCUMENT_CACHE",
+			"id": "a9e4f7c157914f7986da91d6256189bc"
+		}
+	],
+	// Development settings
+	"dev": {
+		"port": 8793
+	}
 }

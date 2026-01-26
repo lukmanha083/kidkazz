@@ -44,11 +44,60 @@ Make sure all backend services are running:
 
 ## Tech Stack
 
-- React 18
-- TypeScript
-- Vite
-- Vanilla CSS (no framework for simplicity)
+- React 18 + TypeScript + Vite
+- TanStack (Router, Query, Table, Form)
+- ShadCN UI Components
+- Zod (validation schemas)
+- Tailwind CSS
+
+## Form Validation Pattern
+
+We use `createFormValidator` wrapper instead of the deprecated `zodValidator()` adapter:
+
+```typescript
+// ✅ CORRECT - Use createFormValidator
+import { createFormValidator, customerFormSchema } from '@/lib/form-schemas';
+
+const form = useForm({
+  defaultValues: { name: '', email: '' },
+  validators: {
+    onChange: createFormValidator(customerFormSchema),
+  },
+});
+
+// ❌ WRONG - Don't use deprecated zodValidator adapter
+import { zodValidator } from '@tanstack/zod-form-adapter'; // DEPRECATED
+```
+
+**Why**: `zodValidator()` is deprecated in Zod 3.24.0+, and Zod schemas with `.refine()` cause type inference issues. The `createFormValidator` wrapper in `lib/form-schemas.ts` handles this cleanly.
+
+## Image Cropping Component
+
+For image uploads that need cropping (product images, employee documents):
+
+```typescript
+import { ImageCropper } from '@/components/ImageCropper';
+
+// Show cropper for images
+{showCropper && cropImageUrl && (
+  <ImageCropper
+    imageUrl={cropImageUrl}
+    onCropComplete={handleCropComplete}
+    onCancel={handleCropCancel}
+    aspectRatio={1.586}  // Optional: KTP aspect ratio
+  />
+)}
+```
+
+**Features**:
+- Drag to reposition crop area
+- Resize from corners (nw, ne, sw, se)
+- Optional aspect ratio constraint
+- Real-time size preview
+
+**Usage in DocumentUpload**:
+The `DocumentUpload` component automatically shows the cropper for image files (JPEG, PNG) before upload. PDFs bypass cropping.
 
 ## API Proxy
 
-All `/api/*` requests are proxied to `http://localhost:8787` (API Gateway)
+All `/api/*` requests are proxied to backend services

@@ -157,7 +157,7 @@ export function getProductColumns(options: ProductColumnOptions): ColumnDef<Prod
       cell: ({ row }) => {
         const stockInfo = row.original.stockInfo;
         const currentStock = stockInfo?.totalStock ?? 0;
-        const minStock = row.original.minimumStock || 50;
+        const minStock = 1; // Default minimum stock threshold
         const criticalStock = Math.floor(minStock * 0.4);
 
         if (stockInfo?.isLoading) {

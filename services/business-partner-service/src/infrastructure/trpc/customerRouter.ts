@@ -82,7 +82,8 @@ export const customerRouter = router({
         email: z.string().email().optional(),
         phone: z.string().optional(),
         customerType: z.enum(['retail', 'wholesale']),
-        birthDate: z.string().optional(), // ISO date string for retail customers
+        entityType: z.enum(['person', 'company']).default('person'),
+        birthDate: z.string().optional(), // ISO date string for person entities
         companyName: z.string().optional(),
         npwp: z.string().optional(),
         creditLimit: z.number().min(0).optional(),
@@ -105,7 +106,7 @@ export const customerRouter = router({
 
       const customerData = customer.toData();
 
-      // Parse birthDate if provided (for retail customers)
+      // Parse birthDate if provided (for person entities)
       const dateOfBirth = input.birthDate ? new Date(input.birthDate).getTime() : null;
 
       await db
@@ -117,6 +118,7 @@ export const customerRouter = router({
           email: customerData.email,
           phone: customerData.phone,
           customerType: customerData.customerType,
+          entityType: input.entityType,
           companyName: customerData.companyName,
           npwp: customerData.npwp,
           creditLimit: customerData.creditLimit,
@@ -149,7 +151,8 @@ export const customerRouter = router({
           name: z.string().min(1).optional(),
           email: z.string().email().optional(),
           phone: z.string().optional(),
-          birthDate: z.string().optional(), // ISO date string for retail customers
+          entityType: z.enum(['person', 'company']).optional(),
+          birthDate: z.string().optional(), // ISO date string for person entities
           companyName: z.string().optional(),
           npwp: z.string().optional(),
           creditLimit: z.number().min(0).optional(),
@@ -246,6 +249,15 @@ export const customerRouter = router({
       // Reconstitute domain entity to use business logic
       const customer = Customer.reconstitute({
         ...existing,
+        customerType: existing.customerType as 'retail' | 'wholesale',
+        status: existing.status as 'active' | 'inactive' | 'blocked',
+        membershipTier: existing.membershipTier as 'bronze' | 'silver' | 'gold' | null,
+        creditLimit: existing.creditLimit ?? 0,
+        creditUsed: existing.creditUsed ?? 0,
+        paymentTermDays: existing.paymentTermDays ?? 0,
+        loyaltyPoints: existing.loyaltyPoints ?? 0,
+        totalOrders: existing.totalOrders ?? 0,
+        totalSpent: existing.totalSpent ?? 0,
         lastOrderDate: existing.lastOrderDate ? new Date(existing.lastOrderDate) : null,
         createdAt: new Date(existing.createdAt),
         updatedAt: new Date(existing.updatedAt),
@@ -289,6 +301,15 @@ export const customerRouter = router({
       // Reconstitute domain entity to use business logic
       const customer = Customer.reconstitute({
         ...existing,
+        customerType: existing.customerType as 'retail' | 'wholesale',
+        status: existing.status as 'active' | 'inactive' | 'blocked',
+        membershipTier: existing.membershipTier as 'bronze' | 'silver' | 'gold' | null,
+        creditLimit: existing.creditLimit ?? 0,
+        creditUsed: existing.creditUsed ?? 0,
+        paymentTermDays: existing.paymentTermDays ?? 0,
+        loyaltyPoints: existing.loyaltyPoints ?? 0,
+        totalOrders: existing.totalOrders ?? 0,
+        totalSpent: existing.totalSpent ?? 0,
         lastOrderDate: existing.lastOrderDate ? new Date(existing.lastOrderDate) : null,
         createdAt: new Date(existing.createdAt),
         updatedAt: new Date(existing.updatedAt),
@@ -333,6 +354,15 @@ export const customerRouter = router({
       // Reconstitute domain entity to use business logic
       const customer = Customer.reconstitute({
         ...existing,
+        customerType: existing.customerType as 'retail' | 'wholesale',
+        status: existing.status as 'active' | 'inactive' | 'blocked',
+        membershipTier: existing.membershipTier as 'bronze' | 'silver' | 'gold' | null,
+        creditLimit: existing.creditLimit ?? 0,
+        creditUsed: existing.creditUsed ?? 0,
+        paymentTermDays: existing.paymentTermDays ?? 0,
+        loyaltyPoints: existing.loyaltyPoints ?? 0,
+        totalOrders: existing.totalOrders ?? 0,
+        totalSpent: existing.totalSpent ?? 0,
         lastOrderDate: existing.lastOrderDate ? new Date(existing.lastOrderDate) : null,
         createdAt: new Date(existing.createdAt),
         updatedAt: new Date(existing.updatedAt),
@@ -365,6 +395,15 @@ export const customerRouter = router({
       // Reconstitute domain entity to use business logic
       const customer = Customer.reconstitute({
         ...existing,
+        customerType: existing.customerType as 'retail' | 'wholesale',
+        status: existing.status as 'active' | 'inactive' | 'blocked',
+        membershipTier: existing.membershipTier as 'bronze' | 'silver' | 'gold' | null,
+        creditLimit: existing.creditLimit ?? 0,
+        creditUsed: existing.creditUsed ?? 0,
+        paymentTermDays: existing.paymentTermDays ?? 0,
+        loyaltyPoints: existing.loyaltyPoints ?? 0,
+        totalOrders: existing.totalOrders ?? 0,
+        totalSpent: existing.totalSpent ?? 0,
         lastOrderDate: existing.lastOrderDate ? new Date(existing.lastOrderDate) : null,
         createdAt: new Date(existing.createdAt),
         updatedAt: new Date(existing.updatedAt),
@@ -407,6 +446,15 @@ export const customerRouter = router({
       // Reconstitute domain entity to use business logic
       const customer = Customer.reconstitute({
         ...existing,
+        customerType: existing.customerType as 'retail' | 'wholesale',
+        status: existing.status as 'active' | 'inactive' | 'blocked',
+        membershipTier: existing.membershipTier as 'bronze' | 'silver' | 'gold' | null,
+        creditLimit: existing.creditLimit ?? 0,
+        creditUsed: existing.creditUsed ?? 0,
+        paymentTermDays: existing.paymentTermDays ?? 0,
+        loyaltyPoints: existing.loyaltyPoints ?? 0,
+        totalOrders: existing.totalOrders ?? 0,
+        totalSpent: existing.totalSpent ?? 0,
         lastOrderDate: existing.lastOrderDate ? new Date(existing.lastOrderDate) : null,
         createdAt: new Date(existing.createdAt),
         updatedAt: new Date(existing.updatedAt),

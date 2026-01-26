@@ -71,7 +71,7 @@ export class Customer extends AggregateRoot {
 
     const now = new Date();
     const id = `cust-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-    const code = PartnerCode.create('customer').getValue();
+    const code = PartnerCode.create('customer').toString();
 
     return new Customer({
       id,

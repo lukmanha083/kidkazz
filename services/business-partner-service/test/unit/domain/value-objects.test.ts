@@ -7,24 +7,24 @@ describe('PartnerCode Value Object', () => {
   describe('create', () => {
     it('should create a valid customer code', () => {
       const code = PartnerCode.create('customer');
-      expect(code.getValue()).toMatch(/^CUS-\d{4}$/);
+      expect(code.toString()).toMatch(/^CUS-\d{4}$/);
     });
 
     it('should create a valid supplier code', () => {
       const code = PartnerCode.create('supplier');
-      expect(code.getValue()).toMatch(/^SUP-\d{4}$/);
+      expect(code.toString()).toMatch(/^SUP-\d{4}$/);
     });
 
     it('should create a valid employee code', () => {
       const code = PartnerCode.create('employee');
-      expect(code.getValue()).toMatch(/^EMP-\d{4}$/);
+      expect(code.toString()).toMatch(/^EMP-\d{4}$/);
     });
 
     it('should generate unique codes', () => {
       const codes = new Set<string>();
       for (let i = 0; i < 100; i++) {
         const code = PartnerCode.create('customer');
-        codes.add(code.getValue());
+        codes.add(code.toString());
       }
       expect(codes.size).toBe(100);
     });
@@ -33,7 +33,7 @@ describe('PartnerCode Value Object', () => {
   describe('fromString', () => {
     it('should reconstitute from valid code string', () => {
       const code = PartnerCode.fromString('CUS-0001');
-      expect(code.getValue()).toBe('CUS-0001');
+      expect(code.toString()).toBe('CUS-0001');
     });
 
     it('should throw error for invalid code format', () => {
@@ -70,12 +70,12 @@ describe('Email Value Object', () => {
   describe('create', () => {
     it('should create a valid email', () => {
       const email = Email.create('john@example.com');
-      expect(email.getValue()).toBe('john@example.com');
+      expect(email.toString()).toBe('john@example.com');
     });
 
     it('should normalize email to lowercase', () => {
       const email = Email.create('John.Doe@Example.COM');
-      expect(email.getValue()).toBe('john.doe@example.com');
+      expect(email.toString()).toBe('john.doe@example.com');
     });
 
     it('should throw error for invalid email format', () => {
@@ -123,20 +123,20 @@ describe('Phone Value Object', () => {
   describe('create', () => {
     it('should create a valid phone number', () => {
       const phone = Phone.create('+62812345678');
-      expect(phone.getValue()).toBe('+62812345678');
+      expect(phone.toString()).toBe('+62812345678');
     });
 
     it('should normalize phone number', () => {
       const phone1 = Phone.create('0812345678');
-      expect(phone1.getValue()).toBe('+62812345678');
+      expect(phone1.toString()).toBe('+62812345678');
 
       const phone2 = Phone.create('62812345678');
-      expect(phone2.getValue()).toBe('+62812345678');
+      expect(phone2.toString()).toBe('+62812345678');
     });
 
     it('should accept international format', () => {
       const phone = Phone.create('+12025551234');
-      expect(phone.getValue()).toBe('+12025551234');
+      expect(phone.toString()).toBe('+12025551234');
     });
 
     it('should throw error for invalid phone format', () => {

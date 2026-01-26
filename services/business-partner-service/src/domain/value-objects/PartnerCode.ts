@@ -34,7 +34,7 @@ export class PartnerCode extends ValueObject<PartnerCodeProps> {
     }
   }
 
-  public getValue(): string {
+  public toString(): string {
     return this._value.value;
   }
 

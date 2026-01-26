@@ -214,6 +214,7 @@ describe('Supplier Entity', () => {
         rating: 4.5,
         totalOrders: 50,
         totalPurchased: 500000000,
+        bestSellerProductCount: 5,
         lastOrderDate: new Date('2024-01-15'),
         status: 'active' as const,
         notes: 'Reliable supplier',

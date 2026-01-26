@@ -331,15 +331,27 @@ export class VideoService {
 
   /**
    * Delete all videos for a product
+   * Handles R2 pagination to ensure all objects are deleted
    */
   async deleteProductVideos(productId: string): Promise<void> {
-    // List all objects with the product prefix
-    const listed = await this.r2.list({
-      prefix: `products/${productId}/videos/`,
-    });
+    const prefix = `products/${productId}/videos/`;
+    let cursor: string | undefined;
 
-    // Delete all videos
-    await Promise.all(listed.objects.map((object) => this.deleteVideoR2(object.key)));
+    // Iterate through all pages of results
+    do {
+      const listed = await this.r2.list({
+        prefix,
+        cursor,
+      });
+
+      // Delete all videos in this page
+      if (listed.objects.length > 0) {
+        await Promise.all(listed.objects.map((object) => this.deleteVideoR2(object.key)));
+      }
+
+      // Get cursor for next page if truncated
+      cursor = listed.truncated ? listed.cursor : undefined;
+    } while (cursor);
   }
 
   /**
