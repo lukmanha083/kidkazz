@@ -148,6 +148,8 @@ export const journalLines = sqliteTable(
     salesChannelIdx: index('idx_jl_sales_channel').on(table.salesChannel),
     customerIdx: index('idx_jl_customer').on(table.customerId),
     vendorIdx: index('idx_jl_vendor').on(table.vendorId),
+    // Unique constraint on journal_entry_id + line_sequence
+    entryLineSeqIdx: uniqueIndex('idx_jl_entry_line_seq').on(table.journalEntryId, table.lineSequence),
   })
 );
 

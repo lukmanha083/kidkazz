@@ -73,16 +73,17 @@ accountRoutes.get('/tree', async (c) => {
 });
 
 /**
- * GET /accounts/:id - Get account by ID
+ * GET /accounts/code/:code - Get account by code
+ * NOTE: Must be registered BEFORE /:id to avoid route shadowing
  */
-accountRoutes.get('/:id', async (c) => {
+accountRoutes.get('/code/:code', async (c) => {
   const db = c.get('db');
-  const id = c.req.param('id');
+  const code = c.req.param('code');
 
   const repository = new DrizzleAccountRepository(db);
-  const handler = new GetAccountByIdHandler(repository);
+  const handler = new GetAccountByCodeHandler(repository);
 
-  const account = await handler.execute({ id });
+  const account = await handler.execute({ code });
 
   if (!account) {
     return c.json({ success: false, error: 'Account not found' }, 404);
@@ -95,16 +96,16 @@ accountRoutes.get('/:id', async (c) => {
 });
 
 /**
- * GET /accounts/code/:code - Get account by code
+ * GET /accounts/:id - Get account by ID
  */
-accountRoutes.get('/code/:code', async (c) => {
+accountRoutes.get('/:id', async (c) => {
   const db = c.get('db');
-  const code = c.req.param('code');
+  const id = c.req.param('id');
 
   const repository = new DrizzleAccountRepository(db);
-  const handler = new GetAccountByCodeHandler(repository);
+  const handler = new GetAccountByIdHandler(repository);
 
-  const account = await handler.execute({ code });
+  const account = await handler.execute({ id });
 
   if (!account) {
     return c.json({ success: false, error: 'Account not found' }, 404);

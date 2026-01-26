@@ -192,9 +192,12 @@ export class Account {
   }
 
   /**
-   * Activate account
+   * Activate account (only from INACTIVE status)
    */
   activate(): void {
+    if (this._status === AccountStatus.ARCHIVED) {
+      throw new Error('Cannot activate archived account. Use unarchive first.');
+    }
     this._status = AccountStatus.ACTIVE;
     this._updatedAt = new Date();
   }

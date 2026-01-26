@@ -20,7 +20,7 @@
     "type-check": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "wrangler d1 migrations apply accounting-db --local",
-    "db:migrate:prod": "wrangler d1 migrations apply accounting-db"
+    "db:migrate:prod": "wrangler d1 migrations apply accounting-db --remote"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.7.6",

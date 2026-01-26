@@ -122,13 +122,12 @@ export class UpdateAccountHandler {
       throw new Error('Account not found');
     }
 
-    // Check if trying to change code of system account
-    if (command.code && account.isSystemAccount) {
-      throw new Error('Cannot change code of system account');
-    }
-
     // Check code uniqueness if changing code
     if (command.code && command.code !== account.code) {
+      // Check if trying to change code of system account
+      if (account.isSystemAccount) {
+        throw new Error('Cannot change code of system account');
+      }
       const codeExists = await this.accountRepository.codeExists(command.code, account.id);
       if (codeExists) {
         throw new Error(`Account code ${command.code} already exists`);

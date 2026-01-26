@@ -43,12 +43,15 @@ export class Money {
 
   /**
    * Multiply by a factor (must be non-negative)
+   * Result is rounded to 2 decimal places for currency precision
    */
   multiply(factor: number): Money {
     if (factor < 0) {
       throw new Error('Factor cannot be negative');
     }
-    return new Money(this.amount * factor, this.currency);
+    // Round to 2 decimal places to avoid floating point precision issues
+    const result = Math.round(this.amount * factor * 100) / 100;
+    return new Money(result, this.currency);
   }
 
   /**

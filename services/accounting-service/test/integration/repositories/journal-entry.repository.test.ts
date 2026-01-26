@@ -35,8 +35,13 @@ describe('DrizzleJournalEntryRepository', () => {
     for (const statement of statements) {
       try {
         sqlite.exec(statement);
-      } catch {
-        // Ignore errors
+      } catch (error) {
+        // Only ignore "already exists" errors, rethrow others
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (!errorMessage.includes('already exists')) {
+          console.error('Migration error:', errorMessage);
+          throw error;
+        }
       }
     }
 

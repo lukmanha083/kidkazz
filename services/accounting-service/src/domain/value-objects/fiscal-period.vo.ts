@@ -78,9 +78,14 @@ export class FiscalPeriod {
 
   /**
    * Get previous fiscal period
+   * Returns null if at minimum boundary (1900-01)
    */
-  previous(): FiscalPeriod {
+  previous(): FiscalPeriod | null {
     if (this.month === 1) {
+      // Check boundary - cannot go before year 1900
+      if (this.year <= 1900) {
+        return null;
+      }
       return new FiscalPeriod(this.year - 1, 12);
     }
     return new FiscalPeriod(this.year, this.month - 1);
@@ -160,9 +165,22 @@ export class FiscalPeriod {
    * Create FiscalPeriod from string (YYYY-MM format)
    */
   static fromString(str: string): FiscalPeriod {
-    const [yearStr, monthStr] = str.split('-');
-    const year = parseInt(yearStr, 10);
-    const month = parseInt(monthStr, 10);
+    if (!str || typeof str !== 'string') {
+      throw new Error('Invalid fiscal period string: must be a non-empty string');
+    }
+
+    const match = str.match(/^(\d{4})-(\d{2})$/);
+    if (!match) {
+      throw new Error('Invalid fiscal period format: expected YYYY-MM');
+    }
+
+    const year = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10);
+
+    if (!Number.isFinite(year) || !Number.isFinite(month)) {
+      throw new Error('Invalid fiscal period: year and month must be valid numbers');
+    }
+
     return new FiscalPeriod(year, month);
   }
 }

@@ -37,12 +37,13 @@ export async function errorMiddleware(c: Context, next: Next) {
       );
     }
 
-    // Handle generic errors
+    // Handle generic errors - don't leak internal error messages
     if (error instanceof Error) {
+      // Log full error details server-side (already logged above)
       return c.json(
         {
           success: false,
-          error: error.message,
+          error: 'Internal server error',
         },
         500
       );

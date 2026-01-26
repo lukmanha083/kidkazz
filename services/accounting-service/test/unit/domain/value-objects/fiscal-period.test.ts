@@ -60,15 +60,23 @@ describe('FiscalPeriod', () => {
     it('should return previous month in same year', () => {
       const period = new FiscalPeriod(2025, 6);
       const prev = period.previous();
-      expect(prev.year).toBe(2025);
-      expect(prev.month).toBe(5);
+      expect(prev).not.toBeNull();
+      expect(prev!.year).toBe(2025);
+      expect(prev!.month).toBe(5);
     });
 
     it('should return December of previous year when current is January', () => {
       const period = new FiscalPeriod(2025, 1);
       const prev = period.previous();
-      expect(prev.year).toBe(2024);
-      expect(prev.month).toBe(12);
+      expect(prev).not.toBeNull();
+      expect(prev!.year).toBe(2024);
+      expect(prev!.month).toBe(12);
+    });
+
+    it('should return null at minimum boundary (1900-01)', () => {
+      const period = new FiscalPeriod(1900, 1);
+      const prev = period.previous();
+      expect(prev).toBeNull();
     });
   });
 

@@ -50,7 +50,7 @@ CREATE TABLE journal_entries (
   entry_type TEXT NOT NULL DEFAULT 'Manual' CHECK(entry_type IN ('Manual', 'System', 'Recurring', 'Adjusting', 'Closing')),
   status TEXT NOT NULL DEFAULT 'Draft' CHECK(status IN ('Draft', 'Posted', 'Voided')),
   fiscal_year INTEGER NOT NULL,
-  fiscal_month INTEGER NOT NULL,
+  fiscal_month INTEGER NOT NULL CHECK(fiscal_month BETWEEN 1 AND 12),
   source_service TEXT,
   source_reference_id TEXT,
   created_by TEXT NOT NULL,
@@ -90,7 +90,8 @@ CREATE TABLE journal_lines (
   sales_channel TEXT CHECK(sales_channel IN ('POS', 'Online', 'B2B', 'Marketplace', 'Wholesale')),
   customer_id TEXT,
   vendor_id TEXT,
-  product_id TEXT
+  product_id TEXT,
+  UNIQUE(journal_entry_id, line_sequence)
 );
 
 -- Journal Lines Indexes
@@ -108,7 +109,7 @@ CREATE TABLE account_balances (
   id TEXT PRIMARY KEY,
   account_id TEXT NOT NULL REFERENCES chart_of_accounts(id),
   fiscal_year INTEGER NOT NULL,
-  fiscal_month INTEGER NOT NULL,
+  fiscal_month INTEGER NOT NULL CHECK(fiscal_month BETWEEN 1 AND 12),
   opening_balance REAL NOT NULL DEFAULT 0,
   debit_total REAL NOT NULL DEFAULT 0,
   credit_total REAL NOT NULL DEFAULT 0,
@@ -124,7 +125,7 @@ CREATE INDEX idx_ab_fiscal_period ON account_balances(fiscal_year, fiscal_month)
 CREATE TABLE fiscal_periods (
   id TEXT PRIMARY KEY,
   fiscal_year INTEGER NOT NULL,
-  fiscal_month INTEGER NOT NULL,
+  fiscal_month INTEGER NOT NULL CHECK(fiscal_month BETWEEN 1 AND 12),
   status TEXT NOT NULL DEFAULT 'Open' CHECK(status IN ('Open', 'Closed', 'Locked')),
   closed_at TEXT,
   closed_by TEXT,

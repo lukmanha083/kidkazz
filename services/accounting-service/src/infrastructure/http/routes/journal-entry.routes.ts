@@ -67,6 +67,25 @@ journalEntryRoutes.get('/', zValidator('query', listJournalEntriesQuerySchema), 
 });
 
 /**
+ * GET /journal-entries/by-account/:accountId - Get journal entries by account
+ * NOTE: Must be registered BEFORE /:id to avoid route shadowing
+ */
+journalEntryRoutes.get('/by-account/:accountId', async (c) => {
+  const db = c.get('db');
+  const accountId = c.req.param('accountId');
+
+  const repository = new DrizzleJournalEntryRepository(db);
+  const handler = new GetJournalEntriesByAccountHandler(repository);
+
+  const entries = await handler.execute({ accountId });
+
+  return c.json({
+    success: true,
+    data: entries.map(toJournalEntryResponse),
+  });
+});
+
+/**
  * GET /journal-entries/:id - Get journal entry by ID
  */
 journalEntryRoutes.get('/:id', async (c) => {
@@ -85,24 +104,6 @@ journalEntryRoutes.get('/:id', async (c) => {
   return c.json({
     success: true,
     data: toJournalEntryResponse(entry),
-  });
-});
-
-/**
- * GET /journal-entries/by-account/:accountId - Get journal entries by account
- */
-journalEntryRoutes.get('/by-account/:accountId', async (c) => {
-  const db = c.get('db');
-  const accountId = c.req.param('accountId');
-
-  const repository = new DrizzleJournalEntryRepository(db);
-  const handler = new GetJournalEntriesByAccountHandler(repository);
-
-  const entries = await handler.execute({ accountId });
-
-  return c.json({
-    success: true,
-    data: entries.map(toJournalEntryResponse),
   });
 });
 
