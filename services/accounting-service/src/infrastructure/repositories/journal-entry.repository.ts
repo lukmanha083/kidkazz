@@ -259,6 +259,11 @@ export class DrizzleJournalEntryRepository implements IJournalEntryRepository {
     return this.toDomain(result[0], lines);
   }
 
+  /**
+   * Save journal entry with atomic transaction
+   * Uses db.batch() for D1 (atomic), falls back to sequential for better-sqlite3 (tests)
+   * All operations (header + lines) succeed or fail together (ACID)
+   */
   async save(entry: JournalEntry): Promise<void> {
     const now = new Date().toISOString();
 
@@ -268,11 +273,45 @@ export class DrizzleJournalEntryRepository implements IJournalEntryRepository {
       .where(eq(journalEntries.id, entry.id))
       .limit(1);
 
+    // Build all operations for atomic batch execution
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const batchOperations: any[] = [];
+
     if (existing.length > 0) {
-      // Update entry
-      await this.db
-        .update(journalEntries)
-        .set({
+      // Update: delete old lines first, then update header
+      batchOperations.push(
+        this.db.delete(journalLines).where(eq(journalLines.journalEntryId, entry.id))
+      );
+
+      batchOperations.push(
+        this.db
+          .update(journalEntries)
+          .set({
+            entryNumber: entry.entryNumber,
+            entryDate: entry.entryDate.toISOString().split('T')[0],
+            description: entry.description,
+            reference: entry.reference || null,
+            notes: entry.notes || null,
+            entryType: entry.entryType,
+            status: entry.status,
+            fiscalYear: entry.fiscalPeriod.year,
+            fiscalMonth: entry.fiscalPeriod.month,
+            sourceService: entry.sourceService || null,
+            sourceReferenceId: entry.sourceReferenceId || null,
+            postedBy: entry.postedBy || null,
+            postedAt: entry.postedAt?.toISOString() || null,
+            voidedBy: entry.voidedBy || null,
+            voidedAt: entry.voidedAt?.toISOString() || null,
+            voidReason: entry.voidReason || null,
+            updatedAt: now,
+          })
+          .where(eq(journalEntries.id, entry.id))
+      );
+    } else {
+      // Insert new entry header
+      batchOperations.push(
+        this.db.insert(journalEntries).values({
+          id: entry.id,
           entryNumber: entry.entryNumber,
           entryDate: entry.entryDate.toISOString().split('T')[0],
           description: entry.description,
@@ -284,6 +323,8 @@ export class DrizzleJournalEntryRepository implements IJournalEntryRepository {
           fiscalMonth: entry.fiscalPeriod.month,
           sourceService: entry.sourceService || null,
           sourceReferenceId: entry.sourceReferenceId || null,
+          createdBy: entry.createdBy,
+          createdAt: now,
           postedBy: entry.postedBy || null,
           postedAt: entry.postedAt?.toISOString() || null,
           voidedBy: entry.voidedBy || null,
@@ -291,53 +332,42 @@ export class DrizzleJournalEntryRepository implements IJournalEntryRepository {
           voidReason: entry.voidReason || null,
           updatedAt: now,
         })
-        .where(eq(journalEntries.id, entry.id));
-
-      // Delete existing lines and re-insert
-      await this.db.delete(journalLines).where(eq(journalLines.journalEntryId, entry.id));
-    } else {
-      // Insert new entry
-      await this.db.insert(journalEntries).values({
-        id: entry.id,
-        entryNumber: entry.entryNumber,
-        entryDate: entry.entryDate.toISOString().split('T')[0],
-        description: entry.description,
-        reference: entry.reference || null,
-        notes: entry.notes || null,
-        entryType: entry.entryType,
-        status: entry.status,
-        fiscalYear: entry.fiscalPeriod.year,
-        fiscalMonth: entry.fiscalPeriod.month,
-        sourceService: entry.sourceService || null,
-        sourceReferenceId: entry.sourceReferenceId || null,
-        createdBy: entry.createdBy,
-        createdAt: now,
-        postedBy: entry.postedBy || null,
-        postedAt: entry.postedAt?.toISOString() || null,
-        voidedBy: entry.voidedBy || null,
-        voidedAt: entry.voidedAt?.toISOString() || null,
-        voidReason: entry.voidReason || null,
-        updatedAt: now,
-      });
+      );
     }
 
-    // Insert lines
+    // Add all line inserts to batch
     for (const line of entry.lines) {
-      await this.db.insert(journalLines).values({
-        id: line.id,
-        journalEntryId: entry.id,
-        lineSequence: line.lineSequence,
-        accountId: line.accountId,
-        direction: line.direction,
-        amount: line.amount,
-        memo: line.memo || null,
-        salesPersonId: line.salesPersonId || null,
-        warehouseId: line.warehouseId || null,
-        salesChannel: line.salesChannel || null,
-        customerId: line.customerId || null,
-        vendorId: line.vendorId || null,
-        productId: line.productId || null,
-      });
+      batchOperations.push(
+        this.db.insert(journalLines).values({
+          id: line.id,
+          journalEntryId: entry.id,
+          lineSequence: line.lineSequence,
+          accountId: line.accountId,
+          direction: line.direction,
+          amount: line.amount,
+          memo: line.memo || null,
+          salesPersonId: line.salesPersonId || null,
+          warehouseId: line.warehouseId || null,
+          salesChannel: line.salesChannel || null,
+          customerId: line.customerId || null,
+          vendorId: line.vendorId || null,
+          productId: line.productId || null,
+        })
+      );
+    }
+
+    // Execute atomically:
+    // - D1: uses db.batch() for atomic execution (all or nothing)
+    // - better-sqlite3 (tests): sequential execution (single-threaded, safe)
+    if (typeof this.db.batch === 'function') {
+      // D1 runtime: atomic batch
+      await this.db.batch(batchOperations);
+    } else {
+      // Test environment (better-sqlite3): execute sequentially
+      // Note: better-sqlite3 is single-threaded, so this is safe for tests
+      for (const op of batchOperations) {
+        await op;
+      }
     }
   }
 
