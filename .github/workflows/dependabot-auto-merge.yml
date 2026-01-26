@@ -23,7 +23,7 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" == "workflow_run" ]; then
             # Get PR number from workflow_run event
-            PR_NUMBER=$(gh pr list --head "${{ github.event.workflow_run.head_branch }}" --json number --jq '.[0].number')
+            PR_NUMBER=$(gh pr list --repo "${{ github.repository }}" --head "${{ github.event.workflow_run.head_branch }}" --json number --jq '.[0].number')
             echo "number=$PR_NUMBER" >> $GITHUB_OUTPUT
           else
             echo "number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
@@ -38,7 +38,7 @@ jobs:
           # Wait up to 3 minutes for checks (excluding CodeRabbit which skips bot PRs)
           for i in {1..18}; do
             # Exclude CodeRabbit from check evaluation (it skips bot PRs)
-            STATUS=$(gh pr checks ${{ steps.pr.outputs.number }} --json name,state --jq '
+            STATUS=$(gh pr checks ${{ steps.pr.outputs.number }} --repo "${{ github.repository }}" --json name,state --jq '
               map(select(.name != "CodeRabbit" and .state != "SKIPPED")) |
               if length == 0 then "pass"
               elif all(.state == "SUCCESS" or .state == "NEUTRAL") then "pass"
@@ -66,14 +66,14 @@ jobs:
       - name: Auto-approve PR
         if: steps.pr.outputs.number != ''
         run: |
-          gh pr review ${{ steps.pr.outputs.number }} --approve --body "Auto-approved by Dependabot Auto-Merge workflow"
+          gh pr review ${{ steps.pr.outputs.number }} --repo "${{ github.repository }}" --approve --body "Auto-approved by Dependabot Auto-Merge workflow"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Enable auto-merge
         if: steps.pr.outputs.number != ''
         run: |
-          gh pr merge ${{ steps.pr.outputs.number }} --auto --squash --delete-branch
+          gh pr merge ${{ steps.pr.outputs.number }} --repo "${{ github.repository }}" --auto --squash --delete-branch
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -85,7 +85,7 @@ jobs:
       - name: Get PR number
         id: pr
         run: |
-          PR_NUMBER=$(gh pr list --head "${{ github.event.workflow_run.head_branch }}" --json number --jq '.[0].number')
+          PR_NUMBER=$(gh pr list --repo "${{ github.repository }}" --head "${{ github.event.workflow_run.head_branch }}" --json number --jq '.[0].number')
           echo "number=$PR_NUMBER" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -94,10 +94,10 @@ jobs:
         if: steps.pr.outputs.number != ''
         run: |
           # Check if we already commented to avoid spam
-          EXISTING=$(gh pr view ${{ steps.pr.outputs.number }} --json comments --jq '.comments | map(select(.body | contains("@dependabot rebase"))) | length')
+          EXISTING=$(gh pr view ${{ steps.pr.outputs.number }} --repo "${{ github.repository }}" --json comments --jq '.comments | map(select(.body | contains("@dependabot rebase"))) | length')
 
           if [ "$EXISTING" -eq "0" ]; then
-            gh pr comment ${{ steps.pr.outputs.number }} --body "@dependabot rebase"
+            gh pr comment ${{ steps.pr.outputs.number }} --repo "${{ github.repository }}" --body "@dependabot rebase"
             echo "Requested Dependabot to rebase PR #${{ steps.pr.outputs.number }}"
           else
             echo "Already requested rebase, skipping"
