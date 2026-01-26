@@ -19,6 +19,8 @@ on:
 jobs:
   update-graph:
     runs-on: ubuntu-latest
+    # Skip Dependabot PRs (they only change package.json, not service code)
+    if: github.actor != 'dependabot[bot]'
     permissions:
       contents: write
       pull-requests: write
