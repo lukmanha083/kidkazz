@@ -3,7 +3,7 @@
 **Project**: Kidkazz - Real-Time Omnichannel ERP
 **Architecture**: Microservices + DDD + Hexagonal + Event-Driven (Cloudflare Workers)
 **Status**: Phases 1-6 Complete | Phases 7-8 Pending
-**Last Updated**: 2026-01-22
+**Last Updated**: 2026-01-26
 
 ---
 
@@ -93,22 +93,18 @@ pnpm generate:service-graph
 
 ## Current Status: DDD Refactoring Progress
 
-| Phase | Description | Status | Docs |
-|-------|-------------|--------|------|
-| **Phase 1** | Inventory Integration | ✅ Complete | [Summary](implementation/phases/PHASE1_IMPLEMENTATION_SUMMARY.md) |
-| **Phase 2** | Single Source of Truth | ✅ Complete | [Summary](implementation/phases/PHASE2_IMPLEMENTATION_SUMMARY.md) |
-| **Phase 3** | Batch Tracking & FEFO | ✅ Complete | [Summary](ddd/DDD_REFACTORING_COMPLETE_SUMMARY.md) |
-| **Phase 4** | Schema Cleanup | ✅ Complete | [Roadmap](ddd/DDD_REFACTORING_ROADMAP.md) |
-| **Phase 5** | API Refactoring | ✅ Complete | [Roadmap](ddd/DDD_REFACTORING_ROADMAP.md) |
+| Phase | Description | Status | Related Docs |
+|-------|-------------|--------|--------------|
+| **Phase 1** | Inventory Integration | ✅ Complete | [Inventory Business Rules](bounded-contexts/inventory/BUSINESS_RULES.md) |
+| **Phase 2** | Single Source of Truth | ✅ Complete | [Inventory Business Rules](bounded-contexts/inventory/BUSINESS_RULES.md) |
+| **Phase 3** | Batch Tracking & FEFO | ✅ Complete | [Product Bundles](bounded-contexts/inventory/PRODUCT_BUNDLES_STOCK_HANDLING.md) |
+| **Phase 4** | Schema Cleanup | ✅ Complete | [Business Rules](ddd/BUSINESS_RULES.md) |
+| **Phase 5** | API Refactoring | ✅ Complete | [Business Rules](ddd/BUSINESS_RULES.md) |
 | **Phase 6** | Testing & Validation | ✅ Complete | [Testing Guide](testing/DDD_REFACTORING_TESTING_GUIDE.md) |
-| **Phase 7** | Inter-Warehouse Transfer | ⏳ **PENDING** | [Roadmap Lines 1101+](ddd/DDD_REFACTORING_ROADMAP.md#phase-7-inter-warehouse-transfer-inboundoutbound-workflow) |
-| **Phase 8** | Stock Opname & Physical Bundles | ⏳ **PENDING** | [Roadmap Lines 2400+](ddd/DDD_REFACTORING_ROADMAP.md#phase-8-stock-opname--physical-bundles) |
+| **Phase 7** | Inter-Warehouse Transfer | ⏳ **PENDING** | [Phase 7 Spec](bounded-contexts/inventory/PHASE_7_INTER_WAREHOUSE_TRANSFER.md) |
+| **Phase 8** | Stock Opname & Physical Bundles | ⏳ **PENDING** | [Product Bundles](bounded-contexts/inventory/PRODUCT_BUNDLES_STOCK_HANDLING.md) |
 
-**Recent Commits**:
-- `f00e4ff` - Merge PR #98 (Review test docs)
-- `1a311d8` - Fix batches endpoint URL in phase6-validation
-- `8138e27` - Add seed data script and WebSocket test page
-- `f8c3b3a` - Comprehensive unit testing for phases 1-6
+**Note**: Outdated roadmap docs were cleaned up. Current specs live in `docs/bounded-contexts/`.
 
 ---
 
@@ -369,7 +365,7 @@ const form = useForm({
 5. **Test**: Multiple breakpoints (320px, 375px, 768px, 1024px, 1440px)
 
 ### Task: Implement Phase 7 (Inter-Warehouse Transfer)
-1. **Read First**: `docs/ddd/DDD_REFACTORING_ROADMAP.md` (lines 1101-2399)
+1. **Read First**: `docs/bounded-contexts/inventory/PHASE_7_INTER_WAREHOUSE_TRANSFER.md`
 2. **Review**: Workflow diagram, state machine, schema design
 3. **Key Concepts**:
    - Inbound workflow (destination requests)
@@ -383,7 +379,7 @@ const form = useForm({
    - WebSocket events for real-time transfer tracking
 
 ### Task: Implement Phase 8 (Stock Opname & Physical Bundles)
-1. **Read First**: `docs/ddd/DDD_REFACTORING_ROADMAP.md` (lines 2400+)
+1. **Read First**: `docs/bounded-contexts/inventory/PRODUCT_BUNDLES_STOCK_HANDLING.md`
 2. **Review**: Stock opname workflow, physical bundle assembly
 3. **Key Concepts**:
    - Stock opname: Reconcile system inventory with physical count
@@ -712,8 +708,11 @@ wrangler d1 execute kidkazz-db --file=services/inventory-service/migrations/0006
 **IMPORTANT**: Always use `gh` CLI for all GitHub operations instead of raw git commands for remote operations.
 
 ```bash
-# Push changes
-gh repo sync --push
+# Setup gh credentials for git (run once)
+gh auth setup-git
+
+# Push changes (uses gh credentials automatically)
+git push origin main
 
 # Create PR
 gh pr create --title "Title" --body "Description"
@@ -788,17 +787,17 @@ gh auth setup-git
 ## Quick Links to Essential Docs
 
 ### Must Read Before Any Task
-- [DDD Refactoring Roadmap](ddd/DDD_REFACTORING_ROADMAP.md) - THE master plan
-- [Business Rules](ddd/BUSINESS_RULES.md) - Domain constraints
+- [Business Rules](ddd/BUSINESS_RULES.md) - Domain constraints (THE master reference)
 - [Architecture Overview](architecture/ARCHITECTURE.md) - System design
+- [SERVICE_GRAPH.yaml](../SERVICE_GRAPH.yaml) - Codebase knowledge graph
 
 ### For Phase 7 (Inter-Warehouse Transfer)
-- [Roadmap Section 7](ddd/DDD_REFACTORING_ROADMAP.md) - Lines 1101-2399
-- [Migration Strategy](ddd/DDD_MIGRATION_GUIDE.md)
+- [Phase 7 Specification](bounded-contexts/inventory/PHASE_7_INTER_WAREHOUSE_TRANSFER.md)
+- [Good Receipt/Issue Workflow](bounded-contexts/inventory/GOOD_RECEIPT_ISSUE_WORKFLOW.md)
 
 ### For Phase 8 (Stock Opname & Physical Bundles)
-- [Roadmap Section 8](ddd/DDD_REFACTORING_ROADMAP.md) - Lines 2400+
 - [Bundle Handling](bounded-contexts/inventory/PRODUCT_BUNDLES_STOCK_HANDLING.md)
+- [Stock Opname Journal Entry](bounded-contexts/accounting/STOCK_OPNAME_JOURNAL_ENTRY.md)
 
 ### For Inventory Work
 - [Inventory Business Rules](bounded-contexts/inventory/BUSINESS_RULES.md) - **Stock, batches, FEFO, multi-warehouse**
@@ -808,8 +807,8 @@ gh auth setup-git
 
 ### For Testing
 - [Testing Guide](testing/DDD_REFACTORING_TESTING_GUIDE.md) - Comprehensive E2E scenarios
-- [Phase 1 Testing](implementation/phases/PHASE1_TESTING_GUIDE.md)
 - [Inventory Integration Testing](testing/INVENTORY_INTEGRATION_TESTING.md)
+- [Manual Testing Checklist](testing/MANUAL_TESTING_CHECKLIST.md)
 
 ### For Accounting Work
 - [Accounting Business Rules](bounded-contexts/accounting/BUSINESS_RULES.md) - **Double-entry bookkeeping rules, reconciliation, cash flow**
@@ -875,12 +874,19 @@ gh auth setup-git
 
 ### For Frontend Work
 - ⭐ [UI Design Guideline](guides/UI_DESIGN_GUIDELINE.md) - **MUST READ** for all frontend features
-- [Frontend Architecture](bounded-contexts/frontend/FRONTEND_ARCHITECTURE.md)
-- [Frontend Refactoring Roadmap](bounded-contexts/frontend/FRONTEND_REFACTORING_ROADMAP.md)
-- [Phase 2B Migration Guide](implementation/phases/PHASE2B_FRONTEND_MIGRATION_GUIDE.md)
+- [Frontend Architecture](bounded-contexts/frontend/FRONTEND_ARCHITECTURE.md) - Tanstack ecosystem, ShadCN UI, responsive design
+- [ERP Dashboard Structure](bounded-contexts/erp-dashboard/DASHBOARD_STRUCTURE.md)
+- [Virtual Scrolling Guide](bounded-contexts/erp-dashboard/VIRTUAL_SCROLLING_GUIDE.md)
+
+### For POS Work (Future)
+- [POS Variant Selection Workflow](bounded-contexts/pos/POS_VARIANT_SELECTION_WORKFLOW.md)
+
+### For HRM Work (Employee Management)
+- [HRM Service Architecture](bounded-contexts/hrm/HRM_SERVICE_ARCHITECTURE.md)
+- [HRM Business Rules](bounded-contexts/hrm/BUSINESS_RULES.md)
 
 ### For Integration
-- [Microservices Integration](integration/MICROSERVICES_INTEGRATION_ROADMAP.md)
+- [Backend Integration Requirements](integration/BACKEND_INTEGRATION_REQUIREMENTS.md)
 - [Saga Pattern](architecture/SAGA_PATTERN_DISTRIBUTED_TRANSACTIONS.md)
 - [Event-Driven Architecture](architecture/EVENT_DRIVEN_ARCHITECTURE_CLOUDFLARE.md)
 
@@ -900,40 +906,53 @@ docs/
 ├── architecture/                ← System architecture
 │   ├── ARCHITECTURE.md
 │   ├── DDD_HEXAGONAL_BOUNDARY_REVIEW.md
+│   ├── EVENT_DRIVEN_ARCHITECTURE_CLOUDFLARE.md
 │   └── SAGA_PATTERN_DISTRIBUTED_TRANSACTIONS.md
 │
-├── ddd/                         ← DDD core (THE SOURCE OF TRUTH)
-│   ├── DDD_REFACTORING_ROADMAP.md          ⭐ MASTER PLAN
-│   ├── DDD_REFACTORING_COMPLETE_SUMMARY.md
-│   ├── BUSINESS_RULES.md
-│   └── DDD_MIGRATION_GUIDE.md
+├── ddd/                         ← DDD core
+│   └── BUSINESS_RULES.md        ⭐ THE SOURCE OF TRUTH
 │
-├── bounded-contexts/            ← Domain boundaries
-│   ├── accounting/
-│   ├── business-partner/
-│   ├── chatbot/                 ← NEW: AI customer service
-│   ├── frontend/
-│   ├── inventory/
-│   ├── notification/
-│   ├── payment/
-│   ├── procurement/
-│   ├── product/
-│   ├── reporting/
-│   └── sales/
+├── bounded-contexts/            ← Domain boundaries (main documentation)
+│   ├── accounting/              ← 27 docs: journal entries, COA, assets
+│   ├── business-partner/        ← Employees, suppliers, customers, RBAC
+│   ├── chatbot/                 ← AI customer service (Grok + Vercel AI)
+│   ├── erp-dashboard/           ← Dashboard structure, audit trail
+│   ├── frontend/                ← Tanstack, ShadCN UI architecture
+│   ├── hrm/                     ← Employee management (payroll, attendance)
+│   ├── inventory/               ← Stock, batches, FEFO, transfers, bundles
+│   ├── notification/            ← sent.dm integration, templates
+│   ├── payment/                 ← Midtrans, QRIS, EDC, refunds
+│   ├── pos/                     ← Point of Sale (future)
+│   ├── procurement/             ← Purchase orders, forecasting
+│   ├── product/                 ← Catalog, pricing, UOM, variants
+│   ├── reporting/               ← OLAP, analytics, archival
+│   └── sales/                   ← Orders, channels, fulfillment
 │
 ├── implementation/              ← Implementation tracking
-│   ├── phases/                  ← Phase 1-6 summaries
-│   └── strategies/              ← Implementation strategies
+│   └── strategies/              ← Multi-warehouse, location strategies
 │
 ├── testing/                     ← Testing documentation
-│   └── DDD_REFACTORING_TESTING_GUIDE.md
+│   ├── DDD_REFACTORING_TESTING_GUIDE.md
+│   ├── INVENTORY_INTEGRATION_TESTING.md
+│   └── MANUAL_TESTING_CHECKLIST.md
 │
-├── guides/                      ← How-to guides
-│   └── DEVELOPMENT_SETUP_GUIDE.md
+├── guides/                      ← How-to guides (20+ guides)
+│   ├── UI_DESIGN_GUIDELINE.md   ⭐ MUST READ for frontend
+│   ├── DEVELOPMENT_SETUP_GUIDE.md
+│   └── ...
 │
-└── integration/                 ← Integration docs
-    └── MICROSERVICES_INTEGRATION_ROADMAP.md
+├── integration/                 ← Integration docs
+│   ├── BACKEND_INTEGRATION_REQUIREMENTS.md
+│   └── RBAC_IMPLEMENTATION_PLAN.md
+│
+├── tooling/                     ← Dev tools docs
+│   └── DEPENDENCY_STATUS.md
+│
+└── decisions/                   ← Architecture Decision Records
+    └── TESTING_PRIORITY_ANALYSIS.md
 ```
+
+**Note**: See `SERVICE_GRAPH.yaml` for auto-generated index of all 100+ docs.
 
 ---
 
@@ -1173,8 +1192,22 @@ pnpm check         # Verify no issues
 
 ---
 
-**Version**: 1.0
+**Version**: 1.1
 **Maintained by**: Claude AI Assistant
-**Last Sync**: 2026-01-22
+**Last Sync**: 2026-01-26
 
 For navigation help, see: [README.md](README.md)
+
+## Automation
+
+### SERVICE_GRAPH.yaml
+Auto-generated codebase knowledge graph. Updated on every push to main.
+```bash
+pnpm generate:service-graph      # Regenerate manually
+pnpm validate:service-graph      # Validate only
+```
+
+### Dependabot
+Automated dependency updates every Monday 09:00 WIB.
+- Groups: cloudflare, tanstack, hono, database, dev-tools
+- Config: `.github/dependabot.yml`
