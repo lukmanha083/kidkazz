@@ -1,0 +1,86 @@
+name: Dependabot Retry Failed PRs
+
+on:
+  schedule:
+    # Run every 6 hours
+    - cron: '0 */6 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  retry-failed-prs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Retry failed Dependabot PRs
+        run: |
+          echo "Checking for failed Dependabot PRs..."
+
+          # Get all open Dependabot PRs
+          PRS=$(gh pr list --author "dependabot[bot]" --state open --json number,headRefName --jq '.[] | "\(.number) \(.headRefName)"')
+
+          if [ -z "$PRS" ]; then
+            echo "No open Dependabot PRs found"
+            exit 0
+          fi
+
+          while IFS= read -r line; do
+            PR_NUMBER=$(echo "$line" | cut -d' ' -f1)
+            BRANCH=$(echo "$line" | cut -d' ' -f2-)
+
+            echo "Checking PR #$PR_NUMBER ($BRANCH)..."
+
+            # Check if any checks failed
+            FAILED=$(gh pr checks "$PR_NUMBER" --json state --jq 'map(select(.state == "FAILURE")) | length' 2>/dev/null || echo "0")
+
+            if [ "$FAILED" -gt "0" ]; then
+              echo "PR #$PR_NUMBER has $FAILED failed checks"
+
+              # Check if we recently commented (within last 6 hours)
+              RECENT_COMMENT=$(gh pr view "$PR_NUMBER" --json comments --jq '.comments | map(select(.body | contains("@dependabot"))) | map(select(.createdAt > (now - 21600 | todate))) | length' 2>/dev/null || echo "0")
+
+              if [ "$RECENT_COMMENT" -eq "0" ]; then
+                echo "Requesting Dependabot to recreate PR #$PR_NUMBER"
+                gh pr comment "$PR_NUMBER" --body "@dependabot recreate"
+              else
+                echo "Already requested recently, skipping PR #$PR_NUMBER"
+              fi
+            else
+              echo "PR #$PR_NUMBER has no failed checks"
+            fi
+
+          done <<< "$PRS"
+
+          echo "Done!"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+
+  close-stale-prs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Close stale Dependabot PRs
+        run: |
+          echo "Checking for stale Dependabot PRs (>14 days old)..."
+
+          # Get Dependabot PRs older than 14 days
+          STALE_PRS=$(gh pr list --author "dependabot[bot]" --state open --json number,createdAt --jq '.[] | select(.createdAt < (now - 1209600 | todate)) | .number')
+
+          if [ -z "$STALE_PRS" ]; then
+            echo "No stale Dependabot PRs found"
+            exit 0
+          fi
+
+          for PR_NUMBER in $STALE_PRS; do
+            echo "Closing stale PR #$PR_NUMBER"
+            gh pr close "$PR_NUMBER" --comment "Closing stale Dependabot PR. A new PR will be created on the next Dependabot run."
+          done
+
+          echo "Done!"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
