@@ -3,3 +3,5 @@ packages:
   - 'apps/*'
   - 'shared/*'
   - 'packages/*'
+
+# Security fix: force jspdf to v4
