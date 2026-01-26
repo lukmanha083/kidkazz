@@ -35,11 +35,16 @@ jobs:
         if: steps.pr.outputs.number != ''
         run: |
           echo "Waiting for PR #${{ steps.pr.outputs.number }} checks..."
-          # Wait up to 3 minutes for checks (excluding CodeRabbit which skips bot PRs)
+          # Wait up to 3 minutes for checks
           for i in {1..18}; do
-            # Exclude CodeRabbit from check evaluation (it skips bot PRs)
+            # Exclude: CodeRabbit (skips bot PRs), this workflow's own jobs, and skipped checks
             STATUS=$(gh pr checks ${{ steps.pr.outputs.number }} --repo "${{ github.repository }}" --json name,state --jq '
-              map(select(.name != "CodeRabbit" and .state != "SKIPPED")) |
+              map(select(
+                .name != "CodeRabbit" and
+                .name != "auto-approve-and-merge" and
+                .name != "retry-on-failure" and
+                .state != "SKIPPED"
+              )) |
               if length == 0 then "pass"
               elif all(.state == "SUCCESS" or .state == "NEUTRAL") then "pass"
               elif any(.state == "FAILURE") then "fail"
@@ -48,7 +53,7 @@ jobs:
             ' 2>/dev/null || echo "pending")
 
             if [ "$STATUS" == "pass" ]; then
-              echo "All checks passed (excluding CodeRabbit)!"
+              echo "All required checks passed!"
               exit 0
             elif [ "$STATUS" == "fail" ]; then
               echo "Some checks failed"
