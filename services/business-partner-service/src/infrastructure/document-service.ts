@@ -200,15 +200,27 @@ export class DocumentService {
 
   /**
    * Delete all documents for an owner
+   * Handles R2 pagination to ensure all objects are deleted
    */
   async deleteOwnerDocuments(ownerType: string, ownerId: string): Promise<void> {
-    // List all objects with the owner prefix
-    const listed = await this.r2.list({
-      prefix: `${ownerType}/${ownerId}/`,
-    });
+    const prefix = `${ownerType}/${ownerId}/`;
+    let cursor: string | undefined;
 
-    // Delete all documents
-    await Promise.all(listed.objects.map((object) => this.deleteDocument(object.key)));
+    // Iterate through all pages of results
+    do {
+      const listed = await this.r2.list({
+        prefix,
+        cursor,
+      });
+
+      // Delete all documents in this page
+      if (listed.objects.length > 0) {
+        await Promise.all(listed.objects.map((object) => this.deleteDocument(object.key)));
+      }
+
+      // Get cursor for next page if truncated
+      cursor = listed.truncated ? listed.cursor : undefined;
+    } while (cursor);
   }
 
   /**

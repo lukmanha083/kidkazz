@@ -308,15 +308,27 @@ export class ImageService {
 
   /**
    * Delete all images for a product
+   * Handles R2 pagination to ensure all objects are deleted
    */
   async deleteProductImages(productId: string): Promise<void> {
-    // List all objects with the product prefix
-    const listed = await this.r2.list({
-      prefix: `products/${productId}/`,
-    });
+    const prefix = `products/${productId}/`;
+    let cursor: string | undefined;
 
-    // Delete all images
-    await Promise.all(listed.objects.map((object) => this.deleteImage(object.key)));
+    // Iterate through all pages of results
+    do {
+      const listed = await this.r2.list({
+        prefix,
+        cursor,
+      });
+
+      // Delete all images in this page
+      if (listed.objects.length > 0) {
+        await Promise.all(listed.objects.map((object) => this.deleteImage(object.key)));
+      }
+
+      // Get cursor for next page if truncated
+      cursor = listed.truncated ? listed.cursor : undefined;
+    } while (cursor);
   }
 
   /**
