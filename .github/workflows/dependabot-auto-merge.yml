@@ -35,19 +35,27 @@ jobs:
         if: steps.pr.outputs.number != ''
         run: |
           echo "Waiting for PR #${{ steps.pr.outputs.number }} checks..."
-          # Wait up to 5 minutes for checks
-          for i in {1..30}; do
-            STATUS=$(gh pr checks ${{ steps.pr.outputs.number }} --json state --jq 'map(select(.state != "SKIPPED")) | if all(.state == "SUCCESS" or .state == "NEUTRAL") then "pass" elif any(.state == "FAILURE") then "fail" else "pending" end' 2>/dev/null || echo "pending")
+          # Wait up to 3 minutes for checks (excluding CodeRabbit which skips bot PRs)
+          for i in {1..18}; do
+            # Exclude CodeRabbit from check evaluation (it skips bot PRs)
+            STATUS=$(gh pr checks ${{ steps.pr.outputs.number }} --json name,state --jq '
+              map(select(.name != "CodeRabbit" and .state != "SKIPPED")) |
+              if length == 0 then "pass"
+              elif all(.state == "SUCCESS" or .state == "NEUTRAL") then "pass"
+              elif any(.state == "FAILURE") then "fail"
+              else "pending"
+              end
+            ' 2>/dev/null || echo "pending")
 
             if [ "$STATUS" == "pass" ]; then
-              echo "All checks passed!"
+              echo "All checks passed (excluding CodeRabbit)!"
               exit 0
             elif [ "$STATUS" == "fail" ]; then
               echo "Some checks failed"
               exit 1
             fi
 
-            echo "Checks still pending, waiting... ($i/30)"
+            echo "Checks still pending, waiting... ($i/18)"
             sleep 10
           done
           echo "Timeout waiting for checks"
