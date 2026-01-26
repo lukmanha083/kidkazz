@@ -8,12 +8,12 @@
 # - Documentation links
 # - Cross-service business flows
 #
-# Generated: 2026-01-26T16:35:02.829Z
+# Generated: 2026-01-26T18:11:55.899Z
 # Generator: scripts/generate-service-graph.ts
 #
 # DO NOT EDIT MANUALLY - Run: pnpm generate:service-graph
 
-generated: "2026-01-26T16:35:02.829Z"
+generated: "2026-01-26T18:11:55.899Z"
 generator: scripts/generate-service-graph.ts
 boundedContexts:
   accounting:
