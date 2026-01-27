@@ -427,13 +427,24 @@ Monthly = (Acquisition Cost - Salvage Value) / Useful Life Months
 
 #### Declining Balance (Double)
 ```
-Monthly = Book Value × (2 / Useful Life Months) / 12
+Annual Rate = (12 / Useful Life Months) × 2
+Annual Depreciation = Book Value × Annual Rate
+Monthly = Annual Depreciation / 12
 ```
+Simplified: `Monthly = Book Value × (2 / Useful Life Months)`
 
 #### Sum of Years Digits
 ```
 Sum = n(n+1)/2 where n = useful life years
-Monthly = (Cost - Salvage) × (Remaining Years / Sum) / 12
+Annual = (Cost - Salvage) × (Remaining Years / Sum)
+Monthly = Annual / 12
+```
+
+#### Units of Production
+> **Note**: Not yet implemented. Requires tracking of units produced per period.
+```
+Depreciation per Unit = (Cost - Salvage) / Total Expected Units
+Period Depreciation = Depreciation per Unit × Units Produced
 ```
 
 ### Commands
@@ -491,17 +502,30 @@ src/infrastructure/repositories/
 When disposing an asset, the system creates a journal entry:
 
 ```
-// For Sale at Loss (Book Value > Disposal Value)
-Debit:  Accumulated Depreciation        xxx
-Debit:  Loss on Disposal               xxx
-Credit: Fixed Asset                         xxx
-
-// For Sale at Gain (Disposal Value > Book Value)
-Debit:  Accumulated Depreciation        xxx
-Debit:  Cash/Receivable                xxx
-Credit: Fixed Asset                         xxx
-Credit: Gain on Disposal                    xxx
+// Standard disposal entry structure:
+Debit:  Accumulated Depreciation (total accumulated)    xxx
+Debit:  Gain/Loss Account (disposal proceeds)           xxx
+Credit: Fixed Asset (acquisition cost)                      xxx
+Debit/Credit: Gain/Loss (difference)                    xxx
 ```
+
+**Example - Sale at Loss** (Book Value 5M, Sold for 3.5M):
+```
+Debit:  Accumulated Depreciation         0  (if no depreciation yet)
+Credit: Fixed Asset                          5,000,000
+Debit:  Gain/Loss Account (proceeds)     3,500,000
+Debit:  Loss on Disposal                 1,500,000
+```
+
+**Example - Sale at Gain** (Book Value 2M, Sold for 3M):
+```
+Debit:  Accumulated Depreciation         3,000,000
+Credit: Fixed Asset                          5,000,000
+Debit:  Gain/Loss Account (proceeds)     3,000,000
+Credit: Gain on Disposal                     1,000,000
+```
+
+> **Note**: Current implementation routes disposal proceeds through the Gain/Loss account for simplicity. In a full implementation, you may want to use a separate Cash/Receivable account.
 
 ### Disposal Commands
 
