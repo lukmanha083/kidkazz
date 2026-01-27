@@ -130,10 +130,14 @@ accountRoutes.post('/', zValidator('json', createAccountSchema), async (c) => {
   try {
     const result = await handler.execute(body);
 
+    // Fetch the full account to return complete data
+    const getHandler = new GetAccountByIdHandler(repository);
+    const account = await getHandler.execute({ id: result.id });
+
     return c.json(
       {
         success: true,
-        data: toAccountResponse(result),
+        data: account ? toAccountResponse(account) : result,
       },
       201
     );
@@ -155,11 +159,19 @@ accountRoutes.put('/:id', zValidator('json', updateAccountSchema), async (c) => 
   const handler = new UpdateAccountHandler(repository);
 
   try {
-    const result = await handler.execute({ id, ...body });
+    await handler.execute({ id, ...body });
+
+    // Fetch the full account to return complete data
+    const getHandler = new GetAccountByIdHandler(repository);
+    const account = await getHandler.execute({ id });
+
+    if (!account) {
+      return c.json({ success: false, error: 'Account not found' }, 404);
+    }
 
     return c.json({
       success: true,
-      data: toAccountResponse(result),
+      data: toAccountResponse(account),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to update account';

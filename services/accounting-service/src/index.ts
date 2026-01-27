@@ -2,7 +2,12 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { databaseMiddleware, errorMiddleware } from '@/infrastructure/http/middleware';
-import { accountRoutes, journalEntryRoutes } from '@/infrastructure/http/routes';
+import {
+  accountRoutes,
+  journalEntryRoutes,
+  assetCategoryRoutes,
+  assetRoutes,
+} from '@/infrastructure/http/routes';
 
 type Bindings = {
   DB: D1Database;
@@ -41,6 +46,8 @@ app.get('/health', (c) => {
 // API routes
 app.route('/api/v1/accounts', accountRoutes);
 app.route('/api/v1/journal-entries', journalEntryRoutes);
+app.route('/api/v1/asset-categories', assetCategoryRoutes);
+app.route('/api/v1/assets', assetRoutes);
 
 // Root endpoint
 app.get('/', (c) => {
@@ -52,6 +59,8 @@ app.get('/', (c) => {
       health: '/health',
       accounts: '/api/v1/accounts',
       journalEntries: '/api/v1/journal-entries',
+      assetCategories: '/api/v1/asset-categories',
+      assets: '/api/v1/assets',
     },
   });
 });

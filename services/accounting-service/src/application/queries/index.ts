@@ -19,3 +19,21 @@ export {
   GetJournalEntriesByFiscalPeriodQuery,
   GetJournalEntriesByFiscalPeriodHandler,
 } from './journal-entry.queries';
+
+export {
+  GetAssetCategoryQuery,
+  GetAssetCategoryHandler,
+  GetAssetCategoryResult,
+  ListAssetCategoriesQuery,
+  ListAssetCategoriesHandler,
+  GetAssetQuery,
+  GetAssetHandler,
+  AssetResult,
+  ListAssetsQuery,
+  ListAssetsHandler,
+  PaginatedAssetResult,
+  GetAssetByBarcodeQuery,
+  GetAssetByBarcodeHandler,
+  GetDepreciableAssetsQuery,
+  GetDepreciableAssetsHandler,
+} from './asset.queries';

@@ -25,3 +25,27 @@ export {
   VoidJournalEntryHandler,
   VoidJournalEntryResult,
 } from './journal-entry.commands';
+
+export {
+  CreateAssetCategoryCommand,
+  CreateAssetCategoryHandler,
+  CreateAssetCategoryResult,
+  UpdateAssetCategoryCommand,
+  UpdateAssetCategoryHandler,
+  DeleteAssetCategoryCommand,
+  DeleteAssetCategoryHandler,
+  CreateAssetCommand,
+  CreateAssetHandler,
+  CreateAssetResult,
+  ActivateAssetCommand,
+  ActivateAssetHandler,
+  ActivateAssetResult,
+  UpdateAssetCommand,
+  UpdateAssetHandler,
+  TransferAssetCommand,
+  TransferAssetHandler,
+  TransferAssetResult,
+  DisposeAssetCommand,
+  DisposeAssetHandler,
+  DisposeAssetResult,
+} from './asset.commands';

@@ -161,14 +161,21 @@ export class SumOfYearsDigitsDepreciation implements DepreciationCalculator {
  * Factory for creating depreciation calculators
  */
 export class DepreciationCalculatorFactory {
-  private static calculators: Map<DepreciationMethod, DepreciationCalculator> = new Map([
-    [DepreciationMethod.STRAIGHT_LINE, new StraightLineDepreciation()],
-    [DepreciationMethod.DECLINING_BALANCE, new DecliningBalanceDepreciation(2)],
-    [DepreciationMethod.SUM_OF_YEARS_DIGITS, new SumOfYearsDigitsDepreciation()],
+  private static calculators = new Map<DepreciationMethod, DepreciationCalculator>();
+
+  private static initialized = false;
+
+  private static initialize(): void {
+    if (this.initialized) return;
+    this.calculators.set(DepreciationMethod.STRAIGHT_LINE, new StraightLineDepreciation());
+    this.calculators.set(DepreciationMethod.DECLINING_BALANCE, new DecliningBalanceDepreciation(2));
+    this.calculators.set(DepreciationMethod.SUM_OF_YEARS_DIGITS, new SumOfYearsDigitsDepreciation());
     // UNITS_OF_PRODUCTION requires usage data, not implemented yet
-  ]);
+    this.initialized = true;
+  }
 
   static getCalculator(method: DepreciationMethod): DepreciationCalculator {
+    this.initialize();
     const calculator = this.calculators.get(method);
     if (!calculator) {
       throw new Error(`Unsupported depreciation method: ${method}`);

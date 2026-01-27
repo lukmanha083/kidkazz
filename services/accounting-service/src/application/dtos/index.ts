@@ -25,3 +25,22 @@ export {
   type JournalLineResponse,
   type PaginatedResponse,
 } from './journal-entry.dto';
+
+export {
+  createAssetCategorySchema,
+  updateAssetCategorySchema,
+  listAssetCategoriesQuerySchema,
+  createAssetSchema,
+  updateAssetSchema,
+  transferAssetSchema,
+  disposeAssetSchema,
+  listAssetsQuerySchema,
+  type CreateAssetCategoryRequest,
+  type UpdateAssetCategoryRequest,
+  type ListAssetCategoriesQueryParams,
+  type CreateAssetRequest,
+  type UpdateAssetRequest,
+  type TransferAssetRequest,
+  type DisposeAssetRequest,
+  type ListAssetsQueryParams,
+} from './asset.dto';
