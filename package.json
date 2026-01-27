@@ -56,7 +56,8 @@
       "inflight@<2": "npm:@zkochan/inflight@^1.0.0",
       "esbuild": "^0.25.0",
       "test-exclude": "^7.0.1",
-      "jspdf": "^4.0.0"
+      "jspdf": "^4.0.0",
+      "undici@<6.23.0": "^6.23.0"
     },
     "onlyBuiltDependencies": ["better-sqlite3", "esbuild", "sharp", "workerd"]
   }
