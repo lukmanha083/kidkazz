@@ -57,3 +57,18 @@ export {
   type DepreciationPreviewQueryParams,
   type ListDepreciationRunsQueryParams,
 } from './depreciation.dto';
+
+export {
+  createMaintenanceSchema,
+  updateMaintenanceSchema,
+  completeMaintenanceSchema,
+  cancelMaintenanceSchema,
+  listMaintenanceQuerySchema,
+  listMovementsQuerySchema,
+  type CreateMaintenanceRequest,
+  type UpdateMaintenanceRequest,
+  type CompleteMaintenanceRequest,
+  type CancelMaintenanceRequest,
+  type ListMaintenanceQueryParams,
+  type ListMovementsQueryParams,
+} from './maintenance.dto';

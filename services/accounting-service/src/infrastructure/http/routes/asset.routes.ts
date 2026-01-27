@@ -4,13 +4,15 @@ import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import {
   DrizzleAssetCategoryRepository,
   DrizzleFixedAssetRepository,
+  DrizzleJournalEntryRepository,
+  DrizzleAssetMovementRepository,
 } from '@/infrastructure/repositories';
 import {
   CreateAssetHandler,
   ActivateAssetHandler,
   UpdateAssetHandler,
   TransferAssetHandler,
-  DisposeAssetHandler,
+  DisposeAssetWithJournalHandler,
 } from '@/application/commands';
 import {
   GetAssetHandler,
@@ -278,7 +280,7 @@ assetRoutes.post(
 );
 
 /**
- * POST /assets/:id/dispose - Dispose asset
+ * POST /assets/:id/dispose - Dispose asset with journal entry
  */
 assetRoutes.post(
   '/:id/dispose',
@@ -289,12 +291,20 @@ assetRoutes.post(
     const id = c.req.param('id');
     const body = c.req.valid('json');
 
-    const repository = new DrizzleFixedAssetRepository(db);
-    const handler = new DisposeAssetHandler(repository);
+    const assetRepo = new DrizzleFixedAssetRepository(db);
+    const categoryRepo = new DrizzleAssetCategoryRepository(db);
+    const journalRepo = new DrizzleJournalEntryRepository(db);
+    const movementRepo = new DrizzleAssetMovementRepository(db);
+    const handler = new DisposeAssetWithJournalHandler(
+      assetRepo,
+      categoryRepo,
+      journalRepo,
+      movementRepo
+    );
 
     try {
       const result = await handler.execute({
-        id,
+        assetId: id,
         ...body,
         disposedBy: userId,
       });

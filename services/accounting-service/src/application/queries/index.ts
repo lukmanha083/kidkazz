@@ -55,3 +55,25 @@ export {
   GetDepreciationRunByPeriodQuery,
   GetDepreciationRunByPeriodHandler,
 } from './depreciation.queries';
+
+export {
+  GetMaintenanceQuery,
+  GetMaintenanceHandler,
+  MaintenanceResponse,
+  ListAssetMaintenanceQuery,
+  ListAssetMaintenanceHandler,
+  ListScheduledMaintenanceQuery,
+  ListScheduledMaintenanceHandler,
+  ListOverdueMaintenanceQuery,
+  ListOverdueMaintenanceHandler,
+} from './maintenance.queries';
+
+export {
+  GetMovementQuery,
+  GetMovementHandler,
+  MovementResponse,
+  ListAssetMovementsQuery,
+  ListAssetMovementsHandler,
+  ListMovementsByDateRangeQuery,
+  ListMovementsByDateRangeHandler,
+} from './movement.queries';

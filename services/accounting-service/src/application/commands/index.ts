@@ -62,3 +62,31 @@ export {
   ReverseDepreciationHandler,
   ReverseDepreciationResult,
 } from './depreciation.commands';
+
+export {
+  CreateMaintenanceCommand,
+  CreateMaintenanceHandler,
+  CreateMaintenanceResult,
+  UpdateMaintenanceCommand,
+  UpdateMaintenanceHandler,
+  StartMaintenanceCommand,
+  StartMaintenanceHandler,
+  StartMaintenanceResult,
+  CompleteMaintenanceCommand,
+  CompleteMaintenanceHandler,
+  CompleteMaintenanceResult,
+  CancelMaintenanceCommand,
+  CancelMaintenanceHandler,
+  CancelMaintenanceResult,
+  DeleteMaintenanceCommand,
+  DeleteMaintenanceHandler,
+} from './maintenance.commands';
+
+export {
+  DisposeAssetWithJournalCommand,
+  DisposeAssetWithJournalHandler,
+  DisposeAssetWithJournalResult,
+  WriteOffAssetCommand,
+  WriteOffAssetHandler,
+  WriteOffAssetResult,
+} from './disposal.commands';
