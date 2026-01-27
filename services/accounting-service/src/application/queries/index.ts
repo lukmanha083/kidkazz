@@ -37,3 +37,21 @@ export {
   GetDepreciableAssetsQuery,
   GetDepreciableAssetsHandler,
 } from './asset.queries';
+
+export {
+  GetDepreciationPreviewQuery,
+  GetDepreciationPreviewHandler,
+  DepreciationPreviewItem,
+  DepreciationPreviewResult,
+  GetAssetDepreciationScheduleQuery,
+  GetAssetDepreciationScheduleHandler,
+  AssetDepreciationScheduleItem,
+  AssetDepreciationScheduleResult,
+  GetDepreciationRunQuery,
+  GetDepreciationRunHandler,
+  DepreciationRunResult,
+  ListDepreciationRunsQuery,
+  ListDepreciationRunsHandler,
+  GetDepreciationRunByPeriodQuery,
+  GetDepreciationRunByPeriodHandler,
+} from './depreciation.queries';

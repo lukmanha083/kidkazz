@@ -44,3 +44,16 @@ export {
   type DisposeAssetRequest,
   type ListAssetsQueryParams,
 } from './asset.dto';
+
+export {
+  calculateDepreciationSchema,
+  postDepreciationSchema,
+  reverseDepreciationSchema,
+  depreciationPreviewQuerySchema,
+  listDepreciationRunsQuerySchema,
+  type CalculateDepreciationRequest,
+  type PostDepreciationRequest,
+  type ReverseDepreciationRequest,
+  type DepreciationPreviewQueryParams,
+  type ListDepreciationRunsQueryParams,
+} from './depreciation.dto';

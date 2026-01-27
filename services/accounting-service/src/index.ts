@@ -7,6 +7,7 @@ import {
   journalEntryRoutes,
   assetCategoryRoutes,
   assetRoutes,
+  depreciationRoutes,
 } from '@/infrastructure/http/routes';
 
 type Bindings = {
@@ -48,6 +49,7 @@ app.route('/api/v1/accounts', accountRoutes);
 app.route('/api/v1/journal-entries', journalEntryRoutes);
 app.route('/api/v1/asset-categories', assetCategoryRoutes);
 app.route('/api/v1/assets', assetRoutes);
+app.route('/api/v1/depreciation', depreciationRoutes);
 
 // Root endpoint
 app.get('/', (c) => {
@@ -61,6 +63,7 @@ app.get('/', (c) => {
       journalEntries: '/api/v1/journal-entries',
       assetCategories: '/api/v1/asset-categories',
       assets: '/api/v1/assets',
+      depreciation: '/api/v1/depreciation',
     },
   });
 });

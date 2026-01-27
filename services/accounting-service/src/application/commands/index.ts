@@ -49,3 +49,16 @@ export {
   DisposeAssetHandler,
   DisposeAssetResult,
 } from './asset.commands';
+
+export {
+  CalculateDepreciationCommand,
+  CalculateDepreciationHandler,
+  DepreciationCalculationResult,
+  DepreciationScheduleItem,
+  PostDepreciationCommand,
+  PostDepreciationHandler,
+  PostDepreciationResult,
+  ReverseDepreciationCommand,
+  ReverseDepreciationHandler,
+  ReverseDepreciationResult,
+} from './depreciation.commands';
