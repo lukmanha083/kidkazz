@@ -1753,6 +1753,104 @@ function checkCashThreshold(
 
 ---
 
+### Rule 36: ACID Transaction Compliance
+
+**Rule**: All journal entry operations MUST be atomic. Header and lines MUST be saved as a single atomic unit - either all succeed or all fail.
+
+**Business Rationale**:
+- **Atomicity**: A journal entry with header but missing lines violates double-entry
+- **Consistency**: Partial writes create orphaned records and unbalanced books
+- **Isolation**: Concurrent operations must not interleave partial writes
+- **Durability**: Once committed, data must persist through failures
+
+**Implementation**:
+```typescript
+// Uses D1's db.batch() for atomic execution
+async save(entry: JournalEntry): Promise<void> {
+  const batchOperations: any[] = [];
+
+  // 1. Insert/Update journal entry header
+  if (isUpdate) {
+    batchOperations.push(
+      this.db.delete(journalLines).where(eq(journalLines.journalEntryId, entry.id))
+    );
+    batchOperations.push(
+      this.db.update(journalEntries).set({...}).where(eq(journalEntries.id, entry.id))
+    );
+  } else {
+    batchOperations.push(
+      this.db.insert(journalEntries).values({...})
+    );
+  }
+
+  // 2. Insert all journal lines
+  for (const line of entry.lines) {
+    batchOperations.push(
+      this.db.insert(journalLines).values({...})
+    );
+  }
+
+  // 3. Execute atomically - all or nothing
+  if (typeof this.db.batch === 'function') {
+    // D1: Atomic batch execution
+    await this.db.batch(batchOperations);
+  } else {
+    // Test environment: Sequential (single-threaded)
+    for (const op of batchOperations) {
+      await op;
+    }
+  }
+}
+```
+
+**Rollback Behavior**:
+```typescript
+// If any statement fails, all previous statements are rolled back
+// Example: 3 statement batch where statement 3 fails
+//   Statement 1: INSERT journal entry header ✓
+//   Statement 2: INSERT journal line 1 ✓
+//   Statement 3: INSERT journal line 2 ✗ (FK violation)
+// Result: All 3 statements rolled back, database unchanged
+```
+
+**Test Verification**:
+```typescript
+describe('ACID Compliance', () => {
+  it('should commit all statements atomically on success', async () => {
+    const entry = JournalEntry.create({...});
+    await repository.save(entry);
+
+    // Verify header AND all lines saved together
+    const saved = await repository.findById(entry.id);
+    expect(saved).not.toBeNull();
+    expect(saved.lines).toHaveLength(entry.lines.length);
+  });
+
+  it('should rollback all statements on failure', async () => {
+    const entry = JournalEntry.create({
+      lines: [
+        { accountId: 'valid-account', direction: 'Debit', amount: 1000 },
+        { accountId: 'non-existent-account', direction: 'Credit', amount: 1000 }
+      ]
+    });
+
+    await expect(repository.save(entry)).rejects.toThrow();
+
+    // Verify nothing saved - atomicity preserved
+    const saved = await repository.findById(entry.id);
+    expect(saved).toBeNull();
+  });
+});
+```
+
+**D1 Batch API Notes**:
+- D1 uses `db.batch()` not `db.transaction()` for atomic operations
+- All statements in batch are executed as a single atomic unit
+- On any failure, entire batch is rolled back automatically
+- Maximum 100 statements per batch (sufficient for journal entries)
+
+---
+
 ## Validation Hierarchy
 
 ### Where Rules Are Enforced

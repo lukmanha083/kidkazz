@@ -1,4 +1,4 @@
-name: Update Service Graph
+name: Update Service Graph and Documentation
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
       - 'apps/**'
       - 'docs/**'
       - 'scripts/generate-service-graph.ts'
+      - 'scripts/update-claude-md.ts'
   pull_request:
     branches: [main]
     paths:
@@ -15,6 +16,7 @@ on:
       - 'apps/**'
       - 'docs/**'
       - 'scripts/generate-service-graph.ts'
+      - 'scripts/update-claude-md.ts'
 
 jobs:
   update-graph:
@@ -47,10 +49,26 @@ jobs:
       - name: Generate Service Graph
         run: pnpm generate:service-graph
 
+      - name: Update CLAUDE.md
+        run: pnpm update:claude-md
+
       - name: Check for changes
         id: changes
         run: |
+          # Check SERVICE_GRAPH.yaml
           if git diff --quiet SERVICE_GRAPH.yaml; then
+            echo "graph_changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "graph_changed=true" >> $GITHUB_OUTPUT
+          fi
+          # Check CLAUDE.md
+          if git diff --quiet docs/CLAUDE.md; then
+            echo "claude_changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "claude_changed=true" >> $GITHUB_OUTPUT
+          fi
+          # Check if any changed
+          if git diff --quiet SERVICE_GRAPH.yaml docs/CLAUDE.md; then
             echo "changed=false" >> $GITHUB_OUTPUT
           else
             echo "changed=true" >> $GITHUB_OUTPUT
@@ -61,8 +79,8 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add SERVICE_GRAPH.yaml
-          git commit -m "chore: auto-update SERVICE_GRAPH.yaml [skip ci]"
+          git add SERVICE_GRAPH.yaml docs/CLAUDE.md
+          git commit -m "chore: auto-update SERVICE_GRAPH.yaml and CLAUDE.md [skip ci]"
           git push
 
       - name: Commit changes (PR)
@@ -70,8 +88,8 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add SERVICE_GRAPH.yaml
-          git commit -m "chore: auto-update SERVICE_GRAPH.yaml"
+          git add SERVICE_GRAPH.yaml docs/CLAUDE.md
+          git commit -m "chore: auto-update SERVICE_GRAPH.yaml and CLAUDE.md"
           git push
 
       - name: Add PR comment
@@ -79,9 +97,16 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            let body = '📄 **Auto-updated documentation:**\n';
+            if ('${{ steps.changes.outputs.graph_changed }}' === 'true') {
+              body += '- 📊 SERVICE_GRAPH.yaml\n';
+            }
+            if ('${{ steps.changes.outputs.claude_changed }}' === 'true') {
+              body += '- 📝 docs/CLAUDE.md\n';
+            }
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '📊 **SERVICE_GRAPH.yaml** has been automatically updated based on your changes.'
+              body
             })

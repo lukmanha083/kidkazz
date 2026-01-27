@@ -48,6 +48,9 @@ Only POS sales can create negative stock. Warehouse operations must validate.
 ### 5. Optimistic Locking
 All inventory mutations use `version` field.
 
+### 6. ACID Transactions (Accounting)
+Journal entries use `db.batch()` for atomic writes. Header + lines commit together or rollback together.
+
 ---
 
 ## Development Workflow
@@ -116,7 +119,7 @@ pnpm test -- --grep "FeatureName"
 |-------|-----|
 | Business Rules | `docs/ddd/BUSINESS_RULES.md` |
 | Inventory | `docs/bounded-contexts/inventory/BUSINESS_RULES.md` |
-| Accounting | `docs/bounded-contexts/accounting/ACCOUNTING_SERVICE_ARCHITECTURE.md` |
+| Accounting | `docs/bounded-contexts/accounting/BUSINESS_RULES.md` |
 | Frontend/UI | `docs/guides/UI_DESIGN_GUIDELINE.md` |
 | Testing | `docs/testing/DDD_REFACTORING_TESTING_GUIDE.md` |
 | Saga Pattern | `docs/architecture/SAGA_PATTERN_DISTRIBUTED_TRANSACTIONS.md` |

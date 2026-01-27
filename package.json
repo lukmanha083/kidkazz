@@ -21,7 +21,8 @@
     "check:fix": "biome check --write .",
     "clean": "pnpm -r clean",
     "generate:service-graph": "npx tsx scripts/generate-service-graph.ts",
-    "validate:service-graph": "npx tsx scripts/generate-service-graph.ts --validate"
+    "validate:service-graph": "npx tsx scripts/generate-service-graph.ts --validate",
+    "update:claude-md": "npx tsx scripts/update-claude-md.ts"
   },
   "keywords": [
     "wholesale",
