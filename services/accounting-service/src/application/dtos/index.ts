@@ -72,3 +72,27 @@ export {
   type ListMaintenanceQueryParams,
   type ListMovementsQueryParams,
 } from './maintenance.dto';
+
+export {
+  createFiscalPeriodSchema,
+  reopenFiscalPeriodSchema,
+  listFiscalPeriodsQuerySchema,
+  getFiscalPeriodByPeriodQuerySchema,
+  toFiscalPeriodDto,
+  type CreateFiscalPeriodRequest,
+  type ReopenFiscalPeriodRequest,
+  type ListFiscalPeriodsQueryParams,
+  type GetFiscalPeriodByPeriodQueryParams,
+  type FiscalPeriodResponseDto,
+} from './fiscal-period.dto';
+
+export {
+  trialBalanceQuerySchema,
+  incomeStatementQuerySchema,
+  balanceSheetQuerySchema,
+  closeChecklistQuerySchema,
+  type TrialBalanceQueryParams,
+  type IncomeStatementQueryParams,
+  type BalanceSheetQueryParams,
+  type CloseChecklistQueryParams,
+} from './report.dto';

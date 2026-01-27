@@ -21,3 +21,13 @@ export {
   type AssetCategoryProps,
   type AssetCategoryPersistenceProps,
 } from './asset-category.entity';
+export {
+  FiscalPeriodEntity,
+  type FiscalPeriodEntityProps,
+  type FiscalPeriodPersistenceProps,
+} from './fiscal-period.entity';
+export {
+  AccountBalance,
+  type AccountBalanceProps,
+  type AccountBalancePersistenceProps,
+} from './account-balance.entity';

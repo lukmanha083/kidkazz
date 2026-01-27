@@ -18,3 +18,5 @@ export {
   type AssetMovement,
   type AssetMaintenance,
 } from './asset.repositories';
+export { type IFiscalPeriodRepository } from './fiscal-period.repository';
+export { type IAccountBalanceRepository } from './account-balance.repository';

@@ -5,3 +5,5 @@ export { assetRoutes } from './asset.routes';
 export { depreciationRoutes } from './depreciation.routes';
 export { maintenanceRoutes } from './maintenance.routes';
 export { movementRoutes } from './movement.routes';
+export { fiscalPeriodRoutes } from './fiscal-period.routes';
+export { reportsRoutes } from './reports.routes';

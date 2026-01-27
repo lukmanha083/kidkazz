@@ -77,3 +77,39 @@ export {
   ListMovementsByDateRangeQuery,
   ListMovementsByDateRangeHandler,
 } from './movement.queries';
+
+export {
+  GetFiscalPeriodByIdQuery,
+  GetFiscalPeriodByIdHandler,
+  GetFiscalPeriodByPeriodQuery,
+  GetFiscalPeriodByPeriodHandler,
+  ListFiscalPeriodsQuery,
+  ListFiscalPeriodsHandler,
+  GetCurrentFiscalPeriodHandler,
+  type FiscalPeriodResponse,
+} from './fiscal-period.queries';
+
+export {
+  GetTrialBalanceQuery,
+  GetTrialBalanceHandler,
+  type TrialBalanceDependencies,
+  type TrialBalanceAccount,
+  type TrialBalanceResult,
+} from './trial-balance.queries';
+
+export {
+  GetIncomeStatementQuery,
+  GetIncomeStatementHandler,
+  type IncomeStatementDependencies,
+  type AccountBalanceItem as IncomeStatementAccountItem,
+  type OtherIncomeExpenseItem,
+  type IncomeStatementResult,
+} from './income-statement.queries';
+
+export {
+  GetBalanceSheetQuery,
+  GetBalanceSheetHandler,
+  type BalanceSheetDependencies,
+  type AccountBalanceItem as BalanceSheetAccountItem,
+  type BalanceSheetResult,
+} from './balance-sheet.queries';
