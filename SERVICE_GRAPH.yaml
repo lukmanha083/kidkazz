@@ -8,12 +8,12 @@
 # - Documentation links
 # - Cross-service business flows
 #
-# Generated: 2026-01-27T06:56:17.902Z
+# Generated: 2026-01-27T07:46:31.058Z
 # Generator: scripts/generate-service-graph.ts
 #
 # DO NOT EDIT MANUALLY - Run: pnpm generate:service-graph
 
-generated: "2026-01-27T06:56:17.902Z"
+generated: "2026-01-27T07:46:31.058Z"
 generator: scripts/generate-service-graph.ts
 boundedContexts:
   accounting:
@@ -105,6 +105,99 @@ boundedContexts:
         - method: GET
           path: db
           handler: services/accounting-service/src/infrastructure/http/routes/account.routes.ts
+        - method: GET
+          path: /
+          handler: services/accounting-service/src/infrastructure/http/routes/asset-category.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/asset-category.routes.ts
+        - method: GET
+          path: "/:id"
+          handler: services/accounting-service/src/infrastructure/http/routes/asset-category.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/asset-category.routes.ts
+        - method: POST
+          path: /
+          handler: services/accounting-service/src/infrastructure/http/routes/asset-category.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/asset-category.routes.ts
+        - method: PUT
+          path: "/:id"
+          handler: services/accounting-service/src/infrastructure/http/routes/asset-category.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/asset-category.routes.ts
+        - method: DELETE
+          path: "/:id"
+          handler: services/accounting-service/src/infrastructure/http/routes/asset-category.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/asset-category.routes.ts
+        - method: GET
+          path: /
+          handler: services/accounting-service/src/infrastructure/http/routes/asset.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/asset.routes.ts
+        - method: GET
+          path: /depreciable
+          handler: services/accounting-service/src/infrastructure/http/routes/asset.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/asset.routes.ts
+        - method: GET
+          path: "/barcode/:barcode"
+          handler: services/accounting-service/src/infrastructure/http/routes/asset.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/asset.routes.ts
+        - method: GET
+          path: "/:id"
+          handler: services/accounting-service/src/infrastructure/http/routes/asset.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/asset.routes.ts
+        - method: POST
+          path: /
+          handler: services/accounting-service/src/infrastructure/http/routes/asset.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/asset.routes.ts
+        - method: GET
+          path: userId
+          handler: services/accounting-service/src/infrastructure/http/routes/asset.routes.ts
+        - method: PUT
+          path: "/:id"
+          handler: services/accounting-service/src/infrastructure/http/routes/asset.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/asset.routes.ts
+        - method: POST
+          path: "/:id/activate"
+          handler: services/accounting-service/src/infrastructure/http/routes/asset.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/asset.routes.ts
+        - method: POST
+          path: "/:id/transfer"
+          handler: services/accounting-service/src/infrastructure/http/routes/asset.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/asset.routes.ts
+        - method: GET
+          path: userId
+          handler: services/accounting-service/src/infrastructure/http/routes/asset.routes.ts
+        - method: POST
+          path: "/:id/dispose"
+          handler: services/accounting-service/src/infrastructure/http/routes/asset.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/asset.routes.ts
+        - method: GET
+          path: userId
+          handler: services/accounting-service/src/infrastructure/http/routes/asset.routes.ts
         - method: GET
           path: /
           handler: services/accounting-service/src/infrastructure/http/routes/journal-entry.routes.ts
