@@ -7,3 +7,15 @@ export {
   type NormalBalance,
 } from './account-code.vo';
 export { FiscalPeriod, FiscalPeriodStatus } from './fiscal-period.vo';
+export {
+  AssetStatus,
+  DepreciationMethod,
+  AcquisitionMethod,
+  DisposalMethod,
+  MovementType,
+  MaintenanceType,
+  MaintenanceStatus,
+  DepreciationScheduleStatus,
+  DepreciationRunStatus,
+  TaxAssetGroup,
+} from './asset-enums';
