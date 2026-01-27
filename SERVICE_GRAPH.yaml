@@ -8,12 +8,12 @@
 # - Documentation links
 # - Cross-service business flows
 #
-# Generated: 2026-01-27T07:46:31.058Z
+# Generated: 2026-01-27T11:27:33.879Z
 # Generator: scripts/generate-service-graph.ts
 #
 # DO NOT EDIT MANUALLY - Run: pnpm generate:service-graph
 
-generated: "2026-01-27T07:46:31.058Z"
+generated: "2026-01-27T11:27:33.879Z"
 generator: scripts/generate-service-graph.ts
 boundedContexts:
   accounting:
@@ -198,6 +198,54 @@ boundedContexts:
         - method: GET
           path: userId
           handler: services/accounting-service/src/infrastructure/http/routes/asset.routes.ts
+        - method: GET
+          path: /preview
+          handler: services/accounting-service/src/infrastructure/http/routes/depreciation.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/depreciation.routes.ts
+        - method: GET
+          path: /runs
+          handler: services/accounting-service/src/infrastructure/http/routes/depreciation.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/depreciation.routes.ts
+        - method: GET
+          path: "/runs/:runId"
+          handler: services/accounting-service/src/infrastructure/http/routes/depreciation.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/depreciation.routes.ts
+        - method: POST
+          path: /calculate
+          handler: services/accounting-service/src/infrastructure/http/routes/depreciation.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/depreciation.routes.ts
+        - method: POST
+          path: /post
+          handler: services/accounting-service/src/infrastructure/http/routes/depreciation.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/depreciation.routes.ts
+        - method: GET
+          path: userId
+          handler: services/accounting-service/src/infrastructure/http/routes/depreciation.routes.ts
+        - method: POST
+          path: /reverse
+          handler: services/accounting-service/src/infrastructure/http/routes/depreciation.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/depreciation.routes.ts
+        - method: GET
+          path: userId
+          handler: services/accounting-service/src/infrastructure/http/routes/depreciation.routes.ts
+        - method: GET
+          path: "/assets/:assetId/schedule"
+          handler: services/accounting-service/src/infrastructure/http/routes/depreciation.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/depreciation.routes.ts
         - method: GET
           path: /
           handler: services/accounting-service/src/infrastructure/http/routes/journal-entry.routes.ts
