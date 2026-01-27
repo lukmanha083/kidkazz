@@ -8,12 +8,12 @@
 # - Documentation links
 # - Cross-service business flows
 #
-# Generated: 2026-01-27T06:37:47.378Z
+# Generated: 2026-01-27T06:56:17.902Z
 # Generator: scripts/generate-service-graph.ts
 #
 # DO NOT EDIT MANUALLY - Run: pnpm generate:service-graph
 
-generated: "2026-01-27T06:37:47.378Z"
+generated: "2026-01-27T06:56:17.902Z"
 generator: scripts/generate-service-graph.ts
 boundedContexts:
   accounting:
@@ -53,6 +53,10 @@ boundedContexts:
     entities:
       - name: Account
         file: src/domain/entities/account.entity.ts
+      - name: AssetCategory
+        file: src/domain/entities/asset-category.entity.ts
+      - name: FixedAsset
+        file: src/domain/entities/fixed-asset.entity.ts
       - name: Index
         file: src/domain/entities/index.ts
       - name: JournalEntry
