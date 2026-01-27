@@ -8,12 +8,12 @@
 # - Documentation links
 # - Cross-service business flows
 #
-# Generated: 2026-01-27T11:27:33.879Z
+# Generated: 2026-01-27T12:35:28.809Z
 # Generator: scripts/generate-service-graph.ts
 #
 # DO NOT EDIT MANUALLY - Run: pnpm generate:service-graph
 
-generated: "2026-01-27T11:27:33.879Z"
+generated: "2026-01-27T12:35:28.809Z"
 generator: scripts/generate-service-graph.ts
 boundedContexts:
   accounting:
@@ -303,6 +303,87 @@ boundedContexts:
         - method: GET
           path: userId
           handler: services/accounting-service/src/infrastructure/http/routes/journal-entry.routes.ts
+        - method: GET
+          path: /scheduled
+          handler: services/accounting-service/src/infrastructure/http/routes/maintenance.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/maintenance.routes.ts
+        - method: GET
+          path: /overdue
+          handler: services/accounting-service/src/infrastructure/http/routes/maintenance.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/maintenance.routes.ts
+        - method: GET
+          path: "/asset/:assetId"
+          handler: services/accounting-service/src/infrastructure/http/routes/maintenance.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/maintenance.routes.ts
+        - method: GET
+          path: "/:id"
+          handler: services/accounting-service/src/infrastructure/http/routes/maintenance.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/maintenance.routes.ts
+        - method: POST
+          path: /
+          handler: services/accounting-service/src/infrastructure/http/routes/maintenance.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/maintenance.routes.ts
+        - method: GET
+          path: userId
+          handler: services/accounting-service/src/infrastructure/http/routes/maintenance.routes.ts
+        - method: PUT
+          path: "/:id"
+          handler: services/accounting-service/src/infrastructure/http/routes/maintenance.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/maintenance.routes.ts
+        - method: POST
+          path: "/:id/start"
+          handler: services/accounting-service/src/infrastructure/http/routes/maintenance.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/maintenance.routes.ts
+        - method: POST
+          path: "/:id/complete"
+          handler: services/accounting-service/src/infrastructure/http/routes/maintenance.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/maintenance.routes.ts
+        - method: POST
+          path: "/:id/cancel"
+          handler: services/accounting-service/src/infrastructure/http/routes/maintenance.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/maintenance.routes.ts
+        - method: DELETE
+          path: "/:id"
+          handler: services/accounting-service/src/infrastructure/http/routes/maintenance.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/maintenance.routes.ts
+        - method: GET
+          path: /
+          handler: services/accounting-service/src/infrastructure/http/routes/movement.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/movement.routes.ts
+        - method: GET
+          path: "/asset/:assetId"
+          handler: services/accounting-service/src/infrastructure/http/routes/movement.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/movement.routes.ts
+        - method: GET
+          path: "/:id"
+          handler: services/accounting-service/src/infrastructure/http/routes/movement.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/movement.routes.ts
   api-gateway:
     docs:{}
     service: api-gateway
