@@ -71,14 +71,10 @@ export class ImportBankStatementHandler {
 
     await this.bankStatementRepo.save(statement);
 
-    // Import transactions, checking for duplicates via fingerprint
-    let transactionsImported = 0;
-    let duplicatesSkipped = 0;
-    let totalDebits = 0;
-    let totalCredits = 0;
+    // Create all transactions first to get fingerprints
+    const pendingTransactions: Array<{ transaction: BankTransaction; txData: BankStatementTransactionData }> = [];
 
     for (const txData of command.transactions) {
-      // Determine transaction type based on amount sign
       const transactionType = txData.amount >= 0
         ? BankTransactionType.CREDIT
         : BankTransactionType.DEBIT;
@@ -94,15 +90,26 @@ export class ImportBankStatementHandler {
         transactionType,
       });
 
-      // Check for duplicate using fingerprint
-      const existingTx = await this.bankTransactionRepo.findByFingerprint(transaction.fingerprint);
-      if (existingTx) {
+      pendingTransactions.push({ transaction, txData });
+    }
+
+    // Batch check for existing fingerprints (single query instead of N queries)
+    const fingerprints = pendingTransactions.map(p => p.transaction.fingerprint);
+    const existingFingerprints = await this.bankTransactionRepo.fingerprintsExistMany(fingerprints);
+
+    // Filter out duplicates and prepare for batch insert
+    const newTransactions: BankTransaction[] = [];
+    let duplicatesSkipped = 0;
+    let totalDebits = 0;
+    let totalCredits = 0;
+
+    for (const { transaction, txData } of pendingTransactions) {
+      if (existingFingerprints.has(transaction.fingerprint)) {
         duplicatesSkipped++;
         continue;
       }
 
-      await this.bankTransactionRepo.save(transaction);
-      transactionsImported++;
+      newTransactions.push(transaction);
 
       // Track totals
       if (txData.amount >= 0) {
@@ -111,6 +118,13 @@ export class ImportBankStatementHandler {
         totalDebits += Math.abs(txData.amount);
       }
     }
+
+    // Batch save all new transactions (single batch operation)
+    if (newTransactions.length > 0) {
+      await this.bankTransactionRepo.saveMany(newTransactions);
+    }
+
+    const transactionsImported = newTransactions.length;
 
     // Update statement transaction count
     statement.updateCounts(transactionsImported, totalDebits, totalCredits);

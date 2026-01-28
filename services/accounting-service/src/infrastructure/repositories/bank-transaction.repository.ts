@@ -161,6 +161,20 @@ export class DrizzleBankTransactionRepository implements IBankTransactionReposit
     return result.length > 0;
   }
 
+  async fingerprintsExistMany(fingerprints: string[]): Promise<Set<string>> {
+    if (fingerprints.length === 0) {
+      return new Set();
+    }
+
+    // Use IN clause for batch lookup
+    const results = await this.db
+      .select({ fingerprint: bankTransactions.fingerprint })
+      .from(bankTransactions)
+      .where(sql`${bankTransactions.fingerprint} IN ${fingerprints}`);
+
+    return new Set(results.map((r: { fingerprint: string }) => r.fingerprint));
+  }
+
   async save(transaction: BankTransaction): Promise<void> {
     const existing = await this.db
       .select({ id: bankTransactions.id })

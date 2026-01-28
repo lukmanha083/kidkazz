@@ -56,6 +56,12 @@ export interface IBankTransactionRepository {
   fingerprintExists(fingerprint: string): Promise<boolean>;
 
   /**
+   * Check which fingerprints exist (batch duplicate detection)
+   * Returns a Set of fingerprints that already exist
+   */
+  fingerprintsExistMany(fingerprints: string[]): Promise<Set<string>>;
+
+  /**
    * Save bank transaction (create or update)
    */
   save(transaction: BankTransaction): Promise<void>;

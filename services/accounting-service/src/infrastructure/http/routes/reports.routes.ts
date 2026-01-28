@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, inArray, or, like } from 'drizzle-orm';
 import { FiscalPeriod, FiscalPeriodStatus } from '@/domain/value-objects';
 import { GetTrialBalanceHandler, type TrialBalanceDependencies } from '@/application/queries/trial-balance.queries';
 import { GetIncomeStatementHandler, type IncomeStatementDependencies } from '@/application/queries/income-statement.queries';
@@ -84,7 +84,7 @@ function createTrialBalanceDependencies(db: DrizzleD1Database<typeof schema>): T
           normalBalance: chartOfAccounts.normalBalance,
         })
         .from(chartOfAccounts)
-        .where(sql`${chartOfAccounts.id} IN ${accountIds}`);
+        .where(inArray(chartOfAccounts.id, accountIds));
 
       return new Map(
         results.map((r) => [
@@ -508,7 +508,11 @@ reportsRoutes.get('/cash-position', zValidator('query', cashPositionQuerySchema)
           and(
             eq(chartOfAccounts.isDetailAccount, true),
             eq(chartOfAccounts.status, 'Active'),
-            sql`${chartOfAccounts.code} LIKE '101%' OR ${chartOfAccounts.code} LIKE '102%' OR ${chartOfAccounts.code} LIKE '103%'`
+            or(
+              like(chartOfAccounts.code, '101%'),
+              like(chartOfAccounts.code, '102%'),
+              like(chartOfAccounts.code, '103%')
+            )
           )
         );
 
@@ -566,7 +570,11 @@ reportsRoutes.get('/cash-forecast', zValidator('query', cashForecastQuerySchema)
         .innerJoin(chartOfAccounts, eq(accountBalances.accountId, chartOfAccounts.id))
         .where(
           and(
-            sql`${chartOfAccounts.code} LIKE '101%' OR ${chartOfAccounts.code} LIKE '102%' OR ${chartOfAccounts.code} LIKE '103%'`,
+            or(
+              like(chartOfAccounts.code, '101%'),
+              like(chartOfAccounts.code, '102%'),
+              like(chartOfAccounts.code, '103%')
+            ),
             eq(accountBalances.fiscalYear, now.getFullYear()),
             eq(accountBalances.fiscalMonth, now.getMonth() + 1)
           )

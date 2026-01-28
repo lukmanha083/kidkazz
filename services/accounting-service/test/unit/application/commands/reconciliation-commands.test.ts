@@ -62,6 +62,7 @@ const mockBankTransactionRepository: IBankTransactionRepository = {
   findUnmatched: vi.fn(),
   findAll: vi.fn(),
   fingerprintExists: vi.fn(),
+  fingerprintsExistMany: vi.fn(),
   save: vi.fn(),
   saveMany: vi.fn(),
   delete: vi.fn(),

@@ -214,16 +214,21 @@ export class AutoMatchTransactionsHandler {
       command.options
     );
 
-    // Save matched transactions
+    // Build map of transactions for quick lookup (avoid re-fetching from DB)
+    const transactionMap = new Map(
+      unmatchedTransactions.map(tx => [tx.id, tx])
+    );
+
+    // Save matched transactions using in-memory objects (already mutated by autoMatchTransactions)
     const matchDetails: Array<{
       bankTransactionId: string;
       journalLineId: string;
     }> = [];
 
     for (const match of autoMatchResult.matches) {
-      const bankTransaction = await this.bankTransactionRepo.findById(match.transactionId);
+      const bankTransaction = transactionMap.get(match.transactionId);
       if (bankTransaction) {
-        // Transaction was already matched by the service, just save it
+        // Transaction was already matched in-memory by the service, save it
         await this.bankTransactionRepo.save(bankTransaction);
         matchDetails.push({
           bankTransactionId: match.transactionId,

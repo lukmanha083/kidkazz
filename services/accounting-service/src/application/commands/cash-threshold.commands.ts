@@ -38,6 +38,22 @@ export class UpdateCashThresholdHandler {
   constructor(private readonly thresholdRepo: ICashThresholdRepository) {}
 
   async execute(command: UpdateCashThresholdCommand): Promise<UpdateCashThresholdResult> {
+    // Validate updatedBy is non-empty
+    if (!command.updatedBy || command.updatedBy.trim().length === 0) {
+      throw new Error('updatedBy must be a non-empty string');
+    }
+
+    // Validate thresholds are finite non-negative numbers
+    if (!Number.isFinite(command.warningThreshold) || command.warningThreshold < 0) {
+      throw new Error('warningThreshold must be a non-negative finite number');
+    }
+    if (!Number.isFinite(command.criticalThreshold) || command.criticalThreshold < 0) {
+      throw new Error('criticalThreshold must be a non-negative finite number');
+    }
+    if (!Number.isFinite(command.emergencyThreshold) || command.emergencyThreshold < 0) {
+      throw new Error('emergencyThreshold must be a non-negative finite number');
+    }
+
     // Validate thresholds order
     if (command.warningThreshold <= command.criticalThreshold) {
       throw new Error('Warning threshold must be greater than critical threshold');

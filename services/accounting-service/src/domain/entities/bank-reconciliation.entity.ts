@@ -322,11 +322,14 @@ export class BankReconciliation {
   }
 
   /**
-   * Get items that require journal entries
+   * Get items that require journal entries (excludes voided items)
    */
   getItemsRequiringJournalEntries(): ReconcilingItem[] {
     return this._reconcilingItems.filter(
-      (item) => item.requiresJournalEntry && !item.journalEntryId
+      (item) =>
+        item.requiresJournalEntry &&
+        !item.journalEntryId &&
+        item.status !== ReconciliationItemStatus.VOIDED
     );
   }
 

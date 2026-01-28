@@ -47,6 +47,7 @@ const mockBankTransactionRepository: IBankTransactionRepository = {
   findUnmatched: vi.fn(),
   findAll: vi.fn(),
   fingerprintExists: vi.fn(),
+  fingerprintsExistMany: vi.fn(),
   save: vi.fn(),
   saveMany: vi.fn(),
   delete: vi.fn(),
@@ -78,8 +79,8 @@ describe('Bank Statement Commands', () => {
       });
       vi.mocked(mockBankAccountRepository.findById).mockResolvedValue(bankAccount);
       vi.mocked(mockBankStatementRepository.save).mockResolvedValue(undefined);
-      vi.mocked(mockBankTransactionRepository.findByFingerprint).mockResolvedValue(null);
-      vi.mocked(mockBankTransactionRepository.save).mockResolvedValue(undefined);
+      vi.mocked(mockBankTransactionRepository.fingerprintsExistMany).mockResolvedValue(new Set());
+      vi.mocked(mockBankTransactionRepository.saveMany).mockResolvedValue(undefined);
 
       const command: ImportBankStatementCommand = {
         bankAccountId: bankAccount.id,
@@ -111,7 +112,7 @@ describe('Bank Statement Commands', () => {
       expect(result.transactionsImported).toBe(2);
       expect(result.duplicatesSkipped).toBe(0);
       expect(mockBankStatementRepository.save).toHaveBeenCalledTimes(2); // Initial + update
-      expect(mockBankTransactionRepository.save).toHaveBeenCalledTimes(2);
+      expect(mockBankTransactionRepository.saveMany).toHaveBeenCalledTimes(1);
     });
 
     it('should skip duplicate transactions based on fingerprint', async () => {
@@ -122,6 +123,7 @@ describe('Bank Statement Commands', () => {
         accountType: BankAccountType.OPERATING,
         currency: 'IDR',
       });
+      // Create an existing transaction to get its fingerprint
       const existingTransaction = BankTransaction.create({
         bankStatementId: 'stmt-old',
         bankAccountId: bankAccount.id,
@@ -133,11 +135,11 @@ describe('Bank Statement Commands', () => {
 
       vi.mocked(mockBankAccountRepository.findById).mockResolvedValue(bankAccount);
       vi.mocked(mockBankStatementRepository.save).mockResolvedValue(undefined);
-      // First transaction is a duplicate, second is new
-      vi.mocked(mockBankTransactionRepository.findByFingerprint)
-        .mockResolvedValueOnce(existingTransaction)
-        .mockResolvedValueOnce(null);
-      vi.mocked(mockBankTransactionRepository.save).mockResolvedValue(undefined);
+      // Return the fingerprint of the first transaction as existing
+      vi.mocked(mockBankTransactionRepository.fingerprintsExistMany).mockResolvedValue(
+        new Set([existingTransaction.fingerprint])
+      );
+      vi.mocked(mockBankTransactionRepository.saveMany).mockResolvedValue(undefined);
 
       const command: ImportBankStatementCommand = {
         bankAccountId: bankAccount.id,
