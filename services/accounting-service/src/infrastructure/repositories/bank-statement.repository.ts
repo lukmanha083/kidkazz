@@ -108,34 +108,10 @@ export class DrizzleBankStatementRepository implements IBankStatementRepository 
   async save(statement: BankStatement): Promise<void> {
     const now = new Date().toISOString();
 
-    const existing = await this.db
-      .select({ id: bankStatements.id })
-      .from(bankStatements)
-      .where(eq(bankStatements.id, statement.id))
-      .limit(1);
-
-    if (existing.length > 0) {
-      // Update
-      await this.db
-        .update(bankStatements)
-        .set({
-          bankAccountId: statement.bankAccountId,
-          statementDate: statement.statementDate.toISOString(),
-          periodStart: statement.periodStart.toISOString(),
-          periodEnd: statement.periodEnd.toISOString(),
-          openingBalance: statement.openingBalance,
-          closingBalance: statement.closingBalance,
-          totalDebits: statement.totalDebits,
-          totalCredits: statement.totalCredits,
-          transactionCount: statement.transactionCount,
-          importSource: statement.importSource || null,
-          importedBy: statement.importedBy || null,
-          updatedAt: now,
-        })
-        .where(eq(bankStatements.id, statement.id));
-    } else {
-      // Insert
-      await this.db.insert(bankStatements).values({
+    // Use atomic upsert to avoid SELECT-then-write race conditions
+    await this.db
+      .insert(bankStatements)
+      .values({
         id: statement.id,
         bankAccountId: statement.bankAccountId,
         statementDate: statement.statementDate.toISOString(),
@@ -151,8 +127,24 @@ export class DrizzleBankStatementRepository implements IBankStatementRepository 
         importedBy: statement.importedBy || null,
         createdAt: now,
         updatedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: bankStatements.id,
+        set: {
+          bankAccountId: statement.bankAccountId,
+          statementDate: statement.statementDate.toISOString(),
+          periodStart: statement.periodStart.toISOString(),
+          periodEnd: statement.periodEnd.toISOString(),
+          openingBalance: statement.openingBalance,
+          closingBalance: statement.closingBalance,
+          totalDebits: statement.totalDebits,
+          totalCredits: statement.totalCredits,
+          transactionCount: statement.transactionCount,
+          importSource: statement.importSource || null,
+          importedBy: statement.importedBy || null,
+          updatedAt: now,
+        },
       });
-    }
   }
 
   async delete(id: string): Promise<void> {

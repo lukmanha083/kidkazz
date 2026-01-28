@@ -170,6 +170,11 @@ fiscalPeriodRoutes.post('/:id/close', async (c) => {
   const id = c.req.param('id');
   const userId = c.get('userId');
 
+  // Validate userId is present
+  if (!userId) {
+    return c.json({ success: false, error: 'Authentication required' }, 401);
+  }
+
   const repository = new DrizzleFiscalPeriodRepository(db);
   const handler = new CloseFiscalPeriodHandler(repository);
 
@@ -204,6 +209,11 @@ fiscalPeriodRoutes.post('/:id/reopen', zValidator('json', reopenFiscalPeriodSche
   const id = c.req.param('id');
   const userId = c.get('userId');
   const body = c.req.valid('json');
+
+  // Validate userId is present
+  if (!userId) {
+    return c.json({ success: false, error: 'Authentication required' }, 401);
+  }
 
   const repository = new DrizzleFiscalPeriodRepository(db);
   const handler = new ReopenFiscalPeriodHandler(repository);
@@ -240,6 +250,11 @@ fiscalPeriodRoutes.post('/:id/lock', async (c) => {
   const db = c.get('db');
   const id = c.req.param('id');
   const userId = c.get('userId');
+
+  // Validate userId is present
+  if (!userId) {
+    return c.json({ success: false, error: 'Authentication required' }, 401);
+  }
 
   const repository = new DrizzleFiscalPeriodRepository(db);
   const handler = new LockFiscalPeriodHandler(repository);

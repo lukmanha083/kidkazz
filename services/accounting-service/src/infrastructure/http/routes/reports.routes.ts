@@ -311,14 +311,82 @@ function createBalanceSheetDependencies(db: DrizzleD1Database<typeof schema>): B
       return getAccountsByCategory(asOfDate, 'EQUITY');
     },
 
-    async getRetainedEarnings(_asOfDate: Date) {
-      // TODO: Calculate retained earnings from prior years
-      return 0;
+    async getRetainedEarnings(asOfDate: Date) {
+      // Get retained earnings from prior fiscal years
+      // This is the cumulative net income from all prior closed years
+      const currentYear = asOfDate.getFullYear();
+
+      // Sum closing balances from retained earnings accounts (typically code 301x or 302x)
+      // Plus accumulated net income from prior closed years
+      const result = await db
+        .select({
+          total: sql<number>`COALESCE(SUM(${accountBalances.closingBalance}), 0)`,
+        })
+        .from(accountBalances)
+        .innerJoin(chartOfAccounts, eq(accountBalances.accountId, chartOfAccounts.id))
+        .where(
+          and(
+            eq(chartOfAccounts.accountCategory, 'EQUITY'),
+            like(chartOfAccounts.code, '302%'), // Retained Earnings accounts
+            sql`${accountBalances.fiscalYear} < ${currentYear}`
+          )
+        );
+
+      // Also add net income from all prior closed fiscal years
+      const priorYearIncome = await db
+        .select({
+          netIncome: sql<number>`COALESCE(
+            SUM(CASE
+              WHEN ${chartOfAccounts.accountType} = 'Revenue' THEN ${accountBalances.closingBalance}
+              WHEN ${chartOfAccounts.accountType} IN ('COGS', 'Expense') THEN -${accountBalances.closingBalance}
+              ELSE 0
+            END), 0)`,
+        })
+        .from(accountBalances)
+        .innerJoin(chartOfAccounts, eq(accountBalances.accountId, chartOfAccounts.id))
+        .innerJoin(fiscalPeriods,
+          and(
+            eq(fiscalPeriods.fiscalYear, accountBalances.fiscalYear),
+            eq(fiscalPeriods.fiscalMonth, accountBalances.fiscalMonth)
+          )
+        )
+        .where(
+          and(
+            sql`${accountBalances.fiscalYear} < ${currentYear}`,
+            eq(fiscalPeriods.status, 'Closed')
+          )
+        );
+
+      return (result[0]?.total ?? 0) + (priorYearIncome[0]?.netIncome ?? 0);
     },
 
-    async getCurrentYearNetIncome(_asOfDate: Date) {
-      // TODO: Calculate current year net income
-      return 0;
+    async getCurrentYearNetIncome(asOfDate: Date) {
+      // Calculate YTD net income for the current fiscal year
+      const year = asOfDate.getFullYear();
+      const month = asOfDate.getMonth() + 1;
+
+      // Net Income = Revenue - COGS - Expenses
+      const result = await db
+        .select({
+          revenue: sql<number>`COALESCE(SUM(CASE WHEN ${chartOfAccounts.accountType} = 'Revenue' THEN ${accountBalances.closingBalance} ELSE 0 END), 0)`,
+          cogs: sql<number>`COALESCE(SUM(CASE WHEN ${chartOfAccounts.accountType} = 'COGS' THEN ${accountBalances.closingBalance} ELSE 0 END), 0)`,
+          expenses: sql<number>`COALESCE(SUM(CASE WHEN ${chartOfAccounts.accountType} = 'Expense' THEN ${accountBalances.closingBalance} ELSE 0 END), 0)`,
+        })
+        .from(accountBalances)
+        .innerJoin(chartOfAccounts, eq(accountBalances.accountId, chartOfAccounts.id))
+        .where(
+          and(
+            eq(accountBalances.fiscalYear, year),
+            sql`${accountBalances.fiscalMonth} <= ${month}`,
+            sql`${chartOfAccounts.accountType} IN ('Revenue', 'COGS', 'Expense')`
+          )
+        );
+
+      const revenue = result[0]?.revenue ?? 0;
+      const cogs = result[0]?.cogs ?? 0;
+      const expenses = result[0]?.expenses ?? 0;
+
+      return revenue - cogs - expenses;
     },
   };
 }
@@ -605,28 +673,143 @@ reportsRoutes.get('/cash-forecast', zValidator('query', cashForecastQuerySchema)
       return result[0]?.total ?? 0;
     },
 
-    async getExpectedARCollections(_weeks: number): Promise<ExpectedCollection[]> {
-      // TODO: Implement AR aging-based collection estimates
-      // For now, return empty array
-      return [];
+    async getExpectedARCollections(weeks: number): Promise<ExpectedCollection[]> {
+      // Get outstanding receivables and estimate collections based on aging
+      const now = new Date();
+
+      // Query AR account balances (accounts starting with 103x typically)
+      const arBalances = await db
+        .select({
+          accountId: chartOfAccounts.id,
+          accountCode: chartOfAccounts.code,
+          accountName: chartOfAccounts.name,
+          balance: sql<number>`COALESCE(${accountBalances.closingBalance}, 0)`,
+        })
+        .from(chartOfAccounts)
+        .leftJoin(
+          accountBalances,
+          and(
+            eq(accountBalances.accountId, chartOfAccounts.id),
+            eq(accountBalances.fiscalYear, now.getFullYear()),
+            eq(accountBalances.fiscalMonth, now.getMonth() + 1)
+          )
+        )
+        .where(
+          and(
+            like(chartOfAccounts.code, '103%'), // AR accounts
+            eq(chartOfAccounts.isDetailAccount, true),
+            eq(chartOfAccounts.status, 'Active')
+          )
+        );
+
+      // Estimate collections: assume 70% collected within forecast period
+      // In production, this would use actual invoice aging data
+      const totalAR = arBalances.reduce((sum, ar) => sum + (ar.balance ?? 0), 0);
+      if (totalAR <= 0) return [];
+
+      // Distribute expected collections across weeks
+      const collections: ExpectedCollection[] = [];
+      const weeklyCollection = (totalAR * 0.7) / weeks;
+
+      for (let w = 1; w <= weeks; w++) {
+        collections.push({
+          weekNumber: w,
+          amount: Math.round(weeklyCollection * 100) / 100,
+          source: 'AR Aging Estimate',
+        });
+      }
+
+      return collections;
     },
 
-    async getScheduledAPPayments(_weeks: number): Promise<ScheduledPayment[]> {
-      // TODO: Implement AP aging-based payment schedules
-      // For now, return empty array
-      return [];
+    async getScheduledAPPayments(weeks: number): Promise<ScheduledPayment[]> {
+      // Get outstanding payables and estimate payment schedules
+      const now = new Date();
+
+      // Query AP account balances (accounts starting with 200x or 201x typically)
+      const apBalances = await db
+        .select({
+          accountId: chartOfAccounts.id,
+          accountCode: chartOfAccounts.code,
+          accountName: chartOfAccounts.name,
+          balance: sql<number>`COALESCE(${accountBalances.closingBalance}, 0)`,
+        })
+        .from(chartOfAccounts)
+        .leftJoin(
+          accountBalances,
+          and(
+            eq(accountBalances.accountId, chartOfAccounts.id),
+            eq(accountBalances.fiscalYear, now.getFullYear()),
+            eq(accountBalances.fiscalMonth, now.getMonth() + 1)
+          )
+        )
+        .where(
+          and(
+            or(
+              like(chartOfAccounts.code, '200%'),
+              like(chartOfAccounts.code, '201%')
+            ), // AP accounts
+            eq(chartOfAccounts.isDetailAccount, true),
+            eq(chartOfAccounts.status, 'Active')
+          )
+        );
+
+      // Estimate payments: assume 80% paid within forecast period
+      // In production, this would use actual bill due dates
+      const totalAP = apBalances.reduce((sum, ap) => sum + Math.abs(ap.balance ?? 0), 0);
+      if (totalAP <= 0) return [];
+
+      // Distribute scheduled payments across weeks
+      const payments: ScheduledPayment[] = [];
+      const weeklyPayment = (totalAP * 0.8) / weeks;
+
+      for (let w = 1; w <= weeks; w++) {
+        payments.push({
+          weekNumber: w,
+          amount: Math.round(weeklyPayment * 100) / 100,
+          vendor: 'Estimated AP',
+        });
+      }
+
+      return payments;
     },
 
     async getRecurringPayments(): Promise<RecurringPayments> {
-      // TODO: Implement recurring payment configuration
-      // For now, return empty config
-      return {};
+      // Return default recurring payment configuration
+      // In production, this would be loaded from a configuration table
+      return {
+        payroll: 0,
+        rent: 0,
+        utilities: 0,
+        insurance: 0,
+        loanPayments: 0,
+        other: 0,
+      };
     },
 
     async getAverageDailySales(): Promise<number> {
-      // TODO: Calculate average daily sales from revenue accounts
-      // For now, return 0
-      return 0;
+      // Calculate average daily sales from last 90 days of revenue
+      const now = new Date();
+      const daysBack = 90;
+
+      // Get revenue totals from recent periods
+      const result = await db
+        .select({
+          totalRevenue: sql<number>`COALESCE(SUM(${accountBalances.creditTotal} - ${accountBalances.debitTotal}), 0)`,
+        })
+        .from(accountBalances)
+        .innerJoin(chartOfAccounts, eq(accountBalances.accountId, chartOfAccounts.id))
+        .where(
+          and(
+            eq(chartOfAccounts.accountType, 'Revenue'),
+            eq(chartOfAccounts.isDetailAccount, true),
+            // Last 3 months approximately
+            sql`(${accountBalances.fiscalYear} * 100 + ${accountBalances.fiscalMonth}) >= ${(now.getFullYear() * 100 + now.getMonth() + 1) - 3}`
+          )
+        );
+
+      const totalRevenue = result[0]?.totalRevenue ?? 0;
+      return Math.round((totalRevenue / daysBack) * 100) / 100;
     },
 
     async getThresholdConfig(): Promise<CashThresholdConfig | null> {

@@ -144,25 +144,28 @@ export class GetCashFlowStatementHandler {
     ]);
 
     // Build input for calculation service
+    // Normalize signs: outflows are negative, inflows are positive
     const input: CashFlowInput = {
       fiscalYear,
       fiscalMonth,
       netIncome,
-      depreciation,
-      amortization,
-      gainOnAssetDisposal: -gainLoss.gain, // Negate gain (subtract from operating)
-      lossOnAssetDisposal: gainLoss.loss, // Loss adds back
+      depreciation: Math.abs(depreciation), // Non-cash add-back (positive)
+      amortization: Math.abs(amortization), // Non-cash add-back (positive)
+      gainOnAssetDisposal: -Math.abs(gainLoss.gain), // Gain is subtracted (shown negative)
+      lossOnAssetDisposal: Math.abs(gainLoss.loss), // Loss is added back (positive)
       accountsReceivableChange: workingCapital.accountsReceivableChange,
       inventoryChange: workingCapital.inventoryChange,
       prepaidExpenseChange: workingCapital.prepaidExpenseChange,
       accountsPayableChange: workingCapital.accountsPayableChange,
       accruedLiabilitiesChange: workingCapital.accruedLiabilitiesChange,
-      capitalExpenditures: investing.capitalExpenditures,
-      proceedsFromAssetSales: investing.proceedsFromAssetSales,
-      newLoans: financing.newLoans,
-      loanRepayments: financing.loanRepayments,
-      dividendsPaid: financing.dividendsPaid,
-      capitalInjections: financing.capitalInjections,
+      // Investing activities: outflows are negative
+      capitalExpenditures: -Math.abs(investing.capitalExpenditures), // Cash outflow (negative)
+      proceedsFromAssetSales: Math.abs(investing.proceedsFromAssetSales), // Cash inflow (positive)
+      // Financing activities: outflows are negative
+      newLoans: Math.abs(financing.newLoans), // Cash inflow (positive)
+      loanRepayments: -Math.abs(financing.loanRepayments), // Cash outflow (negative)
+      dividendsPaid: -Math.abs(financing.dividendsPaid), // Cash outflow (negative)
+      capitalInjections: Math.abs(financing.capitalInjections), // Cash inflow (positive)
       beginningCash,
     };
 

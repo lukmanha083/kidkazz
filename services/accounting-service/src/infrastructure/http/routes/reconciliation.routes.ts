@@ -20,16 +20,81 @@ import {
   ImportBankStatementHandler,
 } from '@/application/commands';
 import {
-  createReconciliationSchema,
   matchTransactionSchema,
-  autoMatchTransactionsSchema,
   addReconcilingItemSchema,
-  completeReconciliationSchema,
-  approveReconciliationSchema,
-  importBankStatementSchema,
 } from '@/application/dtos';
 import { ReconciliationItemType } from '@/domain/value-objects';
 import type * as schema from '@/infrastructure/db/schema';
+
+// ============================================================================
+// Local Schemas (not duplicating DTOs, these are route-specific)
+// ============================================================================
+
+/**
+ * Create Reconciliation Body Schema (route-specific with different field names)
+ */
+const createReconciliationBodySchema = z.object({
+  bankAccountId: z.string().min(1),
+  fiscalYear: z.number().int().min(2020).max(2100),
+  fiscalMonth: z.number().int().min(1).max(12),
+  statementEndingBalance: z.number(),
+  bookEndingBalance: z.number(),
+  notes: z.string().optional(),
+});
+
+/**
+ * Import Bank Statement Schema with distinct period dates
+ */
+const importBankStatementBodySchema = z.object({
+  bankAccountId: z.string().min(1),
+  statementDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  periodStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  periodEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  openingBalance: z.number(),
+  closingBalance: z.number(),
+  transactions: z.array(z.object({
+    transactionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    valueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    description: z.string().min(1).max(500),
+    reference: z.string().max(100).optional(),
+    amount: z.number(),
+    checkNumber: z.string().max(50).optional(),
+  })),
+});
+
+/**
+ * Auto-Match Body Schema with journal lines
+ */
+const autoMatchBodySchema = z.object({
+  journalLines: z.array(
+    z.object({
+      id: z.string(),
+      amount: z.number(),
+      date: z.string(),
+      direction: z.enum(['Debit', 'Credit']),
+    })
+  ),
+  dateTolerance: z.number().int().min(0).max(7).default(3),
+});
+
+/**
+ * Add Reconciling Item Body Schema (route-specific field mapping)
+ */
+const addItemBodySchema = z.object({
+  itemType: z.enum([
+    'OUTSTANDING_CHECK',
+    'DEPOSIT_IN_TRANSIT',
+    'BANK_FEE',
+    'BANK_INTEREST',
+    'NSF_CHECK',
+    'ADJUSTMENT',
+  ]),
+  description: z.string().min(1).max(500),
+  amount: z.number(),
+  transactionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  reference: z.string().max(100).optional(),
+  requiresJournalEntry: z.boolean().optional(),
+});
 
 type Bindings = {
   DB: D1Database;
@@ -114,15 +179,6 @@ reconciliationRoutes.get('/:id', async (c) => {
 /**
  * POST /reconciliations - Create new reconciliation
  */
-const createReconciliationBodySchema = z.object({
-  bankAccountId: z.string().min(1),
-  fiscalYear: z.number().int().min(2020).max(2100),
-  fiscalMonth: z.number().int().min(1).max(12),
-  statementEndingBalance: z.number(),
-  bookEndingBalance: z.number(),
-  notes: z.string().optional(),
-});
-
 reconciliationRoutes.post('/', zValidator('json', createReconciliationBodySchema), async (c) => {
   const db = c.get('db');
   const userId = c.get('userId');
@@ -182,7 +238,7 @@ reconciliationRoutes.post('/:id/start', async (c) => {
  */
 reconciliationRoutes.post(
   '/:id/import-statement',
-  zValidator('json', importBankStatementSchema),
+  zValidator('json', importBankStatementBodySchema),
   async (c) => {
     const db = c.get('db');
     const userId = c.get('userId');
@@ -197,8 +253,8 @@ reconciliationRoutes.post(
       const result = await handler.execute({
         bankAccountId: body.bankAccountId,
         statementDate: new Date(body.statementDate),
-        periodStart: new Date(body.statementDate),
-        periodEnd: new Date(body.statementDate),
+        periodStart: new Date(body.periodStart),
+        periodEnd: new Date(body.periodEnd),
         openingBalance: body.openingBalance,
         closingBalance: body.closingBalance,
         transactions: body.transactions.map((tx) => ({
@@ -288,18 +344,6 @@ reconciliationRoutes.post('/:id/match', zValidator('json', matchTransactionSchem
 /**
  * POST /reconciliations/:id/auto-match - Auto-match transactions
  */
-const autoMatchBodySchema = z.object({
-  journalLines: z.array(
-    z.object({
-      id: z.string(),
-      amount: z.number(),
-      date: z.string(),
-      direction: z.enum(['Debit', 'Credit']),
-    })
-  ),
-  dateTolerance: z.number().int().min(0).max(7).default(3),
-});
-
 reconciliationRoutes.post('/:id/auto-match', zValidator('json', autoMatchBodySchema), async (c) => {
   const db = c.get('db');
   const userId = c.get('userId');
@@ -338,22 +382,6 @@ reconciliationRoutes.post('/:id/auto-match', zValidator('json', autoMatchBodySch
 /**
  * POST /reconciliations/:id/items - Add reconciling item
  */
-const addItemBodySchema = z.object({
-  itemType: z.enum([
-    'OUTSTANDING_CHECK',
-    'DEPOSIT_IN_TRANSIT',
-    'BANK_FEE',
-    'BANK_INTEREST',
-    'NSF_CHECK',
-    'ADJUSTMENT',
-  ]),
-  description: z.string().min(1).max(500),
-  amount: z.number(),
-  transactionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  reference: z.string().max(100).optional(),
-  requiresJournalEntry: z.boolean().optional(),
-});
-
 reconciliationRoutes.post('/:id/items', zValidator('json', addItemBodySchema), async (c) => {
   const db = c.get('db');
   const userId = c.get('userId');
