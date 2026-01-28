@@ -1,4 +1,4 @@
-import { AuditLog, type AuditAction, type AuditLogProps } from '@/domain/entities/audit-log.entity';
+import { type AuditAction, AuditLog, type AuditLogProps } from '@/domain/entities/audit-log.entity';
 import type { IAuditLogRepository } from '@/domain/repositories/audit.repository';
 
 /**
@@ -225,7 +225,7 @@ export class AuditService {
   /**
    * Get recent audit logs
    */
-  async getRecentLogs(limit: number = 100): Promise<AuditLog[]> {
+  async getRecentLogs(limit = 100): Promise<AuditLog[]> {
     return this.auditLogRepository.findRecent(limit);
   }
 }

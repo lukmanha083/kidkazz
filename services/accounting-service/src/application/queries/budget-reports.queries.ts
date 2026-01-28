@@ -1,6 +1,6 @@
-import type { IBudgetRepository } from '@/domain/repositories/budget.repository';
 import type { IAccountBalanceRepository } from '@/domain/repositories/account-balance.repository';
 import type { IAccountRepository } from '@/domain/repositories/account.repository';
+import type { IBudgetRepository } from '@/domain/repositories/budget.repository';
 
 /**
  * Budget vs Actual report section
@@ -55,13 +55,58 @@ export class GetBudgetVsActualHandler {
       throw new Error('Budget not found');
     }
 
-    const sections: BudgetVsActualSection[] = [];
-
     // Get unique account IDs from budget lines
     const accountIds = [...new Set(budget.lines.map((l) => l.accountId))];
 
+    // Batch fetch all accounts to avoid N+1
+    const accountsMap = new Map<
+      string,
+      { id: string; code: string; name: string; accountType: string }
+    >();
     for (const accountId of accountIds) {
       const account = await this.accountRepository.findById(accountId);
+      if (account) {
+        accountsMap.set(accountId, {
+          id: account.id,
+          code: account.code,
+          name: account.name,
+          accountType: account.accountType,
+        });
+      }
+    }
+
+    // Batch fetch all balances for the year to avoid N+1
+    const balancesMap = new Map<
+      string,
+      Map<number, { debitTotal: number; creditTotal: number; closingBalance: number }>
+    >();
+    for (const accountId of accountIds) {
+      const monthlyBalances = new Map<
+        number,
+        { debitTotal: number; creditTotal: number; closingBalance: number }
+      >();
+      // Fetch all months in one loop but could be optimized with a bulk query if repository supports it
+      for (let month = 1; month <= 12; month++) {
+        const balance = await this.accountBalanceRepository.findByAccountAndPeriod(
+          accountId,
+          budget.fiscalYear,
+          month
+        );
+        if (balance) {
+          monthlyBalances.set(month, {
+            debitTotal: balance.debitTotal,
+            creditTotal: balance.creditTotal,
+            closingBalance: balance.closingBalance,
+          });
+        }
+      }
+      balancesMap.set(accountId, monthlyBalances);
+    }
+
+    const sections: BudgetVsActualSection[] = [];
+
+    for (const accountId of accountIds) {
+      const account = accountsMap.get(accountId);
       if (!account) continue;
 
       // Calculate budget amount
@@ -73,36 +118,32 @@ export class GetBudgetVsActualHandler {
         budgetAmount = budget.getAmountForAccount(accountId);
       }
 
-      // Calculate actual amount from account balances
+      // Calculate actual amount from pre-fetched balances
       let actualAmount = 0;
+      const monthlyBalances = balancesMap.get(accountId);
+
       if (query.fiscalMonth) {
-        const balance = await this.accountBalanceRepository.findByAccountAndPeriod(
-          accountId,
-          budget.fiscalYear,
-          query.fiscalMonth
-        );
+        const balance = monthlyBalances?.get(query.fiscalMonth);
         if (balance) {
           actualAmount = balance.closingBalance;
         }
       } else {
         // YTD actual - sum all months
-        for (let month = 1; month <= 12; month++) {
-          const balance = await this.accountBalanceRepository.findByAccountAndPeriod(
-            accountId,
-            budget.fiscalYear,
-            month
-          );
-          if (balance) {
+        if (monthlyBalances) {
+          for (const [, balance] of monthlyBalances) {
             // For income/expense accounts, use the activity (debits - credits or vice versa)
+            // Preserve sign for proper variance calculation - don't use Math.abs
             const activity = balance.debitTotal - balance.creditTotal;
-            actualAmount += Math.abs(activity);
+            actualAmount += activity;
           }
         }
       }
 
       const variance = budgetAmount - actualAmount;
       const variancePercent = budgetAmount !== 0 ? (variance / budgetAmount) * 100 : 0;
-      const isFavorable = variance >= 0;
+      // Favorable depends on account type: for expenses, under budget is good; for revenue, over budget is good
+      const isExpenseAccount = account.accountType === 'Expense';
+      const isFavorable = isExpenseAccount ? variance >= 0 : variance <= 0;
 
       sections.push({
         accountId,
@@ -187,7 +228,11 @@ export class GetARAgingHandler {
     // Get AR balance
     const year = query.asOfDate.getFullYear();
     const month = query.asOfDate.getMonth() + 1;
-    const balance = await this.accountBalanceRepository.findByAccountAndPeriod(arAccount.id, year, month);
+    const balance = await this.accountBalanceRepository.findByAccountAndPeriod(
+      arAccount.id,
+      year,
+      month
+    );
     const totalReceivables = balance?.closingBalance || 0;
 
     // Simplified aging - in production, this would come from invoice aging
@@ -237,7 +282,11 @@ export class GetAPAgingHandler {
 
     const year = query.asOfDate.getFullYear();
     const month = query.asOfDate.getMonth() + 1;
-    const balance = await this.accountBalanceRepository.findByAccountAndPeriod(apAccount.id, year, month);
+    const balance = await this.accountBalanceRepository.findByAccountAndPeriod(
+      apAccount.id,
+      year,
+      month
+    );
     const totalPayables = balance?.closingBalance || 0;
 
     return {

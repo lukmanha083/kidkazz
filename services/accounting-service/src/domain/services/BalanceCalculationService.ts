@@ -1,5 +1,5 @@
 import { AccountBalance, type NormalBalance } from '@/domain/entities/account-balance.entity';
-import { FiscalPeriod } from '@/domain/value-objects';
+import type { FiscalPeriod } from '@/domain/value-objects';
 
 /**
  * Account info needed for balance calculation
@@ -95,10 +95,7 @@ export class BalanceCalculationService {
 
     for (const account of accounts) {
       // Get previous period closing balance as opening
-      const previousClosing = await this.deps.getPreviousPeriodClosingBalance(
-        account.id,
-        period
-      );
+      const previousClosing = await this.deps.getPreviousPeriodClosingBalance(account.id, period);
       const openingBalance = previousClosing ?? 0;
 
       // Get journal line summary for this account

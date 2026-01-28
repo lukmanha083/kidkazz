@@ -1,33 +1,33 @@
-import { Hono } from 'hono';
-import { zValidator } from '@hono/zod-validator';
-import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import {
-  DrizzleAssetCategoryRepository,
-  DrizzleFixedAssetRepository,
-  DrizzleJournalEntryRepository,
-  DrizzleAssetMovementRepository,
-} from '@/infrastructure/repositories';
-import {
-  CreateAssetHandler,
   ActivateAssetHandler,
-  UpdateAssetHandler,
-  TransferAssetHandler,
+  CreateAssetHandler,
   DisposeAssetWithJournalHandler,
+  TransferAssetHandler,
+  UpdateAssetHandler,
 } from '@/application/commands';
 import {
-  GetAssetHandler,
-  ListAssetsHandler,
-  GetAssetByBarcodeHandler,
-  GetDepreciableAssetsHandler,
-} from '@/application/queries';
-import {
   createAssetSchema,
-  updateAssetSchema,
-  transferAssetSchema,
   disposeAssetSchema,
   listAssetsQuerySchema,
+  transferAssetSchema,
+  updateAssetSchema,
 } from '@/application/dtos';
+import {
+  GetAssetByBarcodeHandler,
+  GetAssetHandler,
+  GetDepreciableAssetsHandler,
+  ListAssetsHandler,
+} from '@/application/queries';
 import type * as schema from '@/infrastructure/db/schema';
+import {
+  DrizzleAssetCategoryRepository,
+  DrizzleAssetMovementRepository,
+  DrizzleFixedAssetRepository,
+  DrizzleJournalEntryRepository,
+} from '@/infrastructure/repositories';
+import { zValidator } from '@hono/zod-validator';
+import type { DrizzleD1Database } from 'drizzle-orm/d1';
+import { Hono } from 'hono';
 
 type Bindings = {
   DB: D1Database;
@@ -158,9 +158,7 @@ assetRoutes.post('/', zValidator('json', createAssetSchema), async (c) => {
       insuranceExpiryDate: body.insuranceExpiryDate
         ? new Date(body.insuranceExpiryDate)
         : undefined,
-      warrantyExpiryDate: body.warrantyExpiryDate
-        ? new Date(body.warrantyExpiryDate)
-        : undefined,
+      warrantyExpiryDate: body.warrantyExpiryDate ? new Date(body.warrantyExpiryDate) : undefined,
       createdBy: userId,
     });
 
@@ -195,9 +193,7 @@ assetRoutes.put('/:id', zValidator('json', updateAssetSchema), async (c) => {
       insuranceExpiryDate: body.insuranceExpiryDate
         ? new Date(body.insuranceExpiryDate)
         : undefined,
-      warrantyExpiryDate: body.warrantyExpiryDate
-        ? new Date(body.warrantyExpiryDate)
-        : undefined,
+      warrantyExpiryDate: body.warrantyExpiryDate ? new Date(body.warrantyExpiryDate) : undefined,
     });
 
     // Fetch updated asset
@@ -246,81 +242,73 @@ assetRoutes.post('/:id/activate', async (c) => {
 /**
  * POST /assets/:id/transfer - Transfer asset
  */
-assetRoutes.post(
-  '/:id/transfer',
-  zValidator('json', transferAssetSchema),
-  async (c) => {
-    const db = c.get('db');
-    const userId = c.get('userId');
-    const id = c.req.param('id');
-    const body = c.req.valid('json');
+assetRoutes.post('/:id/transfer', zValidator('json', transferAssetSchema), async (c) => {
+  const db = c.get('db');
+  const userId = c.get('userId');
+  const id = c.req.param('id');
+  const body = c.req.valid('json');
 
-    const repository = new DrizzleFixedAssetRepository(db);
-    const handler = new TransferAssetHandler(repository);
+  const repository = new DrizzleFixedAssetRepository(db);
+  const handler = new TransferAssetHandler(repository);
 
-    try {
-      const result = await handler.execute({
-        id,
-        ...body,
-        transferredBy: userId,
-      });
+  try {
+    const result = await handler.execute({
+      id,
+      ...body,
+      transferredBy: userId,
+    });
 
-      return c.json({
-        success: true,
-        data: result,
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to transfer asset';
-      if (message === 'Asset not found') {
-        return c.json({ success: false, error: message }, 404);
-      }
-      return c.json({ success: false, error: message }, 400);
+    return c.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to transfer asset';
+    if (message === 'Asset not found') {
+      return c.json({ success: false, error: message }, 404);
     }
+    return c.json({ success: false, error: message }, 400);
   }
-);
+});
 
 /**
  * POST /assets/:id/dispose - Dispose asset with journal entry
  */
-assetRoutes.post(
-  '/:id/dispose',
-  zValidator('json', disposeAssetSchema),
-  async (c) => {
-    const db = c.get('db');
-    const userId = c.get('userId');
-    const id = c.req.param('id');
-    const body = c.req.valid('json');
+assetRoutes.post('/:id/dispose', zValidator('json', disposeAssetSchema), async (c) => {
+  const db = c.get('db');
+  const userId = c.get('userId');
+  const id = c.req.param('id');
+  const body = c.req.valid('json');
 
-    const assetRepo = new DrizzleFixedAssetRepository(db);
-    const categoryRepo = new DrizzleAssetCategoryRepository(db);
-    const journalRepo = new DrizzleJournalEntryRepository(db);
-    const movementRepo = new DrizzleAssetMovementRepository(db);
-    const handler = new DisposeAssetWithJournalHandler(
-      assetRepo,
-      categoryRepo,
-      journalRepo,
-      movementRepo
-    );
+  const assetRepo = new DrizzleFixedAssetRepository(db);
+  const categoryRepo = new DrizzleAssetCategoryRepository(db);
+  const journalRepo = new DrizzleJournalEntryRepository(db);
+  const movementRepo = new DrizzleAssetMovementRepository(db);
+  const handler = new DisposeAssetWithJournalHandler(
+    assetRepo,
+    categoryRepo,
+    journalRepo,
+    movementRepo
+  );
 
-    try {
-      const result = await handler.execute({
-        assetId: id,
-        ...body,
-        disposedBy: userId,
-      });
+  try {
+    const result = await handler.execute({
+      assetId: id,
+      ...body,
+      disposedBy: userId,
+    });
 
-      return c.json({
-        success: true,
-        data: result,
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to dispose asset';
-      if (message === 'Asset not found') {
-        return c.json({ success: false, error: message }, 404);
-      }
-      return c.json({ success: false, error: message }, 400);
+    return c.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to dispose asset';
+    if (message === 'Asset not found') {
+      return c.json({ success: false, error: message }, 404);
     }
+    return c.json({ success: false, error: message }, 400);
   }
-);
+});
 
 export { assetRoutes };

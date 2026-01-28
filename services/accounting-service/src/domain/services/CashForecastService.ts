@@ -129,7 +129,7 @@ export class CashForecastService {
    */
   calculateForecast(
     input: CashForecastInput,
-    weeks: number = 4,
+    weeks = 4,
     thresholds?: CashThresholdConfig
   ): CashForecastResult {
     const forecastDate = new Date();
@@ -188,12 +188,13 @@ export class CashForecastService {
     const weeksWithAlerts = weeklyForecasts.filter(
       (w) => w.alertLevel !== CashAlertLevel.NORMAL
     ).length;
-    const averageWeeklyBalance =
-      weeklyForecasts.reduce((sum, w) => sum + w.endingCash, 0) / weeks;
+    const averageWeeklyBalance = weeklyForecasts.reduce((sum, w) => sum + w.endingCash, 0) / weeks;
 
     // Get lowest cash point date
     const lowestCashDate = new Date(forecastDate);
-    lowestCashDate.setDate(lowestCashDate.getDate() + (lowestCashWeek - 1) * this.DAYS_PER_WEEK + 6);
+    lowestCashDate.setDate(
+      lowestCashDate.getDate() + (lowestCashWeek - 1) * this.DAYS_PER_WEEK + 6
+    );
 
     return {
       forecastDate,

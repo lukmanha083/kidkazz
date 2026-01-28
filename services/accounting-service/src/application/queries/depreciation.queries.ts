@@ -1,10 +1,10 @@
 import type {
-  IFixedAssetRepository,
-  IAssetCategoryRepository,
-  IDepreciationScheduleRepository,
-  IDepreciationRunRepository,
-  DepreciationSchedule,
   DepreciationRun,
+  DepreciationSchedule,
+  IAssetCategoryRepository,
+  IDepreciationRunRepository,
+  IDepreciationScheduleRepository,
+  IFixedAssetRepository,
 } from '@/domain/repositories';
 import { DepreciationCalculatorFactory } from '@/domain/services/DepreciationCalculator';
 
@@ -163,7 +163,9 @@ export class GetAssetDepreciationScheduleHandler {
     private readonly scheduleRepo: IDepreciationScheduleRepository
   ) {}
 
-  async execute(query: GetAssetDepreciationScheduleQuery): Promise<AssetDepreciationScheduleResult | null> {
+  async execute(
+    query: GetAssetDepreciationScheduleQuery
+  ): Promise<AssetDepreciationScheduleResult | null> {
     const asset = await this.assetRepo.findById(query.assetId);
     if (!asset) {
       return null;
@@ -256,7 +258,7 @@ export class GetDepreciationRunHandler {
 // List Depreciation Runs Query
 // ============================================================================
 
-export interface ListDepreciationRunsQuery {}
+export type ListDepreciationRunsQuery = {};
 
 export class ListDepreciationRunsHandler {
   constructor(private readonly runRepo: IDepreciationRunRepository) {}

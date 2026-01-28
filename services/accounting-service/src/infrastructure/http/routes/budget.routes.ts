@@ -1,29 +1,29 @@
-import { Hono } from 'hono';
-import { zValidator } from '@hono/zod-validator';
-import type { DrizzleD1Database } from 'drizzle-orm/d1';
-import * as schema from '../../db/schema';
-import { DrizzleBudgetRepository } from '../../repositories/budget.repository';
-import { DrizzleAccountBalanceRepository } from '../../repositories/account-balance.repository';
-import { DrizzleAccountRepository } from '../../repositories/account.repository';
 import {
-  CreateBudgetHandler,
-  UpdateBudgetLinesHandler,
   ApproveBudgetHandler,
+  CreateBudgetHandler,
   DeleteBudgetHandler,
+  UpdateBudgetLinesHandler,
 } from '@/application/commands/budget.commands';
 import {
-  GetBudgetVsActualHandler,
-  GetARAgingHandler,
-  GetAPAgingHandler,
-} from '@/application/queries/budget-reports.queries';
-import {
-  createBudgetSchema,
-  updateBudgetLinesSchema,
-  listBudgetsQuerySchema,
-  budgetVsActualQuerySchema,
   agingReportQuerySchema,
+  budgetVsActualQuerySchema,
+  createBudgetSchema,
+  listBudgetsQuerySchema,
   toBudgetResponse,
+  updateBudgetLinesSchema,
 } from '@/application/dtos/budget.dto';
+import {
+  GetAPAgingHandler,
+  GetARAgingHandler,
+  GetBudgetVsActualHandler,
+} from '@/application/queries/budget-reports.queries';
+import { zValidator } from '@hono/zod-validator';
+import type { DrizzleD1Database } from 'drizzle-orm/d1';
+import { Hono } from 'hono';
+import type * as schema from '../../db/schema';
+import { DrizzleAccountBalanceRepository } from '../../repositories/account-balance.repository';
+import { DrizzleAccountRepository } from '../../repositories/account.repository';
+import { DrizzleBudgetRepository } from '../../repositories/budget.repository';
 
 type Bindings = {
   DB: D1Database;
@@ -35,6 +35,83 @@ type Variables = {
 };
 
 const budgetRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+
+/**
+ * GET /budgets/reports/budget-vs-actual - Budget vs Actual report
+ * NOTE: Must be defined before /:id to avoid route matching conflict
+ */
+budgetRoutes.get(
+  '/reports/budget-vs-actual',
+  zValidator('query', budgetVsActualQuerySchema),
+  async (c) => {
+    const db = c.get('db');
+    const query = c.req.valid('query');
+
+    const budgetRepository = new DrizzleBudgetRepository(db);
+    const accountBalanceRepository = new DrizzleAccountBalanceRepository(db);
+    const accountRepository = new DrizzleAccountRepository(db);
+
+    const handler = new GetBudgetVsActualHandler(
+      budgetRepository,
+      accountBalanceRepository,
+      accountRepository
+    );
+
+    const report = await handler.execute({
+      budgetId: query.budgetId,
+      fiscalMonth: query.fiscalMonth,
+    });
+
+    return c.json({
+      success: true,
+      data: report,
+    });
+  }
+);
+
+/**
+ * GET /budgets/reports/ar-aging - AR Aging report
+ * NOTE: Must be defined before /:id to avoid route matching conflict
+ */
+budgetRoutes.get('/reports/ar-aging', zValidator('query', agingReportQuerySchema), async (c) => {
+  const db = c.get('db');
+  const query = c.req.valid('query');
+
+  const accountRepository = new DrizzleAccountRepository(db);
+  const accountBalanceRepository = new DrizzleAccountBalanceRepository(db);
+
+  const handler = new GetARAgingHandler(accountRepository, accountBalanceRepository);
+  const asOfDate = query.asOfDate ? new Date(query.asOfDate) : new Date();
+
+  const report = await handler.execute({ asOfDate });
+
+  return c.json({
+    success: true,
+    data: report,
+  });
+});
+
+/**
+ * GET /budgets/reports/ap-aging - AP Aging report
+ * NOTE: Must be defined before /:id to avoid route matching conflict
+ */
+budgetRoutes.get('/reports/ap-aging', zValidator('query', agingReportQuerySchema), async (c) => {
+  const db = c.get('db');
+  const query = c.req.valid('query');
+
+  const accountRepository = new DrizzleAccountRepository(db);
+  const accountBalanceRepository = new DrizzleAccountBalanceRepository(db);
+
+  const handler = new GetAPAgingHandler(accountRepository, accountBalanceRepository);
+  const asOfDate = query.asOfDate ? new Date(query.asOfDate) : new Date();
+
+  const report = await handler.execute({ asOfDate });
+
+  return c.json({
+    success: true,
+    data: report,
+  });
+});
 
 /**
  * GET /budgets - List all budgets
@@ -93,10 +170,13 @@ budgetRoutes.post('/', zValidator('json', createBudgetSchema), async (c) => {
     lines: body.lines,
   });
 
-  return c.json({
-    success: true,
-    data: result,
-  }, 201);
+  return c.json(
+    {
+      success: true,
+      data: result,
+    },
+    201
+  );
 });
 
 /**
@@ -149,76 +229,6 @@ budgetRoutes.delete('/:id', async (c) => {
   await handler.execute({ budgetId });
 
   return c.json({ success: true });
-});
-
-/**
- * GET /budgets/reports/budget-vs-actual - Budget vs Actual report
- */
-budgetRoutes.get('/reports/budget-vs-actual', zValidator('query', budgetVsActualQuerySchema), async (c) => {
-  const db = c.get('db');
-  const query = c.req.valid('query');
-
-  const budgetRepository = new DrizzleBudgetRepository(db);
-  const accountBalanceRepository = new DrizzleAccountBalanceRepository(db);
-  const accountRepository = new DrizzleAccountRepository(db);
-
-  const handler = new GetBudgetVsActualHandler(
-    budgetRepository,
-    accountBalanceRepository,
-    accountRepository
-  );
-
-  const report = await handler.execute({
-    budgetId: query.budgetId,
-    fiscalMonth: query.fiscalMonth,
-  });
-
-  return c.json({
-    success: true,
-    data: report,
-  });
-});
-
-/**
- * GET /budgets/reports/ar-aging - AR Aging report
- */
-budgetRoutes.get('/reports/ar-aging', zValidator('query', agingReportQuerySchema), async (c) => {
-  const db = c.get('db');
-  const query = c.req.valid('query');
-
-  const accountRepository = new DrizzleAccountRepository(db);
-  const accountBalanceRepository = new DrizzleAccountBalanceRepository(db);
-
-  const handler = new GetARAgingHandler(accountRepository, accountBalanceRepository);
-  const asOfDate = query.asOfDate ? new Date(query.asOfDate) : new Date();
-
-  const report = await handler.execute({ asOfDate });
-
-  return c.json({
-    success: true,
-    data: report,
-  });
-});
-
-/**
- * GET /budgets/reports/ap-aging - AP Aging report
- */
-budgetRoutes.get('/reports/ap-aging', zValidator('query', agingReportQuerySchema), async (c) => {
-  const db = c.get('db');
-  const query = c.req.valid('query');
-
-  const accountRepository = new DrizzleAccountRepository(db);
-  const accountBalanceRepository = new DrizzleAccountBalanceRepository(db);
-
-  const handler = new GetAPAgingHandler(accountRepository, accountBalanceRepository);
-  const asOfDate = query.asOfDate ? new Date(query.asOfDate) : new Date();
-
-  const report = await handler.execute({ asOfDate });
-
-  return c.json({
-    success: true,
-    data: report,
-  });
 });
 
 export { budgetRoutes };

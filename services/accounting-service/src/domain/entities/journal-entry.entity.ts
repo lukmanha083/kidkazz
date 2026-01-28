@@ -1,5 +1,5 @@
-import { nanoid } from 'nanoid';
 import { FiscalPeriod } from '@/domain/value-objects';
+import { nanoid } from 'nanoid';
 
 /**
  * Journal Entry Status
@@ -126,11 +126,13 @@ export class JournalEntry {
     this._entryType = props.entryType ?? JournalEntryType.MANUAL;
     this._status = JournalEntryStatus.DRAFT;
     // Use stored lines if provided (from persistence), otherwise create new with IDs
-    this._lines = storedLines || props.lines.map((line, index) => ({
-      ...line,
-      id: nanoid(),
-      lineSequence: index + 1,
-    }));
+    this._lines =
+      storedLines ||
+      props.lines.map((line, index) => ({
+        ...line,
+        id: nanoid(),
+        lineSequence: index + 1,
+      }));
     this._createdBy = props.createdBy;
     this._createdAt = new Date();
     this._updatedAt = new Date();
@@ -151,6 +153,26 @@ export class JournalEntry {
     JournalEntry.validateLines(props.lines);
 
     return new JournalEntry(props);
+  }
+
+  /**
+   * Factory method to create and immediately post a Journal Entry (atomic operation)
+   * Use this for system-generated entries that should be posted in a single save operation
+   */
+  static createPosted(props: JournalEntryProps, postedBy: string): JournalEntry {
+    // Validate description
+    if (!props.description || props.description.trim().length === 0) {
+      throw new Error('Description is required');
+    }
+
+    // Validate lines
+    JournalEntry.validateLines(props.lines);
+
+    const entry = new JournalEntry(props);
+    entry._status = JournalEntryStatus.POSTED;
+    entry._postedBy = postedBy;
+    entry._postedAt = new Date();
+    return entry;
   }
 
   /**
@@ -205,9 +227,13 @@ export class JournalEntry {
     }
 
     // Calculate totals
-    const totalDebits = lines.filter((l) => l.direction === 'Debit').reduce((sum, l) => sum + l.amount, 0);
+    const totalDebits = lines
+      .filter((l) => l.direction === 'Debit')
+      .reduce((sum, l) => sum + l.amount, 0);
 
-    const totalCredits = lines.filter((l) => l.direction === 'Credit').reduce((sum, l) => sum + l.amount, 0);
+    const totalCredits = lines
+      .filter((l) => l.direction === 'Credit')
+      .reduce((sum, l) => sum + l.amount, 0);
 
     // Allow tolerance for floating-point precision
     if (Math.abs(totalDebits - totalCredits) > 0.01) {
@@ -292,7 +318,9 @@ export class JournalEntry {
    * Calculate total credits
    */
   get totalCredits(): number {
-    return this._lines.filter((l) => l.direction === 'Credit').reduce((sum, l) => sum + l.amount, 0);
+    return this._lines
+      .filter((l) => l.direction === 'Credit')
+      .reduce((sum, l) => sum + l.amount, 0);
   }
 
   /**

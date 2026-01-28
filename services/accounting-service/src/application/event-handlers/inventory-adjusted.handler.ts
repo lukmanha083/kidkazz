@@ -1,9 +1,12 @@
-import type { IProcessedEventRepository, IDomainEventRepository } from '@/domain/repositories/domain-event.repository';
-import type { IJournalEntryRepository } from '@/domain/repositories/journal-entry.repository';
-import type { IAccountRepository } from '@/domain/repositories/account.repository';
-import type { IFiscalPeriodRepository } from '@/domain/repositories/fiscal-period.repository';
 import { JournalEntry, JournalEntryType } from '@/domain/entities/journal-entry.entity';
 import { JournalEntryPosted } from '@/domain/events';
+import type { IAccountRepository } from '@/domain/repositories/account.repository';
+import type {
+  IDomainEventRepository,
+  IProcessedEventRepository,
+} from '@/domain/repositories/domain-event.repository';
+import type { IFiscalPeriodRepository } from '@/domain/repositories/fiscal-period.repository';
+import type { IJournalEntryRepository } from '@/domain/repositories/journal-entry.repository';
 
 /**
  * Inventory Adjusted event from inventory-service
@@ -86,6 +89,17 @@ export class InventoryAdjustedHandler {
         return;
       }
 
+      // Skip TRANSFER adjustments - they don't affect GL (only location changes)
+      if (event.adjustmentType === 'TRANSFER') {
+        await this.processedEventRepository.markAsProcessed(
+          event.eventId,
+          event.eventType,
+          'skipped',
+          'TRANSFER adjustments do not create journal entries'
+        );
+        return;
+      }
+
       // Determine fiscal period
       const adjustmentDate = new Date(event.adjustmentDate);
       const fiscalYear = adjustmentDate.getFullYear();
@@ -106,28 +120,25 @@ export class InventoryAdjustedHandler {
       }
 
       // Build journal entry lines based on adjustment type
-      const lines = this.buildJournalLines(
-        event,
-        inventoryAccount.id,
-        adjustmentAccount.id
+      const lines = this.buildJournalLines(event, inventoryAccount.id, adjustmentAccount.id);
+
+      // Create journal entry (already posted for system entries - atomic)
+      const journalEntry = JournalEntry.createPosted(
+        {
+          entryDate: adjustmentDate,
+          description: `Inventory Adjustment ${event.adjustmentNumber} - ${event.reason}`,
+          reference: event.adjustmentNumber,
+          notes: event.notes,
+          entryType: JournalEntryType.SYSTEM,
+          sourceService: 'inventory-service',
+          sourceReferenceId: event.adjustmentId,
+          createdBy: event.performedBy,
+          lines,
+        },
+        event.performedBy
       );
 
-      // Create journal entry
-      const journalEntry = JournalEntry.create({
-        entryDate: adjustmentDate,
-        description: `Inventory Adjustment ${event.adjustmentNumber} - ${event.reason}`,
-        reference: event.adjustmentNumber,
-        notes: event.notes,
-        entryType: JournalEntryType.SYSTEM,
-        sourceService: 'inventory-service',
-        sourceReferenceId: event.adjustmentId,
-        createdBy: event.performedBy,
-        lines,
-      });
-
-      // Save and post
-      await this.journalEntryRepository.save(journalEntry);
-      journalEntry.post(event.performedBy);
+      // Save (already posted - single atomic save)
       await this.journalEntryRepository.save(journalEntry);
 
       // Store domain event
@@ -334,21 +345,22 @@ export class COGSCalculatedHandler {
         },
       ];
 
-      // Create journal entry
-      const journalEntry = JournalEntry.create({
-        entryDate: orderDate,
-        description: `COGS - Order ${event.orderNumber}`,
-        reference: `COGS-${event.orderNumber}`,
-        entryType: JournalEntryType.SYSTEM,
-        sourceService: 'inventory-service',
-        sourceReferenceId: `cogs-${event.orderId}`,
-        createdBy: 'system',
-        lines,
-      });
+      // Create journal entry (already posted for system entries - atomic)
+      const journalEntry = JournalEntry.createPosted(
+        {
+          entryDate: orderDate,
+          description: `COGS - Order ${event.orderNumber}`,
+          reference: `COGS-${event.orderNumber}`,
+          entryType: JournalEntryType.SYSTEM,
+          sourceService: 'inventory-service',
+          sourceReferenceId: `cogs-${event.orderId}`,
+          createdBy: 'system',
+          lines,
+        },
+        'system'
+      );
 
-      // Save and post
-      await this.journalEntryRepository.save(journalEntry);
-      journalEntry.post('system');
+      // Save (already posted - single atomic save)
       await this.journalEntryRepository.save(journalEntry);
 
       // Store domain event

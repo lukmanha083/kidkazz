@@ -174,8 +174,8 @@ export class FiscalPeriod {
       throw new Error('Invalid fiscal period format: expected YYYY-MM');
     }
 
-    const year = parseInt(match[1], 10);
-    const month = parseInt(match[2], 10);
+    const year = Number.parseInt(match[1], 10);
+    const month = Number.parseInt(match[2], 10);
 
     if (!Number.isFinite(year) || !Number.isFinite(month)) {
       throw new Error('Invalid fiscal period: year and month must be valid numbers');

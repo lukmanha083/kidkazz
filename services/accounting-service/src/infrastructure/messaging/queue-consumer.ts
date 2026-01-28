@@ -1,30 +1,34 @@
+import {
+  type COGSCalculatedEvent,
+  COGSCalculatedHandler,
+  type InventoryAdjustedEvent,
+  InventoryAdjustedHandler,
+  type OrderCancelledEvent,
+  OrderCancelledHandler,
+  type OrderCompletedEvent,
+  OrderCompletedHandler,
+} from '@/application/event-handlers';
+import type { QueueMessage } from '@/domain/services/EventPublisher';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
-import * as schema from '../db/schema';
+import type * as schema from '../db/schema';
+import { DrizzleAccountRepository } from '../repositories/account.repository';
 import {
   DrizzleDomainEventRepository,
   DrizzleProcessedEventRepository,
 } from '../repositories/domain-event.repository';
-import { DrizzleJournalEntryRepository } from '../repositories/journal-entry.repository';
-import { DrizzleAccountRepository } from '../repositories/account.repository';
 import { DrizzleFiscalPeriodRepository } from '../repositories/fiscal-period.repository';
-import {
-  OrderCompletedHandler,
-  OrderCancelledHandler,
-  InventoryAdjustedHandler,
-  COGSCalculatedHandler,
-  type OrderCompletedEvent,
-  type OrderCancelledEvent,
-  type InventoryAdjustedEvent,
-  type COGSCalculatedEvent,
-} from '@/application/event-handlers';
-import type { QueueMessage } from '@/domain/services/EventPublisher';
+import { DrizzleJournalEntryRepository } from '../repositories/journal-entry.repository';
 
 type DrizzleDB = DrizzleD1Database<typeof schema>;
 
 /**
  * Event types that this consumer can handle
  */
-type SupportedEventType = 'OrderCompleted' | 'OrderCancelled' | 'InventoryAdjusted' | 'COGSCalculated';
+type SupportedEventType =
+  | 'OrderCompleted'
+  | 'OrderCancelled'
+  | 'InventoryAdjusted'
+  | 'COGSCalculated';
 
 /**
  * Queue consumer for processing incoming events from other services
@@ -138,10 +142,7 @@ export class QueueConsumer {
 /**
  * Queue handler export for Cloudflare Workers
  */
-export async function handleQueue(
-  batch: MessageBatch<QueueMessage>,
-  db: DrizzleDB
-): Promise<void> {
+export async function handleQueue(batch: MessageBatch<QueueMessage>, db: DrizzleDB): Promise<void> {
   const consumer = new QueueConsumer(db);
   await consumer.processBatch(batch);
 }

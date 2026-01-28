@@ -1,9 +1,12 @@
-import type { IProcessedEventRepository, IDomainEventRepository } from '@/domain/repositories/domain-event.repository';
-import type { IJournalEntryRepository } from '@/domain/repositories/journal-entry.repository';
-import type { IAccountRepository } from '@/domain/repositories/account.repository';
-import type { IFiscalPeriodRepository } from '@/domain/repositories/fiscal-period.repository';
 import { JournalEntry, JournalEntryType } from '@/domain/entities/journal-entry.entity';
 import { JournalEntryPosted } from '@/domain/events';
+import type { IAccountRepository } from '@/domain/repositories/account.repository';
+import type {
+  IDomainEventRepository,
+  IProcessedEventRepository,
+} from '@/domain/repositories/domain-event.repository';
+import type { IFiscalPeriodRepository } from '@/domain/repositories/fiscal-period.repository';
+import type { IJournalEntryRepository } from '@/domain/repositories/journal-entry.repository';
 
 /**
  * Order Completed event from order-service
@@ -70,11 +73,27 @@ export class OrderCompletedHandler {
       // Get required accounts
       const cashAccount = await this.accountRepository.findByCode('1101'); // Cash account
       const revenueAccount = await this.accountRepository.findByCode('4101'); // Sales revenue
-      const taxPayableAccount = await this.accountRepository.findByCode('2201'); // Tax payable
-      const discountAccount = await this.accountRepository.findByCode('4201'); // Sales discount
 
       if (!cashAccount || !revenueAccount) {
-        throw new Error('Required accounts not found');
+        throw new Error('Required accounts (Cash 1101, Revenue 4101) not found');
+      }
+
+      // Get optional accounts (only fetch if needed)
+      const taxPayableAccount =
+        event.totalTax > 0
+          ? await this.accountRepository.findByCode('2201') // Tax payable
+          : null;
+      const discountAccount =
+        event.totalDiscount > 0
+          ? await this.accountRepository.findByCode('4201') // Sales discount
+          : null;
+
+      // Validate optional accounts exist if needed
+      if (event.totalTax > 0 && !taxPayableAccount) {
+        throw new Error('Tax Payable account (2201) not found but tax amount exists');
+      }
+      if (event.totalDiscount > 0 && !discountAccount) {
+        throw new Error('Sales Discount account (4201) not found but discount amount exists');
       }
 
       // Build journal entry lines
@@ -141,23 +160,22 @@ export class OrderCompletedHandler {
         });
       }
 
-      // Create journal entry
-      const journalEntry = JournalEntry.create({
-        entryDate: orderDate,
-        description: `Sales Order ${event.orderNumber} - ${event.customerName}`,
-        reference: event.orderNumber,
-        entryType: JournalEntryType.SYSTEM,
-        sourceService: 'order-service',
-        sourceReferenceId: event.orderId,
-        createdBy: 'system',
-        lines,
-      });
+      // Create journal entry (already posted for system entries - atomic)
+      const journalEntry = JournalEntry.createPosted(
+        {
+          entryDate: orderDate,
+          description: `Sales Order ${event.orderNumber} - ${event.customerName}`,
+          reference: event.orderNumber,
+          entryType: JournalEntryType.SYSTEM,
+          sourceService: 'order-service',
+          sourceReferenceId: event.orderId,
+          createdBy: 'system',
+          lines,
+        },
+        'system'
+      );
 
-      // Save journal entry
-      await this.journalEntryRepository.save(journalEntry);
-
-      // Auto-post system entries
-      journalEntry.post('system');
+      // Save (already posted - single atomic save)
       await this.journalEntryRepository.save(journalEntry);
 
       // Store domain event for journal entry posted

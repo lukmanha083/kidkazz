@@ -1,5 +1,5 @@
-import { z } from 'zod';
 import type { Budget, BudgetLine } from '@/domain/entities/budget.entity';
+import { z } from 'zod';
 
 /**
  * Schema for creating a budget
@@ -7,12 +7,16 @@ import type { Budget, BudgetLine } from '@/domain/entities/budget.entity';
 export const createBudgetSchema = z.object({
   name: z.string().min(1, 'Budget name is required').max(100),
   fiscalYear: z.number().int().min(2000).max(2100),
-  lines: z.array(z.object({
-    accountId: z.string(),
-    fiscalMonth: z.number().int().min(1).max(12),
-    amount: z.number(),
-    notes: z.string().optional(),
-  })).optional(),
+  lines: z
+    .array(
+      z.object({
+        accountId: z.string(),
+        fiscalMonth: z.number().int().min(1).max(12),
+        amount: z.number(),
+        notes: z.string().optional(),
+      })
+    )
+    .optional(),
 });
 
 export type CreateBudgetRequest = z.infer<typeof createBudgetSchema>;
@@ -21,12 +25,14 @@ export type CreateBudgetRequest = z.infer<typeof createBudgetSchema>;
  * Schema for updating budget lines
  */
 export const updateBudgetLinesSchema = z.object({
-  lines: z.array(z.object({
-    accountId: z.string(),
-    fiscalMonth: z.number().int().min(1).max(12),
-    amount: z.number(),
-    notes: z.string().optional(),
-  })),
+  lines: z.array(
+    z.object({
+      accountId: z.string(),
+      fiscalMonth: z.number().int().min(1).max(12),
+      amount: z.number(),
+      notes: z.string().optional(),
+    })
+  ),
 });
 
 export type UpdateBudgetLinesRequest = z.infer<typeof updateBudgetLinesSchema>;
@@ -37,7 +43,7 @@ export type UpdateBudgetLinesRequest = z.infer<typeof updateBudgetLinesSchema>;
 export const listBudgetsQuerySchema = z.object({
   fiscalYear: z
     .string()
-    .transform((v) => parseInt(v, 10))
+    .transform((v) => Number.parseInt(v, 10))
     .pipe(z.number().min(2000).max(2100))
     .optional(),
   status: z.enum(['draft', 'approved', 'locked']).optional(),
@@ -52,7 +58,7 @@ export const budgetVsActualQuerySchema = z.object({
   budgetId: z.string(),
   fiscalMonth: z
     .string()
-    .transform((v) => parseInt(v, 10))
+    .transform((v) => Number.parseInt(v, 10))
     .pipe(z.number().min(1).max(12))
     .optional(),
 });
@@ -63,7 +69,10 @@ export type BudgetVsActualQuery = z.infer<typeof budgetVsActualQuerySchema>;
  * Query schema for aging reports
  */
 export const agingReportQuerySchema = z.object({
-  asOfDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD format').optional(),
+  asOfDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD format')
+    .optional(),
 });
 
 export type AgingReportQuery = z.infer<typeof agingReportQuerySchema>;

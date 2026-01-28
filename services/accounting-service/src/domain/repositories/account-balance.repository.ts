@@ -1,4 +1,4 @@
-import { AccountBalance } from '@/domain/entities/account-balance.entity';
+import type { AccountBalance } from '@/domain/entities/account-balance.entity';
 
 /**
  * Repository interface for AccountBalance

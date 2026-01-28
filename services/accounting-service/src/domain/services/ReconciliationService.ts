@@ -1,5 +1,5 @@
-import { BankTransaction } from '@/domain/entities/bank-transaction.entity';
-import { BankReconciliation } from '@/domain/entities/bank-reconciliation.entity';
+import type { BankReconciliation } from '@/domain/entities/bank-reconciliation.entity';
+import type { BankTransaction } from '@/domain/entities/bank-transaction.entity';
 import { BankTransactionMatchStatus, ReconciliationItemType } from '@/domain/value-objects';
 
 /**

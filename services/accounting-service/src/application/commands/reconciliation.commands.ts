@@ -1,21 +1,21 @@
 import { BankReconciliation } from '@/domain/entities';
-import {
-  ReconciliationService,
-  type JournalLineForMatching,
-  type MatchOptions,
-  type JournalEntryData,
-  type GLAccountMapping,
-} from '@/domain/services';
-import {
-  ReconciliationStatus,
-  ReconciliationItemType,
-  BankTransactionMatchStatus,
-} from '@/domain/value-objects';
 import type {
   IBankAccountRepository,
   IBankReconciliationRepository,
   IBankTransactionRepository,
 } from '@/domain/repositories';
+import {
+  type GLAccountMapping,
+  type JournalEntryData,
+  type JournalLineForMatching,
+  type MatchOptions,
+  ReconciliationService,
+} from '@/domain/services';
+import {
+  BankTransactionMatchStatus,
+  type ReconciliationItemType,
+  ReconciliationStatus,
+} from '@/domain/value-objects';
 
 // ============================================================================
 // Create Reconciliation Command
@@ -215,9 +215,7 @@ export class AutoMatchTransactionsHandler {
     );
 
     // Build map of transactions for quick lookup (avoid re-fetching from DB)
-    const transactionMap = new Map(
-      unmatchedTransactions.map(tx => [tx.id, tx])
-    );
+    const transactionMap = new Map(unmatchedTransactions.map((tx) => [tx.id, tx]));
 
     // Save matched transactions using in-memory objects (already mutated by autoMatchTransactions)
     const matchDetails: Array<{
@@ -316,7 +314,9 @@ export interface CalculateAdjustedBalancesResult {
 export class CalculateAdjustedBalancesHandler {
   constructor(private readonly reconciliationRepo: IBankReconciliationRepository) {}
 
-  async execute(command: CalculateAdjustedBalancesCommand): Promise<CalculateAdjustedBalancesResult> {
+  async execute(
+    command: CalculateAdjustedBalancesCommand
+  ): Promise<CalculateAdjustedBalancesResult> {
     const reconciliation = await this.reconciliationRepo.findById(command.reconciliationId);
     if (!reconciliation) {
       throw new Error('Reconciliation not found');

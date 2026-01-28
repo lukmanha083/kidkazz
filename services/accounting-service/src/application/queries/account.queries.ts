@@ -1,6 +1,6 @@
 import type { Account, AccountStatus } from '@/domain/entities';
+import type { AccountFilter, IAccountRepository } from '@/domain/repositories';
 import type { AccountType } from '@/domain/value-objects';
-import type { IAccountRepository, AccountFilter } from '@/domain/repositories';
 
 /**
  * Get Account By ID Query
@@ -85,9 +85,7 @@ export class ListAccountsHandler {
 /**
  * Get Account Tree Query
  */
-export interface GetAccountTreeQuery {
-  // No filters for now - returns full tree
-}
+export type GetAccountTreeQuery = {};
 
 /**
  * Get Account Tree Handler

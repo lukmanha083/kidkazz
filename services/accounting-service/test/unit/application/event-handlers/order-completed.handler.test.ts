@@ -229,6 +229,6 @@ describe('OrderCompletedHandler', () => {
     } as any);
     vi.mocked(mockAccountRepository.findByCode).mockResolvedValue(null);
 
-    await expect(handler.handle(event)).rejects.toThrow('Required accounts not found');
+    await expect(handler.handle(event)).rejects.toThrow('Required accounts (Cash 1101, Revenue 4101) not found');
   });
 });

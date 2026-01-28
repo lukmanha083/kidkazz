@@ -98,16 +98,36 @@ export class Budget {
   }
 
   // Getters
-  get id(): string { return this._id; }
-  get name(): string { return this._name; }
-  get fiscalYear(): number { return this._fiscalYear; }
-  get status(): BudgetStatus { return this._status; }
-  get approvedBy(): string | null { return this._approvedBy; }
-  get approvedAt(): Date | null { return this._approvedAt; }
-  get createdBy(): string { return this._createdBy; }
-  get createdAt(): Date { return this._createdAt; }
-  get updatedAt(): Date { return this._updatedAt; }
-  get lines(): BudgetLine[] { return [...this._lines]; }
+  get id(): string {
+    return this._id;
+  }
+  get name(): string {
+    return this._name;
+  }
+  get fiscalYear(): number {
+    return this._fiscalYear;
+  }
+  get status(): BudgetStatus {
+    return this._status;
+  }
+  get approvedBy(): string | null {
+    return this._approvedBy;
+  }
+  get approvedAt(): Date | null {
+    return this._approvedAt;
+  }
+  get createdBy(): string {
+    return this._createdBy;
+  }
+  get createdAt(): Date {
+    return this._createdAt;
+  }
+  get updatedAt(): Date {
+    return this._updatedAt;
+  }
+  get lines(): BudgetLine[] {
+    return [...this._lines];
+  }
 
   /**
    * Create a new budget
@@ -271,9 +291,7 @@ export class Budget {
    * Get total budget amount for a specific month
    */
   getTotalForMonth(month: number): number {
-    return this._lines
-      .filter((l) => l.fiscalMonth === month)
-      .reduce((sum, l) => sum + l.amount, 0);
+    return this._lines.filter((l) => l.fiscalMonth === month).reduce((sum, l) => sum + l.amount, 0);
   }
 
   /**

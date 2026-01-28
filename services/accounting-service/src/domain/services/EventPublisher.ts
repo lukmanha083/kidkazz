@@ -1,4 +1,4 @@
-import { type DomainEvent, type EventStatus } from '../events';
+import type { DomainEvent, EventStatus } from '../events';
 
 /**
  * Interface for domain event repository
@@ -18,7 +18,12 @@ export interface IDomainEventRepository {
  */
 export interface IProcessedEventRepository {
   isProcessed(eventId: string): Promise<boolean>;
-  markAsProcessed(eventId: string, eventType: string, result: 'success' | 'failed' | 'skipped', errorMessage?: string): Promise<void>;
+  markAsProcessed(
+    eventId: string,
+    eventType: string,
+    result: 'success' | 'failed' | 'skipped',
+    errorMessage?: string
+  ): Promise<void>;
   findByEventId(eventId: string): Promise<ProcessedEvent | null>;
 }
 
@@ -88,7 +93,7 @@ export class EventPublisher {
   constructor(
     eventRepository: IDomainEventRepository,
     queuePublisher: IQueuePublisher,
-    maxRetries: number = 3
+    maxRetries = 3
   ) {
     this.eventRepository = eventRepository;
     this.queuePublisher = queuePublisher;
@@ -115,7 +120,7 @@ export class EventPublisher {
    * Process pending events and publish to queue
    * This should be called by a scheduled worker or after each transaction
    */
-  async publishPendingEvents(batchSize: number = 100): Promise<PublishResult> {
+  async publishPendingEvents(batchSize = 100): Promise<PublishResult> {
     const pendingEvents = await this.eventRepository.findPendingEvents(batchSize);
 
     const result: PublishResult = {
@@ -127,8 +132,12 @@ export class EventPublisher {
 
     for (const event of pendingEvents) {
       try {
-        // Skip if max retries exceeded
+        // Mark as dead-letter if max retries exceeded
         if (event.retryCount >= this.maxRetries) {
+          await this.eventRepository.markAsFailed(
+            event.id,
+            `Max retries (${this.maxRetries}) exceeded. Event moved to dead-letter.`
+          );
           result.skipped++;
           continue;
         }
@@ -160,7 +169,10 @@ export class EventPublisher {
   /**
    * Get events for a specific aggregate
    */
-  async getAggregateEvents(aggregateType: string, aggregateId: string): Promise<StoredDomainEvent[]> {
+  async getAggregateEvents(
+    aggregateType: string,
+    aggregateId: string
+  ): Promise<StoredDomainEvent[]> {
     return this.eventRepository.findByAggregateId(aggregateType, aggregateId);
   }
 }

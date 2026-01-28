@@ -1,5 +1,5 @@
+import type { ProcessedEvent, StoredDomainEvent } from '@/domain/services/EventPublisher';
 import { z } from 'zod';
-import type { StoredDomainEvent, ProcessedEvent } from '@/domain/services/EventPublisher';
 
 /**
  * Query schema for listing domain events
@@ -11,12 +11,12 @@ export const listDomainEventsQuerySchema = z.object({
   aggregateId: z.string().optional(),
   limit: z
     .string()
-    .transform((v) => parseInt(v, 10))
+    .transform((v) => Number.parseInt(v, 10))
     .pipe(z.number().min(1).max(100))
     .optional(),
   offset: z
     .string()
-    .transform((v) => parseInt(v, 10))
+    .transform((v) => Number.parseInt(v, 10))
     .pipe(z.number().min(0))
     .optional(),
 });
@@ -31,12 +31,12 @@ export const listProcessedEventsQuerySchema = z.object({
   result: z.enum(['success', 'failed', 'skipped']).optional(),
   limit: z
     .string()
-    .transform((v) => parseInt(v, 10))
+    .transform((v) => Number.parseInt(v, 10))
     .pipe(z.number().min(1).max(100))
     .optional(),
   offset: z
     .string()
-    .transform((v) => parseInt(v, 10))
+    .transform((v) => Number.parseInt(v, 10))
     .pipe(z.number().min(0))
     .optional(),
 });

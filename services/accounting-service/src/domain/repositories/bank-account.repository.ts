@@ -1,6 +1,6 @@
 import type { BankAccount } from '@/domain/entities/bank-account.entity';
-import type { BankAccountType, BankAccountStatus } from '@/domain/value-objects';
-import type { PaginationOptions, PaginatedResult } from './journal-entry.repository';
+import type { BankAccountStatus, BankAccountType } from '@/domain/value-objects';
+import type { PaginatedResult, PaginationOptions } from './journal-entry.repository';
 
 /**
  * Bank Account Filter
@@ -36,7 +36,10 @@ export interface IBankAccountRepository {
   /**
    * Find all bank accounts with optional filter and pagination
    */
-  findAll(filter?: BankAccountFilter, pagination?: PaginationOptions): Promise<PaginatedResult<BankAccount>>;
+  findAll(
+    filter?: BankAccountFilter,
+    pagination?: PaginationOptions
+  ): Promise<PaginatedResult<BankAccount>>;
 
   /**
    * Find active bank accounts

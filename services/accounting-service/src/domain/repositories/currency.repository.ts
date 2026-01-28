@@ -1,5 +1,5 @@
-import { Currency } from '../entities/currency.entity';
-import { ExchangeRate } from '../entities/exchange-rate.entity';
+import type { Currency } from '../entities/currency.entity';
+import type { ExchangeRate } from '../entities/exchange-rate.entity';
 
 /**
  * Currency repository interface (USD/IDR only)

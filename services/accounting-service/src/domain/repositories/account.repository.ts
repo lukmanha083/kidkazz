@@ -1,5 +1,5 @@
-import { Account, AccountStatus } from '../entities';
-import { AccountType } from '../value-objects';
+import type { Account, AccountStatus } from '../entities';
+import type { AccountType } from '../value-objects';
 
 /**
  * Account filter options

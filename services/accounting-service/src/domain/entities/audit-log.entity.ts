@@ -1,4 +1,3 @@
-
 /**
  * Audit action types
  */

@@ -1,9 +1,9 @@
-import { FiscalPeriod } from '@/domain/value-objects';
 import {
   CashFlowCalculationService,
-  type CashFlowStatement,
   type CashFlowInput,
+  type CashFlowStatement,
 } from '@/domain/services';
+import { FiscalPeriod } from '@/domain/value-objects';
 
 // ============================================================================
 // Types
@@ -106,8 +106,18 @@ export interface CashFlowStatementResult extends CashFlowStatement {
 // ============================================================================
 
 const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 export class GetCashFlowStatementHandler {
@@ -179,9 +189,10 @@ export class GetCashFlowStatementHandler {
     );
 
     // Build period description
-    const periodDescription = fiscalMonth === 1
-      ? `${MONTH_NAMES[0]} ${fiscalYear}`
-      : `${MONTH_NAMES[0]} - ${MONTH_NAMES[fiscalMonth - 1]} ${fiscalYear}`;
+    const periodDescription =
+      fiscalMonth === 1
+        ? `${MONTH_NAMES[0]} ${fiscalYear}`
+        : `${MONTH_NAMES[0]} - ${MONTH_NAMES[fiscalMonth - 1]} ${fiscalYear}`;
 
     // Calculate period dates
     const periodStart = new Date(fiscalYear, 0, 1); // January 1

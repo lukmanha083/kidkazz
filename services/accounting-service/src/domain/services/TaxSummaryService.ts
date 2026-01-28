@@ -1,8 +1,8 @@
-import { TaxSummary, type TaxType, TAX_RATES } from '@/domain/entities/tax-summary.entity';
 import { JournalEntryStatus, type JournalLine } from '@/domain/entities/journal-entry.entity';
+import { TAX_RATES, TaxSummary, type TaxType } from '@/domain/entities/tax-summary.entity';
+import type { IAccountRepository } from '@/domain/repositories/account.repository';
 import type { ITaxSummaryRepository } from '@/domain/repositories/audit.repository';
 import type { IJournalEntryRepository } from '@/domain/repositories/journal-entry.repository';
-import type { IAccountRepository } from '@/domain/repositories/account.repository';
 import { FiscalPeriod } from '@/domain/value-objects';
 
 /**
@@ -52,10 +52,7 @@ export class TaxSummaryService {
   /**
    * Calculate and save tax summary for a period
    */
-  async calculatePeriodTaxSummary(
-    fiscalYear: number,
-    fiscalMonth: number
-  ): Promise<TaxSummary[]> {
+  async calculatePeriodTaxSummary(fiscalYear: number, fiscalMonth: number): Promise<TaxSummary[]> {
     const summaries: TaxSummary[] = [];
 
     for (const taxType of Object.keys(TAX_RATES) as TaxType[]) {
@@ -114,7 +111,10 @@ export class TaxSummaryService {
 
       // Get journal entries affecting this account in the period
       const fiscalPeriod = FiscalPeriod.create(fiscalYear, fiscalMonth);
-      const entries = await this.journalEntryRepository.findByFiscalPeriod(fiscalPeriod, JournalEntryStatus.POSTED);
+      const entries = await this.journalEntryRepository.findByFiscalPeriod(
+        fiscalPeriod,
+        JournalEntryStatus.POSTED
+      );
 
       for (const entry of entries) {
         // Find lines affecting this tax account

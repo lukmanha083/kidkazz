@@ -1,31 +1,31 @@
-import { Hono } from 'hono';
-import { zValidator } from '@hono/zod-validator';
-import { drizzle } from 'drizzle-orm/d1';
-import * as schema from '@/infrastructure/db/schema';
 import {
-  DrizzleAuditLogRepository,
-  DrizzleTaxSummaryRepository,
-  DrizzleArchivedDataRepository,
-} from '@/infrastructure/repositories/audit.repository';
-import { DrizzleJournalEntryRepository } from '@/infrastructure/repositories/journal-entry.repository';
-import { DrizzleAccountRepository } from '@/infrastructure/repositories/account.repository';
-import { AuditService } from '@/domain/services/AuditService';
-import { TaxSummaryService } from '@/domain/services/TaxSummaryService';
-import { DataArchivalService } from '@/domain/services/DataArchivalService';
-import {
-  QueryAuditLogsSchema,
-  GetEntityHistorySchema,
-  CalculateTaxSummarySchema,
-  GetTaxSummarySchema,
   ArchiveDataSchema,
-  type AuditLogResponse,
-  type TaxSummaryResponse,
-  type PeriodTaxReportResponse,
-  type ArchiveStatusResponse,
   type ArchiveResultResponse,
+  type ArchiveStatusResponse,
+  type AuditLogResponse,
+  CalculateTaxSummarySchema,
+  GetEntityHistorySchema,
+  GetTaxSummarySchema,
+  type PeriodTaxReportResponse,
+  QueryAuditLogsSchema,
+  type TaxSummaryResponse,
 } from '@/application/dtos/audit.dto';
 import type { AuditLog } from '@/domain/entities/audit-log.entity';
 import type { TaxSummary } from '@/domain/entities/tax-summary.entity';
+import { AuditService } from '@/domain/services/AuditService';
+import { DataArchivalService } from '@/domain/services/DataArchivalService';
+import { TaxSummaryService } from '@/domain/services/TaxSummaryService';
+import * as schema from '@/infrastructure/db/schema';
+import { DrizzleAccountRepository } from '@/infrastructure/repositories/account.repository';
+import {
+  DrizzleArchivedDataRepository,
+  DrizzleAuditLogRepository,
+  DrizzleTaxSummaryRepository,
+} from '@/infrastructure/repositories/audit.repository';
+import { DrizzleJournalEntryRepository } from '@/infrastructure/repositories/journal-entry.repository';
+import { zValidator } from '@hono/zod-validator';
+import { drizzle } from 'drizzle-orm/d1';
+import { Hono } from 'hono';
 
 type Bindings = {
   DB: D1Database;
@@ -134,7 +134,7 @@ auditRoutes.get('/audit-logs/entity/:entityType/:entityId', async (c) => {
  * GET /audit-logs/recent - Get recent audit logs
  */
 auditRoutes.get('/audit-logs/recent', async (c) => {
-  const limit = parseInt(c.req.query('limit') || '100', 10);
+  const limit = Number.parseInt(c.req.query('limit') || '100', 10);
   const db = drizzle(c.env.DB, { schema });
   const auditLogRepository = new DrizzleAuditLogRepository(db);
   const auditService = new AuditService(auditLogRepository);
@@ -220,15 +220,17 @@ auditRoutes.get('/tax-summary', zValidator('query', GetTaxSummarySchema), async 
     // Get annual report
     const reports = await taxSummaryService.getAnnualTaxReport(query.fiscalYear);
 
-    const response = reports.map((report): PeriodTaxReportResponse => ({
-      fiscalYear: report.fiscalYear,
-      fiscalMonth: report.fiscalMonth,
-      summaries: report.summaries.map(mapTaxSummaryToResponse),
-      totalGross: report.totalGross,
-      totalTax: report.totalTax,
-      totalNet: report.totalNet,
-      totalTransactions: report.totalTransactions,
-    }));
+    const response = reports.map(
+      (report): PeriodTaxReportResponse => ({
+        fiscalYear: report.fiscalYear,
+        fiscalMonth: report.fiscalMonth,
+        summaries: report.summaries.map(mapTaxSummaryToResponse),
+        totalGross: report.totalGross,
+        totalTax: report.totalTax,
+        totalNet: report.totalNet,
+        totalTransactions: report.totalTransactions,
+      })
+    );
 
     return c.json({
       success: true,

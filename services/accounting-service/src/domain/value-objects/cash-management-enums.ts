@@ -70,9 +70,9 @@ export enum ReconciliationItemStatus {
  */
 export enum CashAlertLevel {
   NORMAL = 'NORMAL',
-  WARNING = 'WARNING',      // Below Rp 300M
-  CRITICAL = 'CRITICAL',    // Below Rp 275M
-  EMERGENCY = 'EMERGENCY',  // Below Rp 250M
+  WARNING = 'WARNING', // Below Rp 300M
+  CRITICAL = 'CRITICAL', // Below Rp 275M
+  EMERGENCY = 'EMERGENCY', // Below Rp 250M
 }
 
 /**

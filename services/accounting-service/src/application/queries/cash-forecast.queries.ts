@@ -1,10 +1,10 @@
 import {
-  CashForecastService,
-  type CashForecastResult,
   type CashForecastInput,
+  type CashForecastResult,
+  CashForecastService,
   type ExpectedCollection,
-  type ScheduledPayment,
   type RecurringPayments,
+  type ScheduledPayment,
 } from '@/domain/services';
 import type { CashThresholdConfig } from '@/domain/services/CashPositionService';
 
@@ -76,21 +76,15 @@ export class GetCashForecastHandler {
     const includeThresholdAlerts = query.includeThresholdAlerts ?? true;
 
     // Gather all input data in parallel
-    const [
-      currentCash,
-      arCollections,
-      apPayments,
-      recurringPayments,
-      avgDailySales,
-      thresholds,
-    ] = await Promise.all([
-      this.deps.getCurrentCashBalance(),
-      this.deps.getExpectedARCollections(weeks),
-      this.deps.getScheduledAPPayments(weeks),
-      this.deps.getRecurringPayments(),
-      this.deps.getAverageDailySales(),
-      includeThresholdAlerts ? this.deps.getThresholdConfig() : Promise.resolve(null),
-    ]);
+    const [currentCash, arCollections, apPayments, recurringPayments, avgDailySales, thresholds] =
+      await Promise.all([
+        this.deps.getCurrentCashBalance(),
+        this.deps.getExpectedARCollections(weeks),
+        this.deps.getScheduledAPPayments(weeks),
+        this.deps.getRecurringPayments(),
+        this.deps.getAverageDailySales(),
+        includeThresholdAlerts ? this.deps.getThresholdConfig() : Promise.resolve(null),
+      ]);
 
     // Build input for forecast service
     const input: CashForecastInput = {

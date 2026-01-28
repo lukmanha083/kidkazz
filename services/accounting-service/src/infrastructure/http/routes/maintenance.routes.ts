@@ -1,31 +1,31 @@
-import { Hono } from 'hono';
-import { zValidator } from '@hono/zod-validator';
-import type { DrizzleD1Database } from 'drizzle-orm/d1';
+import {
+  CancelMaintenanceHandler,
+  CompleteMaintenanceHandler,
+  CreateMaintenanceHandler,
+  DeleteMaintenanceHandler,
+  StartMaintenanceHandler,
+  UpdateMaintenanceHandler,
+} from '@/application/commands';
+import {
+  cancelMaintenanceSchema,
+  completeMaintenanceSchema,
+  createMaintenanceSchema,
+  updateMaintenanceSchema,
+} from '@/application/dtos';
+import {
+  GetMaintenanceHandler,
+  ListAssetMaintenanceHandler,
+  ListOverdueMaintenanceHandler,
+  ListScheduledMaintenanceHandler,
+} from '@/application/queries';
+import type * as schema from '@/infrastructure/db/schema';
 import {
   DrizzleAssetMaintenanceRepository,
   DrizzleFixedAssetRepository,
 } from '@/infrastructure/repositories';
-import {
-  CreateMaintenanceHandler,
-  UpdateMaintenanceHandler,
-  StartMaintenanceHandler,
-  CompleteMaintenanceHandler,
-  CancelMaintenanceHandler,
-  DeleteMaintenanceHandler,
-} from '@/application/commands';
-import {
-  GetMaintenanceHandler,
-  ListAssetMaintenanceHandler,
-  ListScheduledMaintenanceHandler,
-  ListOverdueMaintenanceHandler,
-} from '@/application/queries';
-import {
-  createMaintenanceSchema,
-  updateMaintenanceSchema,
-  completeMaintenanceSchema,
-  cancelMaintenanceSchema,
-} from '@/application/dtos';
-import type * as schema from '@/infrastructure/db/schema';
+import { zValidator } from '@hono/zod-validator';
+import type { DrizzleD1Database } from 'drizzle-orm/d1';
+import { Hono } from 'hono';
 
 type Bindings = {
   DB: D1Database;
@@ -262,36 +262,32 @@ maintenanceRoutes.post(
 /**
  * POST /maintenance/:id/cancel - Cancel maintenance
  */
-maintenanceRoutes.post(
-  '/:id/cancel',
-  zValidator('json', cancelMaintenanceSchema),
-  async (c) => {
-    const db = c.get('db');
-    const id = c.req.param('id');
-    const body = c.req.valid('json');
+maintenanceRoutes.post('/:id/cancel', zValidator('json', cancelMaintenanceSchema), async (c) => {
+  const db = c.get('db');
+  const id = c.req.param('id');
+  const body = c.req.valid('json');
 
-    const maintenanceRepo = new DrizzleAssetMaintenanceRepository(db);
-    const handler = new CancelMaintenanceHandler(maintenanceRepo);
+  const maintenanceRepo = new DrizzleAssetMaintenanceRepository(db);
+  const handler = new CancelMaintenanceHandler(maintenanceRepo);
 
-    try {
-      const result = await handler.execute({
-        id,
-        reason: body.reason,
-      });
+  try {
+    const result = await handler.execute({
+      id,
+      reason: body.reason,
+    });
 
-      return c.json({
-        success: true,
-        data: result,
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to cancel maintenance';
-      if (message === 'Maintenance record not found') {
-        return c.json({ success: false, error: message }, 404);
-      }
-      return c.json({ success: false, error: message }, 400);
+    return c.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to cancel maintenance';
+    if (message === 'Maintenance record not found') {
+      return c.json({ success: false, error: message }, 404);
     }
+    return c.json({ success: false, error: message }, 400);
   }
-);
+});
 
 /**
  * DELETE /maintenance/:id - Delete maintenance record

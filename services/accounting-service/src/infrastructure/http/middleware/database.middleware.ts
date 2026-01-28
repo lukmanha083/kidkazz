@@ -1,6 +1,6 @@
-import type { Context, Next } from 'hono';
-import { drizzle } from 'drizzle-orm/d1';
 import * as schema from '@/infrastructure/db/schema';
+import { drizzle } from 'drizzle-orm/d1';
+import type { Context, Next } from 'hono';
 
 type Bindings = {
   DB: D1Database;

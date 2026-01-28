@@ -1,6 +1,6 @@
-import { z } from 'zod';
 import type { Currency } from '@/domain/entities/currency.entity';
 import type { ExchangeRate } from '@/domain/entities/exchange-rate.entity';
+import { z } from 'zod';
 
 /**
  * Schema for setting exchange rate
@@ -20,7 +20,10 @@ export const convertCurrencySchema = z.object({
   amount: z.number().positive('Amount must be positive'),
   fromCurrency: z.enum(['USD', 'IDR']),
   toCurrency: z.enum(['USD', 'IDR']),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD format').optional(),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD format')
+    .optional(),
 });
 
 export type ConvertCurrencyRequest = z.infer<typeof convertCurrencySchema>;
@@ -31,7 +34,7 @@ export type ConvertCurrencyRequest = z.infer<typeof convertCurrencySchema>;
 export const exchangeRateHistoryQuerySchema = z.object({
   limit: z
     .string()
-    .transform((v) => parseInt(v, 10))
+    .transform((v) => Number.parseInt(v, 10))
     .pipe(z.number().min(1).max(100))
     .optional(),
 });

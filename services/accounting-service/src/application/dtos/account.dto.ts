@@ -1,5 +1,5 @@
+import { AccountCategory, AccountType, FinancialStatementType } from '@/domain/value-objects';
 import { z } from 'zod';
-import { AccountType, AccountCategory, FinancialStatementType } from '@/domain/value-objects';
 
 /**
  * Create Account Request Schema
@@ -38,8 +38,14 @@ export type UpdateAccountRequest = z.infer<typeof updateAccountSchema>;
  */
 export const listAccountsQuerySchema = z.object({
   accountType: z.nativeEnum(AccountType).optional(),
-  isDetailAccount: z.enum(['true', 'false']).transform(v => v === 'true').optional(),
-  isSystemAccount: z.enum(['true', 'false']).transform(v => v === 'true').optional(),
+  isDetailAccount: z
+    .enum(['true', 'false'])
+    .transform((v) => v === 'true')
+    .optional(),
+  isSystemAccount: z
+    .enum(['true', 'false'])
+    .transform((v) => v === 'true')
+    .optional(),
   search: z.string().optional(),
 });
 

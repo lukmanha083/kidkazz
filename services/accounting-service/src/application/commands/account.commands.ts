@@ -1,6 +1,6 @@
 import { Account } from '@/domain/entities';
-import { AccountType, AccountCategory, FinancialStatementType } from '@/domain/value-objects';
 import type { IAccountRepository } from '@/domain/repositories';
+import type { AccountCategory, AccountType, FinancialStatementType } from '@/domain/value-objects';
 
 /**
  * Create Account Command

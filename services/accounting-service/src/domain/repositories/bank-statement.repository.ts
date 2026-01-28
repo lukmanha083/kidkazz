@@ -1,5 +1,5 @@
 import type { BankStatement } from '@/domain/entities/bank-statement.entity';
-import type { PaginationOptions, PaginatedResult } from './journal-entry.repository';
+import type { PaginatedResult, PaginationOptions } from './journal-entry.repository';
 
 /**
  * Bank Statement Filter
@@ -33,7 +33,10 @@ export interface IBankStatementRepository {
   /**
    * Find all bank statements with optional filter and pagination
    */
-  findAll(filter?: BankStatementFilter, pagination?: PaginationOptions): Promise<PaginatedResult<BankStatement>>;
+  findAll(
+    filter?: BankStatementFilter,
+    pagination?: PaginationOptions
+  ): Promise<PaginatedResult<BankStatement>>;
 
   /**
    * Save bank statement (create or update)

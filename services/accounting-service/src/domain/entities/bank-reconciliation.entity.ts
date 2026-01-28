@@ -1,9 +1,9 @@
-import { nanoid } from 'nanoid';
 import {
-  ReconciliationStatus,
-  ReconciliationItemType,
   ReconciliationItemStatus,
+  ReconciliationItemType,
+  ReconciliationStatus,
 } from '@/domain/value-objects';
+import { nanoid } from 'nanoid';
 
 /**
  * Reconciling Item - outstanding checks, deposits in transit, adjustments
@@ -289,7 +289,9 @@ export class BankReconciliation {
     }
 
     if (!this.isBalanced()) {
-      throw new Error('Cannot complete reconciliation: adjusted bank and book balances do not match');
+      throw new Error(
+        'Cannot complete reconciliation: adjusted bank and book balances do not match'
+      );
     }
 
     this._status = ReconciliationStatus.COMPLETED;
@@ -343,26 +345,70 @@ export class BankReconciliation {
   }
 
   // Getters
-  get id(): string { return this._id; }
-  get bankAccountId(): string { return this._bankAccountId; }
-  get fiscalYear(): number { return this._fiscalYear; }
-  get fiscalMonth(): number { return this._fiscalMonth; }
-  get statementEndingBalance(): number { return this._statementEndingBalance; }
-  get bookEndingBalance(): number { return this._bookEndingBalance; }
-  get adjustedBankBalance(): number | undefined { return this._adjustedBankBalance; }
-  get adjustedBookBalance(): number | undefined { return this._adjustedBookBalance; }
-  get totalTransactions(): number { return this._totalTransactions; }
-  get matchedTransactions(): number { return this._matchedTransactions; }
-  get unmatchedTransactions(): number { return this._unmatchedTransactions; }
-  get status(): ReconciliationStatus { return this._status; }
-  get completedAt(): Date | undefined { return this._completedAt; }
-  get completedBy(): string | undefined { return this._completedBy; }
-  get approvedAt(): Date | undefined { return this._approvedAt; }
-  get approvedBy(): string | undefined { return this._approvedBy; }
-  get notes(): string | undefined { return this._notes; }
-  get createdAt(): Date { return this._createdAt; }
-  get updatedAt(): Date { return this._updatedAt; }
-  get createdBy(): string { return this._createdBy; }
-  get updatedBy(): string | undefined { return this._updatedBy; }
-  get reconcilingItems(): ReconcilingItem[] { return [...this._reconcilingItems]; }
+  get id(): string {
+    return this._id;
+  }
+  get bankAccountId(): string {
+    return this._bankAccountId;
+  }
+  get fiscalYear(): number {
+    return this._fiscalYear;
+  }
+  get fiscalMonth(): number {
+    return this._fiscalMonth;
+  }
+  get statementEndingBalance(): number {
+    return this._statementEndingBalance;
+  }
+  get bookEndingBalance(): number {
+    return this._bookEndingBalance;
+  }
+  get adjustedBankBalance(): number | undefined {
+    return this._adjustedBankBalance;
+  }
+  get adjustedBookBalance(): number | undefined {
+    return this._adjustedBookBalance;
+  }
+  get totalTransactions(): number {
+    return this._totalTransactions;
+  }
+  get matchedTransactions(): number {
+    return this._matchedTransactions;
+  }
+  get unmatchedTransactions(): number {
+    return this._unmatchedTransactions;
+  }
+  get status(): ReconciliationStatus {
+    return this._status;
+  }
+  get completedAt(): Date | undefined {
+    return this._completedAt;
+  }
+  get completedBy(): string | undefined {
+    return this._completedBy;
+  }
+  get approvedAt(): Date | undefined {
+    return this._approvedAt;
+  }
+  get approvedBy(): string | undefined {
+    return this._approvedBy;
+  }
+  get notes(): string | undefined {
+    return this._notes;
+  }
+  get createdAt(): Date {
+    return this._createdAt;
+  }
+  get updatedAt(): Date {
+    return this._updatedAt;
+  }
+  get createdBy(): string {
+    return this._createdBy;
+  }
+  get updatedBy(): string | undefined {
+    return this._updatedBy;
+  }
+  get reconcilingItems(): ReconcilingItem[] {
+    return [...this._reconcilingItems];
+  }
 }

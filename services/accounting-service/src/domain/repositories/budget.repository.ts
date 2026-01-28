@@ -1,4 +1,4 @@
-import { Budget, type BudgetStatus, type BudgetRevision } from '../entities/budget.entity';
+import type { Budget, BudgetRevision, BudgetStatus } from '../entities/budget.entity';
 
 /**
  * Budget filter options

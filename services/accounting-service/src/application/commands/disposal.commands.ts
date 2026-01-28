@@ -1,11 +1,11 @@
 import { JournalEntry, JournalEntryType } from '@/domain/entities';
-import { FiscalPeriod, DisposalMethod, MovementType, AssetStatus } from '@/domain/value-objects';
 import type {
-  IFixedAssetRepository,
   IAssetCategoryRepository,
-  IJournalEntryRepository,
   IAssetMovementRepository,
+  IFixedAssetRepository,
+  IJournalEntryRepository,
 } from '@/domain/repositories';
+import { AssetStatus, DisposalMethod, FiscalPeriod, MovementType } from '@/domain/value-objects';
 import { createAssetMovement } from '@/infrastructure/repositories';
 
 // ============================================================================

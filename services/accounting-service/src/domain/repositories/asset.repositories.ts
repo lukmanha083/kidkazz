@@ -1,7 +1,11 @@
 import type { AssetCategory } from '@/domain/entities/asset-category.entity';
 import type { FixedAsset } from '@/domain/entities/fixed-asset.entity';
-import type { AssetStatus, DepreciationScheduleStatus, DepreciationRunStatus } from '@/domain/value-objects';
-import type { PaginationOptions, PaginatedResult } from './journal-entry.repository';
+import type {
+  AssetStatus,
+  DepreciationRunStatus,
+  DepreciationScheduleStatus,
+} from '@/domain/value-objects';
+import type { PaginatedResult, PaginationOptions } from './journal-entry.repository';
 
 /**
  * Asset Category Repository Interface
@@ -35,7 +39,10 @@ export interface IFixedAssetRepository {
   findById(id: string): Promise<FixedAsset | null>;
   findByAssetNumber(assetNumber: string): Promise<FixedAsset | null>;
   findByBarcode(barcode: string): Promise<FixedAsset | null>;
-  findAll(filter?: FixedAssetFilter, pagination?: PaginationOptions): Promise<PaginatedResult<FixedAsset>>;
+  findAll(
+    filter?: FixedAssetFilter,
+    pagination?: PaginationOptions
+  ): Promise<PaginatedResult<FixedAsset>>;
   findByStatus(status: AssetStatus): Promise<FixedAsset[]>;
   findDepreciable(): Promise<FixedAsset[]>;
   findByCategory(categoryId: string): Promise<FixedAsset[]>;
@@ -70,7 +77,11 @@ export interface IDepreciationScheduleRepository {
   findById(id: string): Promise<DepreciationSchedule | null>;
   findByAsset(assetId: string): Promise<DepreciationSchedule[]>;
   findByPeriod(fiscalYear: number, fiscalMonth: number): Promise<DepreciationSchedule[]>;
-  findByAssetAndPeriod(assetId: string, fiscalYear: number, fiscalMonth: number): Promise<DepreciationSchedule | null>;
+  findByAssetAndPeriod(
+    assetId: string,
+    fiscalYear: number,
+    fiscalMonth: number
+  ): Promise<DepreciationSchedule | null>;
   findByRunId(runId: string): Promise<DepreciationSchedule[]>;
   save(schedule: DepreciationSchedule): Promise<void>;
   saveMany(schedules: DepreciationSchedule[]): Promise<void>;

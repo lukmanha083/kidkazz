@@ -1,11 +1,14 @@
-import { eq, and, sql, desc, lt } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
-import type { DrizzleD1Database } from 'drizzle-orm/d1';
-import * as schema from '../db/schema';
-import { domainEvents, processedEvents } from '../db/schema';
-import type { IDomainEventRepository, IProcessedEventRepository } from '@/domain/repositories/domain-event.repository';
 import type { DomainEvent, EventStatus } from '@/domain/events';
-import type { StoredDomainEvent, ProcessedEvent } from '@/domain/services/EventPublisher';
+import type {
+  IDomainEventRepository,
+  IProcessedEventRepository,
+} from '@/domain/repositories/domain-event.repository';
+import type { ProcessedEvent, StoredDomainEvent } from '@/domain/services/EventPublisher';
+import { and, desc, eq, lt, sql } from 'drizzle-orm';
+import type { DrizzleD1Database } from 'drizzle-orm/d1';
+import { nanoid } from 'nanoid';
+import type * as schema from '../db/schema';
+import { domainEvents, processedEvents } from '../db/schema';
 
 type DrizzleDB = DrizzleD1Database<typeof schema>;
 
@@ -32,7 +35,7 @@ export class DrizzleDomainEventRepository implements IDomainEventRepository {
     });
   }
 
-  async findPendingEvents(limit: number = 100): Promise<StoredDomainEvent[]> {
+  async findPendingEvents(limit = 100): Promise<StoredDomainEvent[]> {
     const results = await this.db
       .select()
       .from(domainEvents)
@@ -85,7 +88,10 @@ export class DrizzleDomainEventRepository implements IDomainEventRepository {
     return this.toDomain(results[0]);
   }
 
-  async findByAggregateId(aggregateType: string, aggregateId: string): Promise<StoredDomainEvent[]> {
+  async findByAggregateId(
+    aggregateType: string,
+    aggregateId: string
+  ): Promise<StoredDomainEvent[]> {
     const results = await this.db
       .select()
       .from(domainEvents)
@@ -200,17 +206,17 @@ export class DrizzleProcessedEventRepository implements IProcessedEventRepositor
     eventType: string,
     options?: { result?: 'success' | 'failed' | 'skipped'; limit?: number; offset?: number }
   ): Promise<ProcessedEvent[]> {
-    let query = this.db.select().from(processedEvents).where(eq(processedEvents.eventType, eventType));
+    let query = this.db
+      .select()
+      .from(processedEvents)
+      .where(eq(processedEvents.eventType, eventType));
 
     if (options?.result) {
       query = this.db
         .select()
         .from(processedEvents)
         .where(
-          and(
-            eq(processedEvents.eventType, eventType),
-            eq(processedEvents.result, options.result)
-          )
+          and(eq(processedEvents.eventType, eventType), eq(processedEvents.result, options.result))
         );
     }
 

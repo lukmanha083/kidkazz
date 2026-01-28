@@ -1,6 +1,6 @@
-import type { AuditLog, AuditAction } from '@/domain/entities/audit-log.entity';
+import type { ArchiveType, ArchivedData } from '@/domain/entities/archived-data.entity';
+import type { AuditAction, AuditLog } from '@/domain/entities/audit-log.entity';
 import type { TaxSummary, TaxType } from '@/domain/entities/tax-summary.entity';
-import type { ArchivedData, ArchiveType } from '@/domain/entities/archived-data.entity';
 
 /**
  * Filter for audit log queries
@@ -78,7 +78,11 @@ export interface ITaxSummaryRepository {
   /**
    * Find tax summary by period and type
    */
-  findByPeriodAndType(fiscalYear: number, fiscalMonth: number, taxType: TaxType): Promise<TaxSummary | null>;
+  findByPeriodAndType(
+    fiscalYear: number,
+    fiscalMonth: number,
+    taxType: TaxType
+  ): Promise<TaxSummary | null>;
 
   /**
    * Find all tax summaries for a period

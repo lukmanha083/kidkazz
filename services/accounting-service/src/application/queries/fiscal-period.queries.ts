@@ -1,9 +1,9 @@
-import { FiscalPeriodEntity } from '@/domain/entities/fiscal-period.entity';
-import { FiscalPeriodStatus } from '@/domain/value-objects';
+import type { FiscalPeriodEntity } from '@/domain/entities/fiscal-period.entity';
 import type {
-  IFiscalPeriodRepository,
   FiscalPeriodFilter,
+  IFiscalPeriodRepository,
 } from '@/domain/repositories/fiscal-period.repository';
+import type { FiscalPeriodStatus } from '@/domain/value-objects';
 
 // ============================================================================
 // Fiscal Period Response DTO

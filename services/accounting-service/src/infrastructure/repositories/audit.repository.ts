@@ -1,21 +1,21 @@
-import { eq, and, desc, gte, lte, sql } from 'drizzle-orm';
-import {
-  auditLogs,
-  taxSummary,
-  archivedData,
-  type AuditLogRecord,
-  type TaxSummaryRecord,
-  type ArchivedDataRecord,
-} from '../db/schema';
+import { type ArchiveType, ArchivedData } from '@/domain/entities/archived-data.entity';
+import { type AuditAction, AuditLog } from '@/domain/entities/audit-log.entity';
+import { TaxSummary, type TaxType } from '@/domain/entities/tax-summary.entity';
 import type {
+  AuditLogFilter,
+  IArchivedDataRepository,
   IAuditLogRepository,
   ITaxSummaryRepository,
-  IArchivedDataRepository,
-  AuditLogFilter,
 } from '@/domain/repositories/audit.repository';
-import { AuditLog, type AuditAction } from '@/domain/entities/audit-log.entity';
-import { TaxSummary, type TaxType } from '@/domain/entities/tax-summary.entity';
-import { ArchivedData, type ArchiveType } from '@/domain/entities/archived-data.entity';
+import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
+import {
+  type ArchivedDataRecord,
+  type AuditLogRecord,
+  type TaxSummaryRecord,
+  archivedData,
+  auditLogs,
+  taxSummary,
+} from '../db/schema';
 
 // Generic database type that works with both D1 and SQLite
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -28,11 +28,7 @@ export class DrizzleAuditLogRepository implements IAuditLogRepository {
   constructor(private readonly db: DrizzleDB) {}
 
   async findById(id: string): Promise<AuditLog | null> {
-    const results = await this.db
-      .select()
-      .from(auditLogs)
-      .where(eq(auditLogs.id, id))
-      .limit(1);
+    const results = await this.db.select().from(auditLogs).where(eq(auditLogs.id, id)).limit(1);
 
     if (results.length === 0) return null;
     return this.toDomain(results[0]);
@@ -48,7 +44,7 @@ export class DrizzleAuditLogRepository implements IAuditLogRepository {
     return results.map((r: AuditLogRecord) => this.toDomain(r));
   }
 
-  async findByUser(userId: string, limit: number = 100): Promise<AuditLog[]> {
+  async findByUser(userId: string, limit = 100): Promise<AuditLog[]> {
     const results = await this.db
       .select()
       .from(auditLogs)
@@ -59,7 +55,7 @@ export class DrizzleAuditLogRepository implements IAuditLogRepository {
     return results.map((r: AuditLogRecord) => this.toDomain(r));
   }
 
-  async findByAction(action: AuditAction, limit: number = 100): Promise<AuditLog[]> {
+  async findByAction(action: AuditAction, limit = 100): Promise<AuditLog[]> {
     const results = await this.db
       .select()
       .from(auditLogs)
@@ -77,7 +73,9 @@ export class DrizzleAuditLogRepository implements IAuditLogRepository {
     const results = await this.db
       .select()
       .from(auditLogs)
-      .where(and(gte(auditLogs.timestamp, startDate), lte(auditLogs.timestamp, endDate + 'T23:59:59')))
+      .where(
+        and(gte(auditLogs.timestamp, startDate), lte(auditLogs.timestamp, endDate + 'T23:59:59'))
+      )
       .orderBy(desc(auditLogs.timestamp));
 
     return results.map((r: AuditLogRecord) => this.toDomain(r));
@@ -115,19 +113,25 @@ export class DrizzleAuditLogRepository implements IAuditLogRepository {
       conditions.push(lte(auditLogs.timestamp, filter.endDate.toISOString()));
     }
 
-    const query =
+    let query =
       conditions.length > 0
-        ? this.db.select().from(auditLogs).where(and(...conditions))
+        ? this.db
+            .select()
+            .from(auditLogs)
+            .where(and(...conditions))
         : this.db.select().from(auditLogs);
 
-    let results = await query.orderBy(desc(auditLogs.timestamp));
+    // Apply pagination at DB level
+    query = query.orderBy(desc(auditLogs.timestamp));
 
-    if (filter.offset) {
-      results = results.slice(filter.offset);
-    }
     if (filter.limit) {
-      results = results.slice(0, filter.limit);
+      query = query.limit(filter.limit);
     }
+    if (filter.offset) {
+      query = query.offset(filter.offset);
+    }
+
+    const results = await query;
 
     return results.map((r: AuditLogRecord) => this.toDomain(r));
   }
@@ -201,11 +205,7 @@ export class DrizzleTaxSummaryRepository implements ITaxSummaryRepository {
   constructor(private readonly db: DrizzleDB) {}
 
   async findById(id: string): Promise<TaxSummary | null> {
-    const results = await this.db
-      .select()
-      .from(taxSummary)
-      .where(eq(taxSummary.id, id))
-      .limit(1);
+    const results = await this.db.select().from(taxSummary).where(eq(taxSummary.id, id)).limit(1);
 
     if (results.length === 0) return null;
     return this.toDomain(results[0]);
@@ -316,11 +316,16 @@ export class DrizzleArchivedDataRepository implements IArchivedDataRepository {
     return this.toDomain(results[0]);
   }
 
-  async findByTypeAndYear(archiveType: ArchiveType, fiscalYear: number): Promise<ArchivedData | null> {
+  async findByTypeAndYear(
+    archiveType: ArchiveType,
+    fiscalYear: number
+  ): Promise<ArchivedData | null> {
     const results = await this.db
       .select()
       .from(archivedData)
-      .where(and(eq(archivedData.archiveType, archiveType), eq(archivedData.fiscalYear, fiscalYear)))
+      .where(
+        and(eq(archivedData.archiveType, archiveType), eq(archivedData.fiscalYear, fiscalYear))
+      )
       .limit(1);
 
     if (results.length === 0) return null;

@@ -1,9 +1,12 @@
-import { eq, and, like, sql, or, isNull, lt } from 'drizzle-orm';
 import { BankAccount } from '@/domain/entities/bank-account.entity';
-import { BankAccountType, BankAccountStatus } from '@/domain/value-objects';
-import type { IBankAccountRepository, BankAccountFilter } from '@/domain/repositories/bank-account.repository';
-import type { PaginationOptions, PaginatedResult } from '@/domain/repositories';
-import { bankAccounts, type BankAccountRecord } from '@/infrastructure/db/schema';
+import type { PaginatedResult, PaginationOptions } from '@/domain/repositories';
+import type {
+  BankAccountFilter,
+  IBankAccountRepository,
+} from '@/domain/repositories/bank-account.repository';
+import { BankAccountStatus, type BankAccountType } from '@/domain/value-objects';
+import { type BankAccountRecord, bankAccounts } from '@/infrastructure/db/schema';
+import { and, eq, isNull, like, lt, or, sql } from 'drizzle-orm';
 
 // Generic database type that works with both D1 and SQLite
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -62,7 +65,10 @@ export class DrizzleBankAccountRepository implements IBankAccountRepository {
     return this.toDomain(result[0]);
   }
 
-  async findAll(filter?: BankAccountFilter, pagination?: PaginationOptions): Promise<PaginatedResult<BankAccount>> {
+  async findAll(
+    filter?: BankAccountFilter,
+    pagination?: PaginationOptions
+  ): Promise<PaginatedResult<BankAccount>> {
     const conditions = [];
 
     if (filter?.status) {
@@ -214,10 +220,14 @@ export class DrizzleBankAccountRepository implements IBankAccountRepository {
       const message = error instanceof Error ? error.message : String(error);
       if (message.includes('UNIQUE constraint failed') || message.includes('SQLITE_CONSTRAINT')) {
         if (message.includes('account_number')) {
-          throw new Error(`Bank account with account number ${bankAccount.accountNumber} already exists`);
+          throw new Error(
+            `Bank account with account number ${bankAccount.accountNumber} already exists`
+          );
         }
         if (message.includes('account_id')) {
-          throw new Error(`COA account ${bankAccount.accountId} is already linked to another bank account`);
+          throw new Error(
+            `COA account ${bankAccount.accountId} is already linked to another bank account`
+          );
         }
       }
       throw error;

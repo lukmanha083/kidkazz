@@ -28,13 +28,7 @@ export class StraightLineDepreciation implements DepreciationCalculator {
   calculate(input: DepreciationInput): number {
     this.validate(input);
 
-    const {
-      acquisitionCost,
-      salvageValue,
-      usefulLifeMonths,
-      bookValue,
-      periodMonths = 1,
-    } = input;
+    const { acquisitionCost, salvageValue, usefulLifeMonths, bookValue, periodMonths = 1 } = input;
 
     // Calculate monthly depreciation
     const depreciableAmount = acquisitionCost - salvageValue;
@@ -69,12 +63,7 @@ export class DecliningBalanceDepreciation implements DepreciationCalculator {
   calculate(input: DepreciationInput): number {
     this.validate(input);
 
-    const {
-      usefulLifeMonths,
-      salvageValue,
-      bookValue,
-      periodMonths = 1,
-    } = input;
+    const { usefulLifeMonths, salvageValue, bookValue, periodMonths = 1 } = input;
 
     // Calculate annual straight-line rate (as decimal)
     const annualStraightLineRate = 12 / usefulLifeMonths;
@@ -169,7 +158,10 @@ export class DepreciationCalculatorFactory {
     if (this.initialized) return;
     this.calculators.set(DepreciationMethod.STRAIGHT_LINE, new StraightLineDepreciation());
     this.calculators.set(DepreciationMethod.DECLINING_BALANCE, new DecliningBalanceDepreciation(2));
-    this.calculators.set(DepreciationMethod.SUM_OF_YEARS_DIGITS, new SumOfYearsDigitsDepreciation());
+    this.calculators.set(
+      DepreciationMethod.SUM_OF_YEARS_DIGITS,
+      new SumOfYearsDigitsDepreciation()
+    );
     // UNITS_OF_PRODUCTION requires usage data, not implemented yet
     this.initialized = true;
   }

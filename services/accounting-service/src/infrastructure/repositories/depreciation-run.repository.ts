@@ -1,10 +1,7 @@
-import { eq, and, desc } from 'drizzle-orm';
-import { DepreciationRunStatus } from '@/domain/value-objects';
-import type {
-  IDepreciationRunRepository,
-  DepreciationRun,
-} from '@/domain/repositories';
-import { depreciationRuns, type DepreciationRunRecord } from '@/infrastructure/db/schema';
+import type { DepreciationRun, IDepreciationRunRepository } from '@/domain/repositories';
+import type { DepreciationRunStatus } from '@/domain/value-objects';
+import { type DepreciationRunRecord, depreciationRuns } from '@/infrastructure/db/schema';
+import { and, desc, eq } from 'drizzle-orm';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DrizzleDB = any;
@@ -79,10 +76,7 @@ export class DrizzleDepreciationRunRepository implements IDepreciationRunReposit
     };
 
     if (existing.length > 0) {
-      await this.db
-        .update(depreciationRuns)
-        .set(data)
-        .where(eq(depreciationRuns.id, run.id));
+      await this.db.update(depreciationRuns).set(data).where(eq(depreciationRuns.id, run.id));
     } else {
       await this.db.insert(depreciationRuns).values({
         id: run.id,

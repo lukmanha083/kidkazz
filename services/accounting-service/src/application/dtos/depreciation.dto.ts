@@ -33,8 +33,14 @@ export type ReverseDepreciationRequest = z.infer<typeof reverseDepreciationSchem
  * Depreciation Preview Query Schema
  */
 export const depreciationPreviewQuerySchema = z.object({
-  fiscalYear: z.string().transform((v) => parseInt(v, 10)).pipe(z.number().int().min(2020).max(2100)),
-  fiscalMonth: z.string().transform((v) => parseInt(v, 10)).pipe(z.number().int().min(1).max(12)),
+  fiscalYear: z
+    .string()
+    .transform((v) => Number.parseInt(v, 10))
+    .pipe(z.number().int().min(2020).max(2100)),
+  fiscalMonth: z
+    .string()
+    .transform((v) => Number.parseInt(v, 10))
+    .pipe(z.number().int().min(1).max(12)),
 });
 
 export type DepreciationPreviewQueryParams = z.infer<typeof depreciationPreviewQuerySchema>;
@@ -43,7 +49,11 @@ export type DepreciationPreviewQueryParams = z.infer<typeof depreciationPreviewQ
  * List Depreciation Runs Query Schema
  */
 export const listDepreciationRunsQuerySchema = z.object({
-  fiscalYear: z.string().transform((v) => parseInt(v, 10)).pipe(z.number().int().min(2020).max(2100)).optional(),
+  fiscalYear: z
+    .string()
+    .transform((v) => Number.parseInt(v, 10))
+    .pipe(z.number().int().min(2020).max(2100))
+    .optional(),
 });
 
 export type ListDepreciationRunsQueryParams = z.infer<typeof listDepreciationRunsQuerySchema>;

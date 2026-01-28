@@ -1,13 +1,13 @@
-import { eq, and, desc } from 'drizzle-orm';
+import { Budget, type BudgetRevision, type BudgetStatus } from '@/domain/entities/budget.entity';
+import type { BudgetFilter, IBudgetRepository } from '@/domain/repositories/budget.repository';
+import { and, desc, eq } from 'drizzle-orm';
 import {
-  budgets,
+  type BudgetLineRecord,
+  type BudgetRecord,
   budgetLines,
   budgetRevisions,
-  type BudgetRecord,
-  type BudgetLineRecord,
+  budgets,
 } from '../db/schema';
-import type { IBudgetRepository, BudgetFilter } from '@/domain/repositories/budget.repository';
-import { Budget, type BudgetStatus, type BudgetRevision } from '@/domain/entities/budget.entity';
 
 // Generic database type that works with both D1 and SQLite
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -20,18 +20,11 @@ export class DrizzleBudgetRepository implements IBudgetRepository {
   constructor(private readonly db: DrizzleDB) {}
 
   async findById(id: string): Promise<Budget | null> {
-    const results = await this.db
-      .select()
-      .from(budgets)
-      .where(eq(budgets.id, id))
-      .limit(1);
+    const results = await this.db.select().from(budgets).where(eq(budgets.id, id)).limit(1);
 
     if (results.length === 0) return null;
 
-    const lines = await this.db
-      .select()
-      .from(budgetLines)
-      .where(eq(budgetLines.budgetId, id));
+    const lines = await this.db.select().from(budgetLines).where(eq(budgetLines.budgetId, id));
 
     return this.toDomain(results[0], lines);
   }
@@ -66,7 +59,10 @@ export class DrizzleBudgetRepository implements IBudgetRepository {
 
     const query =
       conditions.length > 0
-        ? this.db.select().from(budgets).where(and(...conditions))
+        ? this.db
+            .select()
+            .from(budgets)
+            .where(and(...conditions))
         : this.db.select().from(budgets);
 
     const results = await query.orderBy(desc(budgets.fiscalYear), budgets.name);

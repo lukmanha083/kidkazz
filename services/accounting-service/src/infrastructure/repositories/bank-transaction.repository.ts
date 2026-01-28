@@ -1,9 +1,12 @@
-import { eq, and, gte, lte, like, or, sql } from 'drizzle-orm';
 import { BankTransaction } from '@/domain/entities/bank-transaction.entity';
-import { BankTransactionType, BankTransactionMatchStatus } from '@/domain/value-objects';
-import type { IBankTransactionRepository, BankTransactionFilter } from '@/domain/repositories/bank-transaction.repository';
-import type { PaginationOptions, PaginatedResult } from '@/domain/repositories';
-import { bankTransactions, type BankTransactionRecord } from '@/infrastructure/db/schema';
+import type { PaginatedResult, PaginationOptions } from '@/domain/repositories';
+import type {
+  BankTransactionFilter,
+  IBankTransactionRepository,
+} from '@/domain/repositories/bank-transaction.repository';
+import { BankTransactionMatchStatus, type BankTransactionType } from '@/domain/value-objects';
+import { type BankTransactionRecord, bankTransactions } from '@/infrastructure/db/schema';
+import { and, eq, gte, like, lte, or, sql } from 'drizzle-orm';
 
 // Generic database type that works with both D1 and SQLite
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -78,7 +81,10 @@ export class DrizzleBankTransactionRepository implements IBankTransactionReposit
     return results.map((row: BankTransactionRecord) => this.toDomain(row));
   }
 
-  async findAll(filter?: BankTransactionFilter, pagination?: PaginationOptions): Promise<PaginatedResult<BankTransaction>> {
+  async findAll(
+    filter?: BankTransactionFilter,
+    pagination?: PaginationOptions
+  ): Promise<PaginatedResult<BankTransaction>> {
     const conditions = [];
 
     if (filter?.bankStatementId) {
@@ -94,11 +100,15 @@ export class DrizzleBankTransactionRepository implements IBankTransactionReposit
     }
 
     if (filter?.transactionDateFrom) {
-      conditions.push(gte(bankTransactions.transactionDate, filter.transactionDateFrom.toISOString()));
+      conditions.push(
+        gte(bankTransactions.transactionDate, filter.transactionDateFrom.toISOString())
+      );
     }
 
     if (filter?.transactionDateTo) {
-      conditions.push(lte(bankTransactions.transactionDate, filter.transactionDateTo.toISOString()));
+      conditions.push(
+        lte(bankTransactions.transactionDate, filter.transactionDateTo.toISOString())
+      );
     }
 
     if (filter?.amountMin !== undefined) {
@@ -110,9 +120,7 @@ export class DrizzleBankTransactionRepository implements IBankTransactionReposit
     }
 
     if (filter?.search) {
-      const escapedSearch = filter.search
-        .replace(/\\/g, '\\\\')
-        .replace(/[%_]/g, '\\$&');
+      const escapedSearch = filter.search.replace(/\\/g, '\\\\').replace(/[%_]/g, '\\$&');
       conditions.push(
         or(
           like(bankTransactions.description, `%${escapedSearch}%`),

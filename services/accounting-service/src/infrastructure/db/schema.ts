@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { index, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 /**
  * Chart of Accounts table
@@ -149,7 +149,10 @@ export const journalLines = sqliteTable(
     customerIdx: index('idx_jl_customer').on(table.customerId),
     vendorIdx: index('idx_jl_vendor').on(table.vendorId),
     // Unique constraint on journal_entry_id + line_sequence
-    entryLineSeqIdx: uniqueIndex('idx_jl_entry_line_seq').on(table.journalEntryId, table.lineSequence),
+    entryLineSeqIdx: uniqueIndex('idx_jl_entry_line_seq').on(
+      table.journalEntryId,
+      table.lineSequence
+    ),
   })
 );
 
@@ -173,7 +176,11 @@ export const accountBalances = sqliteTable(
     lastUpdatedAt: text('last_updated_at').notNull(),
   },
   (table) => ({
-    accountPeriodIdx: uniqueIndex('idx_ab_account_period').on(table.accountId, table.fiscalYear, table.fiscalMonth),
+    accountPeriodIdx: uniqueIndex('idx_ab_account_period').on(
+      table.accountId,
+      table.fiscalYear,
+      table.fiscalMonth
+    ),
     fiscalPeriodIdx: index('idx_ab_fiscal_period').on(table.fiscalYear, table.fiscalMonth),
   })
 );
@@ -262,7 +269,9 @@ export const fixedAssets = sqliteTable(
     // Basic Information
     name: text('name').notNull(),
     description: text('description'),
-    categoryId: text('category_id').notNull().references(() => assetCategories.id),
+    categoryId: text('category_id')
+      .notNull()
+      .references(() => assetCategories.id),
     // Physical Identification
     serialNumber: text('serial_number'),
     barcode: text('barcode').unique(),
@@ -295,7 +304,9 @@ export const fixedAssets = sqliteTable(
     // Status
     status: text('status', {
       enum: ['DRAFT', 'ACTIVE', 'FULLY_DEPRECIATED', 'DISPOSED', 'WRITTEN_OFF', 'SUSPENDED'],
-    }).notNull().default('DRAFT'),
+    })
+      .notNull()
+      .default('DRAFT'),
     // Disposal Information
     disposalDate: text('disposal_date'),
     disposalMethod: text('disposal_method', {
@@ -334,7 +345,9 @@ export const depreciationSchedules = sqliteTable(
   'depreciation_schedules',
   {
     id: text('id').primaryKey(),
-    assetId: text('asset_id').notNull().references(() => fixedAssets.id),
+    assetId: text('asset_id')
+      .notNull()
+      .references(() => fixedAssets.id),
     // Period
     fiscalYear: integer('fiscal_year').notNull(),
     fiscalMonth: integer('fiscal_month').notNull(),
@@ -346,7 +359,9 @@ export const depreciationSchedules = sqliteTable(
     // Status
     status: text('status', {
       enum: ['SCHEDULED', 'CALCULATED', 'POSTED', 'REVERSED'],
-    }).notNull().default('SCHEDULED'),
+    })
+      .notNull()
+      .default('SCHEDULED'),
     // Journal Reference
     journalEntryId: text('journal_entry_id'),
     // Timestamps
@@ -357,7 +372,11 @@ export const depreciationSchedules = sqliteTable(
     assetIdx: index('idx_depreciation_asset').on(table.assetId),
     periodIdx: index('idx_depreciation_period').on(table.fiscalYear, table.fiscalMonth),
     statusIdx: index('idx_depreciation_status').on(table.status),
-    assetPeriodIdx: uniqueIndex('idx_depreciation_asset_period').on(table.assetId, table.fiscalYear, table.fiscalMonth),
+    assetPeriodIdx: uniqueIndex('idx_depreciation_asset_period').on(
+      table.assetId,
+      table.fiscalYear,
+      table.fiscalMonth
+    ),
   })
 );
 
@@ -369,7 +388,9 @@ export const assetMovements = sqliteTable(
   'asset_movements',
   {
     id: text('id').primaryKey(),
-    assetId: text('asset_id').notNull().references(() => fixedAssets.id),
+    assetId: text('asset_id')
+      .notNull()
+      .references(() => fixedAssets.id),
     // Movement Type
     movementType: text('movement_type', {
       enum: ['TRANSFER', 'ASSIGNMENT', 'DISPOSAL', 'REVALUATION', 'IMPAIRMENT'],
@@ -405,7 +426,9 @@ export const assetMaintenance = sqliteTable(
   'asset_maintenance',
   {
     id: text('id').primaryKey(),
-    assetId: text('asset_id').notNull().references(() => fixedAssets.id),
+    assetId: text('asset_id')
+      .notNull()
+      .references(() => fixedAssets.id),
     // Maintenance Details
     maintenanceType: text('maintenance_type', {
       enum: ['PREVENTIVE', 'CORRECTIVE', 'INSPECTION', 'UPGRADE', 'OVERHAUL'],
@@ -426,7 +449,9 @@ export const assetMaintenance = sqliteTable(
     // Status
     status: text('status', {
       enum: ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'],
-    }).notNull().default('SCHEDULED'),
+    })
+      .notNull()
+      .default('SCHEDULED'),
     // Notes
     notes: text('notes'),
     // Audit
@@ -459,7 +484,9 @@ export const depreciationRuns = sqliteTable(
     // Status
     status: text('status', {
       enum: ['CALCULATED', 'POSTED', 'REVERSED'],
-    }).notNull().default('CALCULATED'),
+    })
+      .notNull()
+      .default('CALCULATED'),
     // Journal Reference
     journalEntryId: text('journal_entry_id'),
     // Timestamps
@@ -576,7 +603,9 @@ export const bankTransactions = sqliteTable(
     // Matching status
     matchStatus: text('match_status', {
       enum: ['UNMATCHED', 'MATCHED', 'EXCLUDED'],
-    }).notNull().default('UNMATCHED'),
+    })
+      .notNull()
+      .default('UNMATCHED'),
     matchedJournalLineId: text('matched_journal_line_id'),
     matchedAt: text('matched_at'),
     matchedBy: text('matched_by'),
@@ -589,7 +618,9 @@ export const bankTransactions = sqliteTable(
     transactionDateIdx: index('idx_bank_transactions_date').on(table.transactionDate),
     fingerprintIdx: uniqueIndex('idx_bank_transactions_fingerprint').on(table.fingerprint),
     matchStatusIdx: index('idx_bank_transactions_match_status').on(table.matchStatus),
-    matchedJournalIdx: index('idx_bank_transactions_matched_journal').on(table.matchedJournalLineId),
+    matchedJournalIdx: index('idx_bank_transactions_matched_journal').on(
+      table.matchedJournalLineId
+    ),
   })
 );
 
@@ -619,7 +650,9 @@ export const bankReconciliations = sqliteTable(
     // Status workflow
     status: text('status', {
       enum: ['DRAFT', 'IN_PROGRESS', 'COMPLETED', 'APPROVED'],
-    }).notNull().default('DRAFT'),
+    })
+      .notNull()
+      .default('DRAFT'),
     // Workflow timestamps
     completedAt: text('completed_at'),
     completedBy: text('completed_by'),
@@ -635,7 +668,10 @@ export const bankReconciliations = sqliteTable(
   },
   (table) => ({
     bankAccountIdx: index('idx_bank_reconciliations_account').on(table.bankAccountId),
-    fiscalPeriodIdx: index('idx_bank_reconciliations_period').on(table.fiscalYear, table.fiscalMonth),
+    fiscalPeriodIdx: index('idx_bank_reconciliations_period').on(
+      table.fiscalYear,
+      table.fiscalMonth
+    ),
     statusIdx: index('idx_bank_reconciliations_status').on(table.status),
     accountPeriodIdx: uniqueIndex('idx_bank_reconciliations_account_period').on(
       table.bankAccountId,
@@ -657,19 +693,30 @@ export const reconciliationItems = sqliteTable(
       .notNull()
       .references(() => bankReconciliations.id, { onDelete: 'cascade' }),
     itemType: text('item_type', {
-      enum: ['OUTSTANDING_CHECK', 'DEPOSIT_IN_TRANSIT', 'BANK_FEE', 'BANK_INTEREST', 'NSF_CHECK', 'ADJUSTMENT'],
+      enum: [
+        'OUTSTANDING_CHECK',
+        'DEPOSIT_IN_TRANSIT',
+        'BANK_FEE',
+        'BANK_INTEREST',
+        'NSF_CHECK',
+        'ADJUSTMENT',
+      ],
     }).notNull(),
     description: text('description').notNull(),
     amount: real('amount').notNull(),
     transactionDate: text('transaction_date').notNull(),
     reference: text('reference'),
     // Whether this item requires a journal entry
-    requiresJournalEntry: integer('requires_journal_entry', { mode: 'boolean' }).notNull().default(false),
+    requiresJournalEntry: integer('requires_journal_entry', { mode: 'boolean' })
+      .notNull()
+      .default(false),
     journalEntryId: text('journal_entry_id'),
     // Status
     status: text('status', {
       enum: ['PENDING', 'CLEARED', 'VOIDED'],
-    }).notNull().default('PENDING'),
+    })
+      .notNull()
+      .default('PENDING'),
     clearedAt: text('cleared_at'),
     clearedInReconciliationId: text('cleared_in_reconciliation_id'),
     // Audit
@@ -967,7 +1014,11 @@ export const budgetLines = sqliteTable(
   (table) => ({
     budgetIdx: index('idx_budget_lines_budget').on(table.budgetId),
     accountIdx: index('idx_budget_lines_account').on(table.accountId),
-    uniqueIdx: uniqueIndex('idx_budget_lines_unique').on(table.budgetId, table.accountId, table.fiscalMonth),
+    uniqueIdx: uniqueIndex('idx_budget_lines_unique').on(
+      table.budgetId,
+      table.accountId,
+      table.fiscalMonth
+    ),
   })
 );
 
@@ -1063,7 +1114,11 @@ export const taxSummary = sqliteTable(
   (table) => ({
     periodIdx: index('idx_tax_summary_period').on(table.fiscalYear, table.fiscalMonth),
     typeIdx: index('idx_tax_summary_type').on(table.taxType),
-    uniqueIdx: uniqueIndex('idx_tax_summary_unique').on(table.fiscalYear, table.fiscalMonth, table.taxType),
+    uniqueIdx: uniqueIndex('idx_tax_summary_unique').on(
+      table.fiscalYear,
+      table.fiscalMonth,
+      table.taxType
+    ),
   })
 );
 

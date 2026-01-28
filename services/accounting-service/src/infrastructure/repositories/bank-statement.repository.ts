@@ -1,8 +1,11 @@
-import { eq, and, gte, lte, sql } from 'drizzle-orm';
 import { BankStatement } from '@/domain/entities/bank-statement.entity';
-import type { IBankStatementRepository, BankStatementFilter } from '@/domain/repositories/bank-statement.repository';
-import type { PaginationOptions, PaginatedResult } from '@/domain/repositories';
-import { bankStatements, type BankStatementRecord } from '@/infrastructure/db/schema';
+import type { PaginatedResult, PaginationOptions } from '@/domain/repositories';
+import type {
+  BankStatementFilter,
+  IBankStatementRepository,
+} from '@/domain/repositories/bank-statement.repository';
+import { type BankStatementRecord, bankStatements } from '@/infrastructure/db/schema';
+import { and, eq, gte, lte, sql } from 'drizzle-orm';
 
 // Generic database type that works with both D1 and SQLite
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -38,7 +41,11 @@ export class DrizzleBankStatementRepository implements IBankStatementRepository 
     return results.map((row: BankStatementRecord) => this.toDomain(row));
   }
 
-  async findByPeriod(bankAccountId: string, periodStart: Date, periodEnd: Date): Promise<BankStatement[]> {
+  async findByPeriod(
+    bankAccountId: string,
+    periodStart: Date,
+    periodEnd: Date
+  ): Promise<BankStatement[]> {
     const results = await this.db
       .select()
       .from(bankStatements)
@@ -54,7 +61,10 @@ export class DrizzleBankStatementRepository implements IBankStatementRepository 
     return results.map((row: BankStatementRecord) => this.toDomain(row));
   }
 
-  async findAll(filter?: BankStatementFilter, pagination?: PaginationOptions): Promise<PaginatedResult<BankStatement>> {
+  async findAll(
+    filter?: BankStatementFilter,
+    pagination?: PaginationOptions
+  ): Promise<PaginatedResult<BankStatement>> {
     const conditions = [];
 
     if (filter?.bankAccountId) {

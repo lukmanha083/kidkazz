@@ -1,13 +1,3 @@
-import { Hono } from 'hono';
-import { zValidator } from '@hono/zod-validator';
-import type { DrizzleD1Database } from 'drizzle-orm/d1';
-import * as schema from '../../db/schema';
-import {
-  DrizzleDomainEventRepository,
-  DrizzleProcessedEventRepository,
-} from '../../repositories/domain-event.repository';
-import { CloudflareQueuePublisher, NoOpQueuePublisher } from '../../messaging';
-import { EventPublisher } from '@/domain/services/EventPublisher';
 import {
   listDomainEventsQuerySchema,
   listProcessedEventsQuerySchema,
@@ -15,6 +5,16 @@ import {
   toDomainEventResponse,
   toProcessedEventResponse,
 } from '@/application/dtos/event.dto';
+import { EventPublisher } from '@/domain/services/EventPublisher';
+import { zValidator } from '@hono/zod-validator';
+import type { DrizzleD1Database } from 'drizzle-orm/d1';
+import { Hono } from 'hono';
+import type * as schema from '../../db/schema';
+import { CloudflareQueuePublisher, NoOpQueuePublisher } from '../../messaging';
+import {
+  DrizzleDomainEventRepository,
+  DrizzleProcessedEventRepository,
+} from '../../repositories/domain-event.repository';
 
 type Bindings = {
   DB: D1Database;

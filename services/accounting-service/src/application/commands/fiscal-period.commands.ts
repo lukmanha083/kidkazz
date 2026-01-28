@@ -1,6 +1,6 @@
 import { FiscalPeriodEntity } from '@/domain/entities/fiscal-period.entity';
-import { FiscalPeriodStatus } from '@/domain/value-objects';
 import type { IFiscalPeriodRepository } from '@/domain/repositories/fiscal-period.repository';
+import type { FiscalPeriodStatus } from '@/domain/value-objects';
 
 // ============================================================================
 // Create Fiscal Period Command

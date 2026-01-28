@@ -1,5 +1,5 @@
-import type { IBudgetRepository } from '@/domain/repositories/budget.repository';
 import { Budget, type BudgetLineInput } from '@/domain/entities/budget.entity';
+import type { IBudgetRepository } from '@/domain/repositories/budget.repository';
 
 /**
  * Create budget command

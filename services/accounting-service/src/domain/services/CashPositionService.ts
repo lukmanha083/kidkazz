@@ -59,7 +59,16 @@ export interface ThresholdCheckResult {
 export class CashPositionService {
   // Account code ranges for cash categories
   private readonly CASH_ON_HAND_CODES = ['1010', '1011', '1012', '1013', '1014'];
-  private readonly BANK_ACCOUNT_CODES = ['1020', '1021', '1022', '1023', '1024', '1025', '1026', '1027'];
+  private readonly BANK_ACCOUNT_CODES = [
+    '1020',
+    '1021',
+    '1022',
+    '1023',
+    '1024',
+    '1025',
+    '1026',
+    '1027',
+  ];
   private readonly CASH_EQUIVALENT_CODES = ['1030', '1031'];
 
   /**
@@ -122,10 +131,7 @@ export class CashPositionService {
   /**
    * Check cash balance against thresholds (Rule 35)
    */
-  checkThresholds(
-    currentBalance: number,
-    thresholds: CashThresholdConfig
-  ): ThresholdCheckResult {
+  checkThresholds(currentBalance: number, thresholds: CashThresholdConfig): ThresholdCheckResult {
     if (currentBalance < thresholds.emergencyThreshold) {
       return {
         alertLevel: CashAlertLevel.EMERGENCY,
@@ -184,8 +190,10 @@ export class CashPositionService {
       const reconciledYear = account.lastReconciledDate.getFullYear();
 
       // Not reconciled in current month
-      return reconciledYear < currentYear ||
-             (reconciledYear === currentYear && reconciledMonth < currentMonth);
+      return (
+        reconciledYear < currentYear ||
+        (reconciledYear === currentYear && reconciledMonth < currentMonth)
+      );
     });
   }
 

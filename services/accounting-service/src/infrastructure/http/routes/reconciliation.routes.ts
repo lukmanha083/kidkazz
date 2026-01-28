@@ -1,29 +1,27 @@
-import { Hono } from 'hono';
-import { zValidator } from '@hono/zod-validator';
-import type { DrizzleD1Database } from 'drizzle-orm/d1';
-import { z } from 'zod';
 import {
-  DrizzleBankAccountRepository,
-  DrizzleBankStatementRepository,
-  DrizzleBankTransactionRepository,
-  DrizzleBankReconciliationRepository,
-} from '@/infrastructure/repositories';
-import {
-  CreateReconciliationHandler,
-  StartReconciliationHandler,
-  MatchTransactionHandler,
-  AutoMatchTransactionsHandler,
   AddReconcilingItemHandler,
+  ApproveReconciliationHandler,
+  AutoMatchTransactionsHandler,
   CalculateAdjustedBalancesHandler,
   CompleteReconciliationHandler,
-  ApproveReconciliationHandler,
+  CreateReconciliationHandler,
   ImportBankStatementHandler,
+  MatchTransactionHandler,
+  StartReconciliationHandler,
 } from '@/application/commands';
-import {
-  matchTransactionSchema,
-} from '@/application/dtos';
+import { matchTransactionSchema } from '@/application/dtos';
 import { ReconciliationItemType } from '@/domain/value-objects';
 import type * as schema from '@/infrastructure/db/schema';
+import {
+  DrizzleBankAccountRepository,
+  DrizzleBankReconciliationRepository,
+  DrizzleBankStatementRepository,
+  DrizzleBankTransactionRepository,
+} from '@/infrastructure/repositories';
+import { zValidator } from '@hono/zod-validator';
+import type { DrizzleD1Database } from 'drizzle-orm/d1';
+import { Hono } from 'hono';
+import { z } from 'zod';
 
 // ============================================================================
 // Local Schemas (not duplicating DTOs, these are route-specific)
@@ -51,14 +49,19 @@ const importBankStatementBodySchema = z.object({
   periodEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   openingBalance: z.number(),
   closingBalance: z.number(),
-  transactions: z.array(z.object({
-    transactionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    valueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-    description: z.string().min(1).max(500),
-    reference: z.string().max(100).optional(),
-    amount: z.number(),
-    checkNumber: z.string().max(50).optional(),
-  })),
+  transactions: z.array(
+    z.object({
+      transactionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      valueDate: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional(),
+      description: z.string().min(1).max(500),
+      reference: z.string().max(100).optional(),
+      amount: z.number(),
+      checkNumber: z.string().max(50).optional(),
+    })
+  ),
 });
 
 /**

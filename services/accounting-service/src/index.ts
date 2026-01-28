@@ -1,25 +1,25 @@
-import { Hono } from 'hono';
-import { cors } from 'hono/cors';
-import { logger } from 'hono/logger';
 import { databaseMiddleware, errorMiddleware } from '@/infrastructure/http/middleware';
 import {
   accountRoutes,
-  journalEntryRoutes,
   assetCategoryRoutes,
   assetRoutes,
+  auditRoutes,
+  bankAccountRoutes,
+  budgetRoutes,
+  currencyRoutes,
   depreciationRoutes,
+  eventRoutes,
+  fiscalPeriodRoutes,
+  journalEntryRoutes,
   maintenanceRoutes,
   movementRoutes,
-  fiscalPeriodRoutes,
-  reportsRoutes,
-  bankAccountRoutes,
   reconciliationRoutes,
-  eventRoutes,
-  currencyRoutes,
-  budgetRoutes,
-  auditRoutes,
+  reportsRoutes,
 } from '@/infrastructure/http/routes';
 import { handleQueue } from '@/infrastructure/messaging';
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { logger } from 'hono/logger';
 
 type Bindings = {
   DB: D1Database;

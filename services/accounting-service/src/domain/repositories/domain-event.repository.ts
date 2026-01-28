@@ -1,5 +1,5 @@
 import type { DomainEvent, EventStatus } from '../events';
-import type { StoredDomainEvent, ProcessedEvent } from '../services/EventPublisher';
+import type { ProcessedEvent, StoredDomainEvent } from '../services/EventPublisher';
 
 /**
  * Repository interface for domain events (outbox pattern)
@@ -43,11 +43,14 @@ export interface IDomainEventRepository {
   /**
    * Find events by type
    */
-  findByEventType(eventType: string, options?: {
-    status?: EventStatus;
-    limit?: number;
-    offset?: number;
-  }): Promise<StoredDomainEvent[]>;
+  findByEventType(
+    eventType: string,
+    options?: {
+      status?: EventStatus;
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<StoredDomainEvent[]>;
 
   /**
    * Delete old published events (cleanup)
@@ -82,11 +85,14 @@ export interface IProcessedEventRepository {
   /**
    * Find processed events by type
    */
-  findByEventType(eventType: string, options?: {
-    result?: 'success' | 'failed' | 'skipped';
-    limit?: number;
-    offset?: number;
-  }): Promise<ProcessedEvent[]>;
+  findByEventType(
+    eventType: string,
+    options?: {
+      result?: 'success' | 'failed' | 'skipped';
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<ProcessedEvent[]>;
 
   /**
    * Delete old processed event records (cleanup)

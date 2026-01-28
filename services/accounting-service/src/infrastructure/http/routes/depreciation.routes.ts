@@ -1,35 +1,31 @@
-import { Hono } from 'hono';
-import { zValidator } from '@hono/zod-validator';
-import type { DrizzleD1Database } from 'drizzle-orm/d1';
-import {
-  DrizzleFixedAssetRepository,
-  DrizzleAssetCategoryRepository,
-  DrizzleJournalEntryRepository,
-} from '@/infrastructure/repositories';
-import {
-  DrizzleDepreciationScheduleRepository,
-} from '@/infrastructure/repositories/depreciation-schedule.repository';
-import {
-  DrizzleDepreciationRunRepository,
-} from '@/infrastructure/repositories/depreciation-run.repository';
 import {
   CalculateDepreciationHandler,
   PostDepreciationHandler,
   ReverseDepreciationHandler,
 } from '@/application/commands/depreciation.commands';
 import {
-  GetDepreciationPreviewHandler,
+  calculateDepreciationSchema,
+  depreciationPreviewQuerySchema,
+  postDepreciationSchema,
+  reverseDepreciationSchema,
+} from '@/application/dtos/depreciation.dto';
+import {
   GetAssetDepreciationScheduleHandler,
+  GetDepreciationPreviewHandler,
   GetDepreciationRunHandler,
   ListDepreciationRunsHandler,
 } from '@/application/queries/depreciation.queries';
-import {
-  calculateDepreciationSchema,
-  postDepreciationSchema,
-  reverseDepreciationSchema,
-  depreciationPreviewQuerySchema,
-} from '@/application/dtos/depreciation.dto';
 import type * as schema from '@/infrastructure/db/schema';
+import {
+  DrizzleAssetCategoryRepository,
+  DrizzleFixedAssetRepository,
+  DrizzleJournalEntryRepository,
+} from '@/infrastructure/repositories';
+import { DrizzleDepreciationRunRepository } from '@/infrastructure/repositories/depreciation-run.repository';
+import { DrizzleDepreciationScheduleRepository } from '@/infrastructure/repositories/depreciation-schedule.repository';
+import { zValidator } from '@hono/zod-validator';
+import type { DrizzleD1Database } from 'drizzle-orm/d1';
+import { Hono } from 'hono';
 
 type Bindings = {
   DB: D1Database;
@@ -154,85 +150,77 @@ depreciationRoutes.post(
 /**
  * POST /depreciation/post - Post calculated depreciation to GL
  */
-depreciationRoutes.post(
-  '/post',
-  zValidator('json', postDepreciationSchema),
-  async (c) => {
-    const db = c.get('db');
-    const userId = c.get('userId');
-    const body = c.req.valid('json');
+depreciationRoutes.post('/post', zValidator('json', postDepreciationSchema), async (c) => {
+  const db = c.get('db');
+  const userId = c.get('userId');
+  const body = c.req.valid('json');
 
-    const assetRepo = new DrizzleFixedAssetRepository(db);
-    const categoryRepo = new DrizzleAssetCategoryRepository(db);
-    const scheduleRepo = new DrizzleDepreciationScheduleRepository(db);
-    const runRepo = new DrizzleDepreciationRunRepository(db);
-    const journalEntryRepo = new DrizzleJournalEntryRepository(db);
+  const assetRepo = new DrizzleFixedAssetRepository(db);
+  const categoryRepo = new DrizzleAssetCategoryRepository(db);
+  const scheduleRepo = new DrizzleDepreciationScheduleRepository(db);
+  const runRepo = new DrizzleDepreciationRunRepository(db);
+  const journalEntryRepo = new DrizzleJournalEntryRepository(db);
 
-    const handler = new PostDepreciationHandler(
-      assetRepo,
-      categoryRepo,
-      scheduleRepo,
-      runRepo,
-      journalEntryRepo
-    );
+  const handler = new PostDepreciationHandler(
+    assetRepo,
+    categoryRepo,
+    scheduleRepo,
+    runRepo,
+    journalEntryRepo
+  );
 
-    try {
-      const result = await handler.execute({
-        runId: body.runId,
-        postedBy: userId,
-      });
+  try {
+    const result = await handler.execute({
+      runId: body.runId,
+      postedBy: userId,
+    });
 
-      return c.json({
-        success: true,
-        data: result,
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to post depreciation';
-      return c.json({ success: false, error: message }, 400);
-    }
+    return c.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to post depreciation';
+    return c.json({ success: false, error: message }, 400);
   }
-);
+});
 
 /**
  * POST /depreciation/reverse - Reverse a posted depreciation run
  */
-depreciationRoutes.post(
-  '/reverse',
-  zValidator('json', reverseDepreciationSchema),
-  async (c) => {
-    const db = c.get('db');
-    const userId = c.get('userId');
-    const body = c.req.valid('json');
+depreciationRoutes.post('/reverse', zValidator('json', reverseDepreciationSchema), async (c) => {
+  const db = c.get('db');
+  const userId = c.get('userId');
+  const body = c.req.valid('json');
 
-    const assetRepo = new DrizzleFixedAssetRepository(db);
-    const scheduleRepo = new DrizzleDepreciationScheduleRepository(db);
-    const runRepo = new DrizzleDepreciationRunRepository(db);
-    const journalEntryRepo = new DrizzleJournalEntryRepository(db);
+  const assetRepo = new DrizzleFixedAssetRepository(db);
+  const scheduleRepo = new DrizzleDepreciationScheduleRepository(db);
+  const runRepo = new DrizzleDepreciationRunRepository(db);
+  const journalEntryRepo = new DrizzleJournalEntryRepository(db);
 
-    const handler = new ReverseDepreciationHandler(
-      assetRepo,
-      scheduleRepo,
-      runRepo,
-      journalEntryRepo
-    );
+  const handler = new ReverseDepreciationHandler(
+    assetRepo,
+    scheduleRepo,
+    runRepo,
+    journalEntryRepo
+  );
 
-    try {
-      const result = await handler.execute({
-        runId: body.runId,
-        reason: body.reason,
-        reversedBy: userId,
-      });
+  try {
+    const result = await handler.execute({
+      runId: body.runId,
+      reason: body.reason,
+      reversedBy: userId,
+    });
 
-      return c.json({
-        success: true,
-        data: result,
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to reverse depreciation';
-      return c.json({ success: false, error: message }, 400);
-    }
+    return c.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to reverse depreciation';
+    return c.json({ success: false, error: message }, 400);
   }
-);
+});
 
 /**
  * GET /depreciation/assets/:assetId/schedule - Get asset depreciation schedule

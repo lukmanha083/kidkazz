@@ -1,7 +1,7 @@
 import type {
+  AssetMaintenance,
   IAssetMaintenanceRepository,
   IFixedAssetRepository,
-  AssetMaintenance,
 } from '@/domain/repositories';
 
 // ============================================================================
@@ -131,7 +131,7 @@ export class ListAssetMaintenanceHandler {
 // List Scheduled Maintenance Query
 // ============================================================================
 
-export interface ListScheduledMaintenanceQuery {}
+export type ListScheduledMaintenanceQuery = {};
 
 export class ListScheduledMaintenanceHandler {
   constructor(
@@ -185,7 +185,7 @@ export class ListScheduledMaintenanceHandler {
 // List Overdue Maintenance Query
 // ============================================================================
 
-export interface ListOverdueMaintenanceQuery {}
+export type ListOverdueMaintenanceQuery = {};
 
 export class ListOverdueMaintenanceHandler {
   constructor(

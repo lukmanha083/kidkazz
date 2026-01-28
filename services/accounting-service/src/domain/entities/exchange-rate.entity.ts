@@ -2,6 +2,9 @@ import { nanoid } from 'nanoid';
 
 /**
  * Exchange rate source
+ * - manual: Manually entered by user
+ * - api: Fetched from external API (ExchangeRate-API, GitHub Exchange API)
+ * - bank: Central bank source (Frankfurter/ECB)
  */
 export type ExchangeRateSource = 'manual' | 'api' | 'bank';
 

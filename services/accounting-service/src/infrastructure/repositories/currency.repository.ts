@@ -1,10 +1,13 @@
-import { eq, desc } from 'drizzle-orm';
-import type { DrizzleD1Database } from 'drizzle-orm/d1';
-import * as schema from '../db/schema';
-import { currencies, exchangeRates } from '../db/schema';
-import type { ICurrencyRepository, IExchangeRateRepository } from '@/domain/repositories/currency.repository';
 import { Currency } from '@/domain/entities/currency.entity';
 import { ExchangeRate, type ExchangeRateSource } from '@/domain/entities/exchange-rate.entity';
+import type {
+  ICurrencyRepository,
+  IExchangeRateRepository,
+} from '@/domain/repositories/currency.repository';
+import { desc, eq } from 'drizzle-orm';
+import type { DrizzleD1Database } from 'drizzle-orm/d1';
+import type * as schema from '../db/schema';
+import { currencies, exchangeRates } from '../db/schema';
 
 type DrizzleDB = DrizzleD1Database<typeof schema>;
 
@@ -123,7 +126,7 @@ export class DrizzleExchangeRateRepository implements IExchangeRateRepository {
     return this.toDomain(results[0]);
   }
 
-  async findHistory(limit: number = 30): Promise<ExchangeRate[]> {
+  async findHistory(limit = 30): Promise<ExchangeRate[]> {
     const results = await this.db
       .select()
       .from(exchangeRates)

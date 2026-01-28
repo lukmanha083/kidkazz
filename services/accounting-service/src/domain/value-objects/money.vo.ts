@@ -7,7 +7,7 @@ export class Money {
   readonly amount: number;
   readonly currency: string;
 
-  constructor(amount: number, currency: string = 'IDR') {
+  constructor(amount: number, currency = 'IDR') {
     if (!Number.isFinite(amount)) {
       throw new Error('Amount must be a finite number');
     }
@@ -84,14 +84,14 @@ export class Money {
   /**
    * Create Money from raw value (useful for database hydration)
    */
-  static fromRaw(amount: number, currency: string = 'IDR'): Money {
+  static fromRaw(amount: number, currency = 'IDR'): Money {
     return new Money(amount, currency);
   }
 
   /**
    * Create zero money
    */
-  static zero(currency: string = 'IDR'): Money {
+  static zero(currency = 'IDR'): Money {
     return new Money(0, currency);
   }
 }

@@ -1,6 +1,6 @@
 import type { BankTransaction } from '@/domain/entities/bank-transaction.entity';
 import type { BankTransactionMatchStatus } from '@/domain/value-objects';
-import type { PaginationOptions, PaginatedResult } from './journal-entry.repository';
+import type { PaginatedResult, PaginationOptions } from './journal-entry.repository';
 
 /**
  * Bank Transaction Filter
@@ -48,7 +48,10 @@ export interface IBankTransactionRepository {
   /**
    * Find all bank transactions with optional filter and pagination
    */
-  findAll(filter?: BankTransactionFilter, pagination?: PaginationOptions): Promise<PaginatedResult<BankTransaction>>;
+  findAll(
+    filter?: BankTransactionFilter,
+    pagination?: PaginationOptions
+  ): Promise<PaginatedResult<BankTransaction>>;
 
   /**
    * Check if fingerprint exists (for duplicate detection)

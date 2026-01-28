@@ -1,8 +1,11 @@
-import type { IProcessedEventRepository, IDomainEventRepository } from '@/domain/repositories/domain-event.repository';
-import type { IJournalEntryRepository } from '@/domain/repositories/journal-entry.repository';
-import type { IFiscalPeriodRepository } from '@/domain/repositories/fiscal-period.repository';
 import { JournalEntry, JournalEntryType } from '@/domain/entities/journal-entry.entity';
 import { JournalEntryPosted } from '@/domain/events';
+import type {
+  IDomainEventRepository,
+  IProcessedEventRepository,
+} from '@/domain/repositories/domain-event.repository';
+import type { IFiscalPeriodRepository } from '@/domain/repositories/fiscal-period.repository';
+import type { IJournalEntryRepository } from '@/domain/repositories/journal-entry.repository';
 
 /**
  * Order Cancelled event from order-service
@@ -74,7 +77,7 @@ export class OrderCancelledHandler {
       // Create reversal journal entry (opposite of original)
       const reversalLines = originalEntry.lines.map((line) => ({
         accountId: line.accountId,
-        direction: line.direction === 'Debit' ? 'Credit' as const : 'Debit' as const,
+        direction: line.direction === 'Debit' ? ('Credit' as const) : ('Debit' as const),
         amount: line.amount,
         memo: `Reversal: ${line.memo || 'Order cancelled'}`,
         customerId: line.customerId,
@@ -83,22 +86,22 @@ export class OrderCancelledHandler {
         salesChannel: line.salesChannel,
       }));
 
-      const reversalEntry = JournalEntry.create({
-        entryDate: cancelledDate,
-        description: `Reversal: Order ${event.orderNumber} cancelled - ${event.cancelReason}`,
-        reference: `REV-${event.orderNumber}`,
-        entryType: JournalEntryType.SYSTEM,
-        sourceService: 'order-service',
-        sourceReferenceId: `cancel-${event.orderId}`,
-        createdBy: event.cancelledBy,
-        lines: reversalLines,
-      });
+      // Create reversal entry (already posted for system entries - atomic)
+      const reversalEntry = JournalEntry.createPosted(
+        {
+          entryDate: cancelledDate,
+          description: `Reversal: Order ${event.orderNumber} cancelled - ${event.cancelReason}`,
+          reference: `REV-${event.orderNumber}`,
+          entryType: JournalEntryType.SYSTEM,
+          sourceService: 'order-service',
+          sourceReferenceId: `cancel-${event.orderId}`,
+          createdBy: event.cancelledBy,
+          lines: reversalLines,
+        },
+        event.cancelledBy
+      );
 
-      // Save reversal journal entry
-      await this.journalEntryRepository.save(reversalEntry);
-
-      // Auto-post system entries
-      reversalEntry.post(event.cancelledBy);
+      // Save (already posted - single atomic save)
       await this.journalEntryRepository.save(reversalEntry);
 
       // Store domain event

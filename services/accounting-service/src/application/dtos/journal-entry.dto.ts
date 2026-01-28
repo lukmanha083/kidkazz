@@ -1,5 +1,5 @@
-import { z } from 'zod';
 import { JournalEntryStatus, JournalEntryType, type JournalLine } from '@/domain/entities';
+import { z } from 'zod';
 
 /**
  * Journal Line Input Schema
@@ -21,7 +21,10 @@ const journalLineSchema = z.object({
  * Create Journal Entry Request Schema
  */
 export const createJournalEntrySchema = z.object({
-  entryDate: z.string().datetime().transform(s => new Date(s)),
+  entryDate: z
+    .string()
+    .datetime()
+    .transform((s) => new Date(s)),
   description: z.string().min(1).max(500),
   reference: z.string().max(100).optional(),
   notes: z.string().max(2000).optional(),
@@ -40,7 +43,11 @@ export const updateJournalEntrySchema = z.object({
   description: z.string().min(1).max(500).optional(),
   reference: z.string().max(100).optional(),
   notes: z.string().max(2000).optional(),
-  entryDate: z.string().datetime().transform(s => new Date(s)).optional(),
+  entryDate: z
+    .string()
+    .datetime()
+    .transform((s) => new Date(s))
+    .optional(),
   lines: z.array(journalLineSchema).min(2).optional(),
 });
 
@@ -70,8 +77,16 @@ export type VoidJournalEntryRequest = z.infer<typeof voidJournalEntrySchema>;
 export const listJournalEntriesQuerySchema = z.object({
   status: z.nativeEnum(JournalEntryStatus).optional(),
   entryType: z.nativeEnum(JournalEntryType).optional(),
-  fromDate: z.string().datetime().transform(s => new Date(s)).optional(),
-  toDate: z.string().datetime().transform(s => new Date(s)).optional(),
+  fromDate: z
+    .string()
+    .datetime()
+    .transform((s) => new Date(s))
+    .optional(),
+  toDate: z
+    .string()
+    .datetime()
+    .transform((s) => new Date(s))
+    .optional(),
   accountId: z.string().optional(),
   createdBy: z.string().optional(),
   sourceService: z.string().optional(),
@@ -170,7 +185,7 @@ export function toJournalEntryResponse(entry: {
     fiscalMonth: entry.fiscalPeriod.month,
     sourceService: entry.sourceService,
     sourceReferenceId: entry.sourceReferenceId,
-    lines: entry.lines.map(line => ({
+    lines: entry.lines.map((line) => ({
       id: line.id,
       lineSequence: line.lineSequence,
       accountId: line.accountId,

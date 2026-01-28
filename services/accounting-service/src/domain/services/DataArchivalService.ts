@@ -1,8 +1,8 @@
-import { ArchivedData, type ArchiveType } from '@/domain/entities/archived-data.entity';
+import { type ArchiveType, ArchivedData } from '@/domain/entities/archived-data.entity';
 import type { JournalEntry } from '@/domain/entities/journal-entry.entity';
 import type { IArchivedDataRepository } from '@/domain/repositories/audit.repository';
-import type { IJournalEntryRepository } from '@/domain/repositories/journal-entry.repository';
 import type { IAuditLogRepository } from '@/domain/repositories/audit.repository';
+import type { IJournalEntryRepository } from '@/domain/repositories/journal-entry.repository';
 import { FiscalPeriod } from '@/domain/value-objects';
 
 /**
@@ -78,7 +78,10 @@ export class DataArchivalService {
   async archiveJournalEntries(fiscalYear: number, archivedBy: string): Promise<ArchiveResult> {
     try {
       // Check if already archived
-      const existing = await this.archivedDataRepository.findByTypeAndYear('journal_entries', fiscalYear);
+      const existing = await this.archivedDataRepository.findByTypeAndYear(
+        'journal_entries',
+        fiscalYear
+      );
       if (existing) {
         return {
           archiveType: 'journal_entries',
@@ -119,14 +122,16 @@ export class DataArchivalService {
       }
 
       // Serialize data for archival
-      const data = JSON.stringify(allEntries.map((e: JournalEntry) => ({
-        id: e.id,
-        entryNumber: e.entryNumber,
-        entryDate: e.entryDate.toISOString(),
-        description: e.description,
-        status: e.status,
-        lines: e.lines,
-      })));
+      const data = JSON.stringify(
+        allEntries.map((e: JournalEntry) => ({
+          id: e.id,
+          entryNumber: e.entryNumber,
+          entryDate: e.entryDate.toISOString(),
+          description: e.description,
+          status: e.status,
+          lines: e.lines,
+        }))
+      );
 
       // Calculate checksum
       const checksum = await ArchivedData.calculateChecksum(data);
@@ -166,7 +171,10 @@ export class DataArchivalService {
   async archiveAuditLogs(fiscalYear: number, archivedBy: string): Promise<ArchiveResult> {
     try {
       // Check if already archived
-      const existing = await this.archivedDataRepository.findByTypeAndYear('audit_logs', fiscalYear);
+      const existing = await this.archivedDataRepository.findByTypeAndYear(
+        'audit_logs',
+        fiscalYear
+      );
       if (existing) {
         return {
           archiveType: 'audit_logs',
@@ -202,16 +210,18 @@ export class DataArchivalService {
       }
 
       // Serialize data for archival
-      const data = JSON.stringify(logs.map((log) => ({
-        id: log.id,
-        timestamp: log.timestamp.toISOString(),
-        userId: log.userId,
-        action: log.action,
-        entityType: log.entityType,
-        entityId: log.entityId,
-        oldValues: log.oldValues,
-        newValues: log.newValues,
-      })));
+      const data = JSON.stringify(
+        logs.map((log) => ({
+          id: log.id,
+          timestamp: log.timestamp.toISOString(),
+          userId: log.userId,
+          action: log.action,
+          entityType: log.entityType,
+          entityId: log.entityId,
+          oldValues: log.oldValues,
+          newValues: log.newValues,
+        }))
+      );
 
       // Calculate checksum
       const checksum = await ArchivedData.calculateChecksum(data);
