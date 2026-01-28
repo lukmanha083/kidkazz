@@ -1,5 +1,5 @@
 import { FiscalPeriodEntity } from '@/domain/entities/fiscal-period.entity';
-import { FiscalPeriodStatus, FiscalPeriod } from '@/domain/value-objects';
+import { FiscalPeriodStatus } from '@/domain/value-objects';
 import type { IFiscalPeriodRepository } from '@/domain/repositories/fiscal-period.repository';
 
 // ============================================================================
