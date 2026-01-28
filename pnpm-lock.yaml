@@ -33,7 +33,7 @@ importers:
         version: 0.44.7(@cloudflare/workers-types@4.20260124.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.4.6)
       shadcn:
         specifier: ^3.6.2
-        version: 3.6.2(@types/node@24.10.1)(hono@4.11.5)(typescript@5.9.3)
+        version: 3.6.2(@types/node@24.10.1)(hono@4.11.7)(typescript@5.9.3)
       tsx:
         specifier: ^4.19.0
         version: 4.20.6
@@ -237,13 +237,13 @@ importers:
     dependencies:
       '@hono/zod-validator':
         specifier: ^0.7.6
-        version: 0.7.6(hono@4.11.5)(zod@3.25.76)
+        version: 0.7.6(hono@4.11.7)(zod@3.25.76)
       drizzle-orm:
         specifier: ^0.33.0
         version: 0.33.0(@cloudflare/workers-types@4.20260124.0)(@types/better-sqlite3@7.6.13)(@types/react@18.3.26)(better-sqlite3@12.6.2)(react@18.3.1)
       hono:
-        specifier: ^4.11.5
-        version: 4.11.5
+        specifier: ^4.11.7
+        version: 4.11.7
       nanoid:
         specifier: ^5.0.9
         version: 5.1.6
@@ -288,8 +288,8 @@ importers:
   services/api-gateway:
     dependencies:
       hono:
-        specifier: ^4.11.5
-        version: 4.11.5
+        specifier: ^4.11.7
+        version: 4.11.7
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20260124.0
@@ -305,7 +305,7 @@ importers:
     dependencies:
       '@hono/zod-validator':
         specifier: ^0.2.2
-        version: 0.2.2(hono@4.11.5)(zod@3.25.76)
+        version: 0.2.2(hono@4.11.7)(zod@3.25.76)
       '@kidkazz/ddd-core':
         specifier: workspace:*
         version: link:../../packages/ddd-core
@@ -316,8 +316,8 @@ importers:
         specifier: ^0.33.0
         version: 0.33.0(@cloudflare/workers-types@4.20260124.0)(@types/better-sqlite3@7.6.13)(@types/react@18.3.26)(better-sqlite3@12.6.2)(react@18.3.1)
       hono:
-        specifier: ^4.11.5
-        version: 4.11.5
+        specifier: ^4.11.7
+        version: 4.11.7
       nanoid:
         specifier: ^5.0.0
         version: 5.1.6
@@ -348,7 +348,7 @@ importers:
     dependencies:
       '@hono/zod-validator':
         specifier: ^0.2.0
-        version: 0.2.2(hono@4.11.5)(zod@3.25.76)
+        version: 0.2.2(hono@4.11.7)(zod@3.25.76)
       '@kidkazz/ddd-core':
         specifier: workspace:*
         version: link:../../packages/ddd-core
@@ -374,8 +374,8 @@ importers:
         specifier: ^0.36.4
         version: 0.36.4(@cloudflare/workers-types@4.20260124.0)(@types/better-sqlite3@7.6.13)(@types/react@18.3.26)(better-sqlite3@11.10.0)(react@18.3.1)
       hono:
-        specifier: ^4.11.5
-        version: 4.11.5
+        specifier: ^4.11.7
+        version: 4.11.7
       nanoid:
         specifier: ^5.0.0
         version: 5.1.6
@@ -412,7 +412,7 @@ importers:
     dependencies:
       '@hono/zod-validator':
         specifier: ^0.2.0
-        version: 0.2.2(hono@4.11.5)(zod@3.25.76)
+        version: 0.2.2(hono@4.11.7)(zod@3.25.76)
       '@kidkazz/domain-events':
         specifier: workspace:*
         version: link:../../shared/domain-events
@@ -426,8 +426,8 @@ importers:
         specifier: ^0.36.4
         version: 0.36.4(@cloudflare/workers-types@4.20260124.0)(@types/better-sqlite3@7.6.13)(@types/react@18.3.26)(better-sqlite3@12.6.2)(react@18.3.1)
       hono:
-        specifier: ^4.11.5
-        version: 4.11.5
+        specifier: ^4.11.7
+        version: 4.11.7
       nanoid:
         specifier: ^5.0.0
         version: 5.1.6
@@ -452,7 +452,7 @@ importers:
     dependencies:
       '@hono/zod-validator':
         specifier: ^0.2.0
-        version: 0.2.2(hono@4.11.5)(zod@3.25.76)
+        version: 0.2.2(hono@4.11.7)(zod@3.25.76)
       '@kidkazz/domain-events':
         specifier: workspace:*
         version: link:../../shared/domain-events
@@ -466,8 +466,8 @@ importers:
         specifier: ^0.36.4
         version: 0.36.4(@cloudflare/workers-types@4.20260124.0)(@types/better-sqlite3@7.6.13)(@types/react@18.3.26)(better-sqlite3@12.6.2)(react@18.3.1)
       hono:
-        specifier: ^4.11.5
-        version: 4.11.5
+        specifier: ^4.11.7
+        version: 4.11.7
       nanoid:
         specifier: ^5.0.0
         version: 5.1.6
@@ -492,7 +492,7 @@ importers:
     dependencies:
       '@hono/zod-validator':
         specifier: ^0.2.0
-        version: 0.2.2(hono@4.11.5)(zod@3.25.76)
+        version: 0.2.2(hono@4.11.7)(zod@3.25.76)
       '@kidkazz/ddd-core':
         specifier: workspace:*
         version: link:../../packages/ddd-core
@@ -509,8 +509,8 @@ importers:
         specifier: ^0.36.4
         version: 0.36.4(@cloudflare/workers-types@4.20260124.0)(@types/better-sqlite3@7.6.13)(@types/react@18.3.26)(better-sqlite3@11.10.0)(react@18.3.1)
       hono:
-        specifier: ^4.11.5
-        version: 4.11.5
+        specifier: ^4.11.7
+        version: 4.11.7
       nanoid:
         specifier: ^5.0.0
         version: 5.1.6
@@ -547,7 +547,7 @@ importers:
     dependencies:
       '@hono/zod-validator':
         specifier: ^0.2.0
-        version: 0.2.2(hono@4.11.5)(zod@3.25.76)
+        version: 0.2.2(hono@4.11.7)(zod@3.25.76)
       '@kidkazz/domain-events':
         specifier: workspace:*
         version: link:../../shared/domain-events
@@ -561,8 +561,8 @@ importers:
         specifier: ^0.36.4
         version: 0.36.4(@cloudflare/workers-types@4.20260124.0)(@types/better-sqlite3@7.6.13)(@types/react@18.3.26)(better-sqlite3@12.6.2)(react@18.3.1)
       hono:
-        specifier: ^4.11.5
-        version: 4.11.5
+        specifier: ^4.11.7
+        version: 4.11.7
       nanoid:
         specifier: ^5.0.0
         version: 5.1.6
@@ -3625,8 +3625,8 @@ packages:
   headers-polyfill@4.0.3:
     resolution: {integrity: sha512-IScLbePpkvO846sIwOtOTDjutRMWdXdJmXdMvk6gCBHxFO8d+QKOQedyZSxFTTFYRSmlgSTDtXqqq4pcenBXLQ==}
 
-  hono@4.11.5:
-    resolution: {integrity: sha512-WemPi9/WfyMwZs+ZUXdiwcCh9Y+m7L+8vki9MzDw3jJ+W9Lc+12HGsd368Qc1vZi1xwW8BWMMsnK5efYKPdt4g==}
+  hono@4.11.7:
+    resolution: {integrity: sha512-l7qMiNee7t82bH3SeyUCt9UF15EVmaBvsppY2zQtrbIhl/yzBTny+YUxsVjSjQ6gaqaeVtZmGocom8TzBlA4Yw==}
     engines: {node: '>=16.9.0'}
 
   html-encoding-sniffer@4.0.0:
@@ -5807,18 +5807,18 @@ snapshots:
 
   '@floating-ui/utils@0.2.10': {}
 
-  '@hono/node-server@1.19.9(hono@4.11.5)':
+  '@hono/node-server@1.19.9(hono@4.11.7)':
     dependencies:
-      hono: 4.11.5
+      hono: 4.11.7
 
-  '@hono/zod-validator@0.2.2(hono@4.11.5)(zod@3.25.76)':
+  '@hono/zod-validator@0.2.2(hono@4.11.7)(zod@3.25.76)':
     dependencies:
-      hono: 4.11.5
+      hono: 4.11.7
       zod: 3.25.76
 
-  '@hono/zod-validator@0.7.6(hono@4.11.5)(zod@3.25.76)':
+  '@hono/zod-validator@0.7.6(hono@4.11.7)(zod@3.25.76)':
     dependencies:
-      hono: 4.11.5
+      hono: 4.11.7
       zod: 3.25.76
 
   '@img/colour@1.0.0': {}
@@ -6094,9 +6094,9 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@modelcontextprotocol/sdk@1.25.3(hono@4.11.5)(zod@3.25.76)':
+  '@modelcontextprotocol/sdk@1.25.3(hono@4.11.7)(zod@3.25.76)':
     dependencies:
-      '@hono/node-server': 1.19.9(hono@4.11.5)
+      '@hono/node-server': 1.19.9(hono@4.11.7)
       ajv: 8.17.1
       ajv-formats: 3.0.1(ajv@8.17.1)
       content-type: 1.0.5
@@ -7062,14 +7062,14 @@ snapshots:
       chai: 5.3.3
       tinyrainbow: 1.2.0
 
-  '@vitest/mocker@2.1.9(msw@2.12.4(@types/node@22.19.7)(typescript@5.9.3))(vite@5.4.21(@types/node@24.10.1)(terser@5.44.1))':
+  '@vitest/mocker@2.1.9(msw@2.12.4(@types/node@22.19.7)(typescript@5.9.3))(vite@5.4.21(@types/node@22.19.7)(terser@5.44.1))':
     dependencies:
       '@vitest/spy': 2.1.9
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
       msw: 2.12.4(@types/node@22.19.7)(typescript@5.9.3)
-      vite: 5.4.21(@types/node@24.10.1)(terser@5.44.1)
+      vite: 5.4.21(@types/node@22.19.7)(terser@5.44.1)
 
   '@vitest/mocker@2.1.9(msw@2.12.4(@types/node@24.10.1)(typescript@5.9.3))(vite@5.4.21(@types/node@24.10.1)(terser@5.44.1))':
     dependencies:
@@ -8073,7 +8073,7 @@ snapshots:
 
   headers-polyfill@4.0.3: {}
 
-  hono@4.11.5: {}
+  hono@4.11.7: {}
 
   html-encoding-sniffer@4.0.0:
     dependencies:
@@ -9120,7 +9120,7 @@ snapshots:
 
   setprototypeof@1.2.0: {}
 
-  shadcn@3.6.2(@types/node@24.10.1)(hono@4.11.5)(typescript@5.9.3):
+  shadcn@3.6.2(@types/node@24.10.1)(hono@4.11.7)(typescript@5.9.3):
     dependencies:
       '@antfu/ni': 25.0.0
       '@babel/core': 7.28.5
@@ -9128,7 +9128,7 @@ snapshots:
       '@babel/plugin-transform-typescript': 7.28.5(@babel/core@7.28.5)
       '@babel/preset-typescript': 7.28.5(@babel/core@7.28.5)
       '@dotenvx/dotenvx': 1.51.2
-      '@modelcontextprotocol/sdk': 1.25.3(hono@4.11.5)(zod@3.25.76)
+      '@modelcontextprotocol/sdk': 1.25.3(hono@4.11.7)(zod@3.25.76)
       browserslist: 4.28.0
       commander: 14.0.2
       cosmiconfig: 9.0.0(typescript@5.9.3)
@@ -9709,7 +9709,7 @@ snapshots:
   vitest@2.1.9(@types/node@22.19.7)(jsdom@23.2.0)(msw@2.12.4(@types/node@22.19.7)(typescript@5.9.3))(terser@5.44.1):
     dependencies:
       '@vitest/expect': 2.1.9
-      '@vitest/mocker': 2.1.9(msw@2.12.4(@types/node@22.19.7)(typescript@5.9.3))(vite@5.4.21(@types/node@24.10.1)(terser@5.44.1))
+      '@vitest/mocker': 2.1.9(msw@2.12.4(@types/node@22.19.7)(typescript@5.9.3))(vite@5.4.21(@types/node@22.19.7)(terser@5.44.1))
       '@vitest/pretty-format': 2.1.9
       '@vitest/runner': 2.1.9
       '@vitest/snapshot': 2.1.9
