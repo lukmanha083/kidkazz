@@ -110,7 +110,9 @@ export class DrizzleBankTransactionRepository implements IBankTransactionReposit
     }
 
     if (filter?.search) {
-      const escapedSearch = filter.search.replace(/[%_]/g, '\\$&');
+      const escapedSearch = filter.search
+        .replace(/\\/g, '\\\\')
+        .replace(/[%_]/g, '\\$&');
       conditions.push(
         or(
           like(bankTransactions.description, `%${escapedSearch}%`),
