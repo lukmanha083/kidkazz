@@ -8,12 +8,11 @@
 # - Documentation links
 # - Cross-service business flows
 #
-# Generated: 2026-01-28T10:25:56.156Z
 # Generator: scripts/generate-service-graph.ts
 #
 # DO NOT EDIT MANUALLY - Run: pnpm generate:service-graph
 
-generated: "2026-01-28T10:25:56.156Z"
+generated: auto
 generator: scripts/generate-service-graph.ts
 boundedContexts:
   accounting:
@@ -1072,32 +1071,32 @@ boundedContexts:
     framework: React + TanStack Router + TanStack Query
     apiClient: src/lib/api.ts
     pages:
+      sales by person: src/routes/dashboard/accounting/reports/sales-by-person.tsx
+      sales by warehouse: src/routes/dashboard/accounting/reports/sales-by-warehouse.tsx
       journal entry: src/routes/dashboard/accounting/journal-entry.tsx
+      chart of accounts: src/routes/dashboard/accounting/chart-of-accounts.tsx
+      general ledger: src/routes/dashboard/accounting/general-ledger.tsx
       balance sheet: src/routes/dashboard/accounting/balance-sheet.tsx
       income statement: src/routes/dashboard/accounting/income-statement.tsx
-      sales by warehouse: src/routes/dashboard/accounting/reports/sales-by-warehouse.tsx
-      sales by person: src/routes/dashboard/accounting/reports/sales-by-person.tsx
-      general ledger: src/routes/dashboard/accounting/general-ledger.tsx
-      chart of accounts: src/routes/dashboard/accounting/chart-of-accounts.tsx
+      customers: src/routes/dashboard/business-partner/customers.tsx
+      low stock: src/routes/dashboard/inventory/low-stock.tsx
+      uom conversion: src/routes/dashboard/inventory/uom-conversion.tsx
+      expired stock: src/routes/dashboard/inventory/expired-stock.tsx
+      batches: src/routes/dashboard/inventory/batches.tsx
+      product locations: src/routes/dashboard/inventory/product-locations.tsx
+      transfer stock: src/routes/dashboard/inventory/transfer-stock.tsx
+      warehouse: src/routes/dashboard/inventory/warehouse.tsx
       all: src/routes/dashboard/products/all.tsx
       bundle: src/routes/dashboard/products/bundle.tsx
-      uom: src/routes/dashboard/products/uom.tsx
       category: src/routes/dashboard/products/category.tsx
+      uom: src/routes/dashboard/products/uom.tsx
       variant: src/routes/dashboard/products/variant.tsx
-      customers: src/routes/dashboard/business-partner/customers.tsx
       settings: src/routes/dashboard/settings.tsx
       orders: src/routes/dashboard/orders.tsx
       employees: src/routes/dashboard/business-partner/employees.tsx
       suppliers: src/routes/dashboard/business-partner/suppliers.tsx
-      batches: src/routes/dashboard/inventory/batches.tsx
-      transfer stock: src/routes/dashboard/inventory/transfer-stock.tsx
-      product locations: src/routes/dashboard/inventory/product-locations.tsx
-      uom conversion: src/routes/dashboard/inventory/uom-conversion.tsx
-      low stock: src/routes/dashboard/inventory/low-stock.tsx
-      expired stock: src/routes/dashboard/inventory/expired-stock.tsx
-      warehouse: src/routes/dashboard/inventory/warehouse.tsx
-      dashboard: src/routes/dashboard.tsx
       root: src/routes/__root.tsx
+      dashboard: src/routes/dashboard.tsx
   sales:
     docs:
       business-rules: docs/bounded-contexts/sales/BUSINESS_RULES.md
