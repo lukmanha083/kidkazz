@@ -53,3 +53,43 @@ export {
   type ReconcilingItem,
   type AddReconcilingItemProps,
 } from './bank-reconciliation.entity';
+export {
+  Currency,
+  type CurrencyProps,
+  type CurrencyPersistenceProps,
+} from './currency.entity';
+export {
+  ExchangeRate,
+  type ExchangeRateProps,
+  type ExchangeRatePersistenceProps,
+  type ExchangeRateSource,
+} from './exchange-rate.entity';
+export {
+  Budget,
+  type BudgetProps,
+  type BudgetPersistenceProps,
+  type BudgetStatus,
+  type BudgetLine,
+  type BudgetLineInput,
+  type BudgetRevision,
+} from './budget.entity';
+export {
+  AuditLog,
+  type AuditAction,
+  type AuditLogProps,
+  type AuditLogPersistenceProps,
+} from './audit-log.entity';
+export {
+  TaxSummary,
+  type TaxType,
+  type TaxSummaryProps,
+  type TaxSummaryPersistenceProps,
+  TAX_TYPE_DESCRIPTIONS,
+  TAX_RATES,
+} from './tax-summary.entity';
+export {
+  ArchivedData,
+  type ArchiveType,
+  type ArchivedDataProps,
+  type ArchivedDataPersistenceProps,
+} from './archived-data.entity';

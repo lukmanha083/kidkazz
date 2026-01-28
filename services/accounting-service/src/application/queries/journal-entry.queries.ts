@@ -1,10 +1,10 @@
 import type { JournalEntry, JournalEntryStatus, JournalEntryType } from '@/domain/entities';
-import type { FiscalPeriod } from '@/domain/value-objects';
 import type {
   IJournalEntryRepository,
   JournalEntryFilter,
   PaginatedResult,
 } from '@/domain/repositories';
+import type { FiscalPeriod } from '@/domain/value-objects';
 
 /**
  * Get Journal Entry By ID Query

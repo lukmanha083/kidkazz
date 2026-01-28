@@ -1,5 +1,5 @@
+import type { DepreciationMethod, TaxAssetGroup } from '@/domain/value-objects';
 import { nanoid } from 'nanoid';
-import { DepreciationMethod, TaxAssetGroup } from '@/domain/value-objects';
 
 /**
  * Props for creating a new AssetCategory
@@ -194,21 +194,55 @@ export class AssetCategory {
   }
 
   // Getters
-  get id(): string { return this._id; }
-  get code(): string { return this._code; }
-  get name(): string { return this._name; }
-  get description(): string | undefined { return this._description; }
-  get defaultUsefulLifeMonths(): number { return this._defaultUsefulLifeMonths; }
-  get defaultDepreciationMethod(): DepreciationMethod { return this._defaultDepreciationMethod; }
-  get defaultSalvageValuePercent(): number { return this._defaultSalvageValuePercent; }
-  get assetAccountId(): string { return this._assetAccountId; }
-  get accumulatedDepreciationAccountId(): string { return this._accumulatedDepreciationAccountId; }
-  get depreciationExpenseAccountId(): string { return this._depreciationExpenseAccountId; }
-  get gainLossOnDisposalAccountId(): string { return this._gainLossOnDisposalAccountId; }
-  get taxUsefulLifeMonths(): number | undefined { return this._taxUsefulLifeMonths; }
-  get taxDepreciationMethod(): DepreciationMethod | undefined { return this._taxDepreciationMethod; }
-  get taxAssetGroup(): TaxAssetGroup | undefined { return this._taxAssetGroup; }
-  get isActive(): boolean { return this._isActive; }
-  get createdAt(): Date { return this._createdAt; }
-  get updatedAt(): Date { return this._updatedAt; }
+  get id(): string {
+    return this._id;
+  }
+  get code(): string {
+    return this._code;
+  }
+  get name(): string {
+    return this._name;
+  }
+  get description(): string | undefined {
+    return this._description;
+  }
+  get defaultUsefulLifeMonths(): number {
+    return this._defaultUsefulLifeMonths;
+  }
+  get defaultDepreciationMethod(): DepreciationMethod {
+    return this._defaultDepreciationMethod;
+  }
+  get defaultSalvageValuePercent(): number {
+    return this._defaultSalvageValuePercent;
+  }
+  get assetAccountId(): string {
+    return this._assetAccountId;
+  }
+  get accumulatedDepreciationAccountId(): string {
+    return this._accumulatedDepreciationAccountId;
+  }
+  get depreciationExpenseAccountId(): string {
+    return this._depreciationExpenseAccountId;
+  }
+  get gainLossOnDisposalAccountId(): string {
+    return this._gainLossOnDisposalAccountId;
+  }
+  get taxUsefulLifeMonths(): number | undefined {
+    return this._taxUsefulLifeMonths;
+  }
+  get taxDepreciationMethod(): DepreciationMethod | undefined {
+    return this._taxDepreciationMethod;
+  }
+  get taxAssetGroup(): TaxAssetGroup | undefined {
+    return this._taxAssetGroup;
+  }
+  get isActive(): boolean {
+    return this._isActive;
+  }
+  get createdAt(): Date {
+    return this._createdAt;
+  }
+  get updatedAt(): Date {
+    return this._updatedAt;
+  }
 }

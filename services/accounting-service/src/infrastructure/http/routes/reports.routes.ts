@@ -1,34 +1,59 @@
-import { Hono } from 'hono';
-import { zValidator } from '@hono/zod-validator';
-import { z } from 'zod';
-import type { DrizzleD1Database } from 'drizzle-orm/d1';
-import { eq, and, sql, inArray, or, like } from 'drizzle-orm';
-import { FiscalPeriod, FiscalPeriodStatus } from '@/domain/value-objects';
-import { GetTrialBalanceHandler, type TrialBalanceDependencies } from '@/application/queries/trial-balance.queries';
-import { GetIncomeStatementHandler, type IncomeStatementDependencies } from '@/application/queries/income-statement.queries';
-import { GetBalanceSheetHandler, type BalanceSheetDependencies } from '@/application/queries/balance-sheet.queries';
-import { GetCashPositionHandler, type CashPositionDependencies } from '@/application/queries/cash-position.queries';
-import { GetCashForecastHandler, type CashForecastDependencies } from '@/application/queries/cash-forecast.queries';
-import { PeriodCloseService, type PeriodCloseServiceDependencies } from '@/domain/services/PeriodCloseService';
-import type { CashAccountBalance, CashThresholdConfig } from '@/domain/services/CashPositionService';
-import type { ExpectedCollection, ScheduledPayment, RecurringPayments } from '@/domain/services/CashForecastService';
 import {
-  trialBalanceQuerySchema,
-  incomeStatementQuerySchema,
   balanceSheetQuerySchema,
-  closeChecklistQuerySchema,
-  cashPositionQuerySchema,
   cashForecastQuerySchema,
+  cashPositionQuerySchema,
+  closeChecklistQuerySchema,
+  incomeStatementQuerySchema,
+  trialBalanceQuerySchema,
 } from '@/application/dtos';
 import {
+  type BalanceSheetDependencies,
+  GetBalanceSheetHandler,
+} from '@/application/queries/balance-sheet.queries';
+import {
+  type CashForecastDependencies,
+  GetCashForecastHandler,
+} from '@/application/queries/cash-forecast.queries';
+import {
+  type CashPositionDependencies,
+  GetCashPositionHandler,
+} from '@/application/queries/cash-position.queries';
+import {
+  GetIncomeStatementHandler,
+  type IncomeStatementDependencies,
+} from '@/application/queries/income-statement.queries';
+import {
+  GetTrialBalanceHandler,
+  type TrialBalanceDependencies,
+} from '@/application/queries/trial-balance.queries';
+import type {
+  ExpectedCollection,
+  RecurringPayments,
+  ScheduledPayment,
+} from '@/domain/services/CashForecastService';
+import type {
+  CashAccountBalance,
+  CashThresholdConfig,
+} from '@/domain/services/CashPositionService';
+import {
+  PeriodCloseService,
+  type PeriodCloseServiceDependencies,
+} from '@/domain/services/PeriodCloseService';
+import { FiscalPeriod, type FiscalPeriodStatus } from '@/domain/value-objects';
+import {
+  accountBalances,
+  cashThresholdConfig,
   chartOfAccounts,
+  fiscalPeriods,
   journalEntries,
   journalLines,
-  accountBalances,
-  fiscalPeriods,
-  cashThresholdConfig,
 } from '@/infrastructure/db/schema';
 import type * as schema from '@/infrastructure/db/schema';
+import { zValidator } from '@hono/zod-validator';
+import { and, eq, inArray, like, or, sql } from 'drizzle-orm';
+import type { DrizzleD1Database } from 'drizzle-orm/d1';
+import { Hono } from 'hono';
+import { z } from 'zod';
 
 type Bindings = {
   DB: D1Database;
@@ -45,7 +70,9 @@ const reportsRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 // Helper: Create Trial Balance Dependencies
 // ============================================================================
 
-function createTrialBalanceDependencies(db: DrizzleD1Database<typeof schema>): TrialBalanceDependencies {
+function createTrialBalanceDependencies(
+  db: DrizzleD1Database<typeof schema>
+): TrialBalanceDependencies {
   return {
     async getPeriodStatus(year: number, month: number) {
       const result = await db
@@ -54,7 +81,7 @@ function createTrialBalanceDependencies(db: DrizzleD1Database<typeof schema>): T
         .where(and(eq(fiscalPeriods.fiscalYear, year), eq(fiscalPeriods.fiscalMonth, month)))
         .limit(1);
 
-      return result[0]?.status as FiscalPeriodStatus | null ?? null;
+      return (result[0]?.status as FiscalPeriodStatus | null) ?? null;
     },
 
     async getAccountBalances(year: number, month: number) {
@@ -150,9 +177,22 @@ function createTrialBalanceDependencies(db: DrizzleD1Database<typeof schema>): T
 // ============================================================================
 
 type AccountType = 'Asset' | 'Liability' | 'Equity' | 'Revenue' | 'COGS' | 'Expense';
-type AccountCategory = 'CURRENT_ASSET' | 'FIXED_ASSET' | 'OTHER_NON_CURRENT_ASSET' | 'CURRENT_LIABILITY' | 'LONG_TERM_LIABILITY' | 'EQUITY' | 'REVENUE' | 'COGS' | 'OPERATING_EXPENSE' | 'OTHER_INCOME_EXPENSE' | 'TAX';
+type AccountCategory =
+  | 'CURRENT_ASSET'
+  | 'FIXED_ASSET'
+  | 'OTHER_NON_CURRENT_ASSET'
+  | 'CURRENT_LIABILITY'
+  | 'LONG_TERM_LIABILITY'
+  | 'EQUITY'
+  | 'REVENUE'
+  | 'COGS'
+  | 'OPERATING_EXPENSE'
+  | 'OTHER_INCOME_EXPENSE'
+  | 'TAX';
 
-function createIncomeStatementDependencies(db: DrizzleD1Database<typeof schema>): IncomeStatementDependencies {
+function createIncomeStatementDependencies(
+  db: DrizzleD1Database<typeof schema>
+): IncomeStatementDependencies {
   const getAccountsWithBalance = async (year: number, month: number, accountType: AccountType) => {
     // Get YTD balances from account_balances table or calculate from journal entries
     const results = await db
@@ -186,7 +226,7 @@ function createIncomeStatementDependencies(db: DrizzleD1Database<typeof schema>)
       )
       .groupBy(chartOfAccounts.id);
 
-    return results.filter(r => r.balance !== 0);
+    return results.filter((r) => r.balance !== 0);
   };
 
   return {
@@ -237,8 +277,8 @@ function createIncomeStatementDependencies(db: DrizzleD1Database<typeof schema>)
         .groupBy(chartOfAccounts.id);
 
       return results
-        .filter(r => r.balance !== 0)
-        .map(r => ({
+        .filter((r) => r.balance !== 0)
+        .map((r) => ({
           accountId: r.accountId,
           accountCode: r.accountCode,
           accountName: r.accountName,
@@ -253,7 +293,9 @@ function createIncomeStatementDependencies(db: DrizzleD1Database<typeof schema>)
 // Helper: Create Balance Sheet Dependencies
 // ============================================================================
 
-function createBalanceSheetDependencies(db: DrizzleD1Database<typeof schema>): BalanceSheetDependencies {
+function createBalanceSheetDependencies(
+  db: DrizzleD1Database<typeof schema>
+): BalanceSheetDependencies {
   const getAccountsByCategory = async (asOfDate: Date, category: AccountCategory) => {
     const year = asOfDate.getFullYear();
     const month = asOfDate.getMonth() + 1;
@@ -283,7 +325,7 @@ function createBalanceSheetDependencies(db: DrizzleD1Database<typeof schema>): B
       )
       .groupBy(chartOfAccounts.id);
 
-    return results.filter(r => r.balance !== 0);
+    return results.filter((r) => r.balance !== 0);
   };
 
   return {
@@ -344,7 +386,8 @@ function createBalanceSheetDependencies(db: DrizzleD1Database<typeof schema>): B
         })
         .from(accountBalances)
         .innerJoin(chartOfAccounts, eq(accountBalances.accountId, chartOfAccounts.id))
-        .innerJoin(fiscalPeriods,
+        .innerJoin(
+          fiscalPeriods,
           and(
             eq(fiscalPeriods.fiscalYear, accountBalances.fiscalYear),
             eq(fiscalPeriods.fiscalMonth, accountBalances.fiscalMonth)
@@ -422,27 +465,31 @@ reportsRoutes.get('/trial-balance', zValidator('query', trialBalanceQuerySchema)
 /**
  * GET /reports/income-statement - Get income statement
  */
-reportsRoutes.get('/income-statement', zValidator('query', incomeStatementQuerySchema), async (c) => {
-  const db = c.get('db');
-  const query = c.req.valid('query');
+reportsRoutes.get(
+  '/income-statement',
+  zValidator('query', incomeStatementQuerySchema),
+  async (c) => {
+    const db = c.get('db');
+    const query = c.req.valid('query');
 
-  const deps = createIncomeStatementDependencies(db);
-  const handler = new GetIncomeStatementHandler(deps);
+    const deps = createIncomeStatementDependencies(db);
+    const handler = new GetIncomeStatementHandler(deps);
 
-  const result = await handler.execute({
-    fiscalYear: query.fiscalYear,
-    fiscalMonth: query.fiscalMonth,
-  });
+    const result = await handler.execute({
+      fiscalYear: query.fiscalYear,
+      fiscalMonth: query.fiscalMonth,
+    });
 
-  return c.json({
-    success: true,
-    data: {
-      ...result,
-      periodStart: result.periodStart.toISOString(),
-      periodEnd: result.periodEnd.toISOString(),
-    },
-  });
-});
+    return c.json({
+      success: true,
+      data: {
+        ...result,
+        periodStart: result.periodStart.toISOString(),
+        periodEnd: result.periodEnd.toISOString(),
+      },
+    });
+  }
+);
 
 /**
  * GET /reports/balance-sheet - Get balance sheet
@@ -484,7 +531,7 @@ reportsRoutes.get('/close-checklist', zValidator('query', closeChecklistQuerySch
         .where(and(eq(fiscalPeriods.fiscalYear, p.year), eq(fiscalPeriods.fiscalMonth, p.month)))
         .limit(1);
 
-      return result[0]?.status as FiscalPeriodStatus | null ?? null;
+      return (result[0]?.status as FiscalPeriodStatus | null) ?? null;
     },
 
     async getPreviousPeriodStatus(p: FiscalPeriod) {
@@ -494,10 +541,12 @@ reportsRoutes.get('/close-checklist', zValidator('query', closeChecklistQuerySch
       const result = await db
         .select({ status: fiscalPeriods.status })
         .from(fiscalPeriods)
-        .where(and(eq(fiscalPeriods.fiscalYear, prev.year), eq(fiscalPeriods.fiscalMonth, prev.month)))
+        .where(
+          and(eq(fiscalPeriods.fiscalYear, prev.year), eq(fiscalPeriods.fiscalMonth, prev.month))
+        )
         .limit(1);
 
-      return result[0]?.status as FiscalPeriodStatus | null ?? null;
+      return (result[0]?.status as FiscalPeriodStatus | null) ?? null;
     },
 
     async getDraftEntriesCount(p: FiscalPeriod) {
@@ -745,10 +794,7 @@ reportsRoutes.get('/cash-forecast', zValidator('query', cashForecastQuerySchema)
         )
         .where(
           and(
-            or(
-              like(chartOfAccounts.code, '200%'),
-              like(chartOfAccounts.code, '201%')
-            ), // AP accounts
+            or(like(chartOfAccounts.code, '200%'), like(chartOfAccounts.code, '201%')), // AP accounts
             eq(chartOfAccounts.isDetailAccount, true),
             eq(chartOfAccounts.status, 'Active')
           )
@@ -901,10 +947,16 @@ reportsRoutes.put('/cash-threshold', zValidator('json', updateThresholdSchema), 
 
   // Validate threshold order
   if (body.warningThreshold <= body.criticalThreshold) {
-    return c.json({ success: false, error: 'Warning threshold must be greater than critical threshold' }, 400);
+    return c.json(
+      { success: false, error: 'Warning threshold must be greater than critical threshold' },
+      400
+    );
   }
   if (body.criticalThreshold <= body.emergencyThreshold) {
-    return c.json({ success: false, error: 'Critical threshold must be greater than emergency threshold' }, 400);
+    return c.json(
+      { success: false, error: 'Critical threshold must be greater than emergency threshold' },
+      400
+    );
   }
 
   const now = new Date().toISOString();

@@ -1,10 +1,7 @@
-import { eq, and } from 'drizzle-orm';
-import { DepreciationScheduleStatus } from '@/domain/value-objects';
-import type {
-  IDepreciationScheduleRepository,
-  DepreciationSchedule,
-} from '@/domain/repositories';
-import { depreciationSchedules, type DepreciationScheduleRecord } from '@/infrastructure/db/schema';
+import type { DepreciationSchedule, IDepreciationScheduleRepository } from '@/domain/repositories';
+import type { DepreciationScheduleStatus } from '@/domain/value-objects';
+import { type DepreciationScheduleRecord, depreciationSchedules } from '@/infrastructure/db/schema';
+import { and, eq } from 'drizzle-orm';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DrizzleDB = any;

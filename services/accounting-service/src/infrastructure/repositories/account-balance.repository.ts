@@ -1,8 +1,8 @@
-import { eq, and, sql, desc, lte } from 'drizzle-orm';
 import { AccountBalance } from '@/domain/entities/account-balance.entity';
-import { FiscalPeriod } from '@/domain/value-objects';
 import type { IAccountBalanceRepository } from '@/domain/repositories/account-balance.repository';
-import { accountBalances, type AccountBalanceRecord } from '@/infrastructure/db/schema';
+import { FiscalPeriod } from '@/domain/value-objects';
+import { type AccountBalanceRecord, accountBalances } from '@/infrastructure/db/schema';
+import { and, desc, eq, inArray, lte, sql } from 'drizzle-orm';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DrizzleDB = any;
@@ -55,12 +55,7 @@ export class DrizzleAccountBalanceRepository implements IAccountBalanceRepositor
     const results = await this.db
       .select()
       .from(accountBalances)
-      .where(
-        and(
-          eq(accountBalances.fiscalYear, year),
-          eq(accountBalances.fiscalMonth, month)
-        )
-      );
+      .where(and(eq(accountBalances.fiscalYear, year), eq(accountBalances.fiscalMonth, month)));
 
     return results.map((r: AccountBalanceRecord) => this.toDomain(r));
   }
@@ -111,10 +106,7 @@ export class DrizzleAccountBalanceRepository implements IAccountBalanceRepositor
     };
 
     if (existing.length > 0) {
-      await this.db
-        .update(accountBalances)
-        .set(data)
-        .where(eq(accountBalances.id, balance.id));
+      await this.db.update(accountBalances).set(data).where(eq(accountBalances.id, balance.id));
     } else {
       await this.db.insert(accountBalances).values({
         id: balance.id,
@@ -150,10 +142,7 @@ export class DrizzleAccountBalanceRepository implements IAccountBalanceRepositor
       };
 
       if (existing.length > 0) {
-        await this.db
-          .update(accountBalances)
-          .set(data)
-          .where(eq(accountBalances.id, balance.id));
+        await this.db.update(accountBalances).set(data).where(eq(accountBalances.id, balance.id));
       } else {
         await this.db.insert(accountBalances).values({
           id: balance.id,
@@ -166,12 +155,7 @@ export class DrizzleAccountBalanceRepository implements IAccountBalanceRepositor
   async deleteByPeriod(year: number, month: number): Promise<void> {
     await this.db
       .delete(accountBalances)
-      .where(
-        and(
-          eq(accountBalances.fiscalYear, year),
-          eq(accountBalances.fiscalMonth, month)
-        )
-      );
+      .where(and(eq(accountBalances.fiscalYear, year), eq(accountBalances.fiscalMonth, month)));
   }
 
   async delete(id: string): Promise<void> {
@@ -204,6 +188,21 @@ export class DrizzleAccountBalanceRepository implements IAccountBalanceRepositor
       debitTotal: result[0]?.debitTotal || 0,
       creditTotal: result[0]?.creditTotal || 0,
     };
+  }
+
+  async findByAccountsAndYear(accountIds: string[], year: number): Promise<AccountBalance[]> {
+    if (accountIds.length === 0) {
+      return [];
+    }
+
+    const results = await this.db
+      .select()
+      .from(accountBalances)
+      .where(
+        and(inArray(accountBalances.accountId, accountIds), eq(accountBalances.fiscalYear, year))
+      );
+
+    return results.map((r: AccountBalanceRecord) => this.toDomain(r));
   }
 
   private toDomain(record: AccountBalanceRecord): AccountBalance {

@@ -1,7 +1,7 @@
 import type {
+  AssetMovement,
   IAssetMovementRepository,
   IFixedAssetRepository,
-  AssetMovement,
 } from '@/domain/repositories';
 
 // ============================================================================

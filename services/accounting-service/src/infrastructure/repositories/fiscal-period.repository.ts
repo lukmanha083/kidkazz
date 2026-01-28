@@ -1,8 +1,11 @@
-import { eq, and, desc, sql } from 'drizzle-orm';
 import { FiscalPeriodEntity } from '@/domain/entities/fiscal-period.entity';
+import type {
+  FiscalPeriodFilter,
+  IFiscalPeriodRepository,
+} from '@/domain/repositories/fiscal-period.repository';
 import { FiscalPeriod, FiscalPeriodStatus } from '@/domain/value-objects';
-import type { IFiscalPeriodRepository, FiscalPeriodFilter } from '@/domain/repositories/fiscal-period.repository';
-import { fiscalPeriods, type FiscalPeriodRecord } from '@/infrastructure/db/schema';
+import { type FiscalPeriodRecord, fiscalPeriods } from '@/infrastructure/db/schema';
+import { and, desc, eq, sql } from 'drizzle-orm';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DrizzleDB = any;
@@ -31,12 +34,7 @@ export class DrizzleFiscalPeriodRepository implements IFiscalPeriodRepository {
     const result = await this.db
       .select()
       .from(fiscalPeriods)
-      .where(
-        and(
-          eq(fiscalPeriods.fiscalYear, year),
-          eq(fiscalPeriods.fiscalMonth, month)
-        )
-      )
+      .where(and(eq(fiscalPeriods.fiscalYear, year), eq(fiscalPeriods.fiscalMonth, month)))
       .limit(1);
 
     if (result.length === 0) {
@@ -75,16 +73,17 @@ export class DrizzleFiscalPeriodRepository implements IFiscalPeriodRepository {
       );
     }
 
-    const query = conditions.length > 0
-      ? this.db
-          .select()
-          .from(fiscalPeriods)
-          .where(and(...conditions))
-          .orderBy(desc(fiscalPeriods.fiscalYear), desc(fiscalPeriods.fiscalMonth))
-      : this.db
-          .select()
-          .from(fiscalPeriods)
-          .orderBy(desc(fiscalPeriods.fiscalYear), desc(fiscalPeriods.fiscalMonth));
+    const query =
+      conditions.length > 0
+        ? this.db
+            .select()
+            .from(fiscalPeriods)
+            .where(and(...conditions))
+            .orderBy(desc(fiscalPeriods.fiscalYear), desc(fiscalPeriods.fiscalMonth))
+        : this.db
+            .select()
+            .from(fiscalPeriods)
+            .orderBy(desc(fiscalPeriods.fiscalYear), desc(fiscalPeriods.fiscalMonth));
 
     const results = await query;
     return results.map((r: FiscalPeriodRecord) => this.toDomain(r));
@@ -149,10 +148,7 @@ export class DrizzleFiscalPeriodRepository implements IFiscalPeriodRepository {
     };
 
     if (existing.length > 0) {
-      await this.db
-        .update(fiscalPeriods)
-        .set(data)
-        .where(eq(fiscalPeriods.id, period.id));
+      await this.db.update(fiscalPeriods).set(data).where(eq(fiscalPeriods.id, period.id));
     } else {
       await this.db.insert(fiscalPeriods).values({
         id: period.id,
@@ -170,12 +166,7 @@ export class DrizzleFiscalPeriodRepository implements IFiscalPeriodRepository {
     const result = await this.db
       .select({ id: fiscalPeriods.id })
       .from(fiscalPeriods)
-      .where(
-        and(
-          eq(fiscalPeriods.fiscalYear, year),
-          eq(fiscalPeriods.fiscalMonth, month)
-        )
-      )
+      .where(and(eq(fiscalPeriods.fiscalYear, year), eq(fiscalPeriods.fiscalMonth, month)))
       .limit(1);
 
     return result.length > 0;

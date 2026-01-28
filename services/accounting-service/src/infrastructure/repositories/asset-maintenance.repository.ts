@@ -1,7 +1,7 @@
-import { eq, and, lt, or, desc } from 'drizzle-orm';
-import type { DrizzleD1Database } from 'drizzle-orm/d1';
-import type { IAssetMaintenanceRepository, AssetMaintenance } from '@/domain/repositories';
+import type { AssetMaintenance, IAssetMaintenanceRepository } from '@/domain/repositories';
 import * as schema from '@/infrastructure/db/schema';
+import { and, desc, eq, lt, or } from 'drizzle-orm';
+import type { DrizzleD1Database } from 'drizzle-orm/d1';
 
 /**
  * Drizzle implementation of Asset Maintenance Repository
@@ -73,7 +73,8 @@ export class DrizzleAssetMaintenanceRepository implements IAssetMaintenanceRepos
       await this.db
         .update(schema.assetMaintenance)
         .set({
-          maintenanceType: maintenance.maintenanceType as schema.AssetMaintenanceRecord['maintenanceType'],
+          maintenanceType:
+            maintenance.maintenanceType as schema.AssetMaintenanceRecord['maintenanceType'],
           description: maintenance.description,
           scheduledDate: maintenance.scheduledDate?.toISOString().split('T')[0],
           performedDate: maintenance.performedDate?.toISOString().split('T')[0],
@@ -94,7 +95,8 @@ export class DrizzleAssetMaintenanceRepository implements IAssetMaintenanceRepos
       await this.db.insert(schema.assetMaintenance).values({
         id: maintenance.id,
         assetId: maintenance.assetId,
-        maintenanceType: maintenance.maintenanceType as schema.AssetMaintenanceRecord['maintenanceType'],
+        maintenanceType:
+          maintenance.maintenanceType as schema.AssetMaintenanceRecord['maintenanceType'],
         description: maintenance.description,
         scheduledDate: maintenance.scheduledDate?.toISOString().split('T')[0],
         performedDate: maintenance.performedDate?.toISOString().split('T')[0],
@@ -115,9 +117,7 @@ export class DrizzleAssetMaintenanceRepository implements IAssetMaintenanceRepos
   }
 
   async delete(id: string): Promise<void> {
-    await this.db
-      .delete(schema.assetMaintenance)
-      .where(eq(schema.assetMaintenance.id, id));
+    await this.db.delete(schema.assetMaintenance).where(eq(schema.assetMaintenance.id, id));
   }
 
   private mapToEntity(record: schema.AssetMaintenanceRecord): AssetMaintenance {

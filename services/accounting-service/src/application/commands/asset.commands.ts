@@ -1,15 +1,12 @@
-import { FixedAsset, AssetCategory } from '@/domain/entities';
-import {
+import { AssetCategory, FixedAsset } from '@/domain/entities';
+import type { IAssetCategoryRepository, IFixedAssetRepository } from '@/domain/repositories';
+import type {
+  AcquisitionMethod,
   AssetStatus,
   DepreciationMethod,
-  AcquisitionMethod,
   DisposalMethod,
   TaxAssetGroup,
 } from '@/domain/value-objects';
-import type {
-  IFixedAssetRepository,
-  IAssetCategoryRepository,
-} from '@/domain/repositories';
 
 // ============================================================================
 // Asset Category Commands
@@ -179,13 +176,12 @@ export class CreateAssetHandler {
 
     // Use category defaults if not provided
     const usefulLifeMonths = command.usefulLifeMonths ?? category.defaultUsefulLifeMonths;
-    const salvageValue = command.salvageValue ?? category.calculateSalvageValue(command.acquisitionCost);
+    const salvageValue =
+      command.salvageValue ?? category.calculateSalvageValue(command.acquisitionCost);
     const depreciationMethod = command.depreciationMethod ?? category.defaultDepreciationMethod;
-    const depreciationStartDate = command.depreciationStartDate ?? new Date(
-      command.acquisitionDate.getFullYear(),
-      command.acquisitionDate.getMonth() + 1,
-      1
-    );
+    const depreciationStartDate =
+      command.depreciationStartDate ??
+      new Date(command.acquisitionDate.getFullYear(), command.acquisitionDate.getMonth() + 1, 1);
 
     const asset = FixedAsset.create({
       assetNumber,

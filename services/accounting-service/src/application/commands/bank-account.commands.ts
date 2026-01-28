@@ -1,6 +1,6 @@
 import { BankAccount } from '@/domain/entities';
-import { BankAccountType, BankAccountStatus } from '@/domain/value-objects';
 import type { IBankAccountRepository } from '@/domain/repositories';
+import type { BankAccountStatus, BankAccountType } from '@/domain/value-objects';
 
 // ============================================================================
 // Create Bank Account Command

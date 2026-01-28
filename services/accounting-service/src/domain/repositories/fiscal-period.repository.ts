@@ -1,5 +1,5 @@
-import { FiscalPeriodEntity } from '@/domain/entities/fiscal-period.entity';
-import { FiscalPeriod, FiscalPeriodStatus } from '@/domain/value-objects';
+import type { FiscalPeriodEntity } from '@/domain/entities/fiscal-period.entity';
+import type { FiscalPeriod, FiscalPeriodStatus } from '@/domain/value-objects';
 
 /**
  * Filter options for querying fiscal periods

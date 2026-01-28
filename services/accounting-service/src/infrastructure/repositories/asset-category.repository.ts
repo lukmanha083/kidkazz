@@ -1,8 +1,8 @@
-import { eq } from 'drizzle-orm';
 import { AssetCategory } from '@/domain/entities';
-import { DepreciationMethod, TaxAssetGroup } from '@/domain/value-objects';
 import type { IAssetCategoryRepository } from '@/domain/repositories';
-import { assetCategories, type AssetCategoryRecord } from '@/infrastructure/db/schema';
+import type { DepreciationMethod, TaxAssetGroup } from '@/domain/value-objects';
+import { type AssetCategoryRecord, assetCategories } from '@/infrastructure/db/schema';
+import { eq } from 'drizzle-orm';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DrizzleDB = any;
@@ -121,8 +121,8 @@ export class DrizzleAssetCategoryRepository implements IAssetCategoryRepository 
       depreciationExpenseAccountId: record.depreciationExpenseAccountId,
       gainLossOnDisposalAccountId: record.gainLossOnDisposalAccountId,
       taxUsefulLifeMonths: record.taxUsefulLifeMonths || undefined,
-      taxDepreciationMethod: record.taxDepreciationMethod as DepreciationMethod || undefined,
-      taxAssetGroup: record.taxAssetGroup as TaxAssetGroup || undefined,
+      taxDepreciationMethod: (record.taxDepreciationMethod as DepreciationMethod) || undefined,
+      taxAssetGroup: (record.taxAssetGroup as TaxAssetGroup) || undefined,
       isActive: record.isActive,
       createdAt: new Date(record.createdAt),
       updatedAt: new Date(record.updatedAt),

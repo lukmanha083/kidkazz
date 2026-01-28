@@ -1,7 +1,7 @@
 import {
-  CashPositionService,
-  type CashPositionResult,
   type CashAccountBalance,
+  type CashPositionResult,
+  CashPositionService,
   type CashThresholdConfig,
 } from '@/domain/services';
 

@@ -1,5 +1,5 @@
+import { BankTransactionMatchStatus, BankTransactionType } from '@/domain/value-objects';
 import { nanoid } from 'nanoid';
-import { BankTransactionType, BankTransactionMatchStatus } from '@/domain/value-objects';
 
 /**
  * Synchronous hash for entity creation (uses same algorithm deterministically)
@@ -219,20 +219,52 @@ export class BankTransaction {
   }
 
   // Getters
-  get id(): string { return this._id; }
-  get bankStatementId(): string { return this._bankStatementId; }
-  get bankAccountId(): string { return this._bankAccountId; }
-  get transactionDate(): Date { return this._transactionDate; }
-  get postDate(): Date | undefined { return this._postDate; }
-  get description(): string { return this._description; }
-  get reference(): string | undefined { return this._reference; }
-  get amount(): number { return this._amount; }
-  get transactionType(): BankTransactionType { return this._transactionType; }
-  get runningBalance(): number | undefined { return this._runningBalance; }
-  get fingerprint(): string { return this._fingerprint; }
-  get matchStatus(): BankTransactionMatchStatus { return this._matchStatus; }
-  get matchedJournalLineId(): string | undefined { return this._matchedJournalLineId; }
-  get matchedAt(): Date | undefined { return this._matchedAt; }
-  get matchedBy(): string | undefined { return this._matchedBy; }
-  get createdAt(): Date { return this._createdAt; }
+  get id(): string {
+    return this._id;
+  }
+  get bankStatementId(): string {
+    return this._bankStatementId;
+  }
+  get bankAccountId(): string {
+    return this._bankAccountId;
+  }
+  get transactionDate(): Date {
+    return this._transactionDate;
+  }
+  get postDate(): Date | undefined {
+    return this._postDate;
+  }
+  get description(): string {
+    return this._description;
+  }
+  get reference(): string | undefined {
+    return this._reference;
+  }
+  get amount(): number {
+    return this._amount;
+  }
+  get transactionType(): BankTransactionType {
+    return this._transactionType;
+  }
+  get runningBalance(): number | undefined {
+    return this._runningBalance;
+  }
+  get fingerprint(): string {
+    return this._fingerprint;
+  }
+  get matchStatus(): BankTransactionMatchStatus {
+    return this._matchStatus;
+  }
+  get matchedJournalLineId(): string | undefined {
+    return this._matchedJournalLineId;
+  }
+  get matchedAt(): Date | undefined {
+    return this._matchedAt;
+  }
+  get matchedBy(): string | undefined {
+    return this._matchedBy;
+  }
+  get createdAt(): Date {
+    return this._createdAt;
+  }
 }

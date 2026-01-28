@@ -1,6 +1,11 @@
-import { JournalEntry, JournalEntryStatus, JournalEntryType, type JournalLineInput } from '@/domain/entities';
+import {
+  JournalEntry,
+  type JournalEntryStatus,
+  type JournalEntryType,
+  type JournalLineInput,
+} from '@/domain/entities';
+import type { IAccountRepository, IJournalEntryRepository } from '@/domain/repositories';
 import { FiscalPeriod } from '@/domain/value-objects';
-import type { IJournalEntryRepository, IAccountRepository } from '@/domain/repositories';
 
 /**
  * Create Journal Entry Command
@@ -136,8 +141,12 @@ export class UpdateJournalEntryHandler {
     }
 
     // Update basic fields if provided
-    if (command.description !== undefined || command.reference !== undefined ||
-        command.notes !== undefined || command.entryDate !== undefined) {
+    if (
+      command.description !== undefined ||
+      command.reference !== undefined ||
+      command.notes !== undefined ||
+      command.entryDate !== undefined
+    ) {
       entry.update({
         description: command.description,
         reference: command.reference,

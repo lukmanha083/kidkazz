@@ -1,18 +1,18 @@
-import { eq, and, like, gte, lte, sql } from 'drizzle-orm';
 import { FixedAsset } from '@/domain/entities';
-import {
-  AssetStatus,
-  DepreciationMethod,
-  AcquisitionMethod,
-  DisposalMethod,
-} from '@/domain/value-objects';
 import type {
-  IFixedAssetRepository,
   FixedAssetFilter,
-  PaginationOptions,
+  IFixedAssetRepository,
   PaginatedResult,
+  PaginationOptions,
 } from '@/domain/repositories';
-import { fixedAssets, type FixedAssetRecord } from '@/infrastructure/db/schema';
+import {
+  type AcquisitionMethod,
+  AssetStatus,
+  type DepreciationMethod,
+  type DisposalMethod,
+} from '@/domain/value-objects';
+import { type FixedAssetRecord, fixedAssets } from '@/infrastructure/db/schema';
+import { and, eq, gte, like, lte, sql } from 'drizzle-orm';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DrizzleDB = any;
@@ -24,11 +24,7 @@ export class DrizzleFixedAssetRepository implements IFixedAssetRepository {
   constructor(private readonly db: DrizzleDB) {}
 
   async findById(id: string): Promise<FixedAsset | null> {
-    const result = await this.db
-      .select()
-      .from(fixedAssets)
-      .where(eq(fixedAssets.id, id))
-      .limit(1);
+    const result = await this.db.select().from(fixedAssets).where(eq(fixedAssets.id, id)).limit(1);
 
     if (result.length === 0) {
       return null;
@@ -87,10 +83,14 @@ export class DrizzleFixedAssetRepository implements IFixedAssetRepository {
       conditions.push(eq(fixedAssets.assignedToUserId, filter.assignedToUserId));
     }
     if (filter?.acquisitionDateFrom) {
-      conditions.push(gte(fixedAssets.acquisitionDate, filter.acquisitionDateFrom.toISOString().split('T')[0]));
+      conditions.push(
+        gte(fixedAssets.acquisitionDate, filter.acquisitionDateFrom.toISOString().split('T')[0])
+      );
     }
     if (filter?.acquisitionDateTo) {
-      conditions.push(lte(fixedAssets.acquisitionDate, filter.acquisitionDateTo.toISOString().split('T')[0]));
+      conditions.push(
+        lte(fixedAssets.acquisitionDate, filter.acquisitionDateTo.toISOString().split('T')[0])
+      );
     }
     if (filter?.search) {
       conditions.push(like(fixedAssets.name, `%${filter.search}%`));
@@ -111,20 +111,21 @@ export class DrizzleFixedAssetRepository implements IFixedAssetRepository {
     const totalPages = Math.ceil(total / limit);
 
     // Get assets
-    const query = conditions.length > 0
-      ? this.db
-          .select()
-          .from(fixedAssets)
-          .where(and(...conditions))
-          .orderBy(fixedAssets.assetNumber)
-          .limit(limit)
-          .offset(offset)
-      : this.db
-          .select()
-          .from(fixedAssets)
-          .orderBy(fixedAssets.assetNumber)
-          .limit(limit)
-          .offset(offset);
+    const query =
+      conditions.length > 0
+        ? this.db
+            .select()
+            .from(fixedAssets)
+            .where(and(...conditions))
+            .orderBy(fixedAssets.assetNumber)
+            .limit(limit)
+            .offset(offset)
+        : this.db
+            .select()
+            .from(fixedAssets)
+            .orderBy(fixedAssets.assetNumber)
+            .limit(limit)
+            .offset(offset);
 
     const results = await query;
 
@@ -154,10 +155,7 @@ export class DrizzleFixedAssetRepository implements IFixedAssetRepository {
       .select()
       .from(fixedAssets)
       .where(
-        and(
-          eq(fixedAssets.status, AssetStatus.ACTIVE),
-          lte(fixedAssets.depreciationStartDate, now)
-        )
+        and(eq(fixedAssets.status, AssetStatus.ACTIVE), lte(fixedAssets.depreciationStartDate, now))
       )
       .orderBy(fixedAssets.assetNumber);
 
@@ -237,10 +235,7 @@ export class DrizzleFixedAssetRepository implements IFixedAssetRepository {
     };
 
     if (existing.length > 0) {
-      await this.db
-        .update(fixedAssets)
-        .set(data)
-        .where(eq(fixedAssets.id, asset.id));
+      await this.db.update(fixedAssets).set(data).where(eq(fixedAssets.id, asset.id));
     } else {
       await this.db.insert(fixedAssets).values({
         id: asset.id,
@@ -271,7 +266,7 @@ export class DrizzleFixedAssetRepository implements IFixedAssetRepository {
 
     if (result.length > 0) {
       const lastNumber = result[0].assetNumber;
-      const lastSequence = parseInt(lastNumber.split('-').pop() || '0', 10);
+      const lastSequence = Number.parseInt(lastNumber.split('-').pop() || '0', 10);
       sequence = lastSequence + 1;
     }
 
@@ -304,16 +299,22 @@ export class DrizzleFixedAssetRepository implements IFixedAssetRepository {
       depreciationStartDate: new Date(record.depreciationStartDate),
       accumulatedDepreciation: record.accumulatedDepreciation,
       bookValue: record.bookValue,
-      lastDepreciationDate: record.lastDepreciationDate ? new Date(record.lastDepreciationDate) : undefined,
+      lastDepreciationDate: record.lastDepreciationDate
+        ? new Date(record.lastDepreciationDate)
+        : undefined,
       status: record.status as AssetStatus,
       disposalDate: record.disposalDate ? new Date(record.disposalDate) : undefined,
-      disposalMethod: record.disposalMethod as DisposalMethod || undefined,
+      disposalMethod: (record.disposalMethod as DisposalMethod) || undefined,
       disposalValue: record.disposalValue || undefined,
       disposalReason: record.disposalReason || undefined,
       gainLossOnDisposal: record.gainLossOnDisposal || undefined,
       insurancePolicyNumber: record.insurancePolicyNumber || undefined,
-      insuranceExpiryDate: record.insuranceExpiryDate ? new Date(record.insuranceExpiryDate) : undefined,
-      warrantyExpiryDate: record.warrantyExpiryDate ? new Date(record.warrantyExpiryDate) : undefined,
+      insuranceExpiryDate: record.insuranceExpiryDate
+        ? new Date(record.insuranceExpiryDate)
+        : undefined,
+      warrantyExpiryDate: record.warrantyExpiryDate
+        ? new Date(record.warrantyExpiryDate)
+        : undefined,
       lastVerifiedAt: record.lastVerifiedAt ? new Date(record.lastVerifiedAt) : undefined,
       lastVerifiedBy: record.lastVerifiedBy || undefined,
       createdBy: record.createdBy,

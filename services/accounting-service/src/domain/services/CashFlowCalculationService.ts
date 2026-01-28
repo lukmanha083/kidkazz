@@ -109,7 +109,15 @@ export interface ReconciliationValidation {
  */
 export interface TransactionClassificationInput {
   accountCode: string;
-  transactionType: 'collection' | 'payment' | 'purchase' | 'sale' | 'proceeds' | 'repayment' | 'dividend' | 'other';
+  transactionType:
+    | 'collection'
+    | 'payment'
+    | 'purchase'
+    | 'sale'
+    | 'proceeds'
+    | 'repayment'
+    | 'dividend'
+    | 'other';
   description?: string;
 }
 

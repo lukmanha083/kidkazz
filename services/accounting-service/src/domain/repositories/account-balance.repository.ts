@@ -1,4 +1,4 @@
-import { AccountBalance } from '@/domain/entities/account-balance.entity';
+import type { AccountBalance } from '@/domain/entities/account-balance.entity';
 
 /**
  * Repository interface for AccountBalance
@@ -71,4 +71,13 @@ export interface IAccountBalanceRepository {
     debitTotal: number;
     creditTotal: number;
   }>;
+
+  /**
+   * Find all balances for multiple accounts in a fiscal year
+   * Used for batch operations to avoid N+1 queries
+   */
+  findByAccountsAndYear(
+    accountIds: string[],
+    year: number
+  ): Promise<AccountBalance[]>;
 }

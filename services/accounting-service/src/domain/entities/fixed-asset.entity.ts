@@ -1,11 +1,11 @@
-import { nanoid } from 'nanoid';
-import {
-  AssetStatus,
-  DepreciationMethod,
-  AcquisitionMethod,
-  DisposalMethod,
-} from '@/domain/value-objects';
 import { DepreciationCalculatorFactory, type DepreciationInput } from '@/domain/services';
+import {
+  type AcquisitionMethod,
+  AssetStatus,
+  type DepreciationMethod,
+  type DisposalMethod,
+} from '@/domain/value-objects';
+import { nanoid } from 'nanoid';
 
 /**
  * Props for creating a new FixedAsset
@@ -357,44 +357,124 @@ export class FixedAsset {
   }
 
   // Getters
-  get id(): string { return this._id; }
-  get assetNumber(): string { return this._assetNumber; }
-  get name(): string { return this._name; }
-  get description(): string | undefined { return this._description; }
-  get categoryId(): string { return this._categoryId; }
-  get serialNumber(): string | undefined { return this._serialNumber; }
-  get barcode(): string | undefined { return this._barcode; }
-  get manufacturer(): string | undefined { return this._manufacturer; }
-  get model(): string | undefined { return this._model; }
-  get locationId(): string | undefined { return this._locationId; }
-  get departmentId(): string | undefined { return this._departmentId; }
-  get assignedToUserId(): string | undefined { return this._assignedToUserId; }
-  get acquisitionDate(): Date { return this._acquisitionDate; }
-  get acquisitionMethod(): AcquisitionMethod { return this._acquisitionMethod; }
-  get acquisitionCost(): number { return this._acquisitionCost; }
-  get purchaseOrderId(): string | undefined { return this._purchaseOrderId; }
-  get supplierId(): string | undefined { return this._supplierId; }
-  get invoiceNumber(): string | undefined { return this._invoiceNumber; }
-  get usefulLifeMonths(): number { return this._usefulLifeMonths; }
-  get salvageValue(): number { return this._salvageValue; }
-  get depreciationMethod(): DepreciationMethod { return this._depreciationMethod; }
-  get depreciationStartDate(): Date { return this._depreciationStartDate; }
-  get accumulatedDepreciation(): number { return this._accumulatedDepreciation; }
-  get bookValue(): number { return this._bookValue; }
-  get lastDepreciationDate(): Date | undefined { return this._lastDepreciationDate; }
-  get status(): AssetStatus { return this._status; }
-  get disposalDate(): Date | undefined { return this._disposalDate; }
-  get disposalMethod(): DisposalMethod | undefined { return this._disposalMethod; }
-  get disposalValue(): number | undefined { return this._disposalValue; }
-  get disposalReason(): string | undefined { return this._disposalReason; }
-  get gainLossOnDisposal(): number | undefined { return this._gainLossOnDisposal; }
-  get insurancePolicyNumber(): string | undefined { return this._insurancePolicyNumber; }
-  get insuranceExpiryDate(): Date | undefined { return this._insuranceExpiryDate; }
-  get warrantyExpiryDate(): Date | undefined { return this._warrantyExpiryDate; }
-  get lastVerifiedAt(): Date | undefined { return this._lastVerifiedAt; }
-  get lastVerifiedBy(): string | undefined { return this._lastVerifiedBy; }
-  get createdBy(): string { return this._createdBy; }
-  get createdAt(): Date { return this._createdAt; }
-  get updatedAt(): Date { return this._updatedAt; }
-  get version(): number { return this._version; }
+  get id(): string {
+    return this._id;
+  }
+  get assetNumber(): string {
+    return this._assetNumber;
+  }
+  get name(): string {
+    return this._name;
+  }
+  get description(): string | undefined {
+    return this._description;
+  }
+  get categoryId(): string {
+    return this._categoryId;
+  }
+  get serialNumber(): string | undefined {
+    return this._serialNumber;
+  }
+  get barcode(): string | undefined {
+    return this._barcode;
+  }
+  get manufacturer(): string | undefined {
+    return this._manufacturer;
+  }
+  get model(): string | undefined {
+    return this._model;
+  }
+  get locationId(): string | undefined {
+    return this._locationId;
+  }
+  get departmentId(): string | undefined {
+    return this._departmentId;
+  }
+  get assignedToUserId(): string | undefined {
+    return this._assignedToUserId;
+  }
+  get acquisitionDate(): Date {
+    return this._acquisitionDate;
+  }
+  get acquisitionMethod(): AcquisitionMethod {
+    return this._acquisitionMethod;
+  }
+  get acquisitionCost(): number {
+    return this._acquisitionCost;
+  }
+  get purchaseOrderId(): string | undefined {
+    return this._purchaseOrderId;
+  }
+  get supplierId(): string | undefined {
+    return this._supplierId;
+  }
+  get invoiceNumber(): string | undefined {
+    return this._invoiceNumber;
+  }
+  get usefulLifeMonths(): number {
+    return this._usefulLifeMonths;
+  }
+  get salvageValue(): number {
+    return this._salvageValue;
+  }
+  get depreciationMethod(): DepreciationMethod {
+    return this._depreciationMethod;
+  }
+  get depreciationStartDate(): Date {
+    return this._depreciationStartDate;
+  }
+  get accumulatedDepreciation(): number {
+    return this._accumulatedDepreciation;
+  }
+  get bookValue(): number {
+    return this._bookValue;
+  }
+  get lastDepreciationDate(): Date | undefined {
+    return this._lastDepreciationDate;
+  }
+  get status(): AssetStatus {
+    return this._status;
+  }
+  get disposalDate(): Date | undefined {
+    return this._disposalDate;
+  }
+  get disposalMethod(): DisposalMethod | undefined {
+    return this._disposalMethod;
+  }
+  get disposalValue(): number | undefined {
+    return this._disposalValue;
+  }
+  get disposalReason(): string | undefined {
+    return this._disposalReason;
+  }
+  get gainLossOnDisposal(): number | undefined {
+    return this._gainLossOnDisposal;
+  }
+  get insurancePolicyNumber(): string | undefined {
+    return this._insurancePolicyNumber;
+  }
+  get insuranceExpiryDate(): Date | undefined {
+    return this._insuranceExpiryDate;
+  }
+  get warrantyExpiryDate(): Date | undefined {
+    return this._warrantyExpiryDate;
+  }
+  get lastVerifiedAt(): Date | undefined {
+    return this._lastVerifiedAt;
+  }
+  get lastVerifiedBy(): string | undefined {
+    return this._lastVerifiedBy;
+  }
+  get createdBy(): string {
+    return this._createdBy;
+  }
+  get createdAt(): Date {
+    return this._createdAt;
+  }
+  get updatedAt(): Date {
+    return this._updatedAt;
+  }
+  get version(): number {
+    return this._version;
+  }
 }

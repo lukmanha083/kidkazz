@@ -1,4 +1,4 @@
-import { FiscalPeriod, FiscalPeriodStatus } from '@/domain/value-objects';
+import { type FiscalPeriod, FiscalPeriodStatus } from '@/domain/value-objects';
 
 // ============================================================================
 // Types

@@ -1,6 +1,9 @@
-import type { BankReconciliation, ReconcilingItem } from '@/domain/entities/bank-reconciliation.entity';
+import type {
+  BankReconciliation,
+  ReconcilingItem,
+} from '@/domain/entities/bank-reconciliation.entity';
 import type { ReconciliationStatus } from '@/domain/value-objects';
-import type { PaginationOptions, PaginatedResult } from './journal-entry.repository';
+import type { PaginatedResult, PaginationOptions } from './journal-entry.repository';
 
 /**
  * Bank Reconciliation Filter

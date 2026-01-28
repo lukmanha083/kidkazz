@@ -1,22 +1,20 @@
-import { Hono } from 'hono';
-import { zValidator } from '@hono/zod-validator';
-import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import {
-  DrizzleBankAccountRepository,
-} from '@/infrastructure/repositories';
-import {
+  CloseBankAccountHandler,
   CreateBankAccountHandler,
-  UpdateBankAccountHandler,
   DeactivateBankAccountHandler,
   ReactivateBankAccountHandler,
-  CloseBankAccountHandler,
+  UpdateBankAccountHandler,
 } from '@/application/commands';
 import {
   createBankAccountSchema,
-  updateBankAccountSchema,
   listBankAccountsQuerySchema,
+  updateBankAccountSchema,
 } from '@/application/dtos';
 import type * as schema from '@/infrastructure/db/schema';
+import { DrizzleBankAccountRepository } from '@/infrastructure/repositories';
+import { zValidator } from '@hono/zod-validator';
+import type { DrizzleD1Database } from 'drizzle-orm/d1';
+import { Hono } from 'hono';
 
 type Bindings = {
   DB: D1Database;

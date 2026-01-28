@@ -1,5 +1,5 @@
+import { BankAccountStatus, type BankAccountType } from '@/domain/value-objects';
 import { nanoid } from 'nanoid';
-import { BankAccountType, BankAccountStatus } from '@/domain/value-objects';
 
 /**
  * Props for creating a new BankAccount
@@ -209,22 +209,50 @@ export class BankAccount {
     const reconciledMonth = this._lastReconciledDate.getMonth() + 1;
 
     // Needs reconciliation if last reconciled date is before current period
-    return reconciledYear < currentYear ||
-           (reconciledYear === currentYear && reconciledMonth < currentMonth);
+    return (
+      reconciledYear < currentYear ||
+      (reconciledYear === currentYear && reconciledMonth < currentMonth)
+    );
   }
 
   // Getters
-  get id(): string { return this._id; }
-  get accountId(): string { return this._accountId; }
-  get bankName(): string { return this._bankName; }
-  get accountNumber(): string { return this._accountNumber; }
-  get accountType(): BankAccountType { return this._accountType; }
-  get currency(): string { return this._currency; }
-  get status(): BankAccountStatus { return this._status; }
-  get lastReconciledDate(): Date | undefined { return this._lastReconciledDate; }
-  get lastReconciledBalance(): number | undefined { return this._lastReconciledBalance; }
-  get createdAt(): Date { return this._createdAt; }
-  get updatedAt(): Date { return this._updatedAt; }
-  get createdBy(): string | undefined { return this._createdBy; }
-  get updatedBy(): string | undefined { return this._updatedBy; }
+  get id(): string {
+    return this._id;
+  }
+  get accountId(): string {
+    return this._accountId;
+  }
+  get bankName(): string {
+    return this._bankName;
+  }
+  get accountNumber(): string {
+    return this._accountNumber;
+  }
+  get accountType(): BankAccountType {
+    return this._accountType;
+  }
+  get currency(): string {
+    return this._currency;
+  }
+  get status(): BankAccountStatus {
+    return this._status;
+  }
+  get lastReconciledDate(): Date | undefined {
+    return this._lastReconciledDate;
+  }
+  get lastReconciledBalance(): number | undefined {
+    return this._lastReconciledBalance;
+  }
+  get createdAt(): Date {
+    return this._createdAt;
+  }
+  get updatedAt(): Date {
+    return this._updatedAt;
+  }
+  get createdBy(): string | undefined {
+    return this._createdBy;
+  }
+  get updatedBy(): string | undefined {
+    return this._updatedBy;
+  }
 }

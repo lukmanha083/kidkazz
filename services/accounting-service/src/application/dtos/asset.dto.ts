@@ -1,11 +1,11 @@
-import { z } from 'zod';
 import {
+  AcquisitionMethod,
   AssetStatus,
   DepreciationMethod,
-  AcquisitionMethod,
   DisposalMethod,
   TaxAssetGroup,
 } from '@/domain/value-objects';
+import { z } from 'zod';
 
 // ============================================================================
 // Asset Category DTOs
@@ -53,7 +53,10 @@ export type UpdateAssetCategoryRequest = z.infer<typeof updateAssetCategorySchem
  * List Asset Categories Query Schema
  */
 export const listAssetCategoriesQuerySchema = z.object({
-  includeInactive: z.enum(['true', 'false']).transform((v) => v === 'true').optional(),
+  includeInactive: z
+    .enum(['true', 'false'])
+    .transform((v) => v === 'true')
+    .optional(),
 });
 
 export type ListAssetCategoriesQueryParams = z.infer<typeof listAssetCategoriesQuerySchema>;
@@ -85,10 +88,19 @@ export const createAssetSchema = z.object({
   usefulLifeMonths: z.number().int().min(1).max(600).optional(),
   salvageValue: z.number().min(0).optional(),
   depreciationMethod: z.nativeEnum(DepreciationMethod).optional(),
-  depreciationStartDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  depreciationStartDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   insurancePolicyNumber: z.string().max(100).optional(),
-  insuranceExpiryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  warrantyExpiryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  insuranceExpiryDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  warrantyExpiryDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
 });
 
 export type CreateAssetRequest = z.infer<typeof createAssetSchema>;
@@ -104,8 +116,14 @@ export const updateAssetSchema = z.object({
   manufacturer: z.string().max(255).optional(),
   model: z.string().max(255).optional(),
   insurancePolicyNumber: z.string().max(100).optional(),
-  insuranceExpiryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  warrantyExpiryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  insuranceExpiryDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  warrantyExpiryDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
 });
 
 export type UpdateAssetRequest = z.infer<typeof updateAssetSchema>;
@@ -142,11 +160,25 @@ export const listAssetsQuerySchema = z.object({
   locationId: z.string().optional(),
   departmentId: z.string().optional(),
   assignedToUserId: z.string().optional(),
-  acquisitionDateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  acquisitionDateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  acquisitionDateFrom: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  acquisitionDateTo: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   search: z.string().optional(),
-  page: z.string().transform((v) => parseInt(v, 10)).pipe(z.number().int().min(1)).optional(),
-  limit: z.string().transform((v) => parseInt(v, 10)).pipe(z.number().int().min(1).max(100)).optional(),
+  page: z
+    .string()
+    .transform((v) => Number.parseInt(v, 10))
+    .pipe(z.number().int().min(1))
+    .optional(),
+  limit: z
+    .string()
+    .transform((v) => Number.parseInt(v, 10))
+    .pipe(z.number().int().min(1).max(100))
+    .optional(),
 });
 
 export type ListAssetsQueryParams = z.infer<typeof listAssetsQuerySchema>;

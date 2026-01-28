@@ -1,10 +1,10 @@
-import { nanoid } from 'nanoid';
-import { MaintenanceType, MaintenanceStatus } from '@/domain/value-objects';
 import type {
+  AssetMaintenance,
   IAssetMaintenanceRepository,
   IFixedAssetRepository,
-  AssetMaintenance,
 } from '@/domain/repositories';
+import { MaintenanceStatus, type MaintenanceType } from '@/domain/value-objects';
+import { nanoid } from 'nanoid';
 
 // ============================================================================
 // Create Maintenance Command
@@ -100,7 +100,10 @@ export class UpdateMaintenanceHandler {
       throw new Error('Maintenance record not found');
     }
 
-    if (maintenance.status === MaintenanceStatus.COMPLETED || maintenance.status === MaintenanceStatus.CANCELLED) {
+    if (
+      maintenance.status === MaintenanceStatus.COMPLETED ||
+      maintenance.status === MaintenanceStatus.CANCELLED
+    ) {
       throw new Error('Cannot update completed or cancelled maintenance');
     }
 
@@ -109,7 +112,8 @@ export class UpdateMaintenanceHandler {
     if (command.scheduledDate !== undefined) maintenance.scheduledDate = command.scheduledDate;
     if (command.cost !== undefined) maintenance.cost = command.cost;
     if (command.isCapitalized !== undefined) maintenance.isCapitalized = command.isCapitalized;
-    if (command.extendsUsefulLifeMonths !== undefined) maintenance.extendsUsefulLifeMonths = command.extendsUsefulLifeMonths;
+    if (command.extendsUsefulLifeMonths !== undefined)
+      maintenance.extendsUsefulLifeMonths = command.extendsUsefulLifeMonths;
     if (command.vendorId !== undefined) maintenance.vendorId = command.vendorId;
     if (command.vendorName !== undefined) maintenance.vendorName = command.vendorName;
     if (command.invoiceNumber !== undefined) maintenance.invoiceNumber = command.invoiceNumber;
@@ -202,7 +206,8 @@ export class CompleteMaintenanceHandler {
     maintenance.status = MaintenanceStatus.COMPLETED;
     maintenance.performedDate = command.performedDate;
     if (command.actualCost !== undefined) maintenance.cost = command.actualCost;
-    if (command.nextScheduledDate !== undefined) maintenance.nextScheduledDate = command.nextScheduledDate;
+    if (command.nextScheduledDate !== undefined)
+      maintenance.nextScheduledDate = command.nextScheduledDate;
     if (command.notes !== undefined) maintenance.notes = command.notes;
     maintenance.updatedAt = new Date();
 

@@ -1,10 +1,10 @@
 import { BankStatement, BankTransaction } from '@/domain/entities';
-import { BankTransactionType, BankTransactionMatchStatus } from '@/domain/value-objects';
 import type {
   IBankAccountRepository,
   IBankStatementRepository,
   IBankTransactionRepository,
 } from '@/domain/repositories';
+import { BankTransactionMatchStatus, BankTransactionType } from '@/domain/value-objects';
 
 // ============================================================================
 // Import Bank Statement Command
@@ -72,12 +72,14 @@ export class ImportBankStatementHandler {
     await this.bankStatementRepo.save(statement);
 
     // Create all transactions first to get fingerprints
-    const pendingTransactions: Array<{ transaction: BankTransaction; txData: BankStatementTransactionData }> = [];
+    const pendingTransactions: Array<{
+      transaction: BankTransaction;
+      txData: BankStatementTransactionData;
+    }> = [];
 
     for (const txData of command.transactions) {
-      const transactionType = txData.amount >= 0
-        ? BankTransactionType.CREDIT
-        : BankTransactionType.DEBIT;
+      const transactionType =
+        txData.amount >= 0 ? BankTransactionType.CREDIT : BankTransactionType.DEBIT;
 
       const transaction = BankTransaction.create({
         bankStatementId: statement.id,
@@ -94,7 +96,7 @@ export class ImportBankStatementHandler {
     }
 
     // Batch check for existing fingerprints (single query instead of N queries)
-    const fingerprints = pendingTransactions.map(p => p.transaction.fingerprint);
+    const fingerprints = pendingTransactions.map((p) => p.transaction.fingerprint);
     const existingFingerprints = await this.bankTransactionRepo.fingerprintsExistMany(fingerprints);
 
     // Filter out duplicates and prepare for batch insert

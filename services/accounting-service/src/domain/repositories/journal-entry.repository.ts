@@ -1,5 +1,5 @@
-import { JournalEntry, JournalEntryStatus, JournalEntryType } from '../entities';
-import { FiscalPeriod } from '../value-objects';
+import type { JournalEntry, JournalEntryStatus, JournalEntryType } from '../entities';
+import type { FiscalPeriod } from '../value-objects';
 
 /**
  * Journal Entry filter options
@@ -56,7 +56,10 @@ export interface IJournalEntryRepository {
   /**
    * Find journal entries with filters and pagination
    */
-  findAll(filter?: JournalEntryFilter, pagination?: PaginationOptions): Promise<PaginatedResult<JournalEntry>>;
+  findAll(
+    filter?: JournalEntryFilter,
+    pagination?: PaginationOptions
+  ): Promise<PaginatedResult<JournalEntry>>;
 
   /**
    * Find entries by account ID (for ledger)
@@ -66,7 +69,10 @@ export interface IJournalEntryRepository {
   /**
    * Find entries by source reference
    */
-  findBySourceReference(sourceService: string, sourceReferenceId: string): Promise<JournalEntry | null>;
+  findBySourceReference(
+    sourceService: string,
+    sourceReferenceId: string
+  ): Promise<JournalEntry | null>;
 
   /**
    * Save journal entry (create or update)

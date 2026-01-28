@@ -1,13 +1,17 @@
-import { eq, and, like, isNull, sql } from 'drizzle-orm';
-import { Account, AccountStatus } from '@/domain/entities';
-import {
-  AccountType,
+import { Account, type AccountStatus } from '@/domain/entities';
+import type { AccountFilter, IAccountRepository } from '@/domain/repositories';
+import type {
   AccountCategory,
+  AccountType,
   FinancialStatementType,
-  type NormalBalance,
+  NormalBalance,
 } from '@/domain/value-objects';
-import type { IAccountRepository, AccountFilter } from '@/domain/repositories';
-import { chartOfAccounts, journalLines, type ChartOfAccountsRecord } from '@/infrastructure/db/schema';
+import {
+  type ChartOfAccountsRecord,
+  chartOfAccounts,
+  journalLines,
+} from '@/infrastructure/db/schema';
+import { and, eq, inArray, isNull, like, sql } from 'drizzle-orm';
 
 // Generic database type that works with both D1 and SQLite
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -31,6 +35,19 @@ export class DrizzleAccountRepository implements IAccountRepository {
     }
 
     return this.toDomain(result[0]);
+  }
+
+  async findByIds(ids: string[]): Promise<Account[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const results = await this.db
+      .select()
+      .from(chartOfAccounts)
+      .where(inArray(chartOfAccounts.id, ids));
+
+    return results.map((row: ChartOfAccountsRecord) => this.toDomain(row));
   }
 
   async findByCode(code: string): Promise<Account | null> {
@@ -83,7 +100,10 @@ export class DrizzleAccountRepository implements IAccountRepository {
 
     const query =
       conditions.length > 0
-        ? this.db.select().from(chartOfAccounts).where(and(...conditions))
+        ? this.db
+            .select()
+            .from(chartOfAccounts)
+            .where(and(...conditions))
         : this.db.select().from(chartOfAccounts);
 
     const results = await query.orderBy(chartOfAccounts.code);
@@ -107,10 +127,7 @@ export class DrizzleAccountRepository implements IAccountRepository {
   }
 
   async getAccountTree(): Promise<Account[]> {
-    const results = await this.db
-      .select()
-      .from(chartOfAccounts)
-      .orderBy(chartOfAccounts.code);
+    const results = await this.db.select().from(chartOfAccounts).orderBy(chartOfAccounts.code);
 
     return results.map((row: ChartOfAccountsRecord) => this.toDomain(row));
   }

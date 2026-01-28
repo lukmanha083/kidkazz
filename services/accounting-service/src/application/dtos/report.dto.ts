@@ -6,11 +6,11 @@ import { z } from 'zod';
 export const trialBalanceQuerySchema = z.object({
   fiscalYear: z
     .string()
-    .transform((v) => parseInt(v, 10))
+    .transform((v) => Number.parseInt(v, 10))
     .pipe(z.number().int().min(2020).max(2100)),
   fiscalMonth: z
     .string()
-    .transform((v) => parseInt(v, 10))
+    .transform((v) => Number.parseInt(v, 10))
     .pipe(z.number().int().min(1).max(12)),
 });
 
@@ -22,11 +22,11 @@ export type TrialBalanceQueryParams = z.infer<typeof trialBalanceQuerySchema>;
 export const incomeStatementQuerySchema = z.object({
   fiscalYear: z
     .string()
-    .transform((v) => parseInt(v, 10))
+    .transform((v) => Number.parseInt(v, 10))
     .pipe(z.number().int().min(2020).max(2100)),
   fiscalMonth: z
     .string()
-    .transform((v) => parseInt(v, 10))
+    .transform((v) => Number.parseInt(v, 10))
     .pipe(z.number().int().min(1).max(12)),
 });
 
@@ -47,11 +47,11 @@ export type BalanceSheetQueryParams = z.infer<typeof balanceSheetQuerySchema>;
 export const closeChecklistQuerySchema = z.object({
   fiscalYear: z
     .string()
-    .transform((v) => parseInt(v, 10))
+    .transform((v) => Number.parseInt(v, 10))
     .pipe(z.number().int().min(2020).max(2100)),
   fiscalMonth: z
     .string()
-    .transform((v) => parseInt(v, 10))
+    .transform((v) => Number.parseInt(v, 10))
     .pipe(z.number().int().min(1).max(12)),
 });
 

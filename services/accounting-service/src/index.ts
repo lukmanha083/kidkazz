@@ -1,20 +1,25 @@
-import { Hono } from 'hono';
-import { cors } from 'hono/cors';
-import { logger } from 'hono/logger';
 import { databaseMiddleware, errorMiddleware } from '@/infrastructure/http/middleware';
 import {
   accountRoutes,
-  journalEntryRoutes,
   assetCategoryRoutes,
   assetRoutes,
+  auditRoutes,
+  bankAccountRoutes,
+  budgetRoutes,
+  currencyRoutes,
   depreciationRoutes,
+  eventRoutes,
+  fiscalPeriodRoutes,
+  journalEntryRoutes,
   maintenanceRoutes,
   movementRoutes,
-  fiscalPeriodRoutes,
-  reportsRoutes,
-  bankAccountRoutes,
   reconciliationRoutes,
+  reportsRoutes,
 } from '@/infrastructure/http/routes';
+import { handleQueue } from '@/infrastructure/messaging';
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { logger } from 'hono/logger';
 
 type Bindings = {
   DB: D1Database;
@@ -62,6 +67,10 @@ app.route('/api/v1/fiscal-periods', fiscalPeriodRoutes);
 app.route('/api/v1/reports', reportsRoutes);
 app.route('/api/v1/bank-accounts', bankAccountRoutes);
 app.route('/api/v1/reconciliations', reconciliationRoutes);
+app.route('/api/v1/events', eventRoutes);
+app.route('/api/v1/currencies', currencyRoutes);
+app.route('/api/v1/budgets', budgetRoutes);
+app.route('/api/v1/audit', auditRoutes);
 
 // Root endpoint
 app.get('/', (c) => {
@@ -82,6 +91,10 @@ app.get('/', (c) => {
       reports: '/api/v1/reports',
       bankAccounts: '/api/v1/bank-accounts',
       reconciliations: '/api/v1/reconciliations',
+      events: '/api/v1/events',
+      currencies: '/api/v1/currencies',
+      budgets: '/api/v1/budgets',
+      audit: '/api/v1/audit',
     },
   });
 });
@@ -96,5 +109,8 @@ app.notFound((c) => {
     404
   );
 });
+
+// Export queue handler for Cloudflare Workers
+export { handleQueue };
 
 export default app;

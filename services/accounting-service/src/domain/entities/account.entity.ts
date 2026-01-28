@@ -1,9 +1,9 @@
 import { nanoid } from 'nanoid';
 import {
+  type AccountCategory,
   AccountCode,
-  AccountType,
-  AccountCategory,
-  FinancialStatementType,
+  type AccountType,
+  type FinancialStatementType,
   type NormalBalance,
 } from '../value-objects';
 

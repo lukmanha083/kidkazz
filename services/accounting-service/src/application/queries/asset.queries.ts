@@ -1,12 +1,12 @@
 import type { AssetCategory, FixedAsset } from '@/domain/entities';
 import type {
+  FixedAssetFilter,
   IAssetCategoryRepository,
   IFixedAssetRepository,
-  FixedAssetFilter,
-  PaginationOptions,
   PaginatedResult,
+  PaginationOptions,
 } from '@/domain/repositories';
-import { AssetStatus } from '@/domain/value-objects';
+import type { AssetStatus } from '@/domain/value-objects';
 
 // ============================================================================
 // Asset Category Queries
@@ -230,7 +230,9 @@ export class ListAssetsHandler {
       locationId: query.locationId,
       departmentId: query.departmentId,
       assignedToUserId: query.assignedToUserId,
-      acquisitionDateFrom: query.acquisitionDateFrom ? new Date(query.acquisitionDateFrom) : undefined,
+      acquisitionDateFrom: query.acquisitionDateFrom
+        ? new Date(query.acquisitionDateFrom)
+        : undefined,
       acquisitionDateTo: query.acquisitionDateTo ? new Date(query.acquisitionDateTo) : undefined,
       search: query.search,
     };
@@ -349,7 +351,7 @@ export class GetAssetByBarcodeHandler {
   }
 }
 
-export interface GetDepreciableAssetsQuery {}
+export type GetDepreciableAssetsQuery = {};
 
 export class GetDepreciableAssetsHandler {
   constructor(private readonly assetRepo: IFixedAssetRepository) {}

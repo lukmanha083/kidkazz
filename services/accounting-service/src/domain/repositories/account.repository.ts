@@ -1,5 +1,5 @@
-import { Account, AccountStatus } from '../entities';
-import { AccountType } from '../value-objects';
+import type { Account, AccountStatus } from '../entities';
+import type { AccountType } from '../value-objects';
 
 /**
  * Account filter options
@@ -22,6 +22,11 @@ export interface IAccountRepository {
    * Find account by ID
    */
   findById(id: string): Promise<Account | null>;
+
+  /**
+   * Find multiple accounts by IDs (batch operation)
+   */
+  findByIds(ids: string[]): Promise<Account[]>;
 
   /**
    * Find account by code

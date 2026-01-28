@@ -1,21 +1,21 @@
-import { nanoid } from 'nanoid';
 import type { FixedAsset } from '@/domain/entities';
-import {
-  DepreciationScheduleStatus,
-  DepreciationRunStatus,
-  FiscalPeriod,
-} from '@/domain/value-objects';
-import { DepreciationCalculatorFactory } from '@/domain/services/DepreciationCalculator';
+import { JournalEntry, JournalEntryType } from '@/domain/entities';
 import type {
-  IFixedAssetRepository,
-  IAssetCategoryRepository,
-  IDepreciationScheduleRepository,
-  IDepreciationRunRepository,
-  DepreciationSchedule,
   DepreciationRun,
+  DepreciationSchedule,
+  IAssetCategoryRepository,
+  IDepreciationRunRepository,
+  IDepreciationScheduleRepository,
+  IFixedAssetRepository,
 } from '@/domain/repositories';
 import type { IJournalEntryRepository } from '@/domain/repositories/journal-entry.repository';
-import { JournalEntry, JournalEntryType } from '@/domain/entities';
+import { DepreciationCalculatorFactory } from '@/domain/services/DepreciationCalculator';
+import {
+  DepreciationRunStatus,
+  DepreciationScheduleStatus,
+  FiscalPeriod,
+} from '@/domain/value-objects';
+import { nanoid } from 'nanoid';
 
 // ============================================================================
 // Calculate Depreciation Command
@@ -63,7 +63,9 @@ export class CalculateDepreciationHandler {
     // Check if already calculated for this period
     const existingRun = await this.runRepo.findByPeriod(fiscalYear, fiscalMonth);
     if (existingRun && existingRun.status === DepreciationRunStatus.POSTED) {
-      throw new Error(`Depreciation already posted for ${fiscalYear}-${fiscalMonth.toString().padStart(2, '0')}`);
+      throw new Error(
+        `Depreciation already posted for ${fiscalYear}-${fiscalMonth.toString().padStart(2, '0')}`
+      );
     }
 
     // If there's an existing calculated run, delete it and recalculate
@@ -255,7 +257,12 @@ export class PostDepreciationHandler {
     }
 
     // Build journal entry lines
-    const lines: { accountId: string; direction: 'Debit' | 'Credit'; amount: number; memo: string }[] = [];
+    const lines: {
+      accountId: string;
+      direction: 'Debit' | 'Credit';
+      amount: number;
+      memo: string;
+    }[] = [];
 
     for (const [categoryId, data] of categoryTotals) {
       const category = await this.categoryRepo.findById(categoryId);

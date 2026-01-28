@@ -103,7 +103,13 @@ export class GetTrialBalanceHandler {
     const periodStatus = await this.deps.getPeriodStatus(fiscalYear, fiscalMonth);
 
     // Get balances based on period status
-    let balanceData: { accountId: string; openingBalance: number; debitTotal: number; creditTotal: number; closingBalance?: number }[];
+    let balanceData: {
+      accountId: string;
+      openingBalance: number;
+      debitTotal: number;
+      creditTotal: number;
+      closingBalance?: number;
+    }[];
 
     if (periodStatus === FiscalPeriodStatus.CLOSED || periodStatus === FiscalPeriodStatus.LOCKED) {
       // Use pre-calculated account balances

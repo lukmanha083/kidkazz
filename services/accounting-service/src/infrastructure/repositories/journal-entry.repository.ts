@@ -1,23 +1,23 @@
-import { eq, and, like, gte, lte, sql, inArray } from 'drizzle-orm';
 import {
   JournalEntry,
-  JournalEntryStatus,
-  JournalEntryType,
+  type JournalEntryStatus,
+  type JournalEntryType,
   type JournalLine,
 } from '@/domain/entities';
-import { FiscalPeriod } from '@/domain/value-objects';
 import type {
   IJournalEntryRepository,
   JournalEntryFilter,
-  PaginationOptions,
   PaginatedResult,
+  PaginationOptions,
 } from '@/domain/repositories';
+import { FiscalPeriod } from '@/domain/value-objects';
 import {
-  journalEntries,
-  journalLines,
   type JournalEntryRecord,
   type JournalLineRecord,
+  journalEntries,
+  journalLines,
 } from '@/infrastructure/db/schema';
+import { and, eq, gte, inArray, like, lte, sql } from 'drizzle-orm';
 
 // Generic database type that works with both D1 and SQLite
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -120,7 +120,13 @@ export class DrizzleJournalEntryRepository implements IJournalEntryRepository {
         .where(eq(journalLines.accountId, filter.accountId));
 
       if (entryIds.length === 0) {
-        return { data: [], total: 0, page: pagination?.page || 1, limit: pagination?.limit || 20, totalPages: 0 };
+        return {
+          data: [],
+          total: 0,
+          page: pagination?.page || 1,
+          limit: pagination?.limit || 20,
+          totalPages: 0,
+        };
       }
 
       conditions.push(
@@ -396,7 +402,7 @@ export class DrizzleJournalEntryRepository implements IJournalEntryRepository {
 
     if (result.length > 0) {
       const lastNumber = result[0].entryNumber;
-      const lastSequence = parseInt(lastNumber.split('-').pop() || '0', 10);
+      const lastSequence = Number.parseInt(lastNumber.split('-').pop() || '0', 10);
       sequence = lastSequence + 1;
     }
 

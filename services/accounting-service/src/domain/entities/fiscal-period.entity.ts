@@ -1,5 +1,5 @@
-import { nanoid } from 'nanoid';
 import { FiscalPeriod, FiscalPeriodStatus } from '@/domain/value-objects';
+import { nanoid } from 'nanoid';
 
 /**
  * Props for creating a new FiscalPeriodEntity

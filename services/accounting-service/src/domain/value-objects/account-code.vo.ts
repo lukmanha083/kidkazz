@@ -68,7 +68,7 @@ export class AccountCode {
    * Get account type based on code range
    */
   getAccountType(): AccountType {
-    const codeNum = parseInt(this.value, 10);
+    const codeNum = Number.parseInt(this.value, 10);
 
     if (codeNum >= 0 && codeNum <= 1999) {
       return AccountType.ASSET;
@@ -113,7 +113,7 @@ export class AccountCode {
    * Get account category based on code range (PSAK-compliant)
    */
   getAccountCategory(): AccountCategory {
-    const codeNum = parseInt(this.value, 10);
+    const codeNum = Number.parseInt(this.value, 10);
 
     // Assets (1000-1999)
     if (codeNum >= 1000 && codeNum <= 1399) {
@@ -188,7 +188,7 @@ export class AccountCode {
    * 4000-9999: Income Statement (Revenue, COGS, Expenses)
    */
   getFinancialStatementType(): FinancialStatementType {
-    const codeNum = parseInt(this.value, 10);
+    const codeNum = Number.parseInt(this.value, 10);
 
     if (codeNum >= 0 && codeNum <= 3999) {
       return FinancialStatementType.BALANCE_SHEET;

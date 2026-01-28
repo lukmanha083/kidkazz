@@ -118,19 +118,49 @@ export class BankStatement {
   }
 
   // Getters
-  get id(): string { return this._id; }
-  get bankAccountId(): string { return this._bankAccountId; }
-  get statementDate(): Date { return this._statementDate; }
-  get periodStart(): Date { return this._periodStart; }
-  get periodEnd(): Date { return this._periodEnd; }
-  get openingBalance(): number { return this._openingBalance; }
-  get closingBalance(): number { return this._closingBalance; }
-  get totalDebits(): number { return this._totalDebits; }
-  get totalCredits(): number { return this._totalCredits; }
-  get transactionCount(): number { return this._transactionCount; }
-  get importSource(): string | undefined { return this._importSource; }
-  get importedAt(): Date { return this._importedAt; }
-  get importedBy(): string | undefined { return this._importedBy; }
-  get createdAt(): Date { return this._createdAt; }
-  get updatedAt(): Date { return this._updatedAt; }
+  get id(): string {
+    return this._id;
+  }
+  get bankAccountId(): string {
+    return this._bankAccountId;
+  }
+  get statementDate(): Date {
+    return this._statementDate;
+  }
+  get periodStart(): Date {
+    return this._periodStart;
+  }
+  get periodEnd(): Date {
+    return this._periodEnd;
+  }
+  get openingBalance(): number {
+    return this._openingBalance;
+  }
+  get closingBalance(): number {
+    return this._closingBalance;
+  }
+  get totalDebits(): number {
+    return this._totalDebits;
+  }
+  get totalCredits(): number {
+    return this._totalCredits;
+  }
+  get transactionCount(): number {
+    return this._transactionCount;
+  }
+  get importSource(): string | undefined {
+    return this._importSource;
+  }
+  get importedAt(): Date {
+    return this._importedAt;
+  }
+  get importedBy(): string | undefined {
+    return this._importedBy;
+  }
+  get createdAt(): Date {
+    return this._createdAt;
+  }
+  get updatedAt(): Date {
+    return this._updatedAt;
+  }
 }

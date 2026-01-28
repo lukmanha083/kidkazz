@@ -103,8 +103,18 @@ export interface IncomeStatementResult {
 // ============================================================================
 
 const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 export class GetIncomeStatementHandler {
@@ -146,9 +156,10 @@ export class GetIncomeStatementHandler {
     const netProfitMargin = revenueTotal > 0 ? (netIncome / revenueTotal) * 100 : 0;
 
     // Build period description
-    const periodDescription = fiscalMonth === 1
-      ? `${MONTH_NAMES[0]} ${fiscalYear}`
-      : `${MONTH_NAMES[0]} - ${MONTH_NAMES[fiscalMonth - 1]} ${fiscalYear}`;
+    const periodDescription =
+      fiscalMonth === 1
+        ? `${MONTH_NAMES[0]} ${fiscalYear}`
+        : `${MONTH_NAMES[0]} - ${MONTH_NAMES[fiscalMonth - 1]} ${fiscalYear}`;
 
     // Calculate period dates
     const periodStart = new Date(fiscalYear, 0, 1); // January 1
