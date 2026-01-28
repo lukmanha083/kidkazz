@@ -505,8 +505,9 @@ export const bankAccounts = sqliteTable(
     updatedBy: text('updated_by'),
   },
   (table) => ({
-    accountIdIdx: index('idx_bank_accounts_account_id').on(table.accountId),
-    accountNumberIdx: index('idx_bank_accounts_number').on(table.accountNumber),
+    // Unique constraints to prevent duplicate bank accounts
+    accountIdUniq: uniqueIndex('idx_bank_accounts_account_id_uniq').on(table.accountId),
+    accountNumberUniq: uniqueIndex('idx_bank_accounts_number_uniq').on(table.accountNumber),
     bankNameIdx: index('idx_bank_accounts_bank_name').on(table.bankName),
     statusIdx: index('idx_bank_accounts_status').on(table.status),
     accountTypeIdx: index('idx_bank_accounts_type').on(table.accountType),

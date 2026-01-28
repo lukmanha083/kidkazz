@@ -170,17 +170,12 @@ export class DrizzleBankAccountRepository implements IBankAccountRepository {
   async save(bankAccount: BankAccount): Promise<void> {
     const now = new Date().toISOString();
 
-    const existing = await this.db
-      .select({ id: bankAccounts.id })
-      .from(bankAccounts)
-      .where(eq(bankAccounts.id, bankAccount.id))
-      .limit(1);
-
-    if (existing.length > 0) {
-      // Update
+    try {
+      // Use atomic upsert to avoid SELECT-then-write race conditions
       await this.db
-        .update(bankAccounts)
-        .set({
+        .insert(bankAccounts)
+        .values({
+          id: bankAccount.id,
           accountId: bankAccount.accountId,
           bankName: bankAccount.bankName,
           accountNumber: bankAccount.accountNumber,
@@ -189,27 +184,38 @@ export class DrizzleBankAccountRepository implements IBankAccountRepository {
           status: bankAccount.status,
           lastReconciledDate: bankAccount.lastReconciledDate?.toISOString() || null,
           lastReconciledBalance: bankAccount.lastReconciledBalance ?? null,
+          createdAt: now,
           updatedAt: now,
+          createdBy: bankAccount.createdBy || null,
           updatedBy: bankAccount.updatedBy || null,
         })
-        .where(eq(bankAccounts.id, bankAccount.id));
-    } else {
-      // Insert
-      await this.db.insert(bankAccounts).values({
-        id: bankAccount.id,
-        accountId: bankAccount.accountId,
-        bankName: bankAccount.bankName,
-        accountNumber: bankAccount.accountNumber,
-        accountType: bankAccount.accountType,
-        currency: bankAccount.currency,
-        status: bankAccount.status,
-        lastReconciledDate: bankAccount.lastReconciledDate?.toISOString() || null,
-        lastReconciledBalance: bankAccount.lastReconciledBalance ?? null,
-        createdAt: now,
-        updatedAt: now,
-        createdBy: bankAccount.createdBy || null,
-        updatedBy: bankAccount.updatedBy || null,
-      });
+        .onConflictDoUpdate({
+          target: bankAccounts.id,
+          set: {
+            accountId: bankAccount.accountId,
+            bankName: bankAccount.bankName,
+            accountNumber: bankAccount.accountNumber,
+            accountType: bankAccount.accountType,
+            currency: bankAccount.currency,
+            status: bankAccount.status,
+            lastReconciledDate: bankAccount.lastReconciledDate?.toISOString() || null,
+            lastReconciledBalance: bankAccount.lastReconciledBalance ?? null,
+            updatedAt: now,
+            updatedBy: bankAccount.updatedBy || null,
+          },
+        });
+    } catch (error) {
+      // Handle unique constraint violations
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes('UNIQUE constraint failed') || message.includes('SQLITE_CONSTRAINT')) {
+        if (message.includes('account_number')) {
+          throw new Error(`Bank account with account number ${bankAccount.accountNumber} already exists`);
+        }
+        if (message.includes('account_id')) {
+          throw new Error(`COA account ${bankAccount.accountId} is already linked to another bank account`);
+        }
+      }
+      throw error;
     }
   }
 

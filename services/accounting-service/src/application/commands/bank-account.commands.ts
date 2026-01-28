@@ -26,18 +26,20 @@ export class CreateBankAccountHandler {
   constructor(private readonly bankAccountRepo: IBankAccountRepository) {}
 
   async execute(command: CreateBankAccountCommand): Promise<CreateBankAccountResult> {
-    // Check for existing bank account with same account number
+    // Pre-check for duplicates (provides immediate user feedback)
+    // Note: DB-level UNIQUE constraints ensure atomicity even if these checks pass
+    // but a concurrent insert happens before our save()
     const existing = await this.bankAccountRepo.findByAccountNumber(command.accountNumber);
     if (existing) {
       throw new Error(`Bank account with account number ${command.accountNumber} already exists`);
     }
 
-    // Check if COA account is already linked
     const linkedAccount = await this.bankAccountRepo.findByAccountId(command.accountId);
     if (linkedAccount) {
       throw new Error(`COA account ${command.accountId} is already linked to another bank account`);
     }
 
+    // Create the bank account entity
     const bankAccount = BankAccount.create({
       accountId: command.accountId,
       bankName: command.bankName,
@@ -46,6 +48,8 @@ export class CreateBankAccountHandler {
       currency: command.currency,
     });
 
+    // Save atomically - the repository handles unique constraint violations
+    // as a fallback in case of race conditions
     await this.bankAccountRepo.save(bankAccount);
 
     return {
