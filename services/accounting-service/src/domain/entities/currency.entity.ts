@@ -1,5 +1,3 @@
-import { nanoid } from 'nanoid';
-
 /**
  * Currency creation properties
  */
