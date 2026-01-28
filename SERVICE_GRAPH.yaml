@@ -8,12 +8,12 @@
 # - Documentation links
 # - Cross-service business flows
 #
-# Generated: 2026-01-28T10:06:58.793Z
+# Generated: 2026-01-28T10:25:56.156Z
 # Generator: scripts/generate-service-graph.ts
 #
 # DO NOT EDIT MANUALLY - Run: pnpm generate:service-graph
 
-generated: "2026-01-28T10:06:58.793Z"
+generated: "2026-01-28T10:25:56.156Z"
 generator: scripts/generate-service-graph.ts
 boundedContexts:
   accounting:
@@ -51,10 +51,22 @@ boundedContexts:
     status: implemented
     infrastructure:{}
     entities:
+      - name: AccountBalance
+        file: src/domain/entities/account-balance.entity.ts
       - name: Account
         file: src/domain/entities/account.entity.ts
       - name: AssetCategory
         file: src/domain/entities/asset-category.entity.ts
+      - name: BankAccount
+        file: src/domain/entities/bank-account.entity.ts
+      - name: BankReconciliation
+        file: src/domain/entities/bank-reconciliation.entity.ts
+      - name: BankStatement
+        file: src/domain/entities/bank-statement.entity.ts
+      - name: BankTransaction
+        file: src/domain/entities/bank-transaction.entity.ts
+      - name: FiscalPeriod
+        file: src/domain/entities/fiscal-period.entity.ts
       - name: FixedAsset
         file: src/domain/entities/fixed-asset.entity.ts
       - name: Index
@@ -199,6 +211,48 @@ boundedContexts:
           path: userId
           handler: services/accounting-service/src/infrastructure/http/routes/asset.routes.ts
         - method: GET
+          path: /
+          handler: services/accounting-service/src/infrastructure/http/routes/bank-account.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/bank-account.routes.ts
+        - method: GET
+          path: "/:id"
+          handler: services/accounting-service/src/infrastructure/http/routes/bank-account.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/bank-account.routes.ts
+        - method: POST
+          path: /
+          handler: services/accounting-service/src/infrastructure/http/routes/bank-account.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/bank-account.routes.ts
+        - method: PUT
+          path: "/:id"
+          handler: services/accounting-service/src/infrastructure/http/routes/bank-account.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/bank-account.routes.ts
+        - method: POST
+          path: "/:id/deactivate"
+          handler: services/accounting-service/src/infrastructure/http/routes/bank-account.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/bank-account.routes.ts
+        - method: POST
+          path: "/:id/reactivate"
+          handler: services/accounting-service/src/infrastructure/http/routes/bank-account.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/bank-account.routes.ts
+        - method: POST
+          path: "/:id/close"
+          handler: services/accounting-service/src/infrastructure/http/routes/bank-account.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/bank-account.routes.ts
+        - method: GET
           path: /preview
           handler: services/accounting-service/src/infrastructure/http/routes/depreciation.routes.ts
         - method: GET
@@ -246,6 +300,63 @@ boundedContexts:
         - method: GET
           path: db
           handler: services/accounting-service/src/infrastructure/http/routes/depreciation.routes.ts
+        - method: GET
+          path: /
+          handler: services/accounting-service/src/infrastructure/http/routes/fiscal-period.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/fiscal-period.routes.ts
+        - method: GET
+          path: /current
+          handler: services/accounting-service/src/infrastructure/http/routes/fiscal-period.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/fiscal-period.routes.ts
+        - method: GET
+          path: "/period/:year/:month"
+          handler: services/accounting-service/src/infrastructure/http/routes/fiscal-period.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/fiscal-period.routes.ts
+        - method: GET
+          path: "/:id"
+          handler: services/accounting-service/src/infrastructure/http/routes/fiscal-period.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/fiscal-period.routes.ts
+        - method: POST
+          path: /
+          handler: services/accounting-service/src/infrastructure/http/routes/fiscal-period.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/fiscal-period.routes.ts
+        - method: POST
+          path: "/:id/close"
+          handler: services/accounting-service/src/infrastructure/http/routes/fiscal-period.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/fiscal-period.routes.ts
+        - method: GET
+          path: userId
+          handler: services/accounting-service/src/infrastructure/http/routes/fiscal-period.routes.ts
+        - method: POST
+          path: "/:id/reopen"
+          handler: services/accounting-service/src/infrastructure/http/routes/fiscal-period.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/fiscal-period.routes.ts
+        - method: GET
+          path: userId
+          handler: services/accounting-service/src/infrastructure/http/routes/fiscal-period.routes.ts
+        - method: POST
+          path: "/:id/lock"
+          handler: services/accounting-service/src/infrastructure/http/routes/fiscal-period.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/fiscal-period.routes.ts
+        - method: GET
+          path: userId
+          handler: services/accounting-service/src/infrastructure/http/routes/fiscal-period.routes.ts
         - method: GET
           path: /
           handler: services/accounting-service/src/infrastructure/http/routes/journal-entry.routes.ts
@@ -384,6 +495,150 @@ boundedContexts:
         - method: GET
           path: db
           handler: services/accounting-service/src/infrastructure/http/routes/movement.routes.ts
+        - method: GET
+          path: /
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: GET
+          path: "/:id"
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: POST
+          path: /
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: GET
+          path: userId
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: POST
+          path: "/:id/start"
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: POST
+          path: "/:id/import-statement"
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: GET
+          path: userId
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: GET
+          path: "/:id/unmatched"
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: POST
+          path: "/:id/match"
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: GET
+          path: userId
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: POST
+          path: "/:id/auto-match"
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: GET
+          path: userId
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: POST
+          path: "/:id/items"
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: GET
+          path: userId
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: POST
+          path: "/:id/calculate"
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: POST
+          path: "/:id/complete"
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: GET
+          path: userId
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: POST
+          path: "/:id/approve"
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: GET
+          path: userId
+          handler: services/accounting-service/src/infrastructure/http/routes/reconciliation.routes.ts
+        - method: GET
+          path: /trial-balance
+          handler: services/accounting-service/src/infrastructure/http/routes/reports.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/reports.routes.ts
+        - method: GET
+          path: /income-statement
+          handler: services/accounting-service/src/infrastructure/http/routes/reports.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/reports.routes.ts
+        - method: GET
+          path: /balance-sheet
+          handler: services/accounting-service/src/infrastructure/http/routes/reports.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/reports.routes.ts
+        - method: GET
+          path: /close-checklist
+          handler: services/accounting-service/src/infrastructure/http/routes/reports.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/reports.routes.ts
+        - method: GET
+          path: /cash-position
+          handler: services/accounting-service/src/infrastructure/http/routes/reports.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/reports.routes.ts
+        - method: GET
+          path: /cash-forecast
+          handler: services/accounting-service/src/infrastructure/http/routes/reports.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/reports.routes.ts
+        - method: GET
+          path: /cash-threshold
+          handler: services/accounting-service/src/infrastructure/http/routes/reports.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/reports.routes.ts
+        - method: PUT
+          path: /cash-threshold
+          handler: services/accounting-service/src/infrastructure/http/routes/reports.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/reports.routes.ts
+        - method: GET
+          path: userId
+          handler: services/accounting-service/src/infrastructure/http/routes/reports.routes.ts
   api-gateway:
     docs:{}
     service: api-gateway
