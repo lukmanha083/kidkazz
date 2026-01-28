@@ -21,7 +21,6 @@ import {
 } from '@/application/commands';
 import {
   matchTransactionSchema,
-  addReconcilingItemSchema,
 } from '@/application/dtos';
 import { ReconciliationItemType } from '@/domain/value-objects';
 import type * as schema from '@/infrastructure/db/schema';
