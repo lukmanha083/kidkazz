@@ -12,7 +12,7 @@ import {
   VoidJournalEntryHandler,
 } from '@/application/commands/journal-entry.commands';
 import { JournalEntry, JournalEntryStatus, JournalEntryType, Account } from '@/domain/entities';
-import { AccountType, FiscalPeriod } from '@/domain/value-objects';
+import { AccountType } from '@/domain/value-objects';
 import type { IJournalEntryRepository, IAccountRepository } from '@/domain/repositories';
 
 // Mock repositories

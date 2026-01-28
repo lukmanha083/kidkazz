@@ -1,4 +1,4 @@
-import { eq, and, lt, isNull, or, desc } from 'drizzle-orm';
+import { eq, and, lt, or, desc } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import type { IAssetMaintenanceRepository, AssetMaintenance } from '@/domain/repositories';
 import * as schema from '@/infrastructure/db/schema';

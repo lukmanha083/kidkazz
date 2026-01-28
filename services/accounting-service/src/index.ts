@@ -10,6 +10,10 @@ import {
   depreciationRoutes,
   maintenanceRoutes,
   movementRoutes,
+  fiscalPeriodRoutes,
+  reportsRoutes,
+  bankAccountRoutes,
+  reconciliationRoutes,
 } from '@/infrastructure/http/routes';
 
 type Bindings = {
@@ -54,6 +58,10 @@ app.route('/api/v1/assets', assetRoutes);
 app.route('/api/v1/depreciation', depreciationRoutes);
 app.route('/api/v1/maintenance', maintenanceRoutes);
 app.route('/api/v1/movements', movementRoutes);
+app.route('/api/v1/fiscal-periods', fiscalPeriodRoutes);
+app.route('/api/v1/reports', reportsRoutes);
+app.route('/api/v1/bank-accounts', bankAccountRoutes);
+app.route('/api/v1/reconciliations', reconciliationRoutes);
 
 // Root endpoint
 app.get('/', (c) => {
@@ -70,6 +78,10 @@ app.get('/', (c) => {
       depreciation: '/api/v1/depreciation',
       maintenance: '/api/v1/maintenance',
       movements: '/api/v1/movements',
+      fiscalPeriods: '/api/v1/fiscal-periods',
+      reports: '/api/v1/reports',
+      bankAccounts: '/api/v1/bank-accounts',
+      reconciliations: '/api/v1/reconciliations',
     },
   });
 });

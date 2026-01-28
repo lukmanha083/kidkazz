@@ -6,3 +6,9 @@ export { DrizzleDepreciationScheduleRepository } from './depreciation-schedule.r
 export { DrizzleDepreciationRunRepository } from './depreciation-run.repository';
 export { DrizzleAssetMovementRepository, createAssetMovement } from './asset-movement.repository';
 export { DrizzleAssetMaintenanceRepository } from './asset-maintenance.repository';
+export { DrizzleFiscalPeriodRepository } from './fiscal-period.repository';
+export { DrizzleAccountBalanceRepository } from './account-balance.repository';
+export { DrizzleBankAccountRepository } from './bank-account.repository';
+export { DrizzleBankStatementRepository } from './bank-statement.repository';
+export { DrizzleBankTransactionRepository } from './bank-transaction.repository';
+export { DrizzleBankReconciliationRepository } from './bank-reconciliation.repository';

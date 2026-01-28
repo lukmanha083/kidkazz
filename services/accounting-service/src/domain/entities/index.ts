@@ -21,3 +21,35 @@ export {
   type AssetCategoryProps,
   type AssetCategoryPersistenceProps,
 } from './asset-category.entity';
+export {
+  FiscalPeriodEntity,
+  type FiscalPeriodEntityProps,
+  type FiscalPeriodPersistenceProps,
+} from './fiscal-period.entity';
+export {
+  AccountBalance,
+  type AccountBalanceProps,
+  type AccountBalancePersistenceProps,
+} from './account-balance.entity';
+export {
+  BankAccount,
+  type BankAccountProps,
+  type BankAccountPersistenceProps,
+} from './bank-account.entity';
+export {
+  BankStatement,
+  type BankStatementProps,
+  type BankStatementPersistenceProps,
+} from './bank-statement.entity';
+export {
+  BankTransaction,
+  type BankTransactionProps,
+  type BankTransactionPersistenceProps,
+} from './bank-transaction.entity';
+export {
+  BankReconciliation,
+  type BankReconciliationProps,
+  type BankReconciliationPersistenceProps,
+  type ReconcilingItem,
+  type AddReconcilingItemProps,
+} from './bank-reconciliation.entity';

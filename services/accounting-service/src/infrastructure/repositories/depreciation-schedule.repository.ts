@@ -1,4 +1,4 @@
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { DepreciationScheduleStatus } from '@/domain/value-objects';
 import type {
   IDepreciationScheduleRepository,
@@ -91,8 +91,6 @@ export class DrizzleDepreciationScheduleRepository implements IDepreciationSched
   }
 
   async save(schedule: DepreciationSchedule): Promise<void> {
-    const now = new Date().toISOString();
-
     const existing = await this.db
       .select({ id: depreciationSchedules.id })
       .from(depreciationSchedules)

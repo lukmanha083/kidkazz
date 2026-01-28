@@ -22,7 +22,6 @@ import {
   GetAssetDepreciationScheduleHandler,
   GetDepreciationRunHandler,
   ListDepreciationRunsHandler,
-  GetDepreciationRunByPeriodHandler,
 } from '@/application/queries/depreciation.queries';
 import {
   calculateDepreciationSchema,

@@ -328,7 +328,7 @@ function getContextDocs(contextName: string): Record<string, string> {
 
 function generateServiceGraph(): ServiceGraph {
   const graph: ServiceGraph = {
-    generated: new Date().toISOString(),
+    generated: 'auto', // Use fixed value to prevent merge conflicts
     generator: 'scripts/generate-service-graph.ts',
     boundedContexts: {},
     flows: {},
@@ -612,7 +612,7 @@ function main() {
 
   const graph = generateServiceGraph();
 
-  // Generate YAML header
+  // Generate YAML header (no timestamp to prevent merge conflicts)
   const header = `# SERVICE_GRAPH.yaml
 # Auto-generated codebase knowledge graph
 #
@@ -623,7 +623,6 @@ function main() {
 # - Documentation links
 # - Cross-service business flows
 #
-# Generated: ${graph.generated}
 # Generator: ${graph.generator}
 #
 # DO NOT EDIT MANUALLY - Run: pnpm generate:service-graph
@@ -635,10 +634,7 @@ function main() {
   if (args.includes('--validate')) {
     if (fs.existsSync(outputPath)) {
       const existing = fs.readFileSync(outputPath, 'utf-8');
-      // Compare ignoring generated timestamp
-      const normalizeYaml = (y: string) =>
-        y.replace(/Generated:.*$/m, '').replace(/generated:.*$/m, '');
-      if (normalizeYaml(existing) !== normalizeYaml(yaml)) {
+      if (existing !== yaml) {
         console.error('SERVICE_GRAPH.yaml is out of date!');
         console.error('Run: pnpm generate:service-graph');
         process.exit(1);

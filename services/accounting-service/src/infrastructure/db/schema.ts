@@ -472,6 +472,250 @@ export const depreciationRuns = sqliteTable(
   })
 );
 
+// =====================================================
+// Cash Management Tables
+// =====================================================
+
+/**
+ * Bank Accounts table
+ * Links bank accounts to GL accounts for reconciliation
+ */
+export const bankAccounts = sqliteTable(
+  'bank_accounts',
+  {
+    id: text('id').primaryKey(),
+    accountId: text('account_id')
+      .notNull()
+      .references(() => chartOfAccounts.id, { onDelete: 'restrict' }),
+    bankName: text('bank_name').notNull(),
+    accountNumber: text('account_number').notNull(),
+    accountType: text('account_type', {
+      enum: ['OPERATING', 'PAYROLL', 'SAVINGS', 'FOREIGN_CURRENCY'],
+    }).notNull(),
+    currency: text('currency').notNull().default('IDR'),
+    status: text('status', { enum: ['Active', 'Inactive', 'Closed'] })
+      .notNull()
+      .default('Active'),
+    lastReconciledDate: text('last_reconciled_date'),
+    lastReconciledBalance: real('last_reconciled_balance'),
+    // Audit
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+    createdBy: text('created_by'),
+    updatedBy: text('updated_by'),
+  },
+  (table) => ({
+    // Unique constraints to prevent duplicate bank accounts
+    accountIdUniq: uniqueIndex('idx_bank_accounts_account_id_uniq').on(table.accountId),
+    accountNumberUniq: uniqueIndex('idx_bank_accounts_number_uniq').on(table.accountNumber),
+    bankNameIdx: index('idx_bank_accounts_bank_name').on(table.bankName),
+    statusIdx: index('idx_bank_accounts_status').on(table.status),
+    accountTypeIdx: index('idx_bank_accounts_type').on(table.accountType),
+  })
+);
+
+/**
+ * Bank Statements table
+ * Imported bank statement headers
+ */
+export const bankStatements = sqliteTable(
+  'bank_statements',
+  {
+    id: text('id').primaryKey(),
+    bankAccountId: text('bank_account_id')
+      .notNull()
+      .references(() => bankAccounts.id, { onDelete: 'restrict' }),
+    statementDate: text('statement_date').notNull(),
+    periodStart: text('period_start').notNull(),
+    periodEnd: text('period_end').notNull(),
+    openingBalance: real('opening_balance').notNull(),
+    closingBalance: real('closing_balance').notNull(),
+    totalDebits: real('total_debits').notNull().default(0),
+    totalCredits: real('total_credits').notNull().default(0),
+    transactionCount: integer('transaction_count').notNull().default(0),
+    // Import tracking
+    importSource: text('import_source'),
+    importedAt: text('imported_at').notNull(),
+    importedBy: text('imported_by'),
+    // Audit
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (table) => ({
+    bankAccountIdx: index('idx_bank_statements_account').on(table.bankAccountId),
+    statementDateIdx: index('idx_bank_statements_date').on(table.statementDate),
+    periodIdx: index('idx_bank_statements_period').on(table.periodStart, table.periodEnd),
+  })
+);
+
+/**
+ * Bank Transactions table
+ * Individual statement lines with fingerprints for duplicate detection
+ */
+export const bankTransactions = sqliteTable(
+  'bank_transactions',
+  {
+    id: text('id').primaryKey(),
+    bankStatementId: text('bank_statement_id')
+      .notNull()
+      .references(() => bankStatements.id, { onDelete: 'cascade' }),
+    bankAccountId: text('bank_account_id')
+      .notNull()
+      .references(() => bankAccounts.id, { onDelete: 'restrict' }),
+    transactionDate: text('transaction_date').notNull(),
+    postDate: text('post_date'),
+    description: text('description').notNull(),
+    reference: text('reference'),
+    amount: real('amount').notNull(),
+    transactionType: text('transaction_type', {
+      enum: ['DEBIT', 'CREDIT'],
+    }).notNull(),
+    runningBalance: real('running_balance'),
+    // Duplicate detection fingerprint
+    fingerprint: text('fingerprint').notNull(),
+    // Matching status
+    matchStatus: text('match_status', {
+      enum: ['UNMATCHED', 'MATCHED', 'EXCLUDED'],
+    }).notNull().default('UNMATCHED'),
+    matchedJournalLineId: text('matched_journal_line_id'),
+    matchedAt: text('matched_at'),
+    matchedBy: text('matched_by'),
+    // Audit
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => ({
+    bankStatementIdx: index('idx_bank_transactions_statement').on(table.bankStatementId),
+    bankAccountIdx: index('idx_bank_transactions_account').on(table.bankAccountId),
+    transactionDateIdx: index('idx_bank_transactions_date').on(table.transactionDate),
+    fingerprintIdx: uniqueIndex('idx_bank_transactions_fingerprint').on(table.fingerprint),
+    matchStatusIdx: index('idx_bank_transactions_match_status').on(table.matchStatus),
+    matchedJournalIdx: index('idx_bank_transactions_matched_journal').on(table.matchedJournalLineId),
+  })
+);
+
+/**
+ * Bank Reconciliations table
+ * Reconciliation records per period
+ */
+export const bankReconciliations = sqliteTable(
+  'bank_reconciliations',
+  {
+    id: text('id').primaryKey(),
+    bankAccountId: text('bank_account_id')
+      .notNull()
+      .references(() => bankAccounts.id, { onDelete: 'restrict' }),
+    fiscalYear: integer('fiscal_year').notNull(),
+    fiscalMonth: integer('fiscal_month').notNull(),
+    // Balances
+    statementEndingBalance: real('statement_ending_balance').notNull(),
+    bookEndingBalance: real('book_ending_balance').notNull(),
+    // Adjusted balances
+    adjustedBankBalance: real('adjusted_bank_balance'),
+    adjustedBookBalance: real('adjusted_book_balance'),
+    // Reconciliation counts
+    totalTransactions: integer('total_transactions').notNull().default(0),
+    matchedTransactions: integer('matched_transactions').notNull().default(0),
+    unmatchedTransactions: integer('unmatched_transactions').notNull().default(0),
+    // Status workflow
+    status: text('status', {
+      enum: ['DRAFT', 'IN_PROGRESS', 'COMPLETED', 'APPROVED'],
+    }).notNull().default('DRAFT'),
+    // Workflow timestamps
+    completedAt: text('completed_at'),
+    completedBy: text('completed_by'),
+    approvedAt: text('approved_at'),
+    approvedBy: text('approved_by'),
+    // Notes
+    notes: text('notes'),
+    // Audit
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+    createdBy: text('created_by'),
+    updatedBy: text('updated_by'),
+  },
+  (table) => ({
+    bankAccountIdx: index('idx_bank_reconciliations_account').on(table.bankAccountId),
+    fiscalPeriodIdx: index('idx_bank_reconciliations_period').on(table.fiscalYear, table.fiscalMonth),
+    statusIdx: index('idx_bank_reconciliations_status').on(table.status),
+    accountPeriodIdx: uniqueIndex('idx_bank_reconciliations_account_period').on(
+      table.bankAccountId,
+      table.fiscalYear,
+      table.fiscalMonth
+    ),
+  })
+);
+
+/**
+ * Reconciliation Items table
+ * Outstanding checks, deposits in transit, adjustments
+ */
+export const reconciliationItems = sqliteTable(
+  'reconciliation_items',
+  {
+    id: text('id').primaryKey(),
+    reconciliationId: text('reconciliation_id')
+      .notNull()
+      .references(() => bankReconciliations.id, { onDelete: 'cascade' }),
+    itemType: text('item_type', {
+      enum: ['OUTSTANDING_CHECK', 'DEPOSIT_IN_TRANSIT', 'BANK_FEE', 'BANK_INTEREST', 'NSF_CHECK', 'ADJUSTMENT'],
+    }).notNull(),
+    description: text('description').notNull(),
+    amount: real('amount').notNull(),
+    transactionDate: text('transaction_date').notNull(),
+    reference: text('reference'),
+    // Whether this item requires a journal entry
+    requiresJournalEntry: integer('requires_journal_entry', { mode: 'boolean' }).notNull().default(false),
+    journalEntryId: text('journal_entry_id'),
+    // Status
+    status: text('status', {
+      enum: ['PENDING', 'CLEARED', 'VOIDED'],
+    }).notNull().default('PENDING'),
+    clearedAt: text('cleared_at'),
+    clearedInReconciliationId: text('cleared_in_reconciliation_id'),
+    // Audit
+    createdAt: text('created_at').notNull(),
+    createdBy: text('created_by'),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (table) => ({
+    reconciliationIdx: index('idx_reconciliation_items_reconciliation').on(table.reconciliationId),
+    itemTypeIdx: index('idx_reconciliation_items_type').on(table.itemType),
+    statusIdx: index('idx_reconciliation_items_status').on(table.status),
+    transactionDateIdx: index('idx_reconciliation_items_date').on(table.transactionDate),
+  })
+);
+
+/**
+ * Cash Threshold Configuration table
+ * Warning/critical/emergency thresholds for cash alerts
+ */
+export const cashThresholdConfig = sqliteTable(
+  'cash_threshold_config',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    description: text('description'),
+    // Threshold amounts (in IDR)
+    warningThreshold: real('warning_threshold').notNull(),
+    criticalThreshold: real('critical_threshold').notNull(),
+    emergencyThreshold: real('emergency_threshold').notNull(),
+    // Alert settings
+    enableAlerts: integer('enable_alerts', { mode: 'boolean' }).notNull().default(true),
+    alertEmailRecipients: text('alert_email_recipients'), // JSON array of emails
+    // Active flag
+    isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+    // Audit
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+    createdBy: text('created_by'),
+    updatedBy: text('updated_by'),
+  },
+  (table) => ({
+    nameIdx: uniqueIndex('idx_cash_threshold_config_name').on(table.name),
+    isActiveIdx: index('idx_cash_threshold_config_active').on(table.isActive),
+  })
+);
+
 // Type exports for use in repositories
 export type ChartOfAccountsRecord = typeof chartOfAccounts.$inferSelect;
 export type JournalEntryRecord = typeof journalEntries.$inferSelect;
@@ -486,3 +730,11 @@ export type DepreciationScheduleRecord = typeof depreciationSchedules.$inferSele
 export type AssetMovementRecord = typeof assetMovements.$inferSelect;
 export type AssetMaintenanceRecord = typeof assetMaintenance.$inferSelect;
 export type DepreciationRunRecord = typeof depreciationRuns.$inferSelect;
+
+// Cash Management type exports
+export type BankAccountRecord = typeof bankAccounts.$inferSelect;
+export type BankStatementRecord = typeof bankStatements.$inferSelect;
+export type BankTransactionRecord = typeof bankTransactions.$inferSelect;
+export type BankReconciliationRecord = typeof bankReconciliations.$inferSelect;
+export type ReconciliationItemRecord = typeof reconciliationItems.$inferSelect;
+export type CashThresholdConfigRecord = typeof cashThresholdConfig.$inferSelect;

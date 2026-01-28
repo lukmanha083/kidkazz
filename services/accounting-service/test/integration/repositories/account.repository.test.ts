@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { DrizzleAccountRepository } from '@/infrastructure/repositories/account.repository';
-import { Account, AccountStatus } from '@/domain/entities';
+import { Account } from '@/domain/entities';
 import { AccountType, AccountCategory, FinancialStatementType } from '@/domain/value-objects';
 import * as schema from '@/infrastructure/db/schema';
 
