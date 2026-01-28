@@ -15,6 +15,11 @@ type DrizzleDB = any;
 export class DrizzleBankAccountRepository implements IBankAccountRepository {
   constructor(private readonly db: DrizzleDB) {}
 
+  private escapeLikePattern(input: string): string {
+    const escapedBackslash = input.replace(/\\/g, '\\\\');
+    return escapedBackslash.replace(/[%_]/g, '\\$&');
+  }
+
   async findById(id: string): Promise<BankAccount | null> {
     const result = await this.db
       .select()
@@ -69,7 +74,7 @@ export class DrizzleBankAccountRepository implements IBankAccountRepository {
     }
 
     if (filter?.bankName) {
-      const escapedBankName = filter.bankName.replace(/[%_]/g, '\\$&');
+      const escapedBankName = this.escapeLikePattern(filter.bankName);
       conditions.push(like(bankAccounts.bankName, `%${escapedBankName}%`));
     }
 
@@ -78,7 +83,7 @@ export class DrizzleBankAccountRepository implements IBankAccountRepository {
     }
 
     if (filter?.search) {
-      const escapedSearch = filter.search.replace(/[%_]/g, '\\$&');
+      const escapedSearch = this.escapeLikePattern(filter.search);
       conditions.push(
         or(
           like(bankAccounts.bankName, `%${escapedSearch}%`),
