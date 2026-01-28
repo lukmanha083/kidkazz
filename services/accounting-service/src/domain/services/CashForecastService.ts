@@ -136,7 +136,7 @@ export class CashForecastService {
     const weeklyForecasts: WeeklyForecast[] = [];
     let currentCash = input.startingCash;
     let lowestCash = input.startingCash;
-    let lowestCashWeek = 0;
+    let lowestCashWeek = 1; // Default to week 1 if cash never drops below starting
 
     for (let week = 1; week <= weeks; week++) {
       const weekStartDate = new Date(forecastDate);

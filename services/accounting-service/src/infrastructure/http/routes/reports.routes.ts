@@ -557,6 +557,7 @@ reportsRoutes.get('/cash-forecast', zValidator('query', cashForecastQuerySchema)
   const deps: CashForecastDependencies = {
     async getCurrentCashBalance(): Promise<number> {
       // Get sum of all cash accounts
+      const now = new Date();
       const result = await db
         .select({
           total: sql<number>`COALESCE(SUM(${accountBalances.closingBalance}), 0)`,
@@ -566,8 +567,8 @@ reportsRoutes.get('/cash-forecast', zValidator('query', cashForecastQuerySchema)
         .where(
           and(
             sql`${chartOfAccounts.code} LIKE '101%' OR ${chartOfAccounts.code} LIKE '102%' OR ${chartOfAccounts.code} LIKE '103%'`,
-            eq(accountBalances.fiscalYear, new Date().getFullYear()),
-            eq(accountBalances.fiscalMonth, new Date().getMonth() + 1)
+            eq(accountBalances.fiscalYear, now.getFullYear()),
+            eq(accountBalances.fiscalMonth, now.getMonth() + 1)
           )
         );
 
