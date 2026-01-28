@@ -5,7 +5,6 @@ import { BankTransaction } from '@/domain/entities';
 import {
   BankTransactionType,
   BankTransactionMatchStatus,
-  ReconciliationStatus,
   ReconciliationItemType,
 } from '@/domain/value-objects';
 
