@@ -120,6 +120,28 @@ function createTrialBalanceDependencies(db: DrizzleD1Database<typeof schema>): T
 
       return results;
     },
+
+    async getPriorPeriodBalances(year: number, month: number) {
+      // Calculate prior period (handle January -> December of prior year)
+      const priorMonth = month === 1 ? 12 : month - 1;
+      const priorYear = month === 1 ? year - 1 : year;
+
+      // Get closing balances from prior period as opening balances
+      const results = await db
+        .select({
+          accountId: accountBalances.accountId,
+          closingBalance: accountBalances.closingBalance,
+        })
+        .from(accountBalances)
+        .where(
+          and(
+            eq(accountBalances.fiscalYear, priorYear),
+            eq(accountBalances.fiscalMonth, priorMonth)
+          )
+        );
+
+      return new Map(results.map((r) => [r.accountId, r.closingBalance]));
+    },
   };
 }
 

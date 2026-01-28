@@ -49,6 +49,12 @@ export interface TrialBalanceDependencies {
    * Get real-time balances from posted journal lines for an open period
    */
   getRealTimeBalances(year: number, month: number): Promise<RealTimeBalanceData[]>;
+
+  /**
+   * Get prior period closing balances to use as opening balances
+   * Returns closing balances from the previous period (or empty if no prior period)
+   */
+  getPriorPeriodBalances(year: number, month: number): Promise<Map<string, number>>;
 }
 
 // ============================================================================
@@ -97,25 +103,42 @@ export class GetTrialBalanceHandler {
     const periodStatus = await this.deps.getPeriodStatus(fiscalYear, fiscalMonth);
 
     // Get balances based on period status
-    let balanceData: { accountId: string; debitTotal: number; creditTotal: number; closingBalance?: number }[];
+    let balanceData: { accountId: string; openingBalance: number; debitTotal: number; creditTotal: number; closingBalance?: number }[];
 
     if (periodStatus === FiscalPeriodStatus.CLOSED || periodStatus === FiscalPeriodStatus.LOCKED) {
       // Use pre-calculated account balances
       const accountBalances = await this.deps.getAccountBalances(fiscalYear, fiscalMonth);
       balanceData = accountBalances.map((b) => ({
         accountId: b.accountId,
+        openingBalance: b.openingBalance,
         debitTotal: b.debitTotal,
         creditTotal: b.creditTotal,
         closingBalance: b.closingBalance,
       }));
     } else {
-      // Calculate real-time from journal lines
-      const realTimeBalances = await this.deps.getRealTimeBalances(fiscalYear, fiscalMonth);
-      balanceData = realTimeBalances.map((b) => ({
-        accountId: b.accountId,
-        debitTotal: b.debitTotal,
-        creditTotal: b.creditTotal,
-      }));
+      // Calculate real-time from journal lines + prior period balances
+      const [realTimeBalances, priorBalances] = await Promise.all([
+        this.deps.getRealTimeBalances(fiscalYear, fiscalMonth),
+        this.deps.getPriorPeriodBalances(fiscalYear, fiscalMonth),
+      ]);
+
+      // Merge real-time activity with opening balances
+      const accountIds = new Set([
+        ...realTimeBalances.map((b) => b.accountId),
+        ...priorBalances.keys(),
+      ]);
+
+      balanceData = Array.from(accountIds).map((accountId) => {
+        const realTime = realTimeBalances.find((b) => b.accountId === accountId);
+        const openingBalance = priorBalances.get(accountId) ?? 0;
+
+        return {
+          accountId,
+          openingBalance,
+          debitTotal: realTime?.debitTotal ?? 0,
+          creditTotal: realTime?.creditTotal ?? 0,
+        };
+      });
     }
 
     // Get account info for all accounts
@@ -131,16 +154,19 @@ export class GetTrialBalanceHandler {
 
       // Calculate the balance to show in trial balance columns
       // For closed periods, use closing balance
-      // For open periods, calculate net from debits/credits
+      // For open periods, calculate: opening + period activity
       let closingBalance: number;
       if (balance.closingBalance !== undefined) {
         closingBalance = balance.closingBalance;
       } else {
         // Calculate based on normal balance direction
+        // Opening balance + period debits - period credits (adjusted for normal balance)
         if (accountInfo.normalBalance === 'Debit') {
-          closingBalance = balance.debitTotal - balance.creditTotal;
+          // Debit accounts: increase with debits, decrease with credits
+          closingBalance = balance.openingBalance + balance.debitTotal - balance.creditTotal;
         } else {
-          closingBalance = balance.creditTotal - balance.debitTotal;
+          // Credit accounts: increase with credits, decrease with debits
+          closingBalance = balance.openingBalance + balance.creditTotal - balance.debitTotal;
         }
       }
 

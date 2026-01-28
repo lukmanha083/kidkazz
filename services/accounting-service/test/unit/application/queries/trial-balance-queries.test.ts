@@ -15,6 +15,7 @@ describe('Trial Balance Queries', () => {
       getAccountBalances: vi.fn(),
       getAccountInfo: vi.fn(),
       getRealTimeBalances: vi.fn(),
+      getPriorPeriodBalances: vi.fn(),
     };
   });
 
@@ -155,6 +156,10 @@ describe('Trial Balance Queries', () => {
           { accountId: 'acc-002', debitTotal: 0, creditTotal: 50000 },
         ]);
 
+        vi.mocked(mockDependencies.getPriorPeriodBalances).mockResolvedValue(
+          new Map()
+        );
+
         vi.mocked(mockDependencies.getAccountInfo).mockResolvedValue(
           new Map([
             ['acc-001', { code: '1010', name: 'Cash', accountType: 'Asset', normalBalance: 'Debit' }],
@@ -175,12 +180,86 @@ describe('Trial Balance Queries', () => {
         expect(result.totalCredits).toBe(50000);
         expect(result.isBalanced).toBe(true);
       });
+
+      it('should include opening balances from prior period (cumulative balance)', async () => {
+        // Scenario: Owner injected capital with inventory in prior period
+        // Prior period had: Inventory +100,000 (debit), Capital +100,000 (credit)
+        // Current period: sold inventory, received cash
+        vi.mocked(mockDependencies.getPeriodStatus).mockResolvedValue(
+          FiscalPeriodStatus.OPEN
+        );
+
+        // Prior period closing balances become opening balances
+        vi.mocked(mockDependencies.getPriorPeriodBalances).mockResolvedValue(
+          new Map([
+            ['acc-inventory', 100000],  // Inventory from capital injection
+            ['acc-capital', 100000],    // Owner's capital
+          ])
+        );
+
+        // Current period activity: sold inventory for cash
+        vi.mocked(mockDependencies.getRealTimeBalances).mockResolvedValue([
+          { accountId: 'acc-cash', debitTotal: 150000, creditTotal: 0 },       // Received cash
+          { accountId: 'acc-inventory', debitTotal: 0, creditTotal: 80000 },   // Reduced inventory (COGS)
+          { accountId: 'acc-cogs', debitTotal: 80000, creditTotal: 0 },        // Cost of goods sold
+          { accountId: 'acc-sales', debitTotal: 0, creditTotal: 150000 },      // Sales revenue
+        ]);
+
+        vi.mocked(mockDependencies.getAccountInfo).mockResolvedValue(
+          new Map([
+            ['acc-cash', { code: '1010', name: 'Cash', accountType: 'Asset', normalBalance: 'Debit' }],
+            ['acc-inventory', { code: '1050', name: 'Inventory', accountType: 'Asset', normalBalance: 'Debit' }],
+            ['acc-capital', { code: '3010', name: 'Owner Capital', accountType: 'Equity', normalBalance: 'Credit' }],
+            ['acc-cogs', { code: '5010', name: 'Cost of Goods Sold', accountType: 'Expense', normalBalance: 'Debit' }],
+            ['acc-sales', { code: '4010', name: 'Sales', accountType: 'Revenue', normalBalance: 'Credit' }],
+          ])
+        );
+
+        const query: GetTrialBalanceQuery = {
+          fiscalYear: 2025,
+          fiscalMonth: 2,
+        };
+
+        const result = await handler.execute(query);
+
+        expect(result.periodStatus).toBe(FiscalPeriodStatus.OPEN);
+        expect(result.accounts).toHaveLength(5);
+
+        // Find specific accounts
+        const cash = result.accounts.find(a => a.accountCode === '1010');
+        const inventory = result.accounts.find(a => a.accountCode === '1050');
+        const capital = result.accounts.find(a => a.accountCode === '3010');
+        const cogs = result.accounts.find(a => a.accountCode === '5010');
+        const sales = result.accounts.find(a => a.accountCode === '4010');
+
+        // Cash: no opening + 150,000 debit = 150,000 debit balance
+        expect(cash?.debitBalance).toBe(150000);
+
+        // Inventory: 100,000 opening + 0 debit - 80,000 credit = 20,000 debit balance
+        expect(inventory?.debitBalance).toBe(20000);
+
+        // Capital: 100,000 opening (credit account) = 100,000 credit balance
+        expect(capital?.creditBalance).toBe(100000);
+
+        // COGS: 0 opening + 80,000 debit = 80,000 debit balance
+        expect(cogs?.debitBalance).toBe(80000);
+
+        // Sales: 0 opening + 150,000 credit = 150,000 credit balance
+        expect(sales?.creditBalance).toBe(150000);
+
+        // Total debits: 150,000 + 20,000 + 80,000 = 250,000
+        // Total credits: 100,000 + 150,000 = 250,000
+        expect(result.totalDebits).toBe(250000);
+        expect(result.totalCredits).toBe(250000);
+        expect(result.isBalanced).toBe(true);
+      });
     });
 
     describe('for non-existent periods', () => {
       it('should return empty trial balance when period does not exist', async () => {
         vi.mocked(mockDependencies.getPeriodStatus).mockResolvedValue(null);
         vi.mocked(mockDependencies.getRealTimeBalances).mockResolvedValue([]);
+        vi.mocked(mockDependencies.getPriorPeriodBalances).mockResolvedValue(new Map());
         vi.mocked(mockDependencies.getAccountInfo).mockResolvedValue(new Map());
 
         const query: GetTrialBalanceQuery = {
