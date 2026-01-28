@@ -1,4 +1,4 @@
-import { BankReconciliation, BankTransaction } from '@/domain/entities';
+import { BankReconciliation } from '@/domain/entities';
 import {
   ReconciliationService,
   type JournalLineForMatching,
