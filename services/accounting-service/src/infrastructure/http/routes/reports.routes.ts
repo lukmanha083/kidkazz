@@ -792,6 +792,13 @@ reportsRoutes.get('/cash-forecast', zValidator('query', cashForecastQuerySchema)
       const now = new Date();
       const daysBack = 90;
 
+      // Calculate threshold date 3 months ago (handles year boundaries correctly)
+      const thresholdDate = new Date(now);
+      thresholdDate.setMonth(thresholdDate.getMonth() - 3);
+      const thresholdYear = thresholdDate.getFullYear();
+      const thresholdMonth = thresholdDate.getMonth() + 1; // getMonth() is 0-indexed
+      const threshold = thresholdYear * 100 + thresholdMonth;
+
       // Get revenue totals from recent periods
       const result = await db
         .select({
@@ -803,8 +810,8 @@ reportsRoutes.get('/cash-forecast', zValidator('query', cashForecastQuerySchema)
           and(
             eq(chartOfAccounts.accountType, 'Revenue'),
             eq(chartOfAccounts.isDetailAccount, true),
-            // Last 3 months approximately
-            sql`(${accountBalances.fiscalYear} * 100 + ${accountBalances.fiscalMonth}) >= ${(now.getFullYear() * 100 + now.getMonth() + 1) - 3}`
+            // Last 3 months (handles year boundaries correctly)
+            sql`(${accountBalances.fiscalYear} * 100 + ${accountBalances.fiscalMonth}) >= ${threshold}`
           )
         );
 
@@ -886,6 +893,11 @@ reportsRoutes.put('/cash-threshold', zValidator('json', updateThresholdSchema), 
   const db = c.get('db');
   const userId = c.get('userId');
   const body = c.req.valid('json');
+
+  // Validate userId is present
+  if (!userId) {
+    return c.json({ success: false, error: 'Authentication required' }, 401);
+  }
 
   // Validate threshold order
   if (body.warningThreshold <= body.criticalThreshold) {
