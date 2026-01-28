@@ -180,19 +180,28 @@ INSERT INTO currencies VALUES ('USD', 'US Dollar', '$', 2, 1, 0, ...);
 ### Domain Services
 
 **ExchangeRateService**:
-- `getRate(from, to, date)` - Get exchange rate for date
+- `getRate(date)` - Get USD/IDR exchange rate for date
 - `convert(amount, from, to, date)` - Convert currency amount
-- `getLatestRate(from, to)` - Get most recent rate
+- `getLatestRate()` - Get most recent rate
+- `fetchAndSaveLatestRate()` - **NEW** Fetch live rate from external APIs
+- `getRateWithAutoFetch(date, maxAgeHours)` - Get rate with auto-fetch if stale
+
+**Live Exchange Rate Providers** (automatic fallback):
+1. **ExchangeRate-API** (https://open.er-api.com) - Primary, daily updates
+2. **GitHub Exchange API** (fawazahmed0/exchange-api) - Backup, no rate limits
+3. **Frankfurter API** (ECB rates) - Fallback, central bank source
 
 ### API Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/v1/currencies` | List currencies |
-| POST | `/api/v1/currencies` | Create currency |
-| GET | `/api/v1/exchange-rates` | List exchange rates |
-| POST | `/api/v1/exchange-rates` | Set exchange rate |
-| GET | `/api/v1/exchange-rates/convert` | Convert amount |
+| GET | `/api/v1/currencies/:code` | Get currency by code |
+| GET | `/api/v1/currencies/exchange-rates` | List exchange rate history |
+| GET | `/api/v1/currencies/exchange-rates/latest` | Get latest rate |
+| POST | `/api/v1/currencies/exchange-rates` | Set exchange rate manually |
+| POST | `/api/v1/currencies/exchange-rates/fetch` | **NEW** Fetch live rate from APIs |
+| POST | `/api/v1/currencies/exchange-rates/convert` | Convert amount |
 
 ### Example Usage
 
@@ -209,10 +218,27 @@ curl https://accounting-service.../api/v1/currencies
   ]
 }
 
-# Set exchange rate
-curl -X POST https://accounting-service.../api/v1/exchange-rates \
+# Fetch live exchange rate from external APIs
+curl -X POST https://accounting-service.../api/v1/currencies/exchange-rates/fetch
+
+# Response
+{
+  "success": true,
+  "data": {
+    "id": "er-abc123",
+    "fromCurrency": "USD",
+    "toCurrency": "IDR",
+    "rate": 16245.50,
+    "effectiveDate": "2026-01-28",
+    "source": "api"
+  },
+  "message": "Exchange rate fetched from exchangerate-api"
+}
+
+# Set exchange rate manually
+curl -X POST https://accounting-service.../api/v1/currencies/exchange-rates \
   -H "Content-Type: application/json" \
-  -d '{"fromCurrency": "USD", "toCurrency": "IDR", "rate": 15500, "effectiveDate": "2026-01-28"}'
+  -d '{"rate": 16300, "effectiveDate": "2026-01-28", "source": "manual"}'
 ```
 
 ---
