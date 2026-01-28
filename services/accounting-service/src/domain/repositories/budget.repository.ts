@@ -17,5 +17,9 @@ export interface IBudgetRepository {
   findAll(filter?: BudgetFilter): Promise<Budget[]>;
   save(budget: Budget): Promise<void>;
   saveRevision(revision: BudgetRevision): Promise<void>;
+  /**
+   * Save budget and revisions atomically in a single transaction
+   */
+  saveWithRevisions(budget: Budget, revisions: BudgetRevision[]): Promise<void>;
   delete(id: string): Promise<void>;
 }

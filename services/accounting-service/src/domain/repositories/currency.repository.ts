@@ -16,10 +16,18 @@ export interface ICurrencyRepository {
  */
 export interface IExchangeRateRepository {
   findById(id: string): Promise<ExchangeRate | null>;
-  findByDate(effectiveDate: Date): Promise<ExchangeRate | null>;
-  findLatest(): Promise<ExchangeRate | null>;
-  findHistory(limit?: number): Promise<ExchangeRate[]>;
+  findByDate(
+    fromCurrency: string,
+    toCurrency: string,
+    effectiveDate: Date
+  ): Promise<ExchangeRate | null>;
+  findLatest(fromCurrency: string, toCurrency: string): Promise<ExchangeRate | null>;
+  findHistory(fromCurrency: string, toCurrency: string, limit?: number): Promise<ExchangeRate[]>;
   save(rate: ExchangeRate): Promise<void>;
   delete(id: string): Promise<void>;
-  rateExistsForDate(effectiveDate: Date): Promise<boolean>;
+  rateExistsForDate(
+    fromCurrency: string,
+    toCurrency: string,
+    effectiveDate: Date
+  ): Promise<boolean>;
 }

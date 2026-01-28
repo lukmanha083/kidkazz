@@ -24,6 +24,11 @@ export interface IAccountRepository {
   findById(id: string): Promise<Account | null>;
 
   /**
+   * Find multiple accounts by IDs (batch operation)
+   */
+  findByIds(ids: string[]): Promise<Account[]>;
+
+  /**
    * Find account by code
    */
   findByCode(code: string): Promise<Account | null>;

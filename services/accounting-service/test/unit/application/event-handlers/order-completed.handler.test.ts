@@ -14,6 +14,7 @@ describe('OrderCompletedHandler', () => {
     markAsProcessed: vi.fn(),
     findByEventId: vi.fn(),
     findByEventType: vi.fn(),
+    findRecent: vi.fn(),
     deleteOldRecords: vi.fn(),
   };
 
@@ -43,6 +44,7 @@ describe('OrderCompletedHandler', () => {
 
   const mockAccountRepository: IAccountRepository = {
     findById: vi.fn(),
+    findByIds: vi.fn(),
     findByCode: vi.fn(),
     findAll: vi.fn(),
     findByParentId: vi.fn(),

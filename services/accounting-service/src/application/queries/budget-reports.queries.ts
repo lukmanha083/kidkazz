@@ -58,49 +58,41 @@ export class GetBudgetVsActualHandler {
     // Get unique account IDs from budget lines
     const accountIds = [...new Set(budget.lines.map((l) => l.accountId))];
 
-    // Batch fetch all accounts to avoid N+1
+    // Batch fetch all accounts in a single query to avoid N+1
+    const accounts = await this.accountRepository.findByIds(accountIds);
     const accountsMap = new Map<
       string,
       { id: string; code: string; name: string; accountType: string }
     >();
-    for (const accountId of accountIds) {
-      const account = await this.accountRepository.findById(accountId);
-      if (account) {
-        accountsMap.set(accountId, {
-          id: account.id,
-          code: account.code,
-          name: account.name,
-          accountType: account.accountType,
-        });
-      }
+    for (const account of accounts) {
+      accountsMap.set(account.id, {
+        id: account.id,
+        code: account.code,
+        name: account.name,
+        accountType: account.accountType,
+      });
     }
 
-    // Batch fetch all balances for the year to avoid N+1
+    // Batch fetch all balances for the year in a single query to avoid N+1
+    const allBalances = await this.accountBalanceRepository.findByAccountsAndYear(
+      accountIds,
+      budget.fiscalYear
+    );
+
+    // Index balances by accountId and month
     const balancesMap = new Map<
       string,
       Map<number, { debitTotal: number; creditTotal: number; closingBalance: number }>
     >();
-    for (const accountId of accountIds) {
-      const monthlyBalances = new Map<
-        number,
-        { debitTotal: number; creditTotal: number; closingBalance: number }
-      >();
-      // Fetch all months in one loop but could be optimized with a bulk query if repository supports it
-      for (let month = 1; month <= 12; month++) {
-        const balance = await this.accountBalanceRepository.findByAccountAndPeriod(
-          accountId,
-          budget.fiscalYear,
-          month
-        );
-        if (balance) {
-          monthlyBalances.set(month, {
-            debitTotal: balance.debitTotal,
-            creditTotal: balance.creditTotal,
-            closingBalance: balance.closingBalance,
-          });
-        }
+    for (const balance of allBalances) {
+      if (!balancesMap.has(balance.accountId)) {
+        balancesMap.set(balance.accountId, new Map());
       }
-      balancesMap.set(accountId, monthlyBalances);
+      balancesMap.get(balance.accountId)!.set(balance.fiscalMonth, {
+        debitTotal: balance.debitTotal,
+        creditTotal: balance.creditTotal,
+        closingBalance: balance.closingBalance,
+      });
     }
 
     const sections: BudgetVsActualSection[] = [];

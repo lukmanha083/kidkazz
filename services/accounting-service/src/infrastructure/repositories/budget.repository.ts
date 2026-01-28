@@ -148,6 +148,79 @@ export class DrizzleBudgetRepository implements IBudgetRepository {
     });
   }
 
+  async saveWithRevisions(budget: Budget, revisions: BudgetRevision[]): Promise<void> {
+    // Prepare budget header data
+    const budgetData = {
+      id: budget.id,
+      name: budget.name,
+      fiscalYear: budget.fiscalYear,
+      status: budget.status,
+      approvedBy: budget.approvedBy,
+      approvedAt: budget.approvedAt?.toISOString() || null,
+      createdBy: budget.createdBy,
+      createdAt: budget.createdAt.toISOString(),
+      updatedAt: budget.updatedAt.toISOString(),
+    };
+
+    // Prepare budget lines data
+    const linesData = budget.lines.map((line) => ({
+      id: line.id,
+      budgetId: budget.id,
+      accountId: line.accountId,
+      fiscalMonth: line.fiscalMonth,
+      amount: line.amount,
+      notes: line.notes || null,
+      createdAt: line.createdAt.toISOString(),
+      updatedAt: line.updatedAt.toISOString(),
+    }));
+
+    // Prepare revisions data
+    const revisionsData = revisions.map((revision) => ({
+      id: revision.id,
+      budgetLineId: revision.budgetLineId,
+      previousAmount: revision.previousAmount,
+      newAmount: revision.newAmount,
+      reason: revision.reason,
+      revisedBy: revision.revisedBy,
+      revisedAt: revision.revisedAt.toISOString(),
+    }));
+
+    // Execute all statements atomically using batch
+    // Build batch array inline to leverage proper type inference
+    await this.db.batch([
+      // Budget header upsert
+      this.db
+        .insert(budgets)
+        .values(budgetData)
+        .onConflictDoUpdate({
+          target: budgets.id,
+          set: {
+            name: budgetData.name,
+            status: budgetData.status,
+            approvedBy: budgetData.approvedBy,
+            approvedAt: budgetData.approvedAt,
+            updatedAt: budgetData.updatedAt,
+          },
+        }),
+      // Budget lines upserts
+      ...linesData.map((lineData) =>
+        this.db
+          .insert(budgetLines)
+          .values(lineData)
+          .onConflictDoUpdate({
+            target: budgetLines.id,
+            set: {
+              amount: lineData.amount,
+              notes: lineData.notes,
+              updatedAt: lineData.updatedAt,
+            },
+          })
+      ),
+      // Revisions inserts
+      ...revisionsData.map((revData) => this.db.insert(budgetRevisions).values(revData)),
+    ]);
+  }
+
   async delete(id: string): Promise<void> {
     await this.db.delete(budgets).where(eq(budgets.id, id));
   }

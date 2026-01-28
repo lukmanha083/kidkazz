@@ -30,6 +30,7 @@ const mockJournalEntryRepository: IJournalEntryRepository = {
 
 const mockAccountRepository: IAccountRepository = {
   findById: vi.fn(),
+  findByIds: vi.fn(),
   findByCode: vi.fn(),
   findAll: vi.fn(),
   findByParentId: vi.fn(),

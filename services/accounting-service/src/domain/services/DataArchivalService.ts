@@ -279,11 +279,14 @@ export class DataArchivalService {
   }
 
   /**
-   * Verify archive integrity
+   * Verify archive integrity by comparing expected checksum with stored checksum
+   * @param archiveId - The archive ID to verify
+   * @param expectedChecksum - The checksum to compare against the stored checksum
+   * @returns true if checksums match, false otherwise
    */
-  async verifyArchiveIntegrity(archiveId: string, data: string): Promise<boolean> {
+  async verifyArchiveIntegrity(archiveId: string, expectedChecksum: string): Promise<boolean> {
     const archive = await this.archivedDataRepository.findById(archiveId);
     if (!archive) return false;
-    return archive.verifyIntegrity(data);
+    return archive.checksum === expectedChecksum;
   }
 }

@@ -11,7 +11,7 @@ import {
   chartOfAccounts,
   journalLines,
 } from '@/infrastructure/db/schema';
-import { and, eq, isNull, like, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, like, sql } from 'drizzle-orm';
 
 // Generic database type that works with both D1 and SQLite
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -35,6 +35,19 @@ export class DrizzleAccountRepository implements IAccountRepository {
     }
 
     return this.toDomain(result[0]);
+  }
+
+  async findByIds(ids: string[]): Promise<Account[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const results = await this.db
+      .select()
+      .from(chartOfAccounts)
+      .where(inArray(chartOfAccounts.id, ids));
+
+    return results.map((row: ChartOfAccountsRecord) => this.toDomain(row));
   }
 
   async findByCode(code: string): Promise<Account | null> {

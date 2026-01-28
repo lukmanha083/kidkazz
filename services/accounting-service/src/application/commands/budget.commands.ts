@@ -78,14 +78,17 @@ export class UpdateBudgetLinesHandler {
       throw new Error('Budget not found');
     }
 
+    // Collect all revisions
+    const revisions = [];
     for (const line of command.lines) {
       const revision = budget.setLine(line, command.userId);
       if (revision) {
-        await this.budgetRepository.saveRevision(revision);
+        revisions.push(revision);
       }
     }
 
-    await this.budgetRepository.save(budget);
+    // Save budget and revisions atomically
+    await this.budgetRepository.saveWithRevisions(budget, revisions);
   }
 }
 

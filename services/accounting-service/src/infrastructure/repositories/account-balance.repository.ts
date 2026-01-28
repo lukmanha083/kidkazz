@@ -2,7 +2,7 @@ import { AccountBalance } from '@/domain/entities/account-balance.entity';
 import type { IAccountBalanceRepository } from '@/domain/repositories/account-balance.repository';
 import { FiscalPeriod } from '@/domain/value-objects';
 import { type AccountBalanceRecord, accountBalances } from '@/infrastructure/db/schema';
-import { and, desc, eq, lte, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, lte, sql } from 'drizzle-orm';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DrizzleDB = any;
@@ -188,6 +188,21 @@ export class DrizzleAccountBalanceRepository implements IAccountBalanceRepositor
       debitTotal: result[0]?.debitTotal || 0,
       creditTotal: result[0]?.creditTotal || 0,
     };
+  }
+
+  async findByAccountsAndYear(accountIds: string[], year: number): Promise<AccountBalance[]> {
+    if (accountIds.length === 0) {
+      return [];
+    }
+
+    const results = await this.db
+      .select()
+      .from(accountBalances)
+      .where(
+        and(inArray(accountBalances.accountId, accountIds), eq(accountBalances.fiscalYear, year))
+      );
+
+    return results.map((r: AccountBalanceRecord) => this.toDomain(r));
   }
 
   private toDomain(record: AccountBalanceRecord): AccountBalance {

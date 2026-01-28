@@ -95,6 +95,15 @@ export interface IProcessedEventRepository {
   ): Promise<ProcessedEvent[]>;
 
   /**
+   * Find recent processed events (all types)
+   */
+  findRecent(options?: {
+    result?: 'success' | 'failed' | 'skipped';
+    limit?: number;
+    offset?: number;
+  }): Promise<ProcessedEvent[]>;
+
+  /**
    * Delete old processed event records (cleanup)
    */
   deleteOldRecords(olderThan: Date): Promise<number>;

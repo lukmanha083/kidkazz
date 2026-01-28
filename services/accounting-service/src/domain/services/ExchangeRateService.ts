@@ -220,12 +220,12 @@ export class ExchangeRateService {
    * Falls back to the most recent rate if no rate exists for the exact date
    */
   async getRate(date: Date): Promise<ExchangeRate | null> {
-    // Try to find exact date rate
-    let rate = await this.exchangeRateRepository.findByDate(date);
+    // Try to find exact date rate for USD/IDR
+    let rate = await this.exchangeRateRepository.findByDate('USD', 'IDR', date);
 
     // If not found, fall back to latest rate
     if (!rate) {
-      rate = await this.exchangeRateRepository.findLatest();
+      rate = await this.exchangeRateRepository.findLatest('USD', 'IDR');
     }
 
     return rate;
@@ -357,13 +357,13 @@ export class ExchangeRateService {
    * Get exchange rate history
    */
   async getHistory(limit = 30): Promise<ExchangeRate[]> {
-    return this.exchangeRateRepository.findHistory(limit);
+    return this.exchangeRateRepository.findHistory('USD', 'IDR', limit);
   }
 
   /**
    * Get latest exchange rate
    */
   async getLatestRate(): Promise<ExchangeRate | null> {
-    return this.exchangeRateRepository.findLatest();
+    return this.exchangeRateRepository.findLatest('USD', 'IDR');
   }
 }

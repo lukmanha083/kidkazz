@@ -16,6 +16,7 @@ import type { IAccountRepository } from '@/domain/repositories';
 // Mock repository
 const mockAccountRepository: IAccountRepository = {
   findById: vi.fn(),
+  findByIds: vi.fn(),
   findByCode: vi.fn(),
   findAll: vi.fn(),
   findByParentId: vi.fn(),

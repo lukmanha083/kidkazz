@@ -137,7 +137,8 @@ export class DrizzleDomainEventRepository implements IDomainEventRepository {
         )
       );
 
-    return (result as { changes?: number }).changes || 0;
+    // D1 returns result in meta.changes format
+    return (result as { meta?: { changes?: number } }).meta?.changes ?? 0;
   }
 
   private toDomain(record: schema.DomainEventRecord): StoredDomainEvent {
@@ -228,12 +229,34 @@ export class DrizzleProcessedEventRepository implements IProcessedEventRepositor
     return results.map(this.toDomain);
   }
 
+  async findRecent(
+    options?: { result?: 'success' | 'failed' | 'skipped'; limit?: number; offset?: number }
+  ): Promise<ProcessedEvent[]> {
+    let query;
+
+    if (options?.result) {
+      query = this.db
+        .select()
+        .from(processedEvents)
+        .where(eq(processedEvents.result, options.result));
+    } else {
+      query = this.db.select().from(processedEvents);
+    }
+
+    const results = await query
+      .orderBy(desc(processedEvents.processedAt))
+      .limit(options?.limit || 100)
+      .offset(options?.offset || 0);
+
+    return results.map(this.toDomain);
+  }
+
   async deleteOldRecords(olderThan: Date): Promise<number> {
     const result = await this.db
       .delete(processedEvents)
       .where(lt(processedEvents.processedAt, olderThan.toISOString()));
 
-    return (result as { changes?: number }).changes || 0;
+    return (result as { meta?: { changes?: number } }).meta?.changes ?? 0;
   }
 
   private toDomain(record: schema.ProcessedEventRecord): ProcessedEvent {

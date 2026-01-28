@@ -4,7 +4,7 @@ import type {
   ICurrencyRepository,
   IExchangeRateRepository,
 } from '@/domain/repositories/currency.repository';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import type * as schema from '../db/schema';
 import { currencies, exchangeRates } from '../db/schema';
@@ -103,22 +103,38 @@ export class DrizzleExchangeRateRepository implements IExchangeRateRepository {
     return this.toDomain(results[0]);
   }
 
-  async findByDate(effectiveDate: Date): Promise<ExchangeRate | null> {
+  async findByDate(
+    fromCurrency: string,
+    toCurrency: string,
+    effectiveDate: Date
+  ): Promise<ExchangeRate | null> {
     const dateStr = effectiveDate.toISOString().split('T')[0];
     const results = await this.db
       .select()
       .from(exchangeRates)
-      .where(eq(exchangeRates.effectiveDate, dateStr))
+      .where(
+        and(
+          eq(exchangeRates.fromCurrency, fromCurrency.toUpperCase()),
+          eq(exchangeRates.toCurrency, toCurrency.toUpperCase()),
+          eq(exchangeRates.effectiveDate, dateStr)
+        )
+      )
       .limit(1);
 
     if (results.length === 0) return null;
     return this.toDomain(results[0]);
   }
 
-  async findLatest(): Promise<ExchangeRate | null> {
+  async findLatest(fromCurrency: string, toCurrency: string): Promise<ExchangeRate | null> {
     const results = await this.db
       .select()
       .from(exchangeRates)
+      .where(
+        and(
+          eq(exchangeRates.fromCurrency, fromCurrency.toUpperCase()),
+          eq(exchangeRates.toCurrency, toCurrency.toUpperCase())
+        )
+      )
       .orderBy(desc(exchangeRates.effectiveDate))
       .limit(1);
 
@@ -126,10 +142,16 @@ export class DrizzleExchangeRateRepository implements IExchangeRateRepository {
     return this.toDomain(results[0]);
   }
 
-  async findHistory(limit = 30): Promise<ExchangeRate[]> {
+  async findHistory(fromCurrency: string, toCurrency: string, limit = 30): Promise<ExchangeRate[]> {
     const results = await this.db
       .select()
       .from(exchangeRates)
+      .where(
+        and(
+          eq(exchangeRates.fromCurrency, fromCurrency.toUpperCase()),
+          eq(exchangeRates.toCurrency, toCurrency.toUpperCase())
+        )
+      )
       .orderBy(desc(exchangeRates.effectiveDate))
       .limit(limit);
 
@@ -165,12 +187,22 @@ export class DrizzleExchangeRateRepository implements IExchangeRateRepository {
     await this.db.delete(exchangeRates).where(eq(exchangeRates.id, id));
   }
 
-  async rateExistsForDate(effectiveDate: Date): Promise<boolean> {
+  async rateExistsForDate(
+    fromCurrency: string,
+    toCurrency: string,
+    effectiveDate: Date
+  ): Promise<boolean> {
     const dateStr = effectiveDate.toISOString().split('T')[0];
     const results = await this.db
       .select({ id: exchangeRates.id })
       .from(exchangeRates)
-      .where(eq(exchangeRates.effectiveDate, dateStr))
+      .where(
+        and(
+          eq(exchangeRates.fromCurrency, fromCurrency.toUpperCase()),
+          eq(exchangeRates.toCurrency, toCurrency.toUpperCase()),
+          eq(exchangeRates.effectiveDate, dateStr)
+        )
+      )
       .limit(1);
 
     return results.length > 0;

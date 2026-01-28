@@ -141,8 +141,8 @@ eventRoutes.get('/processed', zValidator('query', listProcessedEventsQuerySchema
       offset: query.offset,
     });
   } else {
-    // List recent processed events
-    events = await repository.findByEventType('', {
+    // List recent processed events (all types)
+    events = await repository.findRecent({
       result: query.result,
       limit: query.limit || 100,
       offset: query.offset,
