@@ -716,6 +716,61 @@ export const cashThresholdConfig = sqliteTable(
   })
 );
 
+// =====================================================
+// Event-Driven Integration Tables
+// =====================================================
+
+/**
+ * Domain Events table (Outbox pattern)
+ * Stores events to be published reliably
+ */
+export const domainEvents = sqliteTable(
+  'domain_events',
+  {
+    id: text('id').primaryKey(),
+    eventType: text('event_type').notNull(),
+    aggregateId: text('aggregate_id').notNull(),
+    aggregateType: text('aggregate_type').notNull(),
+    payload: text('payload').notNull(), // JSON
+    occurredAt: text('occurred_at').notNull(),
+    publishedAt: text('published_at'),
+    status: text('status', { enum: ['pending', 'published', 'failed'] })
+      .notNull()
+      .default('pending'),
+    retryCount: integer('retry_count').notNull().default(0),
+    lastError: text('last_error'),
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => ({
+    statusIdx: index('idx_domain_events_status').on(table.status),
+    eventTypeIdx: index('idx_domain_events_type').on(table.eventType),
+    aggregateIdx: index('idx_domain_events_aggregate').on(table.aggregateType, table.aggregateId),
+    occurredAtIdx: index('idx_domain_events_occurred').on(table.occurredAt),
+  })
+);
+
+/**
+ * Processed Events table (Idempotency tracking)
+ * Tracks events that have been processed to prevent duplicates
+ */
+export const processedEvents = sqliteTable(
+  'processed_events',
+  {
+    id: text('id').primaryKey(),
+    eventId: text('event_id').notNull().unique(),
+    eventType: text('event_type').notNull(),
+    processedAt: text('processed_at').notNull(),
+    result: text('result', { enum: ['success', 'failed', 'skipped'] }).notNull(),
+    errorMessage: text('error_message'),
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => ({
+    eventIdIdx: uniqueIndex('idx_processed_events_event_id').on(table.eventId),
+    eventTypeIdx: index('idx_processed_events_type').on(table.eventType),
+    resultIdx: index('idx_processed_events_result').on(table.result),
+  })
+);
+
 // Type exports for use in repositories
 export type ChartOfAccountsRecord = typeof chartOfAccounts.$inferSelect;
 export type JournalEntryRecord = typeof journalEntries.$inferSelect;
@@ -738,3 +793,304 @@ export type BankTransactionRecord = typeof bankTransactions.$inferSelect;
 export type BankReconciliationRecord = typeof bankReconciliations.$inferSelect;
 export type ReconciliationItemRecord = typeof reconciliationItems.$inferSelect;
 export type CashThresholdConfigRecord = typeof cashThresholdConfig.$inferSelect;
+
+// =====================================================
+// Multi-Currency Support Tables
+// =====================================================
+
+/**
+ * Currencies table
+ * Stores supported currencies with ISO 4217 codes
+ */
+export const currencies = sqliteTable(
+  'currencies',
+  {
+    code: text('code').primaryKey(), // ISO 4217: USD, IDR, SGD
+    name: text('name').notNull(),
+    symbol: text('symbol').notNull(),
+    decimalPlaces: integer('decimal_places').notNull().default(2),
+    isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+    isBaseCurrency: integer('is_base_currency', { mode: 'boolean' }).notNull().default(false),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (table) => ({
+    activeIdx: index('idx_currencies_active').on(table.isActive),
+    baseIdx: index('idx_currencies_base').on(table.isBaseCurrency),
+  })
+);
+
+/**
+ * Exchange Rates table
+ * Historical exchange rates for currency conversion
+ */
+export const exchangeRates = sqliteTable(
+  'exchange_rates',
+  {
+    id: text('id').primaryKey(),
+    fromCurrency: text('from_currency')
+      .notNull()
+      .references(() => currencies.code, { onDelete: 'restrict' }),
+    toCurrency: text('to_currency')
+      .notNull()
+      .references(() => currencies.code, { onDelete: 'restrict' }),
+    rate: real('rate').notNull(),
+    effectiveDate: text('effective_date').notNull(),
+    source: text('source', { enum: ['manual', 'api', 'bank'] }),
+    createdBy: text('created_by'),
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => ({
+    fromIdx: index('idx_exchange_rates_from').on(table.fromCurrency),
+    toIdx: index('idx_exchange_rates_to').on(table.toCurrency),
+    dateIdx: index('idx_exchange_rates_date').on(table.effectiveDate),
+    uniqueIdx: uniqueIndex('idx_exchange_rates_unique').on(
+      table.fromCurrency,
+      table.toCurrency,
+      table.effectiveDate
+    ),
+  })
+);
+
+/**
+ * Currency Revaluations table
+ * Tracks month-end foreign currency revaluation
+ */
+export const currencyRevaluations = sqliteTable(
+  'currency_revaluations',
+  {
+    id: text('id').primaryKey(),
+    fiscalYear: integer('fiscal_year').notNull(),
+    fiscalMonth: integer('fiscal_month').notNull(),
+    revaluationDate: text('revaluation_date').notNull(),
+    status: text('status', { enum: ['draft', 'posted', 'reversed'] })
+      .notNull()
+      .default('draft'),
+    totalUnrealizedGain: real('total_unrealized_gain').notNull().default(0),
+    totalUnrealizedLoss: real('total_unrealized_loss').notNull().default(0),
+    netGainLoss: real('net_gain_loss').notNull().default(0),
+    journalEntryId: text('journal_entry_id'),
+    createdBy: text('created_by').notNull(),
+    createdAt: text('created_at').notNull(),
+    postedBy: text('posted_by'),
+    postedAt: text('posted_at'),
+  },
+  (table) => ({
+    periodIdx: index('idx_currency_revaluations_period').on(table.fiscalYear, table.fiscalMonth),
+    statusIdx: index('idx_currency_revaluations_status').on(table.status),
+  })
+);
+
+/**
+ * Currency Revaluation Lines table
+ * Individual account revaluation details
+ */
+export const currencyRevaluationLines = sqliteTable(
+  'currency_revaluation_lines',
+  {
+    id: text('id').primaryKey(),
+    revaluationId: text('revaluation_id')
+      .notNull()
+      .references(() => currencyRevaluations.id, { onDelete: 'cascade' }),
+    accountId: text('account_id')
+      .notNull()
+      .references(() => chartOfAccounts.id, { onDelete: 'restrict' }),
+    currency: text('currency')
+      .notNull()
+      .references(() => currencies.code, { onDelete: 'restrict' }),
+    foreignBalance: real('foreign_balance').notNull(),
+    originalRate: real('original_rate').notNull(),
+    newRate: real('new_rate').notNull(),
+    originalBaseAmount: real('original_base_amount').notNull(),
+    newBaseAmount: real('new_base_amount').notNull(),
+    gainLoss: real('gain_loss').notNull(),
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => ({
+    revaluationIdx: index('idx_revaluation_lines_revaluation').on(table.revaluationId),
+    accountIdx: index('idx_revaluation_lines_account').on(table.accountId),
+  })
+);
+
+// Event-Driven Integration type exports
+export type DomainEventRecord = typeof domainEvents.$inferSelect;
+export type ProcessedEventRecord = typeof processedEvents.$inferSelect;
+
+// =====================================================
+// Budget Management Tables
+// =====================================================
+
+/**
+ * Budgets table
+ */
+export const budgets = sqliteTable(
+  'budgets',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    fiscalYear: integer('fiscal_year').notNull(),
+    status: text('status', { enum: ['draft', 'approved', 'locked'] })
+      .notNull()
+      .default('draft'),
+    approvedBy: text('approved_by'),
+    approvedAt: text('approved_at'),
+    createdBy: text('created_by').notNull(),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (table) => ({
+    fiscalYearIdx: index('idx_budgets_fiscal_year').on(table.fiscalYear),
+    statusIdx: index('idx_budgets_status').on(table.status),
+    yearNameIdx: uniqueIndex('idx_budgets_year_name').on(table.fiscalYear, table.name),
+  })
+);
+
+/**
+ * Budget Lines table
+ */
+export const budgetLines = sqliteTable(
+  'budget_lines',
+  {
+    id: text('id').primaryKey(),
+    budgetId: text('budget_id')
+      .notNull()
+      .references(() => budgets.id, { onDelete: 'cascade' }),
+    accountId: text('account_id')
+      .notNull()
+      .references(() => chartOfAccounts.id, { onDelete: 'restrict' }),
+    fiscalMonth: integer('fiscal_month').notNull(),
+    amount: real('amount').notNull().default(0),
+    notes: text('notes'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (table) => ({
+    budgetIdx: index('idx_budget_lines_budget').on(table.budgetId),
+    accountIdx: index('idx_budget_lines_account').on(table.accountId),
+    uniqueIdx: uniqueIndex('idx_budget_lines_unique').on(table.budgetId, table.accountId, table.fiscalMonth),
+  })
+);
+
+/**
+ * Budget Revisions table
+ */
+export const budgetRevisions = sqliteTable(
+  'budget_revisions',
+  {
+    id: text('id').primaryKey(),
+    budgetLineId: text('budget_line_id')
+      .notNull()
+      .references(() => budgetLines.id, { onDelete: 'cascade' }),
+    previousAmount: real('previous_amount').notNull(),
+    newAmount: real('new_amount').notNull(),
+    reason: text('reason').notNull(),
+    revisedBy: text('revised_by').notNull(),
+    revisedAt: text('revised_at').notNull(),
+  },
+  (table) => ({
+    lineIdx: index('idx_budget_revisions_line').on(table.budgetLineId),
+    dateIdx: index('idx_budget_revisions_date').on(table.revisedAt),
+  })
+);
+
+// Multi-Currency type exports
+export type CurrencyRecord = typeof currencies.$inferSelect;
+export type ExchangeRateRecord = typeof exchangeRates.$inferSelect;
+export type CurrencyRevaluationRecord = typeof currencyRevaluations.$inferSelect;
+export type CurrencyRevaluationLineRecord = typeof currencyRevaluationLines.$inferSelect;
+
+// Budget type exports
+export type BudgetRecord = typeof budgets.$inferSelect;
+export type BudgetLineRecord = typeof budgetLines.$inferSelect;
+export type BudgetRevisionRecord = typeof budgetRevisions.$inferSelect;
+
+// =====================================================
+// Audit Trail & Compliance Tables
+// =====================================================
+
+/**
+ * Audit Logs table
+ * Comprehensive audit trail for all entity changes
+ */
+export const auditLogs = sqliteTable(
+  'audit_logs',
+  {
+    id: text('id').primaryKey(),
+    timestamp: text('timestamp').notNull(),
+    userId: text('user_id').notNull(),
+    userName: text('user_name'),
+    action: text('action', {
+      enum: ['CREATE', 'UPDATE', 'DELETE', 'VOID', 'APPROVE', 'POST', 'CLOSE', 'REOPEN'],
+    }).notNull(),
+    entityType: text('entity_type').notNull(), // JournalEntry, Account, FiscalPeriod, etc.
+    entityId: text('entity_id').notNull(),
+    oldValues: text('old_values'), // JSON
+    newValues: text('new_values'), // JSON
+    ipAddress: text('ip_address'),
+    userAgent: text('user_agent'),
+    metadata: text('metadata'), // Additional context JSON
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => ({
+    entityIdx: index('idx_audit_logs_entity').on(table.entityType, table.entityId),
+    userIdx: index('idx_audit_logs_user').on(table.userId),
+    timestampIdx: index('idx_audit_logs_timestamp').on(table.timestamp),
+    actionIdx: index('idx_audit_logs_action').on(table.action),
+  })
+);
+
+/**
+ * Tax Summary table
+ * Period tax summaries for Indonesian tax compliance
+ */
+export const taxSummary = sqliteTable(
+  'tax_summary',
+  {
+    id: text('id').primaryKey(),
+    fiscalYear: integer('fiscal_year').notNull(),
+    fiscalMonth: integer('fiscal_month').notNull(),
+    taxType: text('tax_type', {
+      enum: ['PPN', 'PPH21', 'PPH23', 'PPH4_2'],
+    }).notNull(),
+    grossAmount: real('gross_amount').notNull().default(0),
+    taxAmount: real('tax_amount').notNull().default(0),
+    netAmount: real('net_amount').notNull().default(0),
+    transactionCount: integer('transaction_count').notNull().default(0),
+    calculatedAt: text('calculated_at').notNull(),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+  },
+  (table) => ({
+    periodIdx: index('idx_tax_summary_period').on(table.fiscalYear, table.fiscalMonth),
+    typeIdx: index('idx_tax_summary_type').on(table.taxType),
+    uniqueIdx: uniqueIndex('idx_tax_summary_unique').on(table.fiscalYear, table.fiscalMonth, table.taxType),
+  })
+);
+
+/**
+ * Archived Data table
+ * Tracks data archival for retention policy compliance
+ */
+export const archivedData = sqliteTable(
+  'archived_data',
+  {
+    id: text('id').primaryKey(),
+    archiveType: text('archive_type').notNull(), // journal_entries, audit_logs
+    fiscalYear: integer('fiscal_year').notNull(),
+    recordCount: integer('record_count').notNull(),
+    archivePath: text('archive_path'), // Cloud storage path
+    archivedAt: text('archived_at').notNull(),
+    archivedBy: text('archived_by').notNull(),
+    checksum: text('checksum').notNull(), // Data integrity verification
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => ({
+    typeIdx: index('idx_archived_data_type').on(table.archiveType, table.fiscalYear),
+    archivedAtIdx: index('idx_archived_data_at').on(table.archivedAt),
+  })
+);
+
+// Audit Trail type exports
+export type AuditLogRecord = typeof auditLogs.$inferSelect;
+export type TaxSummaryRecord = typeof taxSummary.$inferSelect;
+export type ArchivedDataRecord = typeof archivedData.$inferSelect;

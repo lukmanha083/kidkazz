@@ -9,3 +9,7 @@ export { fiscalPeriodRoutes } from './fiscal-period.routes';
 export { reportsRoutes } from './reports.routes';
 export { bankAccountRoutes } from './bank-account.routes';
 export { reconciliationRoutes } from './reconciliation.routes';
+export { eventRoutes } from './event.routes';
+export { currencyRoutes } from './currency.routes';
+export { budgetRoutes } from './budget.routes';
+export { auditRoutes } from './audit.routes';
