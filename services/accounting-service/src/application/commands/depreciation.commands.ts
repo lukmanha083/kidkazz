@@ -3,7 +3,6 @@ import type { FixedAsset } from '@/domain/entities';
 import {
   DepreciationScheduleStatus,
   DepreciationRunStatus,
-  AssetStatus,
   FiscalPeriod,
 } from '@/domain/value-objects';
 import { DepreciationCalculatorFactory } from '@/domain/services/DepreciationCalculator';
