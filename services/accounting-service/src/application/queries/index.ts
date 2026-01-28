@@ -113,3 +113,27 @@ export {
   type AccountBalanceItem as BalanceSheetAccountItem,
   type BalanceSheetResult,
 } from './balance-sheet.queries';
+
+export {
+  GetCashFlowStatementQuery,
+  GetCashFlowStatementHandler,
+  type CashFlowStatementDependencies,
+  type CashFlowStatementResult,
+  type WorkingCapitalData,
+  type InvestingActivityData,
+  type FinancingActivityData,
+} from './cash-flow-statement.queries';
+
+export {
+  GetCashPositionQuery,
+  GetCashPositionHandler,
+  type CashPositionDependencies,
+  type CashPositionQueryResult,
+} from './cash-position.queries';
+
+export {
+  GetCashForecastQuery,
+  GetCashForecastHandler,
+  type CashForecastDependencies,
+  type CashForecastQueryResult,
+} from './cash-forecast.queries';

@@ -19,3 +19,14 @@ export {
   DepreciationRunStatus,
   TaxAssetGroup,
 } from './asset-enums';
+export {
+  BankAccountType,
+  BankAccountStatus,
+  BankTransactionType,
+  BankTransactionMatchStatus,
+  ReconciliationStatus,
+  ReconciliationItemType,
+  ReconciliationItemStatus,
+  CashAlertLevel,
+  CashFlowActivityType,
+} from './cash-management-enums';

@@ -7,3 +7,5 @@ export { maintenanceRoutes } from './maintenance.routes';
 export { movementRoutes } from './movement.routes';
 export { fiscalPeriodRoutes } from './fiscal-period.routes';
 export { reportsRoutes } from './reports.routes';
+export { bankAccountRoutes } from './bank-account.routes';
+export { reconciliationRoutes } from './reconciliation.routes';

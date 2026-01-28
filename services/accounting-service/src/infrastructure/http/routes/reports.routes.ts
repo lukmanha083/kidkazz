@@ -1,24 +1,32 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
+import { z } from 'zod';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import { eq, and, sql } from 'drizzle-orm';
 import { FiscalPeriod, FiscalPeriodStatus } from '@/domain/value-objects';
 import { GetTrialBalanceHandler, type TrialBalanceDependencies } from '@/application/queries/trial-balance.queries';
 import { GetIncomeStatementHandler, type IncomeStatementDependencies } from '@/application/queries/income-statement.queries';
 import { GetBalanceSheetHandler, type BalanceSheetDependencies } from '@/application/queries/balance-sheet.queries';
+import { GetCashPositionHandler, type CashPositionDependencies } from '@/application/queries/cash-position.queries';
+import { GetCashForecastHandler, type CashForecastDependencies } from '@/application/queries/cash-forecast.queries';
 import { PeriodCloseService, type PeriodCloseServiceDependencies } from '@/domain/services/PeriodCloseService';
+import type { CashAccountBalance, CashThresholdConfig } from '@/domain/services/CashPositionService';
+import type { ExpectedCollection, ScheduledPayment, RecurringPayments } from '@/domain/services/CashForecastService';
 import {
   trialBalanceQuerySchema,
   incomeStatementQuerySchema,
   balanceSheetQuerySchema,
   closeChecklistQuerySchema,
-} from '@/application/dtos/report.dto';
+  cashPositionQuerySchema,
+  cashForecastQuerySchema,
+} from '@/application/dtos';
 import {
   chartOfAccounts,
   journalEntries,
   journalLines,
   accountBalances,
   fiscalPeriods,
+  cashThresholdConfig,
 } from '@/infrastructure/db/schema';
 import type * as schema from '@/infrastructure/db/schema';
 
@@ -461,6 +469,254 @@ reportsRoutes.get('/close-checklist', zValidator('query', closeChecklistQuerySch
   return c.json({
     success: true,
     data: checklist,
+  });
+});
+
+// ============================================================================
+// Cash Position Report
+// ============================================================================
+
+/**
+ * GET /reports/cash-position - Get real-time cash position
+ */
+reportsRoutes.get('/cash-position', zValidator('query', cashPositionQuerySchema), async (c) => {
+  const db = c.get('db');
+  const query = c.req.valid('query');
+
+  const asOfDate = query.asOfDate ? new Date(query.asOfDate) : new Date();
+
+  const deps: CashPositionDependencies = {
+    async getCashAccountBalances(_date: Date): Promise<CashAccountBalance[]> {
+      // Get all cash accounts (codes 1010-1039)
+      const results = await db
+        .select({
+          accountId: chartOfAccounts.id,
+          accountCode: chartOfAccounts.code,
+          accountName: chartOfAccounts.name,
+          balance: sql<number>`COALESCE(${accountBalances.closingBalance}, 0)`,
+        })
+        .from(chartOfAccounts)
+        .leftJoin(
+          accountBalances,
+          and(
+            eq(accountBalances.accountId, chartOfAccounts.id),
+            eq(accountBalances.fiscalYear, asOfDate.getFullYear()),
+            eq(accountBalances.fiscalMonth, asOfDate.getMonth() + 1)
+          )
+        )
+        .where(
+          and(
+            eq(chartOfAccounts.isDetailAccount, true),
+            eq(chartOfAccounts.status, 'Active'),
+            sql`${chartOfAccounts.code} LIKE '101%' OR ${chartOfAccounts.code} LIKE '102%' OR ${chartOfAccounts.code} LIKE '103%'`
+          )
+        );
+
+      return results.map((r) => ({
+        accountCode: r.accountCode,
+        accountName: r.accountName,
+        balance: r.balance,
+      }));
+    },
+
+    async getThresholdConfig(): Promise<CashThresholdConfig | null> {
+      const result = await db.select().from(cashThresholdConfig).limit(1);
+      if (result.length === 0) return null;
+
+      return {
+        warningThreshold: result[0].warningThreshold,
+        criticalThreshold: result[0].criticalThreshold,
+        emergencyThreshold: result[0].emergencyThreshold,
+      };
+    },
+  };
+
+  const handler = new GetCashPositionHandler(deps);
+  const result = await handler.execute({
+    asOfDate,
+    includeThresholdCheck: query.includeThresholdCheck,
+  });
+
+  return c.json({
+    success: true,
+    data: result,
+  });
+});
+
+// ============================================================================
+// Cash Forecast Report
+// ============================================================================
+
+/**
+ * GET /reports/cash-forecast - Get 30-day cash forecast
+ */
+reportsRoutes.get('/cash-forecast', zValidator('query', cashForecastQuerySchema), async (c) => {
+  const db = c.get('db');
+  const query = c.req.valid('query');
+
+  const deps: CashForecastDependencies = {
+    async getCurrentCashBalance(): Promise<number> {
+      // Get sum of all cash accounts
+      const result = await db
+        .select({
+          total: sql<number>`COALESCE(SUM(${accountBalances.closingBalance}), 0)`,
+        })
+        .from(accountBalances)
+        .innerJoin(chartOfAccounts, eq(accountBalances.accountId, chartOfAccounts.id))
+        .where(
+          and(
+            sql`${chartOfAccounts.code} LIKE '101%' OR ${chartOfAccounts.code} LIKE '102%' OR ${chartOfAccounts.code} LIKE '103%'`,
+            eq(accountBalances.fiscalYear, new Date().getFullYear()),
+            eq(accountBalances.fiscalMonth, new Date().getMonth() + 1)
+          )
+        );
+
+      return result[0]?.total ?? 0;
+    },
+
+    async getExpectedARCollections(_weeks: number): Promise<ExpectedCollection[]> {
+      // TODO: Implement AR aging-based collection estimates
+      // For now, return empty array
+      return [];
+    },
+
+    async getScheduledAPPayments(_weeks: number): Promise<ScheduledPayment[]> {
+      // TODO: Implement AP aging-based payment schedules
+      // For now, return empty array
+      return [];
+    },
+
+    async getRecurringPayments(): Promise<RecurringPayments> {
+      // TODO: Implement recurring payment configuration
+      // For now, return empty config
+      return {};
+    },
+
+    async getAverageDailySales(): Promise<number> {
+      // TODO: Calculate average daily sales from revenue accounts
+      // For now, return 0
+      return 0;
+    },
+
+    async getThresholdConfig(): Promise<CashThresholdConfig | null> {
+      const result = await db.select().from(cashThresholdConfig).limit(1);
+      if (result.length === 0) return null;
+
+      return {
+        warningThreshold: result[0].warningThreshold,
+        criticalThreshold: result[0].criticalThreshold,
+        emergencyThreshold: result[0].emergencyThreshold,
+      };
+    },
+  };
+
+  const handler = new GetCashForecastHandler(deps);
+  const result = await handler.execute({
+    weeks: query.weeks,
+    includeThresholdAlerts: query.includeThresholdAlerts,
+  });
+
+  return c.json({
+    success: true,
+    data: result,
+  });
+});
+
+// ============================================================================
+// Cash Threshold Config
+// ============================================================================
+
+const updateThresholdSchema = z.object({
+  warningThreshold: z.number().positive(),
+  criticalThreshold: z.number().positive(),
+  emergencyThreshold: z.number().positive(),
+});
+
+/**
+ * GET /reports/cash-threshold - Get cash threshold config
+ */
+reportsRoutes.get('/cash-threshold', async (c) => {
+  const db = c.get('db');
+
+  const result = await db.select().from(cashThresholdConfig).limit(1);
+
+  if (result.length === 0) {
+    return c.json({
+      success: true,
+      data: {
+        warningThreshold: 300_000_000,
+        criticalThreshold: 275_000_000,
+        emergencyThreshold: 250_000_000,
+        updatedAt: new Date().toISOString(),
+        updatedBy: 'system',
+      },
+    });
+  }
+
+  return c.json({
+    success: true,
+    data: {
+      warningThreshold: result[0].warningThreshold,
+      criticalThreshold: result[0].criticalThreshold,
+      emergencyThreshold: result[0].emergencyThreshold,
+      updatedAt: result[0].updatedAt,
+      updatedBy: result[0].updatedBy,
+    },
+  });
+});
+
+/**
+ * PUT /reports/cash-threshold - Update cash threshold config
+ */
+reportsRoutes.put('/cash-threshold', zValidator('json', updateThresholdSchema), async (c) => {
+  const db = c.get('db');
+  const userId = c.get('userId');
+  const body = c.req.valid('json');
+
+  // Validate threshold order
+  if (body.warningThreshold <= body.criticalThreshold) {
+    return c.json({ success: false, error: 'Warning threshold must be greater than critical threshold' }, 400);
+  }
+  if (body.criticalThreshold <= body.emergencyThreshold) {
+    return c.json({ success: false, error: 'Critical threshold must be greater than emergency threshold' }, 400);
+  }
+
+  const now = new Date().toISOString();
+
+  // Upsert the config
+  await db
+    .insert(cashThresholdConfig)
+    .values({
+      id: 'default',
+      name: 'Default Cash Threshold',
+      warningThreshold: body.warningThreshold,
+      criticalThreshold: body.criticalThreshold,
+      emergencyThreshold: body.emergencyThreshold,
+      createdAt: now,
+      updatedAt: now,
+      createdBy: userId,
+      updatedBy: userId,
+    })
+    .onConflictDoUpdate({
+      target: cashThresholdConfig.id,
+      set: {
+        warningThreshold: body.warningThreshold,
+        criticalThreshold: body.criticalThreshold,
+        emergencyThreshold: body.emergencyThreshold,
+        updatedAt: now,
+        updatedBy: userId,
+      },
+    });
+
+  return c.json({
+    success: true,
+    data: {
+      warningThreshold: body.warningThreshold,
+      criticalThreshold: body.criticalThreshold,
+      emergencyThreshold: body.emergencyThreshold,
+      updatedAt: now,
+      updatedBy: userId,
+    },
   });
 });
 

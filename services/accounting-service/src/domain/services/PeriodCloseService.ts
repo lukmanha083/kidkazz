@@ -10,6 +10,16 @@ export interface TrialBalanceValidation {
 }
 
 /**
+ * Unreconciled bank account info
+ */
+export interface UnreconciledAccountInfo {
+  id: string;
+  bankName: string;
+  accountNumber: string;
+  lastReconciledDate?: Date;
+}
+
+/**
  * Dependencies for period close service
  */
 export interface PeriodCloseServiceDependencies {
@@ -32,6 +42,11 @@ export interface PeriodCloseServiceDependencies {
    * Validate trial balance for the period
    */
   getTrialBalanceValidation(period: FiscalPeriod): Promise<TrialBalanceValidation>;
+
+  /**
+   * Get bank accounts that need reconciliation for the period (Rule 21)
+   */
+  getUnreconciledBankAccounts?(period: FiscalPeriod): Promise<UnreconciledAccountInfo[]>;
 
   /**
    * Calculate and save account balances for the period
@@ -57,6 +72,9 @@ export interface CloseChecklistResult {
   draftEntriesCount: number;
   trialBalanceBalanced: boolean;
   trialBalanceDifference: number;
+  // Rule 21: All bank accounts must be reconciled
+  allBankAccountsReconciled: boolean;
+  unreconciledAccounts: UnreconciledAccountInfo[];
   canClose: boolean;
   blockers: string[];
 }
@@ -99,6 +117,8 @@ export class PeriodCloseService {
         draftEntriesCount: 0,
         trialBalanceBalanced: true,
         trialBalanceDifference: 0,
+        allBankAccountsReconciled: true,
+        unreconciledAccounts: [],
         canClose: false,
         blockers,
       };
@@ -133,8 +153,25 @@ export class PeriodCloseService {
       blockers.push(`Trial balance is out of balance by ${tbValidation.difference}`);
     }
 
+    // Check 4: All bank accounts must be reconciled (Rule 21)
+    let allBankAccountsReconciled = true;
+    let unreconciledAccounts: UnreconciledAccountInfo[] = [];
+
+    if (this.deps.getUnreconciledBankAccounts) {
+      unreconciledAccounts = await this.deps.getUnreconciledBankAccounts(period);
+      allBankAccountsReconciled = unreconciledAccounts.length === 0;
+
+      if (!allBankAccountsReconciled) {
+        const accountList = unreconciledAccounts
+          .map((a) => `${a.bankName} (${a.accountNumber})`)
+          .join(', ');
+        blockers.push(`Unreconciled bank accounts: ${accountList}`);
+      }
+    }
+
     // Can close if all checks pass
-    const canClose = previousPeriodClosed && noDraftEntries && trialBalanceBalanced;
+    const canClose =
+      previousPeriodClosed && noDraftEntries && trialBalanceBalanced && allBankAccountsReconciled;
 
     return {
       fiscalYear: period.year,
@@ -145,6 +182,8 @@ export class PeriodCloseService {
       draftEntriesCount,
       trialBalanceBalanced,
       trialBalanceDifference: tbValidation.difference,
+      allBankAccountsReconciled,
+      unreconciledAccounts,
       canClose,
       blockers,
     };
