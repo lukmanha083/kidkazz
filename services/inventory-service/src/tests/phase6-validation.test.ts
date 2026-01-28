@@ -12,9 +12,9 @@
  */
 
 import Database from 'better-sqlite3';
-import { and, eq, isNotNull, isNull, lt, sql } from 'drizzle-orm';
+import { and, eq, isNotNull, isNull, lt } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
   inventory,
   inventoryBatches,

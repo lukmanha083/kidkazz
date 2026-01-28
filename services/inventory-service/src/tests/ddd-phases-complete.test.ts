@@ -12,8 +12,8 @@
  * Phase 6: Testing & Validation
  */
 
-import { and, eq, gte, isNotNull, isNull, lt, sql } from 'drizzle-orm';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { eq } from 'drizzle-orm';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   db,
   generateId,

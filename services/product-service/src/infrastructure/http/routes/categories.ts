@@ -3,7 +3,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/d1';
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { generateId, generateTimestamp } from '../../../shared/utils/helpers';
+import { generateId } from '../../../shared/utils/helpers';
 import { categories } from '../../db/schema';
 
 type Bindings = {

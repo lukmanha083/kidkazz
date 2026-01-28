@@ -163,8 +163,6 @@ describe('BalanceCalculationService', () => {
   });
 
   describe('calculateTrialBalance', () => {
-    const testPeriod = FiscalPeriod.create(2025, 1);
-
     it('should calculate trial balance from account balances', async () => {
       const balances = [
         AccountBalance.fromPersistence({

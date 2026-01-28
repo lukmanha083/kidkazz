@@ -405,9 +405,6 @@ app.get('/nearby/customers', zValidator('query', proximityQuerySchema), async (c
   // Get geohashes to search (center + neighbors)
   const searchHashes = Geohash.withinRadius(latitude, longitude, radiusMeters, precision);
 
-  // Query with geohash prefix filter
-  const conditions = searchHashes.map((h) => like(customers.lastKnownGeohash, `${h}%`));
-
   // Use OR for multiple geohash prefixes
   const records = await db
     .select()

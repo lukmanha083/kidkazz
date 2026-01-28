@@ -76,7 +76,8 @@ export class DrizzleAccountRepository implements IAccountRepository {
 
     if (filter?.search) {
       // Escape LIKE wildcards to prevent injection
-      const escapedSearch = filter.search.replace(/[%_]/g, '\\$&');
+      // Must escape backslashes first, then LIKE wildcards
+      const escapedSearch = filter.search.replace(/\\/g, '\\\\').replace(/[%_]/g, '\\$&');
       conditions.push(like(chartOfAccounts.name, `%${escapedSearch}%`));
     }
 

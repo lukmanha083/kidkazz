@@ -1,5 +1,4 @@
-import { Hono } from 'hono';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 /**
  * Unit tests for UOM validation functions (per-warehouse)

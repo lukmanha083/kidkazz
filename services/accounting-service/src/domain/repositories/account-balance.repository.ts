@@ -1,5 +1,4 @@
 import { AccountBalance } from '@/domain/entities/account-balance.entity';
-import { FiscalPeriod } from '@/domain/value-objects';
 
 /**
  * Repository interface for AccountBalance

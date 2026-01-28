@@ -2,19 +2,6 @@ import { nanoid } from 'nanoid';
 import { BankTransactionType, BankTransactionMatchStatus } from '@/domain/value-objects';
 
 /**
- * Generate SHA-256 hash using Web Crypto API (works in Cloudflare Workers)
- * Returns first 32 hex characters of the hash
- */
-async function sha256Hash(data: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const dataBuffer = encoder.encode(data);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
-  return hashHex.substring(0, 32);
-}
-
-/**
  * Synchronous hash for entity creation (uses same algorithm deterministically)
  * This is needed because entity creation is synchronous
  */

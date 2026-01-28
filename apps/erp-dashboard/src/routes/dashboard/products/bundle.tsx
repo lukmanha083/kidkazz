@@ -307,12 +307,12 @@ function ProductBundlePage() {
 
         return {
           value: p.id,
-          label: `${p.name} (${p.sku}) - Stock: ${getProductStock(p.id)} PCS`,
+          label: `${p.name} (${p.sku}) - Stock: ${stockToShow} PCS`,
           barcode: p.barcode,
           name: p.name,
           sku: p.sku,
           price: p.price,
-          stock: getProductStock(p.id),
+          stock: stockToShow,
           baseUnit: p.baseUnit,
         };
       });

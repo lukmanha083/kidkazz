@@ -631,7 +631,7 @@ app.delete('/warehouse/:warehouseId', async (c) => {
     .run();
 
   // 4. Delete all inventory records for this warehouse
-  const deleteInventoryResult = await db
+  await db
     .delete(inventory)
     .where(eq(inventory.warehouseId, warehouseId))
     .run();
@@ -670,7 +670,6 @@ app.delete('/product/:productId', async (c) => {
     });
   }
 
-  const inventoryIds = inventoryRecords.map((inv) => inv.id);
   const totalStock = inventoryRecords.reduce((sum, inv) => sum + inv.quantityAvailable, 0);
 
   // 2. Delete all inventory movements for this product
@@ -680,7 +679,7 @@ app.delete('/product/:productId', async (c) => {
     .run();
 
   // 3. Delete all inventory records for this product
-  const deleteInventoryResult = await db
+  await db
     .delete(inventory)
     .where(eq(inventory.productId, productId))
     .run();

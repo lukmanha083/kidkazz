@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ReconciliationService } from '@/domain/services/ReconciliationService';
 import { BankReconciliation } from '@/domain/entities';
 import { BankTransaction } from '@/domain/entities';

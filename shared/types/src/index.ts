@@ -214,9 +214,29 @@ export class Email {
       throw new DomainError('Email cannot be empty');
     }
 
-    // Simple email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(cleaned)) {
+    // Email validation using string methods to avoid ReDoS vulnerability
+    // Check for exactly one @ symbol
+    const atIndex = cleaned.indexOf('@');
+    const lastAtIndex = cleaned.lastIndexOf('@');
+    if (atIndex === -1 || atIndex !== lastAtIndex) {
+      throw new DomainError('Invalid email format');
+    }
+
+    const localPart = cleaned.slice(0, atIndex);
+    const domainPart = cleaned.slice(atIndex + 1);
+
+    // Local part must not be empty and must not contain whitespace
+    if (!localPart || /\s/.test(localPart)) {
+      throw new DomainError('Invalid email format');
+    }
+
+    // Domain must have at least one dot and no whitespace
+    if (!domainPart || !domainPart.includes('.') || /\s/.test(domainPart)) {
+      throw new DomainError('Invalid email format');
+    }
+
+    // Domain must not start or end with a dot
+    if (domainPart.startsWith('.') || domainPart.endsWith('.')) {
       throw new DomainError('Invalid email format');
     }
 

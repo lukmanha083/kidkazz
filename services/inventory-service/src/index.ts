@@ -6,14 +6,10 @@ import { appRouter } from './infrastructure/trpc';
 import inventoryRoutes from './routes/inventory';
 import inventoryBatchesRoutes from './routes/inventory-batches';
 import warehousesRoutes from './routes/warehouses';
-import { handleScheduled } from './scheduled';
 
 // Export Durable Objects
 export { InventoryUpdatesBroadcaster } from './durable-objects/InventoryUpdatesBroadcaster';
 export { WarehouseUpdatesBroadcaster } from './durable-objects/WarehouseUpdatesBroadcaster';
-
-// Export scheduled event handler for Cloudflare Workers Cron Triggers
-export { handleScheduled as scheduled };
 
 type Bindings = {
   DB: D1Database;
