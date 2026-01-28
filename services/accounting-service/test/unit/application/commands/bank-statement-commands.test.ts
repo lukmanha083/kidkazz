@@ -9,7 +9,6 @@ import { BankAccount, BankStatement, BankTransaction } from '@/domain/entities';
 import {
   BankAccountType,
   BankTransactionType,
-  BankTransactionMatchStatus,
 } from '@/domain/value-objects';
 import type {
   IBankAccountRepository,
