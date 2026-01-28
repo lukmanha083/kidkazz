@@ -12,7 +12,7 @@ import type {
   PaginationOptions,
   PaginatedResult,
 } from '@/domain/repositories';
-import { fixedAssets, assetCategories, type FixedAssetRecord } from '@/infrastructure/db/schema';
+import { fixedAssets, type FixedAssetRecord } from '@/infrastructure/db/schema';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DrizzleDB = any;

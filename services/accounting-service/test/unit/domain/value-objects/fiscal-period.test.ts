@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { FiscalPeriod, FiscalPeriodStatus } from '@/domain/value-objects/fiscal-period.vo';
+import { FiscalPeriod } from '@/domain/value-objects/fiscal-period.vo';
 
 describe('FiscalPeriod', () => {
   describe('constructor', () => {
