@@ -288,6 +288,24 @@ boundedContexts:
           path: db
           handler: services/accounting-service/src/infrastructure/http/routes/bank-account.routes.ts
         - method: GET
+          path: /reports/budget-vs-actual
+          handler: services/accounting-service/src/infrastructure/http/routes/budget.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/budget.routes.ts
+        - method: GET
+          path: /reports/ar-aging
+          handler: services/accounting-service/src/infrastructure/http/routes/budget.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/budget.routes.ts
+        - method: GET
+          path: /reports/ap-aging
+          handler: services/accounting-service/src/infrastructure/http/routes/budget.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/budget.routes.ts
+        - method: GET
           path: /
           handler: services/accounting-service/src/infrastructure/http/routes/budget.routes.ts
         - method: GET
@@ -333,36 +351,6 @@ boundedContexts:
           path: db
           handler: services/accounting-service/src/infrastructure/http/routes/budget.routes.ts
         - method: GET
-          path: /reports/budget-vs-actual
-          handler: services/accounting-service/src/infrastructure/http/routes/budget.routes.ts
-        - method: GET
-          path: db
-          handler: services/accounting-service/src/infrastructure/http/routes/budget.routes.ts
-        - method: GET
-          path: /reports/ar-aging
-          handler: services/accounting-service/src/infrastructure/http/routes/budget.routes.ts
-        - method: GET
-          path: db
-          handler: services/accounting-service/src/infrastructure/http/routes/budget.routes.ts
-        - method: GET
-          path: /reports/ap-aging
-          handler: services/accounting-service/src/infrastructure/http/routes/budget.routes.ts
-        - method: GET
-          path: db
-          handler: services/accounting-service/src/infrastructure/http/routes/budget.routes.ts
-        - method: GET
-          path: /
-          handler: services/accounting-service/src/infrastructure/http/routes/currency.routes.ts
-        - method: GET
-          path: db
-          handler: services/accounting-service/src/infrastructure/http/routes/currency.routes.ts
-        - method: GET
-          path: "/:code"
-          handler: services/accounting-service/src/infrastructure/http/routes/currency.routes.ts
-        - method: GET
-          path: db
-          handler: services/accounting-service/src/infrastructure/http/routes/currency.routes.ts
-        - method: GET
           path: /exchange-rates
           handler: services/accounting-service/src/infrastructure/http/routes/currency.routes.ts
         - method: GET
@@ -375,6 +363,15 @@ boundedContexts:
           path: db
           handler: services/accounting-service/src/infrastructure/http/routes/currency.routes.ts
         - method: POST
+          path: /exchange-rates/fetch
+          handler: services/accounting-service/src/infrastructure/http/routes/currency.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/currency.routes.ts
+        - method: GET
+          path: userId
+          handler: services/accounting-service/src/infrastructure/http/routes/currency.routes.ts
+        - method: POST
           path: /exchange-rates
           handler: services/accounting-service/src/infrastructure/http/routes/currency.routes.ts
         - method: GET
@@ -385,6 +382,18 @@ boundedContexts:
           handler: services/accounting-service/src/infrastructure/http/routes/currency.routes.ts
         - method: POST
           path: /exchange-rates/convert
+          handler: services/accounting-service/src/infrastructure/http/routes/currency.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/currency.routes.ts
+        - method: GET
+          path: /
+          handler: services/accounting-service/src/infrastructure/http/routes/currency.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/currency.routes.ts
+        - method: GET
+          path: "/:code"
           handler: services/accounting-service/src/infrastructure/http/routes/currency.routes.ts
         - method: GET
           path: db
