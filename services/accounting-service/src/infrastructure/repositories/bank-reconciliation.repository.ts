@@ -1,4 +1,4 @@
-import { eq, and, sql, ne } from 'drizzle-orm';
+import { eq, and, sql, ne, inArray } from 'drizzle-orm';
 import { BankReconciliation, type ReconcilingItem } from '@/domain/entities/bank-reconciliation.entity';
 import { ReconciliationStatus, ReconciliationItemType, ReconciliationItemStatus } from '@/domain/value-objects';
 import type { IBankReconciliationRepository, BankReconciliationFilter } from '@/domain/repositories/bank-reconciliation.repository';
@@ -19,6 +19,33 @@ type DrizzleDB = any;
  */
 export class DrizzleBankReconciliationRepository implements IBankReconciliationRepository {
   constructor(private readonly db: DrizzleDB) {}
+
+  /**
+   * Batch load reconciling items for multiple reconciliations to avoid N+1 queries
+   * Returns a Map of reconciliationId -> items[]
+   */
+  private async batchLoadItems(
+    reconciliationIds: string[]
+  ): Promise<Map<string, ReconciliationItemRecord[]>> {
+    if (reconciliationIds.length === 0) {
+      return new Map();
+    }
+
+    const allItems = await this.db
+      .select()
+      .from(reconciliationItems)
+      .where(inArray(reconciliationItems.reconciliationId, reconciliationIds));
+
+    // Group items by reconciliationId
+    const itemsMap = new Map<string, ReconciliationItemRecord[]>();
+    for (const item of allItems) {
+      const existing = itemsMap.get(item.reconciliationId) || [];
+      existing.push(item);
+      itemsMap.set(item.reconciliationId, existing);
+    }
+
+    return itemsMap;
+  }
 
   async findById(id: string): Promise<BankReconciliation | null> {
     const result = await this.db
@@ -76,14 +103,16 @@ export class DrizzleBankReconciliationRepository implements IBankReconciliationR
       .where(eq(bankReconciliations.bankAccountId, bankAccountId))
       .orderBy(bankReconciliations.fiscalYear, bankReconciliations.fiscalMonth);
 
-    return Promise.all(
-      results.map(async (row: BankReconciliationRecord) => {
-        const items = await this.db
-          .select()
-          .from(reconciliationItems)
-          .where(eq(reconciliationItems.reconciliationId, row.id));
-        return this.toDomain(row, items);
-      })
+    if (results.length === 0) {
+      return [];
+    }
+
+    // Batch load all items in a single query
+    const reconciliationIds = results.map((r: BankReconciliationRecord) => r.id);
+    const itemsMap = await this.batchLoadItems(reconciliationIds);
+
+    return results.map((row: BankReconciliationRecord) =>
+      this.toDomain(row, itemsMap.get(row.id) || [])
     );
   }
 
@@ -98,14 +127,16 @@ export class DrizzleBankReconciliationRepository implements IBankReconciliationR
         )
       );
 
-    return Promise.all(
-      results.map(async (row: BankReconciliationRecord) => {
-        const items = await this.db
-          .select()
-          .from(reconciliationItems)
-          .where(eq(reconciliationItems.reconciliationId, row.id));
-        return this.toDomain(row, items);
-      })
+    if (results.length === 0) {
+      return [];
+    }
+
+    // Batch load all items in a single query
+    const reconciliationIds = results.map((r: BankReconciliationRecord) => r.id);
+    const itemsMap = await this.batchLoadItems(reconciliationIds);
+
+    return results.map((row: BankReconciliationRecord) =>
+      this.toDomain(row, itemsMap.get(row.id) || [])
     );
   }
 
@@ -154,14 +185,12 @@ export class DrizzleBankReconciliationRepository implements IBankReconciliationR
       .limit(limit)
       .offset(offset);
 
-    const data = await Promise.all(
-      results.map(async (row: BankReconciliationRecord) => {
-        const items = await this.db
-          .select()
-          .from(reconciliationItems)
-          .where(eq(reconciliationItems.reconciliationId, row.id));
-        return this.toDomain(row, items);
-      })
+    // Batch load all items in a single query
+    const reconciliationIds = results.map((r: BankReconciliationRecord) => r.id);
+    const itemsMap = await this.batchLoadItems(reconciliationIds);
+
+    const data = results.map((row: BankReconciliationRecord) =>
+      this.toDomain(row, itemsMap.get(row.id) || [])
     );
 
     return {
@@ -179,14 +208,16 @@ export class DrizzleBankReconciliationRepository implements IBankReconciliationR
       .from(bankReconciliations)
       .where(ne(bankReconciliations.status, ReconciliationStatus.APPROVED));
 
-    return Promise.all(
-      results.map(async (row: BankReconciliationRecord) => {
-        const items = await this.db
-          .select()
-          .from(reconciliationItems)
-          .where(eq(reconciliationItems.reconciliationId, row.id));
-        return this.toDomain(row, items);
-      })
+    if (results.length === 0) {
+      return [];
+    }
+
+    // Batch load all items in a single query
+    const reconciliationIds = results.map((r: BankReconciliationRecord) => r.id);
+    const itemsMap = await this.batchLoadItems(reconciliationIds);
+
+    return results.map((row: BankReconciliationRecord) =>
+      this.toDomain(row, itemsMap.get(row.id) || [])
     );
   }
 
