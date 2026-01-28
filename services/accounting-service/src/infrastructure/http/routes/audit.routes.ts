@@ -4,7 +4,6 @@ import {
   type ArchiveStatusResponse,
   type AuditLogResponse,
   CalculateTaxSummarySchema,
-  GetEntityHistorySchema,
   GetTaxSummarySchema,
   type PeriodTaxReportResponse,
   QueryAuditLogsSchema,
