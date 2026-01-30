@@ -6,9 +6,24 @@
 
 ---
 
+## IMPORTANT: Always Read First
+
+**Before planning or implementing ANY task, read `SERVICE_GRAPH.yaml`:**
+```bash
+cat SERVICE_GRAPH.yaml
+```
+
+This file is the **single source of truth** for:
+- Service relationships and dependencies
+- Event flows between bounded contexts
+- API contracts and endpoint mappings
+- Domain entity relationships across services
+
+---
+
 ## Essential Reading Order
 
-1. **SERVICE_GRAPH.yaml** - Codebase knowledge graph (auto-updated)
+1. **SERVICE_GRAPH.yaml** - Codebase knowledge graph (auto-updated) **← READ THIS FIRST**
 2. **docs/ddd/BUSINESS_RULES.md** - Domain constraints (source of truth)
 3. **docs/bounded-contexts/{context}/** - Service-specific docs
 
