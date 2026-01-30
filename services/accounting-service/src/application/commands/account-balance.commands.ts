@@ -38,6 +38,12 @@ export interface CalculatePeriodBalancesResult {
   isBalanced: boolean;
 }
 
+export interface PriorPeriodBalance {
+  accountId: string;
+  closingBalance: number;
+  normalBalance: NormalBalance;
+}
+
 export interface CalculatePeriodBalancesDependencies {
   accountBalanceRepository: IAccountBalanceRepository;
 
@@ -55,6 +61,11 @@ export interface CalculatePeriodBalancesDependencies {
    * Get the closing balance from the previous period for an account
    */
   getPreviousPeriodClosingBalance(accountId: string, year: number, month: number): Promise<number>;
+
+  /**
+   * Get all account balances from the previous period (for carrying forward)
+   */
+  getPreviousPeriodBalances(year: number, month: number): Promise<PriorPeriodBalance[]>;
 }
 
 export class CalculatePeriodBalancesHandler {
@@ -69,19 +80,12 @@ export class CalculatePeriodBalancesHandler {
       await this.deps.accountBalanceRepository.deleteByPeriod(fiscalYear, fiscalMonth);
     }
 
-    // Get all accounts with journal activity
-    const accounts = await this.deps.getAccountsWithActivity(fiscalYear, fiscalMonth);
+    // Get all accounts with journal activity in this period
+    const activeAccounts = await this.deps.getAccountsWithActivity(fiscalYear, fiscalMonth);
+    const activeAccountIds = new Set(activeAccounts.map((a) => a.id));
 
-    if (accounts.length === 0) {
-      return {
-        fiscalYear,
-        fiscalMonth,
-        accountsProcessed: 0,
-        totalDebits: 0,
-        totalCredits: 0,
-        isBalanced: true,
-      };
-    }
+    // Get all accounts with balances from previous period (to carry forward)
+    const priorBalances = await this.deps.getPreviousPeriodBalances(fiscalYear, fiscalMonth);
 
     // Get journal line summaries (aggregated debits/credits per account)
     const summaries = await this.deps.getJournalLineSummary(fiscalYear, fiscalMonth);
@@ -92,7 +96,8 @@ export class CalculatePeriodBalancesHandler {
     let totalDebits = 0;
     let totalCredits = 0;
 
-    for (const account of accounts) {
+    // Process accounts with current period activity
+    for (const account of activeAccounts) {
       // Get previous period closing balance as opening
       const openingBalance = await this.deps.getPreviousPeriodClosingBalance(
         account.id,
@@ -121,6 +126,30 @@ export class CalculatePeriodBalancesHandler {
 
       // Calculate closing balance based on normal balance direction
       balance.calculateClosingBalance(account.normalBalance);
+
+      balances.push(balance);
+    }
+
+    // Carry forward accounts from prior period that have no current activity
+    // These accounts need their closing balance preserved for trial balance accuracy
+    for (const prior of priorBalances) {
+      if (activeAccountIds.has(prior.accountId)) {
+        // Already processed above
+        continue;
+      }
+
+      // No activity this period - carry forward the prior closing balance
+      const balance = AccountBalance.create({
+        accountId: prior.accountId,
+        fiscalYear: period.year,
+        fiscalMonth: period.month,
+        openingBalance: prior.closingBalance,
+        debitTotal: 0,
+        creditTotal: 0,
+      });
+
+      // Closing = Opening (no activity)
+      balance.calculateClosingBalance(prior.normalBalance);
 
       balances.push(balance);
     }

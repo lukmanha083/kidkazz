@@ -22,6 +22,7 @@ import {
   type CalculatePeriodBalancesDependencies,
   type AccountWithNormalBalance,
   type JournalLineSummary,
+  type PriorPeriodBalance,
 } from '@/application/commands/account-balance.commands';
 import { FiscalPeriod } from '@/domain/value-objects';
 
@@ -144,6 +145,40 @@ function createCalculateBalancesDependencies(
         .limit(1);
 
       return result[0]?.closingBalance ?? 0;
+    },
+
+    async getPreviousPeriodBalances(year: number, month: number): Promise<PriorPeriodBalance[]> {
+      // Get previous period
+      const period = FiscalPeriod.create(year, month);
+      const previous = period.previous();
+
+      if (!previous) {
+        return [];
+      }
+
+      // Get all account balances from previous period with their normal balance direction
+      const results = await db
+        .select({
+          accountId: accountBalances.accountId,
+          closingBalance: accountBalances.closingBalance,
+          normalBalance: chartOfAccounts.normalBalance,
+        })
+        .from(accountBalances)
+        .innerJoin(chartOfAccounts, eq(accountBalances.accountId, chartOfAccounts.id))
+        .where(
+          and(
+            eq(accountBalances.fiscalYear, previous.year),
+            eq(accountBalances.fiscalMonth, previous.month)
+          )
+        );
+
+      return results.map(
+        (r: { accountId: string; closingBalance: number; normalBalance: string }) => ({
+          accountId: r.accountId,
+          closingBalance: r.closingBalance,
+          normalBalance: r.normalBalance as 'Debit' | 'Credit',
+        })
+      );
     },
   };
 }
