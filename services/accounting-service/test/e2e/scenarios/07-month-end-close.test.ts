@@ -18,7 +18,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { AccountingApiClient } from '../helpers/api-client';
 import {
-  seedChartOfAccounts,
+  fetchAccountMap,
   getAccountByCode,
   type AccountInfo,
 } from '../fixtures/chart-of-accounts';
@@ -48,7 +48,7 @@ describe('E2E Scenario 07: Month-End Close', () => {
       );
     }
 
-    accountMap = await seedChartOfAccounts(apiClient);
+    accountMap = await fetchAccountMap(apiClient);
   });
 
   describe('Depreciation Entry', () => {
@@ -65,15 +65,15 @@ describe('E2E Scenario 07: Month-End Close', () => {
         lines: [
           {
             accountId: depreciationExpenseAccount.id,
-            description: 'Beban Penyusutan Peralatan Kantor',
-            debitAmount: DEPRECIATION_AMOUNT,
-            creditAmount: 0,
+            direction: 'Debit',
+            amount: DEPRECIATION_AMOUNT,
+            memo: 'Beban Penyusutan Peralatan Kantor',
           },
           {
             accountId: accumulatedDepreciationAccount.id,
-            description: 'Akumulasi Penyusutan Peralatan Kantor',
-            debitAmount: 0,
-            creditAmount: DEPRECIATION_AMOUNT,
+            direction: 'Credit',
+            amount: DEPRECIATION_AMOUNT,
+            memo: 'Akumulasi Penyusutan Peralatan Kantor',
           },
         ],
       });
@@ -102,15 +102,15 @@ describe('E2E Scenario 07: Month-End Close', () => {
         lines: [
           {
             accountId: salaryExpenseAccount.id,
-            description: 'Beban Gaji Akrual',
-            debitAmount: ACCRUED_SALARY_AMOUNT,
-            creditAmount: 0,
+            direction: 'Debit',
+            amount: ACCRUED_SALARY_AMOUNT,
+            memo: 'Beban Gaji Akrual',
           },
           {
             accountId: salariesPayableAccount.id,
-            description: 'Hutang Gaji',
-            debitAmount: 0,
-            creditAmount: ACCRUED_SALARY_AMOUNT,
+            direction: 'Credit',
+            amount: ACCRUED_SALARY_AMOUNT,
+            memo: 'Hutang Gaji',
           },
         ],
       });
@@ -188,7 +188,7 @@ describe('E2E Scenario 07: Month-End Close', () => {
   describe('Close Fiscal Period', () => {
     it('should close the fiscal period (optional - may fail if already closed)', async () => {
       // Note: This might fail if period is already closed or if there are other constraints
-      const response = await apiClient.closeFiscalPeriod(FISCAL_YEAR, FISCAL_MONTH);
+      const response = await apiClient.closeFiscalPeriod(FISCAL_YEAR, FISCAL_MONTH, 'e2e-test');
 
       // We accept either success or a specific error indicating it's already closed
       if (!response.ok) {

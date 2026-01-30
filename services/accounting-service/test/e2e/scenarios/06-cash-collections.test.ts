@@ -6,7 +6,7 @@
  *    - DR: Bank (1020) Rp 60,000,000
  *    - CR: Accounts Receivable (1110) Rp 60,000,000
  * 2. Pay Supplier A invoice - Rp 150,000,000
- *    - DR: Accounts Payable (2101) Rp 150,000,000
+ *    - DR: Accounts Payable (2010) Rp 150,000,000
  *    - CR: Bank (1020) Rp 150,000,000
  * 3. Deposit POS cash to bank - Rp 100,000,000
  *    - DR: Bank (1020) Rp 100,000,000
@@ -19,7 +19,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { AccountingApiClient } from '../helpers/api-client';
 import {
-  seedChartOfAccounts,
+  fetchAccountMap,
   getAccountByCode,
   type AccountInfo,
 } from '../fixtures/chart-of-accounts';
@@ -51,7 +51,7 @@ describe('E2E Scenario 06: Cash Collections & Payments', () => {
       );
     }
 
-    accountMap = await seedChartOfAccounts(apiClient);
+    accountMap = await fetchAccountMap(apiClient);
   });
 
   describe('Collect AR from Customer A', () => {
@@ -64,19 +64,19 @@ describe('E2E Scenario 06: Cash Collections & Payments', () => {
         description: 'Penerimaan pembayaran dari PT Maju Jaya (partial)',
         reference: `E2E-RCV-A-${Date.now()}`,
         notes: 'Partial payment for INV-2026-001, Receipt: RCV-2026-001',
-        entryType: 'Standard',
+        entryType: 'Manual',
         lines: [
           {
             accountId: bankAccount.id,
-            description: 'Terima transfer dari PT Maju Jaya',
-            debitAmount: AR_COLLECTION_AMOUNT,
-            creditAmount: 0,
+            direction: 'Debit',
+            amount: AR_COLLECTION_AMOUNT,
+            memo: 'Terima transfer dari PT Maju Jaya',
           },
           {
             accountId: arAccount.id,
-            description: 'Pelunasan sebagian piutang',
-            debitAmount: 0,
-            creditAmount: AR_COLLECTION_AMOUNT,
+            direction: 'Credit',
+            amount: AR_COLLECTION_AMOUNT,
+            memo: 'Pelunasan sebagian piutang',
           },
         ],
       });
@@ -93,7 +93,7 @@ describe('E2E Scenario 06: Cash Collections & Payments', () => {
 
   describe('Pay Supplier A Invoice', () => {
     it('should record AP payment - Rp 150,000,000', async () => {
-      const apAccount = getAccountByCode(accountMap, '2101');
+      const apAccount = getAccountByCode(accountMap, '2010');
       const bankAccount = getAccountByCode(accountMap, '1020');
 
       const response = await apiClient.createJournalEntry({
@@ -101,19 +101,19 @@ describe('E2E Scenario 06: Cash Collections & Payments', () => {
         description: 'Pembayaran hutang ke Supplier A',
         reference: `E2E-PAY-A-${Date.now()}`,
         notes: 'Full payment for INV-A-001, Payment: PAY-2026-001',
-        entryType: 'Standard',
+        entryType: 'Manual',
         lines: [
           {
             accountId: apAccount.id,
-            description: 'Pelunasan hutang Supplier A',
-            debitAmount: AP_PAYMENT_AMOUNT,
-            creditAmount: 0,
+            direction: 'Debit',
+            amount: AP_PAYMENT_AMOUNT,
+            memo: 'Pelunasan hutang Supplier A',
           },
           {
             accountId: bankAccount.id,
-            description: 'Transfer ke Supplier A',
-            debitAmount: 0,
-            creditAmount: AP_PAYMENT_AMOUNT,
+            direction: 'Credit',
+            amount: AP_PAYMENT_AMOUNT,
+            memo: 'Transfer ke Supplier A',
           },
         ],
       });
@@ -138,19 +138,19 @@ describe('E2E Scenario 06: Cash Collections & Payments', () => {
         description: 'Setoran kas dari laci POS ke bank',
         reference: `E2E-DEP-${Date.now()}`,
         notes: 'Weekly cash deposit to BCA',
-        entryType: 'Standard',
+        entryType: 'Manual',
         lines: [
           {
             accountId: bankAccount.id,
-            description: 'Setoran tunai ke BCA',
-            debitAmount: CASH_DEPOSIT_AMOUNT,
-            creditAmount: 0,
+            direction: 'Debit',
+            amount: CASH_DEPOSIT_AMOUNT,
+            memo: 'Setoran tunai ke BCA',
           },
           {
             accountId: posCashAccount.id,
-            description: 'Pengambilan kas dari laci POS',
-            debitAmount: 0,
-            creditAmount: CASH_DEPOSIT_AMOUNT,
+            direction: 'Credit',
+            amount: CASH_DEPOSIT_AMOUNT,
+            memo: 'Pengambilan kas dari laci POS',
           },
         ],
       });
@@ -187,7 +187,7 @@ describe('E2E Scenario 06: Cash Collections & Payments', () => {
     });
 
     it('should have reduced AP balance after payment', async () => {
-      const apAccount = getAccountByCode(accountMap, '2101');
+      const apAccount = getAccountByCode(accountMap, '2010');
       const response = await apiClient.getAccountBalance(
         apAccount.id,
         FISCAL_YEAR,
@@ -224,7 +224,7 @@ describe('E2E Scenario 06: Cash Collections & Payments', () => {
         getAccountByCode(accountMap, '1110').id, FISCAL_YEAR, FISCAL_MONTH
       );
       const apBalance = await apiClient.getAccountBalance(
-        getAccountByCode(accountMap, '2101').id, FISCAL_YEAR, FISCAL_MONTH
+        getAccountByCode(accountMap, '2010').id, FISCAL_YEAR, FISCAL_MONTH
       );
 
       const bank = (bankBalance.data as { closingBalance: number }).closingBalance;
@@ -236,7 +236,7 @@ describe('E2E Scenario 06: Cash Collections & Payments', () => {
       console.log(`Bank BCA (1020): Rp ${bank.toLocaleString('id-ID')}`);
       console.log(`POS Cash (1012): Rp ${posCash.toLocaleString('id-ID')}`);
       console.log(`Accounts Receivable (1110): Rp ${ar.toLocaleString('id-ID')}`);
-      console.log(`Accounts Payable (2101): Rp ${ap.toLocaleString('id-ID')}`);
+      console.log(`Accounts Payable (2010): Rp ${ap.toLocaleString('id-ID')}`);
       console.log(`---`);
       console.log(`This scenario - AR Collected: Rp ${AR_COLLECTION_AMOUNT.toLocaleString('id-ID')}`);
       console.log(`This scenario - AP Paid: Rp ${AP_PAYMENT_AMOUNT.toLocaleString('id-ID')}`);

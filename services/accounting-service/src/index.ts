@@ -1,5 +1,6 @@
 import { databaseMiddleware, errorMiddleware } from '@/infrastructure/http/middleware';
 import {
+  accountBalanceRoutes,
   accountRoutes,
   assetCategoryRoutes,
   assetRoutes,
@@ -71,6 +72,7 @@ app.route('/api/v1/events', eventRoutes);
 app.route('/api/v1/currencies', currencyRoutes);
 app.route('/api/v1/budgets', budgetRoutes);
 app.route('/api/v1/audit', auditRoutes);
+app.route('/api/v1/account-balances', accountBalanceRoutes);
 
 // Root endpoint
 app.get('/', (c) => {
@@ -95,6 +97,7 @@ app.get('/', (c) => {
       currencies: '/api/v1/currencies',
       budgets: '/api/v1/budgets',
       audit: '/api/v1/audit',
+      accountBalances: '/api/v1/account-balances',
     },
   });
 });

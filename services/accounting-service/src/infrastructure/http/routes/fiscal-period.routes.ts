@@ -1,4 +1,10 @@
 import {
+  CalculatePeriodBalancesHandler,
+  type CalculatePeriodBalancesDependencies,
+  type AccountWithNormalBalance,
+  type JournalLineSummary,
+} from '@/application/commands/account-balance.commands';
+import {
   CloseFiscalPeriodHandler,
   CreateFiscalPeriodHandler,
   LockFiscalPeriodHandler,
@@ -17,9 +23,18 @@ import {
   GetFiscalPeriodByPeriodHandler,
   ListFiscalPeriodsHandler,
 } from '@/application/queries/fiscal-period.queries';
+import { FiscalPeriod } from '@/domain/value-objects';
+import {
+  chartOfAccounts,
+  journalEntries,
+  journalLines,
+  accountBalances,
+} from '@/infrastructure/db/schema';
 import type * as schema from '@/infrastructure/db/schema';
 import { DrizzleFiscalPeriodRepository } from '@/infrastructure/repositories';
+import { DrizzleAccountBalanceRepository } from '@/infrastructure/repositories/account-balance.repository';
 import { zValidator } from '@hono/zod-validator';
+import { and, eq, sql } from 'drizzle-orm';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import { Hono } from 'hono';
 
@@ -33,6 +48,105 @@ type Variables = {
 };
 
 const fiscalPeriodRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+
+// ============================================================================
+// Helper: Create dependencies for balance calculation
+// ============================================================================
+
+function createCalculateBalancesDependencies(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  db: any
+): CalculatePeriodBalancesDependencies {
+  const accountBalanceRepository = new DrizzleAccountBalanceRepository(db);
+
+  return {
+    accountBalanceRepository,
+
+    async getAccountsWithActivity(
+      year: number,
+      month: number
+    ): Promise<AccountWithNormalBalance[]> {
+      const results = await db
+        .selectDistinct({
+          id: chartOfAccounts.id,
+          code: chartOfAccounts.code,
+          name: chartOfAccounts.name,
+          normalBalance: chartOfAccounts.normalBalance,
+        })
+        .from(journalLines)
+        .innerJoin(journalEntries, eq(journalLines.journalEntryId, journalEntries.id))
+        .innerJoin(chartOfAccounts, eq(journalLines.accountId, chartOfAccounts.id))
+        .where(
+          and(
+            eq(journalEntries.status, 'Posted'),
+            eq(journalEntries.fiscalYear, year),
+            eq(journalEntries.fiscalMonth, month)
+          )
+        );
+
+      return results.map(
+        (r: { id: string; code: string; name: string; normalBalance: string }) => ({
+          id: r.id,
+          code: r.code,
+          name: r.name,
+          normalBalance: r.normalBalance as 'Debit' | 'Credit',
+        })
+      );
+    },
+
+    async getJournalLineSummary(year: number, month: number): Promise<JournalLineSummary[]> {
+      const results = await db
+        .select({
+          accountId: journalLines.accountId,
+          debitTotal: sql<number>`COALESCE(SUM(CASE WHEN ${journalLines.direction} = 'Debit' THEN ${journalLines.amount} ELSE 0 END), 0)`,
+          creditTotal: sql<number>`COALESCE(SUM(CASE WHEN ${journalLines.direction} = 'Credit' THEN ${journalLines.amount} ELSE 0 END), 0)`,
+        })
+        .from(journalLines)
+        .innerJoin(journalEntries, eq(journalLines.journalEntryId, journalEntries.id))
+        .where(
+          and(
+            eq(journalEntries.status, 'Posted'),
+            eq(journalEntries.fiscalYear, year),
+            eq(journalEntries.fiscalMonth, month)
+          )
+        )
+        .groupBy(journalLines.accountId);
+
+      return results.map((r: { accountId: string; debitTotal: number; creditTotal: number }) => ({
+        accountId: r.accountId,
+        debitTotal: r.debitTotal,
+        creditTotal: r.creditTotal,
+      }));
+    },
+
+    async getPreviousPeriodClosingBalance(
+      accountId: string,
+      year: number,
+      month: number
+    ): Promise<number> {
+      const period = FiscalPeriod.create(year, month);
+      const previous = period.previous();
+
+      if (!previous) {
+        return 0;
+      }
+
+      const result = await db
+        .select({ closingBalance: accountBalances.closingBalance })
+        .from(accountBalances)
+        .where(
+          and(
+            eq(accountBalances.accountId, accountId),
+            eq(accountBalances.fiscalYear, previous.year),
+            eq(accountBalances.fiscalMonth, previous.month)
+          )
+        )
+        .limit(1);
+
+      return result[0]?.closingBalance ?? 0;
+    },
+  };
+}
 
 /**
  * GET /fiscal-periods - List all fiscal periods
@@ -164,6 +278,10 @@ fiscalPeriodRoutes.post('/', zValidator('json', createFiscalPeriodSchema), async
 
 /**
  * POST /fiscal-periods/:id/close - Close a fiscal period
+ *
+ * When closing a period:
+ * 1. Updates period status to Closed
+ * 2. Calculates and persists account balances for the period
  */
 fiscalPeriodRoutes.post('/:id/close', async (c) => {
   const db = c.get('db');
@@ -179,9 +297,20 @@ fiscalPeriodRoutes.post('/:id/close', async (c) => {
   const handler = new CloseFiscalPeriodHandler(repository);
 
   try {
+    // Step 1: Close the fiscal period
     const result = await handler.execute({
       periodId: id,
       closedBy: userId,
+    });
+
+    // Step 2: Calculate and persist account balances for the closed period
+    const balanceDeps = createCalculateBalancesDependencies(db);
+    const balanceHandler = new CalculatePeriodBalancesHandler(balanceDeps);
+
+    const balanceResult = await balanceHandler.execute({
+      fiscalYear: result.fiscalYear,
+      fiscalMonth: result.fiscalMonth,
+      recalculate: true, // Ensure fresh calculation
     });
 
     return c.json({
@@ -193,6 +322,12 @@ fiscalPeriodRoutes.post('/:id/close', async (c) => {
         status: result.status,
         closedAt: result.closedAt?.toISOString(),
         closedBy: result.closedBy,
+        balanceCalculation: {
+          accountsProcessed: balanceResult.accountsProcessed,
+          totalDebits: balanceResult.totalDebits,
+          totalCredits: balanceResult.totalCredits,
+          isBalanced: balanceResult.isBalanced,
+        },
       },
     });
   } catch (error) {

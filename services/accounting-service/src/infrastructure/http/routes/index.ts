@@ -13,3 +13,4 @@ export { eventRoutes } from './event.routes';
 export { currencyRoutes } from './currency.routes';
 export { budgetRoutes } from './budget.routes';
 export { auditRoutes } from './audit.routes';
+export { accountBalanceRoutes } from './account-balance.routes';

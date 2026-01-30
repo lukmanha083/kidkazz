@@ -22,7 +22,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { AccountingApiClient } from '../helpers/api-client';
 import {
-  seedChartOfAccounts,
+  fetchAccountMap,
   getAccountByCode,
   type AccountInfo,
 } from '../fixtures/chart-of-accounts';
@@ -56,7 +56,7 @@ describe('E2E Scenario 04: Operating Expenses', () => {
       );
     }
 
-    accountMap = await seedChartOfAccounts(apiClient);
+    accountMap = await fetchAccountMap(apiClient);
   });
 
   describe('Salary Payment', () => {
@@ -69,19 +69,19 @@ describe('E2E Scenario 04: Operating Expenses', () => {
         description: 'Pembayaran gaji karyawan bulan Januari 2026',
         reference: `E2E-SAL-${Date.now()}`,
         notes: 'Monthly payroll January 2026',
-        entryType: 'Standard',
+        entryType: 'Manual',
         lines: [
           {
             accountId: salaryAccount.id,
-            description: 'Beban Gaji Pokok - Januari',
-            debitAmount: SALARY_AMOUNT,
-            creditAmount: 0,
+            direction: 'Debit',
+            amount: SALARY_AMOUNT,
+            memo: 'Beban Gaji Pokok - Januari',
           },
           {
             accountId: bankAccount.id,
-            description: 'Transfer gaji via BCA',
-            debitAmount: 0,
-            creditAmount: SALARY_AMOUNT,
+            direction: 'Credit',
+            amount: SALARY_AMOUNT,
+            memo: 'Transfer gaji via BCA',
           },
         ],
       });
@@ -106,19 +106,19 @@ describe('E2E Scenario 04: Operating Expenses', () => {
         description: 'Pembayaran sewa kantor bulan Januari 2026',
         reference: `E2E-RENT-${Date.now()}`,
         notes: 'Monthly office rent January 2026',
-        entryType: 'Standard',
+        entryType: 'Manual',
         lines: [
           {
             accountId: rentAccount.id,
-            description: 'Beban Sewa Kantor - Januari',
-            debitAmount: RENT_AMOUNT,
-            creditAmount: 0,
+            direction: 'Debit',
+            amount: RENT_AMOUNT,
+            memo: 'Beban Sewa Kantor - Januari',
           },
           {
             accountId: bankAccount.id,
-            description: 'Transfer sewa via BCA',
-            debitAmount: 0,
-            creditAmount: RENT_AMOUNT,
+            direction: 'Credit',
+            amount: RENT_AMOUNT,
+            memo: 'Transfer sewa via BCA',
           },
         ],
       });
@@ -143,19 +143,19 @@ describe('E2E Scenario 04: Operating Expenses', () => {
         description: 'Pembayaran tagihan listrik Januari 2026',
         reference: `E2E-ELEC-${Date.now()}`,
         notes: 'PLN electricity bill January 2026',
-        entryType: 'Standard',
+        entryType: 'Manual',
         lines: [
           {
             accountId: electricityAccount.id,
-            description: 'Beban Listrik - Januari',
-            debitAmount: ELECTRICITY_AMOUNT,
-            creditAmount: 0,
+            direction: 'Debit',
+            amount: ELECTRICITY_AMOUNT,
+            memo: 'Beban Listrik - Januari',
           },
           {
             accountId: bankAccount.id,
-            description: 'Pembayaran listrik via BCA',
-            debitAmount: 0,
-            creditAmount: ELECTRICITY_AMOUNT,
+            direction: 'Credit',
+            amount: ELECTRICITY_AMOUNT,
+            memo: 'Pembayaran listrik via BCA',
           },
         ],
       });
@@ -180,19 +180,19 @@ describe('E2E Scenario 04: Operating Expenses', () => {
         description: 'Biaya administrasi bank Januari 2026',
         reference: `E2E-BANK-${Date.now()}`,
         notes: 'Monthly bank administration fee',
-        entryType: 'Standard',
+        entryType: 'Manual',
         lines: [
           {
             accountId: bankChargesAccount.id,
-            description: 'Beban Bank - Januari',
-            debitAmount: BANK_CHARGES_AMOUNT,
-            creditAmount: 0,
+            direction: 'Debit',
+            amount: BANK_CHARGES_AMOUNT,
+            memo: 'Beban Bank - Januari',
           },
           {
             accountId: bankAccount.id,
-            description: 'Potongan biaya admin BCA',
-            debitAmount: 0,
-            creditAmount: BANK_CHARGES_AMOUNT,
+            direction: 'Credit',
+            amount: BANK_CHARGES_AMOUNT,
+            memo: 'Potongan biaya admin BCA',
           },
         ],
       });

@@ -17,7 +17,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { AccountingApiClient } from '../helpers/api-client';
 import {
-  seedChartOfAccounts,
+  fetchAccountMap,
   getAccountByCode,
   type AccountInfo,
 } from '../fixtures/chart-of-accounts';
@@ -54,7 +54,7 @@ describe('E2E Scenario 03: Cash Sales', () => {
       );
     }
 
-    accountMap = await seedChartOfAccounts(apiClient);
+    accountMap = await fetchAccountMap(apiClient);
   });
 
   describe('Cash Sale 1 - Rp 50,000,000', () => {
@@ -67,19 +67,19 @@ describe('E2E Scenario 03: Cash Sales', () => {
         description: 'Penjualan tunai POS - Transaksi harian',
         reference: `E2E-SALE-1-${Date.now()}`,
         notes: 'Daily POS sales batch',
-        entryType: 'Standard',
+        entryType: 'Manual',
         lines: [
           {
             accountId: cashAccount.id,
-            description: 'Kas Laci POS - Penjualan',
-            debitAmount: SALE_1_REVENUE,
-            creditAmount: 0,
+            direction: 'Debit',
+            amount: SALE_1_REVENUE,
+            memo: 'Kas Laci POS - Penjualan',
           },
           {
             accountId: salesAccount.id,
-            description: 'Pendapatan Penjualan POS',
-            debitAmount: 0,
-            creditAmount: SALE_1_REVENUE,
+            direction: 'Credit',
+            amount: SALE_1_REVENUE,
+            memo: 'Pendapatan Penjualan POS',
           },
         ],
       });
@@ -97,19 +97,19 @@ describe('E2E Scenario 03: Cash Sales', () => {
         description: 'HPP Penjualan tunai POS',
         reference: `E2E-COGS-1-${Date.now()}`,
         notes: 'COGS for daily POS sales',
-        entryType: 'Standard',
+        entryType: 'Manual',
         lines: [
           {
             accountId: cogsAccount.id,
-            description: 'HPP - POS Retail',
-            debitAmount: SALE_1_COGS,
-            creditAmount: 0,
+            direction: 'Debit',
+            amount: SALE_1_COGS,
+            memo: 'HPP - POS Retail',
           },
           {
             accountId: inventoryAccount.id,
-            description: 'Pengurangan Persediaan',
-            debitAmount: 0,
-            creditAmount: SALE_1_COGS,
+            direction: 'Credit',
+            amount: SALE_1_COGS,
+            memo: 'Pengurangan Persediaan',
           },
         ],
       });
@@ -137,19 +137,19 @@ describe('E2E Scenario 03: Cash Sales', () => {
         description: 'Penjualan tunai POS - Transaksi harian',
         reference: `E2E-SALE-2-${Date.now()}`,
         notes: 'Daily POS sales batch - mid month',
-        entryType: 'Standard',
+        entryType: 'Manual',
         lines: [
           {
             accountId: cashAccount.id,
-            description: 'Kas Laci POS - Penjualan',
-            debitAmount: SALE_2_REVENUE,
-            creditAmount: 0,
+            direction: 'Debit',
+            amount: SALE_2_REVENUE,
+            memo: 'Kas Laci POS - Penjualan',
           },
           {
             accountId: salesAccount.id,
-            description: 'Pendapatan Penjualan POS',
-            debitAmount: 0,
-            creditAmount: SALE_2_REVENUE,
+            direction: 'Credit',
+            amount: SALE_2_REVENUE,
+            memo: 'Pendapatan Penjualan POS',
           },
         ],
       });
@@ -167,19 +167,19 @@ describe('E2E Scenario 03: Cash Sales', () => {
         description: 'HPP Penjualan tunai POS',
         reference: `E2E-COGS-2-${Date.now()}`,
         notes: 'COGS for daily POS sales - mid month',
-        entryType: 'Standard',
+        entryType: 'Manual',
         lines: [
           {
             accountId: cogsAccount.id,
-            description: 'HPP - POS Retail',
-            debitAmount: SALE_2_COGS,
-            creditAmount: 0,
+            direction: 'Debit',
+            amount: SALE_2_COGS,
+            memo: 'HPP - POS Retail',
           },
           {
             accountId: inventoryAccount.id,
-            description: 'Pengurangan Persediaan',
-            debitAmount: 0,
-            creditAmount: SALE_2_COGS,
+            direction: 'Credit',
+            amount: SALE_2_COGS,
+            memo: 'Pengurangan Persediaan',
           },
         ],
       });

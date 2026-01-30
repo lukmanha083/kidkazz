@@ -4,10 +4,10 @@
  * Tests recording inventory purchases on credit using real D1 database:
  * 1. Purchase inventory from Supplier A - Rp 150,000,000
  *    - DR: Inventory (1210) Rp 150,000,000
- *    - CR: Accounts Payable (2101) Rp 150,000,000
+ *    - CR: Accounts Payable (2010) Rp 150,000,000
  * 2. Purchase inventory from Supplier B - Rp 200,000,000
  *    - DR: Inventory (1210) Rp 200,000,000
- *    - CR: Accounts Payable (2101) Rp 200,000,000
+ *    - CR: Accounts Payable (2010) Rp 200,000,000
  * 3. Verify AP balance and inventory increase
  *
  * Run with: pnpm test:e2e
@@ -17,7 +17,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { AccountingApiClient } from '../helpers/api-client';
 import {
-  seedChartOfAccounts,
+  fetchAccountMap,
   getAccountByCode,
   type AccountInfo,
 } from '../fixtures/chart-of-accounts';
@@ -48,32 +48,32 @@ describe('E2E Scenario 02: Inventory Purchases', () => {
     }
 
     // Get account map (assumes COA already seeded from scenario 01)
-    accountMap = await seedChartOfAccounts(apiClient);
+    accountMap = await fetchAccountMap(apiClient);
   });
 
   describe('Purchase from Supplier A', () => {
     it('should record inventory purchase on credit - Rp 150,000,000', async () => {
       const inventoryAccount = getAccountByCode(accountMap, '1210');
-      const apAccount = getAccountByCode(accountMap, '2101');
+      const apAccount = getAccountByCode(accountMap, '2010');
 
       const response = await apiClient.createJournalEntry({
         entryDate: '2026-01-05',
         description: 'Pembelian barang dagang dari Supplier A secara kredit',
         reference: `E2E-PO-A-${Date.now()}`,
         notes: 'Invoice: INV-A-001, Due: 2026-02-05',
-        entryType: 'Standard',
+        entryType: 'Manual',
         lines: [
           {
             accountId: inventoryAccount.id,
-            description: 'Pembelian Persediaan - Supplier A',
-            debitAmount: PURCHASE_A_AMOUNT,
-            creditAmount: 0,
+            direction: 'Debit',
+            amount: PURCHASE_A_AMOUNT,
+            memo: 'Pembelian Persediaan - Supplier A',
           },
           {
             accountId: apAccount.id,
-            description: 'Hutang Dagang - Supplier A',
-            debitAmount: 0,
-            creditAmount: PURCHASE_A_AMOUNT,
+            direction: 'Credit',
+            amount: PURCHASE_A_AMOUNT,
+            memo: 'Hutang Dagang - Supplier A',
           },
         ],
       });
@@ -86,11 +86,15 @@ describe('E2E Scenario 02: Inventory Purchases', () => {
     it('should have balanced entry', async () => {
       const response = await apiClient.getJournalEntry(purchaseAEntryId);
       const entry = response.data as {
-        lines: Array<{ debitAmount: number; creditAmount: number }>;
+        lines: Array<{ direction: 'Debit' | 'Credit'; amount: number }>;
       };
 
-      const totalDebits = entry.lines.reduce((sum, l) => sum + l.debitAmount, 0);
-      const totalCredits = entry.lines.reduce((sum, l) => sum + l.creditAmount, 0);
+      const totalDebits = entry.lines
+        .filter((l) => l.direction === 'Debit')
+        .reduce((sum, l) => sum + l.amount, 0);
+      const totalCredits = entry.lines
+        .filter((l) => l.direction === 'Credit')
+        .reduce((sum, l) => sum + l.amount, 0);
 
       expect(totalDebits).toBe(PURCHASE_A_AMOUNT);
       expect(totalCredits).toBe(PURCHASE_A_AMOUNT);
@@ -109,26 +113,26 @@ describe('E2E Scenario 02: Inventory Purchases', () => {
   describe('Purchase from Supplier B', () => {
     it('should record second inventory purchase on credit - Rp 200,000,000', async () => {
       const inventoryAccount = getAccountByCode(accountMap, '1210');
-      const apAccount = getAccountByCode(accountMap, '2101');
+      const apAccount = getAccountByCode(accountMap, '2010');
 
       const response = await apiClient.createJournalEntry({
         entryDate: '2026-01-10',
         description: 'Pembelian barang dagang dari Supplier B secara kredit',
         reference: `E2E-PO-B-${Date.now()}`,
         notes: 'Invoice: INV-B-001, Due: 2026-02-10',
-        entryType: 'Standard',
+        entryType: 'Manual',
         lines: [
           {
             accountId: inventoryAccount.id,
-            description: 'Pembelian Persediaan - Supplier B',
-            debitAmount: PURCHASE_B_AMOUNT,
-            creditAmount: 0,
+            direction: 'Debit',
+            amount: PURCHASE_B_AMOUNT,
+            memo: 'Pembelian Persediaan - Supplier B',
           },
           {
             accountId: apAccount.id,
-            description: 'Hutang Dagang - Supplier B',
-            debitAmount: 0,
-            creditAmount: PURCHASE_B_AMOUNT,
+            direction: 'Credit',
+            amount: PURCHASE_B_AMOUNT,
+            memo: 'Hutang Dagang - Supplier B',
           },
         ],
       });
@@ -155,7 +159,7 @@ describe('E2E Scenario 02: Inventory Purchases', () => {
     });
 
     it('should have increased AP balance', async () => {
-      const apAccount = getAccountByCode(accountMap, '2101');
+      const apAccount = getAccountByCode(accountMap, '2010');
       const response = await apiClient.getAccountBalance(
         apAccount.id,
         FISCAL_YEAR,
@@ -185,7 +189,7 @@ describe('E2E Scenario 02: Inventory Purchases', () => {
 
     it('should output purchase summary', async () => {
       const inventoryAccount = getAccountByCode(accountMap, '1210');
-      const apAccount = getAccountByCode(accountMap, '2101');
+      const apAccount = getAccountByCode(accountMap, '2010');
 
       const inventoryBalance = await apiClient.getAccountBalance(
         inventoryAccount.id,
@@ -203,7 +207,7 @@ describe('E2E Scenario 02: Inventory Purchases', () => {
 
       console.log('\n=== Balances After Inventory Purchases ===');
       console.log(`Inventory (1210): Rp ${invBal.closingBalance.toLocaleString('id-ID')}`);
-      console.log(`Accounts Payable (2101): Rp ${apBal.closingBalance.toLocaleString('id-ID')}`);
+      console.log(`Accounts Payable (2010): Rp ${apBal.closingBalance.toLocaleString('id-ID')}`);
       console.log(`Purchases this scenario: Rp ${(PURCHASE_A_AMOUNT + PURCHASE_B_AMOUNT).toLocaleString('id-ID')}`);
       console.log('==========================================\n');
 

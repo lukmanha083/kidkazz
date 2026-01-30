@@ -17,7 +17,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { AccountingApiClient } from '../helpers/api-client';
 import {
-  seedChartOfAccounts,
+  fetchAccountMap,
   getAccountByCode,
   type AccountInfo,
 } from '../fixtures/chart-of-accounts';
@@ -54,7 +54,7 @@ describe('E2E Scenario 05: Credit Sales (Wholesale)', () => {
       );
     }
 
-    accountMap = await seedChartOfAccounts(apiClient);
+    accountMap = await fetchAccountMap(apiClient);
   });
 
   describe('Credit Sale to Customer A - Rp 100,000,000', () => {
@@ -67,19 +67,19 @@ describe('E2E Scenario 05: Credit Sales (Wholesale)', () => {
         description: 'Penjualan kredit ke Customer A - PT Maju Jaya',
         reference: `E2E-INV-A-${Date.now()}`,
         notes: 'Invoice: INV-2026-001, Terms: Net 30, Due: 2026-02-11',
-        entryType: 'Standard',
+        entryType: 'Manual',
         lines: [
           {
             accountId: arAccount.id,
-            description: 'Piutang - PT Maju Jaya',
-            debitAmount: SALE_A_REVENUE,
-            creditAmount: 0,
+            direction: 'Debit',
+            amount: SALE_A_REVENUE,
+            memo: 'Piutang - PT Maju Jaya',
           },
           {
             accountId: salesAccount.id,
-            description: 'Penjualan Wholesale',
-            debitAmount: 0,
-            creditAmount: SALE_A_REVENUE,
+            direction: 'Credit',
+            amount: SALE_A_REVENUE,
+            memo: 'Penjualan Wholesale',
           },
         ],
       });
@@ -97,19 +97,19 @@ describe('E2E Scenario 05: Credit Sales (Wholesale)', () => {
         description: 'HPP Penjualan ke Customer A',
         reference: `E2E-COGS-A-${Date.now()}`,
         notes: 'COGS for INV-2026-001',
-        entryType: 'Standard',
+        entryType: 'Manual',
         lines: [
           {
             accountId: cogsAccount.id,
-            description: 'HPP - Wholesale Customer A',
-            debitAmount: SALE_A_COGS,
-            creditAmount: 0,
+            direction: 'Debit',
+            amount: SALE_A_COGS,
+            memo: 'HPP - Wholesale Customer A',
           },
           {
             accountId: inventoryAccount.id,
-            description: 'Pengurangan Persediaan',
-            debitAmount: 0,
-            creditAmount: SALE_A_COGS,
+            direction: 'Credit',
+            amount: SALE_A_COGS,
+            memo: 'Pengurangan Persediaan',
           },
         ],
       });
@@ -137,19 +137,19 @@ describe('E2E Scenario 05: Credit Sales (Wholesale)', () => {
         description: 'Penjualan kredit ke Customer B - CV Sukses Makmur',
         reference: `E2E-INV-B-${Date.now()}`,
         notes: 'Invoice: INV-2026-002, Terms: Net 30, Due: 2026-02-17',
-        entryType: 'Standard',
+        entryType: 'Manual',
         lines: [
           {
             accountId: arAccount.id,
-            description: 'Piutang - CV Sukses Makmur',
-            debitAmount: SALE_B_REVENUE,
-            creditAmount: 0,
+            direction: 'Debit',
+            amount: SALE_B_REVENUE,
+            memo: 'Piutang - CV Sukses Makmur',
           },
           {
             accountId: salesAccount.id,
-            description: 'Penjualan Wholesale',
-            debitAmount: 0,
-            creditAmount: SALE_B_REVENUE,
+            direction: 'Credit',
+            amount: SALE_B_REVENUE,
+            memo: 'Penjualan Wholesale',
           },
         ],
       });
@@ -167,19 +167,19 @@ describe('E2E Scenario 05: Credit Sales (Wholesale)', () => {
         description: 'HPP Penjualan ke Customer B',
         reference: `E2E-COGS-B-${Date.now()}`,
         notes: 'COGS for INV-2026-002',
-        entryType: 'Standard',
+        entryType: 'Manual',
         lines: [
           {
             accountId: cogsAccount.id,
-            description: 'HPP - Wholesale Customer B',
-            debitAmount: SALE_B_COGS,
-            creditAmount: 0,
+            direction: 'Debit',
+            amount: SALE_B_COGS,
+            memo: 'HPP - Wholesale Customer B',
           },
           {
             accountId: inventoryAccount.id,
-            description: 'Pengurangan Persediaan',
-            debitAmount: 0,
-            creditAmount: SALE_B_COGS,
+            direction: 'Credit',
+            amount: SALE_B_COGS,
+            memo: 'Pengurangan Persediaan',
           },
         ],
       });
