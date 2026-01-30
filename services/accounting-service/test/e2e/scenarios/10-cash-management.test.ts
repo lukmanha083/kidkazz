@@ -52,15 +52,8 @@ describe('E2E: Cash Management Workflow', () => {
     console.log('║            CASH MANAGEMENT E2E TEST                          ║');
     console.log('╚══════════════════════════════════════════════════════════════╝');
 
-    // Cleanup previous E2E test data
-    console.log('\n🧹 Cleaning up previous E2E test data...');
-    const cleanupResult = await apiClient.cleanupE2EData(FISCAL_YEAR, true);
-    if (cleanupResult.ok && cleanupResult.data) {
-      console.log(`   Deleted ${cleanupResult.data.deletedJournalEntries} journal entries`);
-      console.log(`   Deleted ${cleanupResult.data.deletedAccountBalances} account balances`);
-      console.log(`   Reset ${cleanupResult.data.resetFiscalPeriods} fiscal periods`);
-    }
-
+    // Note: This test creates its own data and doesn't cleanup E2E journal entries
+    // to avoid interfering with tests 01-08
     console.log('');
   }, 60000);
 

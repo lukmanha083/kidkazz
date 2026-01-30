@@ -56,15 +56,8 @@ describe('E2E: Budget Management Workflow', () => {
     console.log('║            BUDGET MANAGEMENT E2E TEST                        ║');
     console.log('╚══════════════════════════════════════════════════════════════╝');
 
-    // Cleanup previous E2E test data
-    console.log('\n🧹 Cleaning up previous E2E test data...');
-    const cleanupResult = await apiClient.cleanupE2EData(FISCAL_YEAR, true);
-    if (cleanupResult.ok && cleanupResult.data) {
-      console.log(`   Deleted ${cleanupResult.data.deletedJournalEntries} journal entries`);
-      console.log(`   Reset ${cleanupResult.data.resetFiscalPeriods} fiscal periods`);
-    }
-
-    // Cleanup any existing E2E budgets by listing and deleting drafts
+    // Only cleanup E2E budgets, not journal entries (to avoid interfering with tests 01-08)
+    console.log('\n🧹 Cleaning up previous E2E budgets...');
     const existingBudgets = await apiClient.listBudgets({ fiscalYear: FISCAL_YEAR });
     if (existingBudgets.ok && existingBudgets.data) {
       for (const budget of existingBudgets.data) {
