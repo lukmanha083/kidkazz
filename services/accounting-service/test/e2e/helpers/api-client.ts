@@ -334,6 +334,323 @@ export class AccountingApiClient {
   }>> {
     return this.request('GET', `/api/v1/test-utilities/e2e-stats?fiscalYear=${fiscalYear}`);
   }
+
+  // ============ Budget Management ============
+
+  /**
+   * Create a new budget
+   */
+  async createBudget(data: {
+    name: string;
+    fiscalYear: number;
+    lines?: Array<{
+      accountId: string;
+      fiscalMonth: number;
+      amount: number;
+      notes?: string;
+    }>;
+  }): Promise<ApiResponse<{ id: string }>> {
+    return this.request('POST', '/api/v1/budgets', data);
+  }
+
+  /**
+   * Get budget by ID
+   */
+  async getBudget(id: string): Promise<ApiResponse<{
+    id: string;
+    name: string;
+    fiscalYear: number;
+    status: string;
+    approvedBy: string | null;
+    approvedAt: string | null;
+    lines: Array<{
+      id: string;
+      accountId: string;
+      fiscalMonth: number;
+      amount: number;
+      notes: string | null;
+    }>;
+    totalBudget: number;
+  }>> {
+    return this.request('GET', `/api/v1/budgets/${id}`);
+  }
+
+  /**
+   * List budgets with optional filters
+   */
+  async listBudgets(params?: {
+    fiscalYear?: number;
+    status?: 'draft' | 'approved' | 'locked';
+  }): Promise<ApiResponse<Array<{
+    id: string;
+    name: string;
+    fiscalYear: number;
+    status: string;
+    totalBudget: number;
+  }>>> {
+    const searchParams = new URLSearchParams();
+    if (params?.fiscalYear) searchParams.set('fiscalYear', String(params.fiscalYear));
+    if (params?.status) searchParams.set('status', params.status);
+    const query = searchParams.toString();
+    return this.request('GET', `/api/v1/budgets${query ? `?${query}` : ''}`);
+  }
+
+  /**
+   * Update budget lines
+   */
+  async updateBudgetLines(
+    budgetId: string,
+    lines: Array<{
+      accountId: string;
+      fiscalMonth: number;
+      amount: number;
+      notes?: string;
+    }>
+  ): Promise<ApiResponse<void>> {
+    return this.request('PUT', `/api/v1/budgets/${budgetId}/lines`, { lines });
+  }
+
+  /**
+   * Approve a budget
+   */
+  async approveBudget(budgetId: string): Promise<ApiResponse<void>> {
+    return this.request('POST', `/api/v1/budgets/${budgetId}/approve`);
+  }
+
+  /**
+   * Delete a draft budget
+   */
+  async deleteBudget(budgetId: string): Promise<ApiResponse<void>> {
+    return this.request('DELETE', `/api/v1/budgets/${budgetId}`);
+  }
+
+  /**
+   * Get Budget vs Actual report
+   */
+  async getBudgetVsActual(
+    budgetId: string,
+    fiscalMonth?: number
+  ): Promise<ApiResponse<{
+    budgetId: string;
+    budgetName: string;
+    fiscalYear: number;
+    fiscalMonth: number | null;
+    sections: Array<{
+      accountId: string;
+      accountCode: string;
+      accountName: string;
+      budgetAmount: number;
+      actualAmount: number;
+      variance: number;
+      variancePercent: number;
+      isFavorable: boolean;
+    }>;
+    totalBudget: number;
+    totalActual: number;
+    totalVariance: number;
+    totalVariancePercent: number;
+  }>> {
+    const params = new URLSearchParams({ budgetId });
+    if (fiscalMonth) params.set('fiscalMonth', String(fiscalMonth));
+    return this.request('GET', `/api/v1/budgets/reports/budget-vs-actual?${params}`);
+  }
+
+  /**
+   * Get AR Aging report
+   */
+  async getARAgingReport(asOfDate?: string): Promise<ApiResponse<{
+    asOfDate: string;
+    summary: {
+      current: number;
+      days31_60: number;
+      days61_90: number;
+      over90: number;
+      total: number;
+    };
+    accounts: Array<{
+      accountId: string;
+      accountCode: string;
+      accountName: string;
+      balance: number;
+      agingBucket: string;
+    }>;
+  }>> {
+    const params = asOfDate ? `?asOfDate=${asOfDate}` : '';
+    return this.request('GET', `/api/v1/budgets/reports/ar-aging${params}`);
+  }
+
+  /**
+   * Get AP Aging report
+   */
+  async getAPAgingReport(asOfDate?: string): Promise<ApiResponse<{
+    asOfDate: string;
+    summary: {
+      current: number;
+      days31_60: number;
+      days61_90: number;
+      over90: number;
+      total: number;
+    };
+    accounts: Array<{
+      accountId: string;
+      accountCode: string;
+      accountName: string;
+      balance: number;
+      agingBucket: string;
+    }>;
+  }>> {
+    const params = asOfDate ? `?asOfDate=${asOfDate}` : '';
+    return this.request('GET', `/api/v1/budgets/reports/ap-aging${params}`);
+  }
+
+  // ============ Cash Management ============
+
+  /**
+   * Get real-time cash position
+   */
+  async getCashPosition(params?: {
+    asOfDate?: string;
+    includeThresholdCheck?: boolean;
+  }): Promise<ApiResponse<{
+    asOfDate: string;
+    asOfDateStr: string;
+    totalCashPosition: number;
+    cashOnHand: {
+      accounts: Array<{
+        accountCode: string;
+        accountName: string;
+        balance: number;
+        lastReconciledDate?: string;
+        bankAccountId?: string;
+      }>;
+      total: number;
+    };
+    bankAccounts: {
+      accounts: Array<{
+        accountCode: string;
+        accountName: string;
+        balance: number;
+        lastReconciledDate?: string;
+        bankAccountId?: string;
+      }>;
+      total: number;
+    };
+    cashEquivalents: {
+      accounts: Array<{
+        accountCode: string;
+        accountName: string;
+        balance: number;
+        lastReconciledDate?: string;
+        bankAccountId?: string;
+      }>;
+      total: number;
+    };
+    alertStatus?: {
+      alertLevel: 'NORMAL' | 'WARNING' | 'CRITICAL' | 'EMERGENCY';
+      isAlert: boolean;
+      message: string;
+      currentBalance: number;
+      threshold: number;
+    };
+    unreconciledAccounts: Array<{
+      accountCode: string;
+      accountName: string;
+      balance: number;
+      lastReconciledDate?: string;
+      bankAccountId?: string;
+    }>;
+  }>> {
+    const searchParams = new URLSearchParams();
+    if (params?.asOfDate) searchParams.set('asOfDate', params.asOfDate);
+    if (params?.includeThresholdCheck) searchParams.set('includeThresholdCheck', 'true');
+    const query = searchParams.toString();
+    return this.request('GET', `/api/v1/reports/cash-position${query ? `?${query}` : ''}`);
+  }
+
+  /**
+   * Get cash forecast (30-day by default)
+   */
+  async getCashForecast(params?: {
+    weeks?: number;
+    includeThresholdAlerts?: boolean;
+  }): Promise<ApiResponse<{
+    forecastDate: string;
+    generatedAt: string;
+    forecastPeriodDays: number;
+    startingCash: number;
+    endingCash: number;
+    weeks: Array<{
+      weekNumber: number;
+      weekStartDate: string;
+      weekEndDate: string;
+      startingCash: number;
+      inflows: {
+        arCollections: number;
+        sales: number;
+        other: number;
+        total: number;
+      };
+      outflows: {
+        apPayments: number;
+        payroll: number;
+        rent: number;
+        utilities: number;
+        other: number;
+        total: number;
+      };
+      netCashFlow: number;
+      endingCash: number;
+      alertLevel: 'NORMAL' | 'WARNING' | 'CRITICAL' | 'EMERGENCY';
+    }>;
+    lowestCashPoint: {
+      weekNumber: number;
+      amount: number;
+      date: string;
+    };
+    summary: {
+      totalInflows: number;
+      totalOutflows: number;
+      netChange: number;
+      averageWeeklyBalance: number;
+      weeksWithAlerts: number;
+    };
+  }>> {
+    const searchParams = new URLSearchParams();
+    if (params?.weeks) searchParams.set('weeks', String(params.weeks));
+    if (params?.includeThresholdAlerts) searchParams.set('includeThresholdAlerts', 'true');
+    const query = searchParams.toString();
+    return this.request('GET', `/api/v1/reports/cash-forecast${query ? `?${query}` : ''}`);
+  }
+
+  /**
+   * Get cash threshold configuration
+   */
+  async getCashThreshold(): Promise<ApiResponse<{
+    warningThreshold: number;
+    criticalThreshold: number;
+    emergencyThreshold: number;
+    updatedAt: string;
+    updatedBy: string;
+  }>> {
+    return this.request('GET', '/api/v1/reports/cash-threshold');
+  }
+
+  /**
+   * Update cash threshold configuration
+   */
+  async updateCashThreshold(data: {
+    warningThreshold: number;
+    criticalThreshold: number;
+    emergencyThreshold: number;
+  }): Promise<ApiResponse<{
+    warningThreshold: number;
+    criticalThreshold: number;
+    emergencyThreshold: number;
+    updatedAt: string;
+    updatedBy: string;
+  }>> {
+    return this.request('PUT', '/api/v1/reports/cash-threshold', data);
+  }
 }
 
 // Singleton instance for convenience
