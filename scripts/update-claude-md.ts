@@ -14,7 +14,7 @@ import fs from 'fs';
 import path from 'path';
 
 const ROOT_DIR = path.join(import.meta.dirname, '..');
-const CLAUDE_MD_PATH = path.join(ROOT_DIR, 'docs/CLAUDE.md');
+const CLAUDE_MD_PATH = path.join(ROOT_DIR, 'CLAUDE.md');
 const DOCS_DIR = path.join(ROOT_DIR, 'docs');
 
 interface PhaseDoc {
