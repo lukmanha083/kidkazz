@@ -6,7 +6,10 @@
  */
 
 import { execSync } from 'node:child_process';
+import { writeFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { randomBytes } from 'node:crypto';
 
 const SERVICE_DIR = join(import.meta.dirname, '../../..');
 const DATABASE_NAME = 'accounting-db';
@@ -19,11 +22,17 @@ export interface D1Result {
 
 /**
  * Execute SQL command on remote D1 database
+ * Uses a temp file to avoid shell escaping issues (security best practice)
  */
 export function executeD1(sql: string): D1Result {
+  // Write SQL to a temp file to avoid shell injection vulnerabilities
+  const tempFile = join(tmpdir(), `d1-query-${randomBytes(8).toString('hex')}.sql`);
+
   try {
+    writeFileSync(tempFile, sql, 'utf-8');
+
     const result = execSync(
-      `npx wrangler d1 execute ${DATABASE_NAME} --remote --command "${sql.replace(/"/g, '\\"')}"`,
+      `npx wrangler d1 execute ${DATABASE_NAME} --remote --file="${tempFile}"`,
       {
         cwd: SERVICE_DIR,
         encoding: 'utf-8',
@@ -46,6 +55,13 @@ export function executeD1(sql: string): D1Result {
       success: false,
       error: error instanceof Error ? error.message : String(error),
     };
+  } finally {
+    // Clean up temp file
+    try {
+      unlinkSync(tempFile);
+    } catch {
+      // Ignore cleanup errors
+    }
   }
 }
 
