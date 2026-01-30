@@ -16,6 +16,7 @@ import {
   movementRoutes,
   reconciliationRoutes,
   reportsRoutes,
+  testUtilitiesRoutes,
 } from '@/infrastructure/http/routes';
 import { handleQueue } from '@/infrastructure/messaging';
 import { Hono } from 'hono';
@@ -73,6 +74,7 @@ app.route('/api/v1/currencies', currencyRoutes);
 app.route('/api/v1/budgets', budgetRoutes);
 app.route('/api/v1/audit', auditRoutes);
 app.route('/api/v1/account-balances', accountBalanceRoutes);
+app.route('/api/v1/test-utilities', testUtilitiesRoutes);
 
 // Root endpoint
 app.get('/', (c) => {

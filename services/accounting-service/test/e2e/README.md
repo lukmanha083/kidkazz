@@ -32,6 +32,8 @@ E2E_API_URL=https://accounting-service.your-domain.workers.dev pnpm test:e2e
 
 ## Test Scenarios
 
+### 1-Month Cycle (Default)
+
 The tests simulate a complete 1-month accounting cycle for a trading company:
 
 | Scenario | Description | Key Transactions |
@@ -45,7 +47,45 @@ The tests simulate a complete 1-month accounting cycle for a trading company:
 | **07-month-end-close** | Adjusting entries and period close | Depreciation, accrued salary |
 | **08-financial-reports** | Generate and verify all reports | Trial Balance, P&L, Balance Sheet |
 
-## Transaction Summary
+### Full 12-Month Cycle
+
+For comprehensive testing, run the full-year test suite:
+
+```bash
+# Run only the full-year tests (separate from 1-month cycle)
+pnpm test:e2e:full-year
+
+# Or with deployed worker
+E2E_API_URL=https://accounting-service.xxx.workers.dev pnpm test:e2e:full-year
+```
+
+The full-year test (`test/e2e/scenarios/full-year/01-full-year-cycle.test.ts`) includes:
+
+| Feature | Description |
+|---------|-------------|
+| **Synthetic Data** | Reproducible transaction data with seasonal patterns |
+| **12 Fiscal Periods** | January through December 2026 |
+| **Monthly Transactions** | Purchases, cash sales, credit sales, expenses |
+| **AR/AP Management** | Collections and payments with realistic timing |
+| **Period Closures** | All 12 months closed with balance calculations |
+| **Year-End Reports** | Trial Balance, Income Statement, Balance Sheet |
+
+**Synthetic Data Features:**
+- Seasonal multipliers (Ramadan/Lebaran boost in March-April, year-end boost)
+- Monthly growth trend (~10% annual)
+- Randomized but reproducible amounts (seeded random)
+- Indonesian business context (suppliers, customers, expense categories)
+
+**Expected Annual Results (2026):**
+- Total Revenue: ~Rp 8-9 billion
+- Gross Margin: ~30%
+- Net Income: Positive
+- All trial balances balanced
+- Accounting equation satisfied
+
+**Note:** This test creates substantial data and takes ~5-10 minutes to complete.
+
+## Transaction Summary (1-Month Cycle)
 
 ### Opening Balance (Scenario 01)
 ```

@@ -3,18 +3,16 @@ import path from 'path';
 
 export default defineConfig({
   test: {
-    name: 'e2e',
-    include: ['test/e2e/scenarios/*.test.ts'], // 1-month cycle only by default
-    exclude: ['node_modules', 'dist', 'test/e2e/scenarios/full-year/**'],
+    name: 'e2e-full-year',
+    include: ['test/e2e/scenarios/full-year/**/*.test.ts'],
+    exclude: ['node_modules', 'dist'],
     globals: true,
     environment: 'node',
-    testTimeout: 30000, // 30 seconds for API calls
+    testTimeout: 180000, // 3 minutes for each test (many journal entries)
     hookTimeout: 60000, // 60 seconds for setup/teardown
     sequence: {
-      // Run tests in order (scenarios depend on each other)
       shuffle: false,
     },
-    // Run files sequentially to maintain state between scenarios
     fileParallelism: false,
     reporters: ['verbose'],
   },

@@ -301,6 +301,39 @@ export class AccountingApiClient {
       `/api/v1/reports/cash-flow?fiscalYear=${year}&fiscalMonth=${month}`
     );
   }
+
+  // ============ Test Utilities ============
+
+  /**
+   * Cleanup E2E test data for a fiscal year.
+   * Deletes journal entries with E2E- prefix and resets fiscal periods.
+   */
+  async cleanupE2EData(
+    fiscalYear: number,
+    resetPeriods: boolean = true
+  ): Promise<ApiResponse<{
+    fiscalYear: number;
+    deletedJournalLines: number;
+    deletedJournalEntries: number;
+    deletedAccountBalances: number;
+    resetFiscalPeriods: number;
+  }>> {
+    return this.request(
+      'DELETE',
+      `/api/v1/test-utilities/cleanup-e2e?fiscalYear=${fiscalYear}&resetPeriods=${resetPeriods}`
+    );
+  }
+
+  /**
+   * Get E2E test data statistics for a fiscal year.
+   */
+  async getE2EStats(fiscalYear: number): Promise<ApiResponse<{
+    fiscalYear: number;
+    e2eJournalEntryCount: number;
+    fiscalPeriods: Array<{ fiscalMonth: number; status: string }>;
+  }>> {
+    return this.request('GET', `/api/v1/test-utilities/e2e-stats?fiscalYear=${fiscalYear}`);
+  }
 }
 
 // Singleton instance for convenience
