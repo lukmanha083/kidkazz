@@ -86,6 +86,24 @@ boundedContexts:
         file: src/domain/entities/tax-summary.entity.ts
     endpoints:
       rest:
+        - method: POST
+          path: /calculate
+          handler: services/accounting-service/src/infrastructure/http/routes/account-balance.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/account-balance.routes.ts
+        - method: GET
+          path: "/:accountId"
+          handler: services/accounting-service/src/infrastructure/http/routes/account-balance.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/account-balance.routes.ts
+        - method: GET
+          path: /
+          handler: services/accounting-service/src/infrastructure/http/routes/account-balance.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/account-balance.routes.ts
         - method: GET
           path: /
           handler: services/accounting-service/src/infrastructure/http/routes/account.routes.ts
