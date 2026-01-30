@@ -839,6 +839,18 @@ boundedContexts:
         - method: GET
           path: userId
           handler: services/accounting-service/src/infrastructure/http/routes/reports.routes.ts
+        - method: DELETE
+          path: /cleanup-e2e
+          handler: services/accounting-service/src/infrastructure/http/routes/test-utilities.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/test-utilities.routes.ts
+        - method: GET
+          path: /e2e-stats
+          handler: services/accounting-service/src/infrastructure/http/routes/test-utilities.routes.ts
+        - method: GET
+          path: db
+          handler: services/accounting-service/src/infrastructure/http/routes/test-utilities.routes.ts
     consumes:
       - service: order-service
         reason: Order management integration
