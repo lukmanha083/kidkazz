@@ -92,17 +92,12 @@ describe('E2E Scenario 08: Financial Reports', () => {
         netIncome?: number;
       };
 
-      // Verify income statement structure is valid
-      // Note: Revenue/COGS may be 0 if tests 03-06 haven't run yet (test order not guaranteed)
+      // Check that we have financial data from tests 03-06
+      // Note: Use scripts/run-e2e-sequential.sh to ensure correct test order
       const hasRevenue = (incomeStatement.revenue?.total ?? 0) > 0;
       const hasCOGS = (incomeStatement.cogs?.total ?? 0) > 0;
 
-      if (!hasRevenue && !hasCOGS) {
-        console.log('⚠️ No revenue/COGS data found - tests may have run out of order');
-      }
-      // Structure validation: these properties should exist even if 0
-      expect(incomeStatement).toHaveProperty('revenue');
-      expect(incomeStatement).toHaveProperty('cogs');
+      expect(hasRevenue || hasCOGS).toBe(true);
     });
 
     it('should calculate gross profit and net income', async () => {
