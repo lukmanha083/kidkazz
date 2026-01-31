@@ -1110,32 +1110,28 @@ export class AccountingApiClient {
 
   /**
    * List fixed assets
+   * Note: The API wrapper extracts data from {success, data, pagination}
+   * so we get the array directly. Use listAssetsWithPagination for pagination info.
    */
   async listAssets(params?: {
     categoryId?: string;
-    status?: 'Draft' | 'Active' | 'Disposed' | 'Transferred';
+    status?: 'Draft' | 'Active' | 'Disposed' | 'Transferred' | 'ACTIVE' | 'DRAFT' | 'DISPOSED';
     locationId?: string;
     departmentId?: string;
     search?: string;
     page?: number;
     limit?: number;
-  }): Promise<ApiResponse<{
-    data: Array<{
-      id: string;
-      code: string;
-      name: string;
-      categoryId: string;
-      acquisitionCost: number;
-      currentBookValue: number;
-      status: string;
-    }>;
-    pagination: {
-      total: number;
-      page: number;
-      limit: number;
-      totalPages: number;
-    };
-  }>> {
+  }): Promise<ApiResponse<Array<{
+    id: string;
+    code?: string;
+    assetNumber?: string;
+    name: string;
+    categoryId: string;
+    acquisitionCost: number;
+    bookValue?: number;
+    currentBookValue?: number;
+    status: string;
+  }>>> {
     const searchParams = new URLSearchParams();
     if (params?.categoryId) searchParams.set('categoryId', params.categoryId);
     if (params?.status) searchParams.set('status', params.status);
@@ -1258,16 +1254,25 @@ export class AccountingApiClient {
     fiscalMonth: number;
     assets: Array<{
       assetId: string;
-      assetCode: string;
+      assetNumber?: string;
+      assetCode?: string;
       assetName: string;
-      acquisitionCost: number;
+      categoryId?: string;
+      categoryName?: string;
+      acquisitionCost?: number;
       currentBookValue: number;
-      depreciationAmount: number;
+      depreciationAmount?: number;
+      estimatedDepreciation?: number;
       newBookValue: number;
+      salvageValue?: number;
+      depreciationMethod?: string;
+      isFullyDepreciated?: boolean;
     }>;
     totalDepreciation: number;
-    assetCount: number;
+    totalAssets: number;
+    assetCount?: number;
     alreadyCalculated: boolean;
+    alreadyPosted?: boolean;
   }>> {
     return this.request(
       'GET',

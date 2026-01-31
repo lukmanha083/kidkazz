@@ -90,18 +90,19 @@ describe('E2E: Depreciation Management', () => {
       expect(response.data).toHaveProperty('fiscalYear', FISCAL_YEAR);
       expect(response.data).toHaveProperty('fiscalMonth', FISCAL_MONTH);
       expect(response.data).toHaveProperty('totalDepreciation');
-      expect(response.data).toHaveProperty('assetCount');
+      expect(response.data).toHaveProperty('totalAssets');
 
       console.log(`  Preview for ${FISCAL_YEAR}-${String(FISCAL_MONTH).padStart(2, '0')}:`);
-      console.log(`    Assets to depreciate: ${response.data?.assetCount || 0}`);
+      console.log(`    Assets to depreciate: ${response.data?.totalAssets || 0}`);
       console.log(`    Total depreciation: Rp ${response.data?.totalDepreciation?.toLocaleString() || 0}`);
       console.log(`    Already calculated: ${response.data?.alreadyCalculated ? 'Yes' : 'No'}`);
+      console.log(`    Already posted: ${response.data?.alreadyPosted ? 'Yes' : 'No'}`);
 
       // Display individual asset preview if available
       if (response.data?.assets && response.data.assets.length > 0) {
         console.log('    Asset details:');
-        response.data.assets.forEach(asset => {
-          console.log(`      - ${asset.assetCode}: Rp ${asset.depreciationAmount.toLocaleString()}`);
+        response.data.assets.forEach((asset: { assetNumber?: string; assetName?: string; estimatedDepreciation?: number }) => {
+          console.log(`      - ${asset.assetNumber || asset.assetName}: Rp ${(asset.estimatedDepreciation || 0).toLocaleString()}`);
         });
       }
     });
@@ -335,7 +336,7 @@ describe('E2E: Depreciation Management', () => {
 
       expect(response.ok).toBe(true);
       console.log(`  February preview:`);
-      console.log(`    Assets: ${response.data?.assetCount || 0}`);
+      console.log(`    Assets: ${response.data?.totalAssets || 0}`);
       console.log(`    Total: Rp ${response.data?.totalDepreciation?.toLocaleString() || 0}`);
       console.log(`    Already calculated: ${response.data?.alreadyCalculated ? 'Yes' : 'No'}`);
     });
