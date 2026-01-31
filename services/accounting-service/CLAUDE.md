@@ -30,7 +30,18 @@ pnpm test:integration  # Integration tests only
 pnpm type-check        # TypeScript validation
 pnpm lint:fix          # Auto-fix linting issues
 pnpm dev               # Local development server
-pnpm db:migrate        # Apply migrations locally
+pnpm deploy            # Deploy to Cloudflare Workers
+```
+
+---
+
+## API Endpoint
+
+**Production**: `https://accounting-service.tesla-hakim.workers.dev`
+
+```bash
+# E2E tests (always use remote, not localhost)
+E2E_API_URL=https://accounting-service.tesla-hakim.workers.dev pnpm test:e2e
 ```
 
 ---
