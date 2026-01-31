@@ -22,6 +22,7 @@ TEST_FILES=(
   "test/e2e/scenarios/08-financial-reports.test.ts"
   "test/e2e/scenarios/09-budget-management.test.ts"
   "test/e2e/scenarios/10-cash-management.test.ts"
+  "test/e2e/scenarios/11-bank-reconciliation.test.ts"
 )
 
 echo ""

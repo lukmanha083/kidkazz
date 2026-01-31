@@ -651,6 +651,304 @@ export class AccountingApiClient {
   }>> {
     return this.request('PUT', '/api/v1/reports/cash-threshold', data);
   }
+
+  // ============ Bank Account Management ============
+
+  /**
+   * Create a new bank account
+   */
+  async createBankAccount(data: {
+    accountId: string;
+    bankName: string;
+    accountNumber: string;
+    accountType: 'OPERATING' | 'PAYROLL' | 'SAVINGS' | 'FOREIGN_CURRENCY';
+    currency?: string;
+  }): Promise<ApiResponse<{ id: string }>> {
+    return this.request('POST', '/api/v1/bank-accounts', data);
+  }
+
+  /**
+   * Get bank account by ID
+   */
+  async getBankAccount(id: string): Promise<ApiResponse<{
+    id: string;
+    accountId: string;
+    bankName: string;
+    accountNumber: string;
+    accountType: string;
+    currency: string;
+    status: string;
+    lastReconciledDate?: string;
+    lastReconciledBalance?: number;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    return this.request('GET', `/api/v1/bank-accounts/${id}`);
+  }
+
+  /**
+   * List all bank accounts
+   */
+  async listBankAccounts(params?: {
+    status?: 'Active' | 'Inactive' | 'Closed';
+    accountType?: string;
+  }): Promise<ApiResponse<Array<{
+    id: string;
+    accountId: string;
+    bankName: string;
+    accountNumber: string;
+    accountType: string;
+    currency: string;
+    status: string;
+    lastReconciledDate?: string;
+    lastReconciledBalance?: number;
+  }>>> {
+    const searchParams = new URLSearchParams();
+    if (params?.status) searchParams.set('status', params.status);
+    if (params?.accountType) searchParams.set('accountType', params.accountType);
+    const query = searchParams.toString();
+    return this.request('GET', `/api/v1/bank-accounts${query ? `?${query}` : ''}`);
+  }
+
+  /**
+   * Update bank account
+   */
+  async updateBankAccount(
+    id: string,
+    data: {
+      bankName?: string;
+      accountNumber?: string;
+    }
+  ): Promise<ApiResponse<unknown>> {
+    return this.request('PUT', `/api/v1/bank-accounts/${id}`, data);
+  }
+
+  /**
+   * Deactivate bank account
+   */
+  async deactivateBankAccount(id: string): Promise<ApiResponse<{ id: string; status: string }>> {
+    return this.request('POST', `/api/v1/bank-accounts/${id}/deactivate`);
+  }
+
+  /**
+   * Reactivate bank account
+   */
+  async reactivateBankAccount(id: string): Promise<ApiResponse<{ id: string; status: string }>> {
+    return this.request('POST', `/api/v1/bank-accounts/${id}/reactivate`);
+  }
+
+  /**
+   * Close bank account
+   */
+  async closeBankAccount(id: string): Promise<ApiResponse<{ id: string; status: string }>> {
+    return this.request('POST', `/api/v1/bank-accounts/${id}/close`);
+  }
+
+  // ============ Bank Reconciliation ============
+
+  /**
+   * Create a new reconciliation
+   */
+  async createReconciliation(data: {
+    bankAccountId: string;
+    fiscalYear: number;
+    fiscalMonth: number;
+    statementEndingBalance: number;
+    bookEndingBalance: number;
+    notes?: string;
+  }): Promise<ApiResponse<{ id: string }>> {
+    return this.request('POST', '/api/v1/reconciliations', data);
+  }
+
+  /**
+   * Get reconciliation by ID
+   */
+  async getReconciliation(id: string): Promise<ApiResponse<{
+    id: string;
+    bankAccountId: string;
+    fiscalYear: number;
+    fiscalMonth: number;
+    statementEndingBalance: number;
+    bookEndingBalance: number;
+    adjustedBankBalance?: number;
+    adjustedBookBalance?: number;
+    totalTransactions: number;
+    matchedTransactions: number;
+    unmatchedTransactions: number;
+    status: string;
+    reconcilingItems: Array<{
+      id: string;
+      itemType: string;
+      description: string;
+      amount: number;
+      transactionDate: string;
+    }>;
+    completedAt?: string;
+    completedBy?: string;
+    approvedAt?: string;
+    approvedBy?: string;
+  }>> {
+    return this.request('GET', `/api/v1/reconciliations/${id}`);
+  }
+
+  /**
+   * List all reconciliations
+   */
+  async listReconciliations(): Promise<ApiResponse<Array<{
+    id: string;
+    bankAccountId: string;
+    fiscalYear: number;
+    fiscalMonth: number;
+    status: string;
+    completedAt?: string;
+    approvedAt?: string;
+  }>>> {
+    return this.request('GET', '/api/v1/reconciliations');
+  }
+
+  /**
+   * Start reconciliation process
+   */
+  async startReconciliation(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request('POST', `/api/v1/reconciliations/${id}/start`);
+  }
+
+  /**
+   * Import bank statement with transactions
+   */
+  async importBankStatement(
+    reconciliationId: string,
+    data: {
+      bankAccountId: string;
+      statementDate: string;
+      periodStart: string;
+      periodEnd: string;
+      openingBalance: number;
+      closingBalance: number;
+      transactions: Array<{
+        transactionDate: string;
+        description: string;
+        amount: number;
+        reference?: string;
+        checkNumber?: string;
+        valueDate?: string;
+      }>;
+    }
+  ): Promise<ApiResponse<{
+    statementId: string;
+    transactionCount: number;
+    duplicatesSkipped: number;
+  }>> {
+    return this.request('POST', `/api/v1/reconciliations/${reconciliationId}/import-statement`, data);
+  }
+
+  /**
+   * Get unmatched transactions for reconciliation
+   */
+  async getUnmatchedTransactions(reconciliationId: string): Promise<ApiResponse<Array<{
+    id: string;
+    transactionDate: string;
+    description: string;
+    reference?: string;
+    amount: number;
+    transactionType: string;
+    matchStatus: string;
+  }>>> {
+    return this.request('GET', `/api/v1/reconciliations/${reconciliationId}/unmatched`);
+  }
+
+  /**
+   * Match a single transaction to journal line
+   */
+  async matchTransaction(
+    reconciliationId: string,
+    data: {
+      bankTransactionId: string;
+      journalLineId: string;
+    }
+  ): Promise<ApiResponse<{
+    bankTransactionId: string;
+    journalLineId: string;
+    matchStatus: string;
+  }>> {
+    return this.request('POST', `/api/v1/reconciliations/${reconciliationId}/match`, data);
+  }
+
+  /**
+   * Auto-match transactions with journal lines
+   */
+  async autoMatchTransactions(
+    reconciliationId: string,
+    data: {
+      journalLines: Array<{
+        id: string;
+        amount: number;
+        date: string;
+        direction: 'Debit' | 'Credit';
+      }>;
+      dateTolerance?: number;
+    }
+  ): Promise<ApiResponse<{
+    matchedCount: number;
+    unmatchedCount: number;
+    matches: Array<{
+      bankTransactionId: string;
+      journalLineId: string;
+    }>;
+  }>> {
+    return this.request('POST', `/api/v1/reconciliations/${reconciliationId}/auto-match`, data);
+  }
+
+  /**
+   * Add reconciling item (outstanding check, deposit in transit, etc.)
+   */
+  async addReconcilingItem(
+    reconciliationId: string,
+    data: {
+      itemType: 'OUTSTANDING_CHECK' | 'DEPOSIT_IN_TRANSIT' | 'BANK_FEE' | 'BANK_INTEREST' | 'NSF_CHECK' | 'ADJUSTMENT';
+      description: string;
+      amount: number;
+      transactionDate: string;
+      reference?: string;
+      requiresJournalEntry?: boolean;
+    }
+  ): Promise<ApiResponse<{ itemId: string; reconciliationId: string; itemType: string }>> {
+    return this.request('POST', `/api/v1/reconciliations/${reconciliationId}/items`, data);
+  }
+
+  /**
+   * Calculate adjusted balances
+   */
+  async calculateAdjustedBalances(reconciliationId: string): Promise<ApiResponse<{
+    adjustedBankBalance: number;
+    adjustedBookBalance: number;
+    difference: number;
+    isReconciled: boolean;
+  }>> {
+    return this.request('POST', `/api/v1/reconciliations/${reconciliationId}/calculate`);
+  }
+
+  /**
+   * Complete reconciliation
+   */
+  async completeReconciliation(reconciliationId: string): Promise<ApiResponse<{
+    id: string;
+    status: string;
+    completedAt: string;
+  }>> {
+    return this.request('POST', `/api/v1/reconciliations/${reconciliationId}/complete`);
+  }
+
+  /**
+   * Approve reconciliation
+   */
+  async approveReconciliation(reconciliationId: string): Promise<ApiResponse<{
+    id: string;
+    status: string;
+    approvedAt: string;
+  }>> {
+    return this.request('POST', `/api/v1/reconciliations/${reconciliationId}/approve`);
+  }
 }
 
 // Singleton instance for convenience
