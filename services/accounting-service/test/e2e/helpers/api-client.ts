@@ -949,6 +949,444 @@ export class AccountingApiClient {
   }>> {
     return this.request('POST', `/api/v1/reconciliations/${reconciliationId}/approve`);
   }
+
+  // ============ Asset Categories ============
+
+  /**
+   * Create a new asset category
+   */
+  async createAssetCategory(data: {
+    code: string;
+    name: string;
+    description?: string;
+    depreciationMethod: 'STRAIGHT_LINE' | 'DECLINING_BALANCE' | 'SUM_OF_YEARS_DIGITS' | 'UNITS_OF_PRODUCTION';
+    defaultUsefulLifeYears: number;
+    defaultSalvageValuePercent?: number;
+    assetAccountId: string;
+    depreciationAccountId: string;
+    accumulatedDepreciationAccountId: string;
+    gainLossAccountId?: string;
+  }): Promise<ApiResponse<{ id: string }>> {
+    return this.request('POST', '/api/v1/asset-categories', data);
+  }
+
+  /**
+   * Get asset category by ID
+   */
+  async getAssetCategory(id: string): Promise<ApiResponse<{
+    id: string;
+    code: string;
+    name: string;
+    description?: string;
+    depreciationMethod: string;
+    defaultUsefulLifeYears: number;
+    defaultSalvageValuePercent: number;
+    assetAccountId: string;
+    depreciationAccountId: string;
+    accumulatedDepreciationAccountId: string;
+    gainLossAccountId?: string;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    return this.request('GET', `/api/v1/asset-categories/${id}`);
+  }
+
+  /**
+   * List asset categories
+   */
+  async listAssetCategories(params?: {
+    includeInactive?: boolean;
+  }): Promise<ApiResponse<Array<{
+    id: string;
+    code: string;
+    name: string;
+    depreciationMethod: string;
+    defaultUsefulLifeYears: number;
+    isActive: boolean;
+  }>>> {
+    const searchParams = new URLSearchParams();
+    if (params?.includeInactive) searchParams.set('includeInactive', 'true');
+    const query = searchParams.toString();
+    return this.request('GET', `/api/v1/asset-categories${query ? `?${query}` : ''}`);
+  }
+
+  /**
+   * Update asset category
+   */
+  async updateAssetCategory(
+    id: string,
+    data: {
+      name?: string;
+      description?: string;
+      defaultUsefulLifeYears?: number;
+      defaultSalvageValuePercent?: number;
+      isActive?: boolean;
+    }
+  ): Promise<ApiResponse<unknown>> {
+    return this.request('PUT', `/api/v1/asset-categories/${id}`, data);
+  }
+
+  /**
+   * Delete asset category
+   */
+  async deleteAssetCategory(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request('DELETE', `/api/v1/asset-categories/${id}`);
+  }
+
+  // ============ Fixed Assets ============
+
+  /**
+   * Create a new fixed asset
+   */
+  async createAsset(data: {
+    code: string;
+    name: string;
+    description?: string;
+    categoryId: string;
+    acquisitionDate: string;
+    acquisitionCost: number;
+    usefulLifeYears?: number;
+    salvageValue?: number;
+    barcode?: string;
+    serialNumber?: string;
+    locationId?: string;
+    departmentId?: string;
+    assignedToUserId?: string;
+    depreciationStartDate?: string;
+    warrantyExpiryDate?: string;
+    insuranceExpiryDate?: string;
+    notes?: string;
+  }): Promise<ApiResponse<{ id: string; code: string; status: string }>> {
+    return this.request('POST', '/api/v1/assets', data);
+  }
+
+  /**
+   * Get fixed asset by ID
+   */
+  async getAsset(id: string): Promise<ApiResponse<{
+    id: string;
+    code: string;
+    name: string;
+    description?: string;
+    categoryId: string;
+    acquisitionDate: string;
+    acquisitionCost: number;
+    usefulLifeYears: number;
+    salvageValue: number;
+    currentBookValue: number;
+    accumulatedDepreciation: number;
+    status: string;
+    barcode?: string;
+    serialNumber?: string;
+    locationId?: string;
+    departmentId?: string;
+    assignedToUserId?: string;
+    depreciationStartDate?: string;
+    warrantyExpiryDate?: string;
+    insuranceExpiryDate?: string;
+    disposalDate?: string;
+    disposalProceeds?: number;
+    disposalReason?: string;
+    notes?: string;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    return this.request('GET', `/api/v1/assets/${id}`);
+  }
+
+  /**
+   * Get fixed asset by barcode
+   */
+  async getAssetByBarcode(barcode: string): Promise<ApiResponse<{
+    id: string;
+    code: string;
+    name: string;
+    status: string;
+    barcode: string;
+  }>> {
+    return this.request('GET', `/api/v1/assets/barcode/${barcode}`);
+  }
+
+  /**
+   * List fixed assets
+   */
+  async listAssets(params?: {
+    categoryId?: string;
+    status?: 'Draft' | 'Active' | 'Disposed' | 'Transferred';
+    locationId?: string;
+    departmentId?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<{
+    data: Array<{
+      id: string;
+      code: string;
+      name: string;
+      categoryId: string;
+      acquisitionCost: number;
+      currentBookValue: number;
+      status: string;
+    }>;
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  }>> {
+    const searchParams = new URLSearchParams();
+    if (params?.categoryId) searchParams.set('categoryId', params.categoryId);
+    if (params?.status) searchParams.set('status', params.status);
+    if (params?.locationId) searchParams.set('locationId', params.locationId);
+    if (params?.departmentId) searchParams.set('departmentId', params.departmentId);
+    if (params?.search) searchParams.set('search', params.search);
+    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+    const query = searchParams.toString();
+    return this.request('GET', `/api/v1/assets${query ? `?${query}` : ''}`);
+  }
+
+  /**
+   * Get depreciable assets
+   */
+  async getDepreciableAssets(): Promise<ApiResponse<Array<{
+    id: string;
+    code: string;
+    name: string;
+    categoryId: string;
+    acquisitionCost: number;
+    currentBookValue: number;
+    accumulatedDepreciation: number;
+    usefulLifeYears: number;
+    salvageValue: number;
+    depreciationStartDate?: string;
+  }>>> {
+    return this.request('GET', '/api/v1/assets/depreciable');
+  }
+
+  /**
+   * Update fixed asset
+   */
+  async updateAsset(
+    id: string,
+    data: {
+      name?: string;
+      description?: string;
+      locationId?: string;
+      departmentId?: string;
+      assignedToUserId?: string;
+      warrantyExpiryDate?: string;
+      insuranceExpiryDate?: string;
+      notes?: string;
+    }
+  ): Promise<ApiResponse<unknown>> {
+    return this.request('PUT', `/api/v1/assets/${id}`, data);
+  }
+
+  /**
+   * Activate fixed asset
+   */
+  async activateAsset(id: string): Promise<ApiResponse<{
+    id: string;
+    code: string;
+    status: string;
+    activatedAt: string;
+  }>> {
+    return this.request('POST', `/api/v1/assets/${id}/activate`);
+  }
+
+  /**
+   * Transfer fixed asset to new location/department
+   */
+  async transferAsset(
+    id: string,
+    data: {
+      newLocationId?: string;
+      newDepartmentId?: string;
+      newAssignedToUserId?: string;
+      transferReason: string;
+      transferDate?: string;
+    }
+  ): Promise<ApiResponse<{
+    id: string;
+    code: string;
+    previousLocation?: string;
+    newLocation?: string;
+    previousDepartment?: string;
+    newDepartment?: string;
+    transferredAt: string;
+  }>> {
+    return this.request('POST', `/api/v1/assets/${id}/transfer`, data);
+  }
+
+  /**
+   * Dispose fixed asset (creates journal entry for gain/loss)
+   */
+  async disposeAsset(
+    id: string,
+    data: {
+      disposalDate: string;
+      disposalProceeds: number;
+      disposalReason: string;
+      fiscalYear: number;
+      fiscalMonth: number;
+    }
+  ): Promise<ApiResponse<{
+    id: string;
+    code: string;
+    status: string;
+    disposalDate: string;
+    disposalProceeds: number;
+    gainLoss: number;
+    journalEntryId?: string;
+  }>> {
+    return this.request('POST', `/api/v1/assets/${id}/dispose`, data);
+  }
+
+  // ============ Depreciation ============
+
+  /**
+   * Get depreciation preview for a period
+   */
+  async getDepreciationPreview(
+    fiscalYear: number,
+    fiscalMonth: number
+  ): Promise<ApiResponse<{
+    fiscalYear: number;
+    fiscalMonth: number;
+    assets: Array<{
+      assetId: string;
+      assetCode: string;
+      assetName: string;
+      acquisitionCost: number;
+      currentBookValue: number;
+      depreciationAmount: number;
+      newBookValue: number;
+    }>;
+    totalDepreciation: number;
+    assetCount: number;
+    alreadyCalculated: boolean;
+  }>> {
+    return this.request(
+      'GET',
+      `/api/v1/depreciation/preview?fiscalYear=${fiscalYear}&fiscalMonth=${fiscalMonth}`
+    );
+  }
+
+  /**
+   * List depreciation runs
+   */
+  async listDepreciationRuns(): Promise<ApiResponse<Array<{
+    id: string;
+    fiscalYear: number;
+    fiscalMonth: number;
+    status: string;
+    totalDepreciation: number;
+    assetCount: number;
+    calculatedAt: string;
+    postedAt?: string;
+  }>>> {
+    return this.request('GET', '/api/v1/depreciation/runs');
+  }
+
+  /**
+   * Get depreciation run by ID
+   */
+  async getDepreciationRun(runId: string): Promise<ApiResponse<{
+    id: string;
+    fiscalYear: number;
+    fiscalMonth: number;
+    status: string;
+    totalDepreciation: number;
+    assetCount: number;
+    calculatedAt: string;
+    postedAt?: string;
+    journalEntryId?: string;
+    details: Array<{
+      assetId: string;
+      assetCode: string;
+      depreciationAmount: number;
+      previousBookValue: number;
+      newBookValue: number;
+    }>;
+  }>> {
+    return this.request('GET', `/api/v1/depreciation/runs/${runId}`);
+  }
+
+  /**
+   * Calculate depreciation for a period
+   */
+  async calculateDepreciation(data: {
+    fiscalYear: number;
+    fiscalMonth: number;
+  }): Promise<ApiResponse<{
+    runId: string;
+    fiscalYear: number;
+    fiscalMonth: number;
+    totalDepreciation: number;
+    assetCount: number;
+    status: string;
+  }>> {
+    return this.request('POST', '/api/v1/depreciation/calculate', data);
+  }
+
+  /**
+   * Post depreciation to GL (creates journal entry)
+   */
+  async postDepreciation(data: {
+    runId: string;
+  }): Promise<ApiResponse<{
+    runId: string;
+    journalEntryId: string;
+    totalDepreciation: number;
+    status: string;
+    postedAt: string;
+  }>> {
+    return this.request('POST', '/api/v1/depreciation/post', data);
+  }
+
+  /**
+   * Reverse a posted depreciation run
+   */
+  async reverseDepreciation(data: {
+    runId: string;
+    reason: string;
+  }): Promise<ApiResponse<{
+    runId: string;
+    reversalJournalEntryId: string;
+    status: string;
+    reversedAt: string;
+  }>> {
+    return this.request('POST', '/api/v1/depreciation/reverse', data);
+  }
+
+  /**
+   * Get depreciation schedule for a specific asset
+   */
+  async getAssetDepreciationSchedule(assetId: string): Promise<ApiResponse<{
+    assetId: string;
+    assetCode: string;
+    assetName: string;
+    acquisitionDate: string;
+    acquisitionCost: number;
+    usefulLifeYears: number;
+    salvageValue: number;
+    depreciationMethod: string;
+    schedule: Array<{
+      year: number;
+      month: number;
+      depreciationAmount: number;
+      accumulatedDepreciation: number;
+      bookValue: number;
+      status: string;
+    }>;
+    totalDepreciationToDate: number;
+    remainingBookValue: number;
+  }>> {
+    return this.request('GET', `/api/v1/depreciation/assets/${assetId}/schedule`);
+  }
 }
 
 // Singleton instance for convenience

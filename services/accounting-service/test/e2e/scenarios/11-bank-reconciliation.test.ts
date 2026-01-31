@@ -268,7 +268,7 @@ describe('E2E: Bank Reconciliation Workflow', () => {
       // Response structure may vary - check for statement creation
       expect(response.data).toHaveProperty('statementId');
 
-      const txCount = response.data?.transactionCount ?? response.data?.importedCount ?? BANK_TRANSACTIONS.length;
+      const txCount = response.data?.transactionCount ?? BANK_TRANSACTIONS.length;
       console.log(`✓ Imported bank statement: ${response.data?.statementId}`);
       console.log(`  Transactions: ${txCount}`);
     });

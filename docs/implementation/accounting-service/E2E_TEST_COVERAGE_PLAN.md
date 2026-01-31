@@ -1,7 +1,7 @@
 # E2E Test Coverage Plan - Accounting Service
 
 **Last Updated:** 2026-01-31
-**Current Coverage:** 73% (82/112 APIs tested)
+**Current Coverage:** 88% (98/112 APIs tested)
 
 ---
 
@@ -25,7 +25,9 @@
 
 ## 🔴 UNTESTED APIs - Requiring Coverage
 
-### Phase 1: Fixed Assets & Depreciation (HIGH PRIORITY)
+### Phase 1: Fixed Assets & Depreciation (HIGH PRIORITY) - ✅ IMPLEMENTED
+
+**Status:** Tests created in `12-fixed-assets.test.ts` and `13-depreciation.test.ts`
 
 **Business Impact:** Core month-end accounting process. Depreciation entries affect financial statements.
 
