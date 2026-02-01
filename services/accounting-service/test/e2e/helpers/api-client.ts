@@ -1392,6 +1392,116 @@ export class AccountingApiClient {
   }>> {
     return this.request('GET', `/api/v1/depreciation/assets/${assetId}/schedule`);
   }
+
+  // ============ Multi-Currency ============
+
+  /**
+   * List all currencies
+   */
+  async listCurrencies(): Promise<ApiResponse<Array<{
+    code: string;
+    name: string;
+    symbol: string;
+    decimalPlaces: number;
+    isActive: boolean;
+    isBaseCurrency: boolean;
+  }>>> {
+    return this.request('GET', '/api/v1/currencies');
+  }
+
+  /**
+   * Get currency by code
+   */
+  async getCurrency(code: string): Promise<ApiResponse<{
+    code: string;
+    name: string;
+    symbol: string;
+    decimalPlaces: number;
+    isActive: boolean;
+    isBaseCurrency: boolean;
+  }>> {
+    return this.request('GET', `/api/v1/currencies/${code}`);
+  }
+
+  /**
+   * Get exchange rate history
+   */
+  async getExchangeRateHistory(limit?: number): Promise<ApiResponse<Array<{
+    id: string;
+    fromCurrency: string;
+    toCurrency: string;
+    rate: number;
+    effectiveDate: string;
+    source: string;
+  }>>> {
+    const params = limit ? `?limit=${limit}` : '';
+    return this.request('GET', `/api/v1/currencies/exchange-rates${params}`);
+  }
+
+  /**
+   * Get latest exchange rate
+   */
+  async getLatestExchangeRate(): Promise<ApiResponse<{
+    id: string;
+    fromCurrency: string;
+    toCurrency: string;
+    rate: number;
+    effectiveDate: string;
+    source: string;
+  }>> {
+    return this.request('GET', '/api/v1/currencies/exchange-rates/latest');
+  }
+
+  /**
+   * Set exchange rate manually
+   */
+  async setExchangeRate(data: {
+    rate: number;
+    effectiveDate: string;
+    source?: string;
+  }): Promise<ApiResponse<{
+    id: string;
+    fromCurrency: string;
+    toCurrency: string;
+    rate: number;
+    effectiveDate: string;
+    source: string;
+  }>> {
+    return this.request('POST', '/api/v1/currencies/exchange-rates', data);
+  }
+
+  /**
+   * Fetch exchange rate from external API (JISDOR)
+   */
+  async fetchExchangeRate(): Promise<ApiResponse<{
+    id: string;
+    fromCurrency: string;
+    toCurrency: string;
+    rate: number;
+    effectiveDate: string;
+    source: string;
+  }>> {
+    return this.request('POST', '/api/v1/currencies/exchange-rates/fetch');
+  }
+
+  /**
+   * Convert currency amount
+   */
+  async convertCurrency(data: {
+    amount: number;
+    fromCurrency: string;
+    toCurrency: string;
+    date?: string;
+  }): Promise<ApiResponse<{
+    fromAmount: number;
+    fromCurrency: string;
+    toAmount: number;
+    toCurrency: string;
+    rate: number;
+    effectiveDate: string;
+  }>> {
+    return this.request('POST', '/api/v1/currencies/exchange-rates/convert', data);
+  }
 }
 
 // Singleton instance for convenience
