@@ -23,14 +23,14 @@
     "@kidkazz/domain-events": "workspace:*",
     "@kidkazz/types": "workspace:*",
     "@kidkazz/utils": "workspace:*",
-    "drizzle-orm": "^0.36.4",
+    "drizzle-orm": "^0.45.1",
     "hono": "^4.11.7",
     "nanoid": "^5.1.6",
     "zod": "^3.25.76"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260128.0",
-    "drizzle-kit": "^0.29.1",
+    "drizzle-kit": "^0.31.8",
     "typescript": "^5.9.3",
     "wrangler": "^4.61.0"
   }
