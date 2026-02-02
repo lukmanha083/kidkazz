@@ -23,7 +23,7 @@
     "db:migrate:local": "wrangler d1 migrations apply product-db --local"
   },
   "dependencies": {
-    "@hono/zod-validator": "^0.2.2",
+    "@hono/zod-validator": "^0.7.0",
     "@kidkazz/ddd-core": "workspace:*",
     "@kidkazz/trpc": "workspace:*",
     "@trpc/client": "^11.9.0",
