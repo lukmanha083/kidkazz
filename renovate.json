@@ -2,85 +2,13 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended",
-    ":dependencyDashboard",
-    ":semanticCommits",
-    ":timezone(Asia/Jakarta)"
+    ":dependencyDashboard"
   ],
-  "schedule": ["at any time"],
   "labels": ["dependencies"],
-  "commitMessagePrefix": "chore(deps):",
-  "lockFileMaintenance": {
-    "enabled": true,
-    "schedule": ["before 9am on monday"]
-  },
   "packageRules": [
     {
-      "description": "Auto-merge minor and patch updates",
-      "matchUpdateTypes": ["minor", "patch"],
-      "automerge": true,
-      "automergeType": "pr",
-      "platformAutomerge": true
-    },
-    {
-      "description": "Group Cloudflare packages",
-      "groupName": "cloudflare",
-      "matchPackageNames": ["/^wrangler/", "/^@cloudflare\\//", "/^miniflare/"]
-    },
-    {
-      "description": "Group Hono packages",
-      "groupName": "hono",
-      "matchPackageNames": ["/^hono/", "/^@hono\\//"]
-    },
-    {
-      "description": "Group TanStack packages",
-      "groupName": "tanstack",
-      "matchPackageNames": ["/^@tanstack\\//"]
-    },
-    {
-      "description": "Group Radix UI packages",
-      "groupName": "radix-ui",
-      "matchPackageNames": ["/^@radix-ui\\//"]
-    },
-    {
-      "description": "Group Drizzle packages",
-      "groupName": "drizzle",
-      "matchPackageNames": ["/^drizzle-/"]
-    },
-    {
-      "description": "Group React packages",
-      "groupName": "react",
-      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"]
-    },
-    {
-      "description": "Group Vitest packages",
-      "groupName": "vitest",
-      "matchPackageNames": ["/^vitest/", "/^@vitest\\//"]
-    },
-    {
-      "description": "Group Biome packages",
-      "groupName": "biome",
-      "matchPackageNames": ["/^@biomejs\\//"]
-    },
-    {
-      "description": "Group Tailwind packages",
-      "groupName": "tailwind",
-      "matchPackageNames": ["/^tailwindcss/", "/^@tailwindcss\\//", "/^autoprefixer/", "/^postcss/"]
-    },
-    {
-      "description": "Group GitHub Actions",
-      "groupName": "github-actions",
-      "matchManagers": ["github-actions"]
-    },
-    {
-      "description": "Pin zod to v3.x (v4 has breaking changes)",
       "matchPackageNames": ["zod"],
       "allowedVersions": "<4.0.0"
-    },
-    {
-      "description": "Do not automerge major updates",
-      "matchUpdateTypes": ["major"],
-      "automerge": false
     }
-  ],
-  "ignorePaths": ["**/node_modules/**"]
+  ]
 }
