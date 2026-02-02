@@ -1502,6 +1502,210 @@ export class AccountingApiClient {
   }>> {
     return this.request('POST', '/api/v1/currencies/exchange-rates/convert', data);
   }
+
+  // ============ Audit & Compliance ============
+
+  /**
+   * Query audit logs with filters
+   * Note: Returns logs array directly, pagination info is not extracted
+   */
+  async queryAuditLogs(params?: {
+    userId?: string;
+    action?: 'CREATE' | 'UPDATE' | 'DELETE' | 'VOID' | 'APPROVE' | 'POST' | 'CLOSE' | 'REOPEN';
+    entityType?: string;
+    entityId?: string;
+    startDate?: string;
+    endDate?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<ApiResponse<Array<{
+    id: string;
+    timestamp: string;
+    userId: string;
+    userName: string | null;
+    action: string;
+    entityType: string;
+    entityId: string;
+    oldValues: Record<string, unknown> | null;
+    newValues: Record<string, unknown> | null;
+    changedFields: string[];
+    ipAddress: string | null;
+    metadata: Record<string, unknown> | null;
+    summary: string;
+  }>>> {
+    const queryParams = new URLSearchParams();
+    if (params) {
+      if (params.userId) queryParams.append('userId', params.userId);
+      if (params.action) queryParams.append('action', params.action);
+      if (params.entityType) queryParams.append('entityType', params.entityType);
+      if (params.entityId) queryParams.append('entityId', params.entityId);
+      if (params.startDate) queryParams.append('startDate', params.startDate);
+      if (params.endDate) queryParams.append('endDate', params.endDate);
+      if (params.limit) queryParams.append('limit', params.limit.toString());
+      if (params.offset) queryParams.append('offset', params.offset.toString());
+    }
+    const qs = queryParams.toString();
+    return this.request('GET', `/api/v1/audit/audit-logs${qs ? `?${qs}` : ''}`);
+  }
+
+  /**
+   * Get entity audit history
+   */
+  async getEntityAuditHistory(entityType: string, entityId: string): Promise<ApiResponse<Array<{
+    id: string;
+    timestamp: string;
+    userId: string;
+    userName: string | null;
+    action: string;
+    entityType: string;
+    entityId: string;
+    oldValues: Record<string, unknown> | null;
+    newValues: Record<string, unknown> | null;
+    changedFields: string[];
+    ipAddress: string | null;
+    metadata: Record<string, unknown> | null;
+    summary: string;
+  }>>> {
+    return this.request('GET', `/api/v1/audit/audit-logs/entity/${entityType}/${entityId}`);
+  }
+
+  /**
+   * Get recent audit logs
+   */
+  async getRecentAuditLogs(limit?: number): Promise<ApiResponse<Array<{
+    id: string;
+    timestamp: string;
+    userId: string;
+    userName: string | null;
+    action: string;
+    entityType: string;
+    entityId: string;
+    oldValues: Record<string, unknown> | null;
+    newValues: Record<string, unknown> | null;
+    changedFields: string[];
+    ipAddress: string | null;
+    metadata: Record<string, unknown> | null;
+    summary: string;
+  }>>> {
+    const params = limit ? `?limit=${limit}` : '';
+    return this.request('GET', `/api/v1/audit/audit-logs/recent${params}`);
+  }
+
+  /**
+   * Calculate tax summary for a period
+   */
+  async calculateTaxSummary(data: {
+    fiscalYear: number;
+    fiscalMonth: number;
+  }): Promise<ApiResponse<Array<{
+    id: string;
+    fiscalYear: number;
+    fiscalMonth: number;
+    taxType: string;
+    taxTypeDescription: string;
+    grossAmount: number;
+    taxAmount: number;
+    netAmount: number;
+    transactionCount: number;
+    effectiveRate: number;
+    calculatedAt: string;
+  }>>> {
+    return this.request('POST', '/api/v1/audit/tax-summary/calculate', data);
+  }
+
+  /**
+   * Get tax summary report
+   */
+  async getTaxSummary(params: {
+    fiscalYear: number;
+    fiscalMonth?: number;
+  }): Promise<ApiResponse<{
+    fiscalYear: number;
+    fiscalMonth: number;
+    summaries: Array<{
+      id: string;
+      fiscalYear: number;
+      fiscalMonth: number;
+      taxType: string;
+      taxTypeDescription: string;
+      grossAmount: number;
+      taxAmount: number;
+      netAmount: number;
+      transactionCount: number;
+      effectiveRate: number;
+      calculatedAt: string;
+    }>;
+    totalGross: number;
+    totalTax: number;
+    totalNet: number;
+    totalTransactions: number;
+  } | Array<{
+    fiscalYear: number;
+    fiscalMonth: number;
+    summaries: Array<{
+      id: string;
+      fiscalYear: number;
+      fiscalMonth: number;
+      taxType: string;
+      taxTypeDescription: string;
+      grossAmount: number;
+      taxAmount: number;
+      netAmount: number;
+      transactionCount: number;
+      effectiveRate: number;
+      calculatedAt: string;
+    }>;
+    totalGross: number;
+    totalTax: number;
+    totalNet: number;
+    totalTransactions: number;
+  }>>> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('fiscalYear', params.fiscalYear.toString());
+    if (params.fiscalMonth) {
+      queryParams.append('fiscalMonth', params.fiscalMonth.toString());
+    }
+    return this.request('GET', `/api/v1/audit/tax-summary?${queryParams.toString()}`);
+  }
+
+  /**
+   * Get archive status
+   */
+  async getArchiveStatus(): Promise<ApiResponse<{
+    archives: Array<{
+      id: string;
+      archiveType: string;
+      fiscalYear: number;
+      recordCount: number;
+      archivedAt: string;
+      archivedBy: string;
+      checksum: string;
+      isStored: boolean;
+    }>;
+    eligible: {
+      journalEntries: number[];
+      auditLogs: number[];
+    };
+  }>> {
+    return this.request('GET', '/api/v1/audit/archive/status');
+  }
+
+  /**
+   * Execute data archival
+   */
+  async executeArchive(data: {
+    archiveType: 'journal_entries' | 'audit_logs';
+    fiscalYear: number;
+  }): Promise<ApiResponse<{
+    archiveType: string;
+    fiscalYear: number;
+    recordCount: number;
+    success: boolean;
+    archiveId?: string;
+    error?: string;
+  }>> {
+    return this.request('POST', '/api/v1/audit/archive/execute', data);
+  }
 }
 
 // Singleton instance for convenience

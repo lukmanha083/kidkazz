@@ -26,6 +26,7 @@ TEST_FILES=(
   "test/e2e/scenarios/12-fixed-assets.test.ts"
   "test/e2e/scenarios/13-depreciation.test.ts"
   "test/e2e/scenarios/14-multi-currency.test.ts"
+  "test/e2e/scenarios/15-audit-compliance.test.ts"
 )
 
 echo ""
