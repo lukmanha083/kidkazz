@@ -1919,6 +1919,220 @@ export class AccountingApiClient {
   }>> {
     return this.request('DELETE', `/api/v1/maintenance/${id}`);
   }
+
+  // ============ Asset Movements ============
+
+  /**
+   * List movements by date range
+   */
+  async listMovements(params?: {
+    from?: string;
+    to?: string;
+  }): Promise<ApiResponse<Array<{
+    id: string;
+    assetId: string;
+    assetName: string;
+    movementType: string;
+    fromLocation: string | null;
+    toLocation: string | null;
+    fromDepartment: string | null;
+    toDepartment: string | null;
+    movedAt: string;
+    movedBy: string;
+    notes: string | null;
+  }>>> {
+    const queryParams = new URLSearchParams();
+    if (params?.from) queryParams.append('from', params.from);
+    if (params?.to) queryParams.append('to', params.to);
+    const qs = queryParams.toString();
+    return this.request('GET', `/api/v1/movements${qs ? `?${qs}` : ''}`);
+  }
+
+  /**
+   * List movements for specific asset
+   */
+  async listAssetMovements(assetId: string): Promise<ApiResponse<Array<{
+    id: string;
+    assetId: string;
+    assetName: string;
+    movementType: string;
+    fromLocation: string | null;
+    toLocation: string | null;
+    fromDepartment: string | null;
+    toDepartment: string | null;
+    movedAt: string;
+    movedBy: string;
+    notes: string | null;
+  }>>> {
+    return this.request('GET', `/api/v1/movements/asset/${assetId}`);
+  }
+
+  /**
+   * Get movement by ID
+   */
+  async getMovement(id: string): Promise<ApiResponse<{
+    id: string;
+    assetId: string;
+    assetName: string;
+    movementType: string;
+    fromLocation: string | null;
+    toLocation: string | null;
+    fromDepartment: string | null;
+    toDepartment: string | null;
+    movedAt: string;
+    movedBy: string;
+    notes: string | null;
+  }>> {
+    return this.request('GET', `/api/v1/movements/${id}`);
+  }
+
+  // ============ Domain Events ============
+
+  /**
+   * List domain events
+   */
+  async listDomainEvents(params?: {
+    aggregateType?: string;
+    aggregateId?: string;
+    eventType?: string;
+    status?: 'pending' | 'published' | 'failed';
+    limit?: number;
+    offset?: number;
+  }): Promise<ApiResponse<Array<{
+    id: string;
+    eventType: string;
+    aggregateId: string;
+    aggregateType: string;
+    payload: Record<string, unknown>;
+    occurredAt: string;
+    publishedAt: string | null;
+    status: string;
+    retryCount: number;
+  }>>> {
+    const queryParams = new URLSearchParams();
+    if (params?.aggregateType) queryParams.append('aggregateType', params.aggregateType);
+    if (params?.aggregateId) queryParams.append('aggregateId', params.aggregateId);
+    if (params?.eventType) queryParams.append('eventType', params.eventType);
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.offset) queryParams.append('offset', params.offset.toString());
+    const qs = queryParams.toString();
+    return this.request('GET', `/api/v1/events${qs ? `?${qs}` : ''}`);
+  }
+
+  /**
+   * Get domain event by ID
+   */
+  async getDomainEvent(id: string): Promise<ApiResponse<{
+    id: string;
+    eventType: string;
+    aggregateId: string;
+    aggregateType: string;
+    payload: Record<string, unknown>;
+    occurredAt: string;
+    publishedAt: string | null;
+    status: string;
+    retryCount: number;
+  }>> {
+    return this.request('GET', `/api/v1/events/${id}`);
+  }
+
+  /**
+   * Get events for specific aggregate
+   */
+  async getAggregateEvents(aggregateType: string, aggregateId: string): Promise<ApiResponse<Array<{
+    id: string;
+    eventType: string;
+    aggregateId: string;
+    aggregateType: string;
+    payload: Record<string, unknown>;
+    occurredAt: string;
+    publishedAt: string | null;
+    status: string;
+    retryCount: number;
+  }>>> {
+    return this.request('GET', `/api/v1/events/aggregate/${aggregateType}/${aggregateId}`);
+  }
+
+  /**
+   * List processed events
+   */
+  async listProcessedEvents(params?: {
+    eventType?: string;
+    result?: 'success' | 'failed' | 'skipped';
+    limit?: number;
+    offset?: number;
+  }): Promise<ApiResponse<Array<{
+    id: string;
+    eventId: string;
+    eventType: string;
+    processedAt: string;
+    result: string;
+  }>>> {
+    const queryParams = new URLSearchParams();
+    if (params?.eventType) queryParams.append('eventType', params.eventType);
+    if (params?.result) queryParams.append('result', params.result);
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.offset) queryParams.append('offset', params.offset.toString());
+    const qs = queryParams.toString();
+    return this.request('GET', `/api/v1/events/processed${qs ? `?${qs}` : ''}`);
+  }
+
+  /**
+   * Check if event has been processed
+   */
+  async checkEventProcessed(eventId: string): Promise<ApiResponse<{
+    eventId: string;
+    isProcessed: boolean;
+    processedAt?: string;
+    result?: string;
+  }>> {
+    return this.request('GET', `/api/v1/events/processed/${eventId}`);
+  }
+
+  /**
+   * Publish pending events to queue
+   */
+  async publishPendingEvents(batchSize?: number): Promise<ApiResponse<{
+    published: number;
+    failed: number;
+    remaining: number;
+  }>> {
+    return this.request('POST', '/api/v1/events/publish', { batchSize: batchSize || 100 });
+  }
+
+  // ============ Advanced Fiscal Period ============
+
+  /**
+   * Reopen a closed fiscal period
+   */
+  async reopenFiscalPeriod(id: string, data: {
+    reason: string;
+  }): Promise<ApiResponse<{
+    id: string;
+    year: number;
+    month: number;
+    status: string;
+    reopenedAt: string;
+    reopenedBy: string;
+    reopenReason: string;
+  }>> {
+    return this.request('POST', `/api/v1/fiscal-periods/${id}/reopen`, data);
+  }
+
+  /**
+   * Lock a fiscal period permanently
+   */
+  async lockFiscalPeriod(id: string): Promise<ApiResponse<{
+    id: string;
+    year: number;
+    month: number;
+    status: string;
+    lockedAt: string;
+    lockedBy: string;
+  }>> {
+    return this.request('POST', `/api/v1/fiscal-periods/${id}/lock`);
+  }
 }
 
 // Singleton instance for convenience

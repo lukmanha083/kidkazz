@@ -25,6 +25,9 @@
 | Multi-Currency | 7 APIs | `14-multi-currency.test.ts` |
 | Audit & Compliance | 7 APIs | `15-audit-compliance.test.ts` |
 | Asset Maintenance | 10 APIs | `16-asset-maintenance.test.ts` |
+| Asset Movements | 3 APIs | `17-advanced-operations.test.ts` |
+| Domain Events | 6 APIs | `17-advanced-operations.test.ts` |
+| Advanced Fiscal Period | 2 APIs | `17-advanced-operations.test.ts` |
 
 ---
 
@@ -191,7 +194,9 @@
 
 ---
 
-### Phase 5: Asset Movements & Events (MEDIUM PRIORITY)
+### Phase 5: Asset Movements & Events (MEDIUM PRIORITY) - ✅ IMPLEMENTED
+
+**Status:** Tests created in `17-advanced-operations.test.ts`
 
 #### 5.1 Asset Movements (3 APIs)
 
