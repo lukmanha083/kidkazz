@@ -4,9 +4,9 @@
     "config:recommended",
     ":dependencyDashboard",
     ":semanticCommits",
-    ":timezone(Asia/Jakarta)",
-    "schedule:weekly"
+    ":timezone(Asia/Jakarta)"
   ],
+  "schedule": ["at any time"],
   "labels": ["dependencies"],
   "commitMessagePrefix": "chore(deps):",
   "pnpm": {
