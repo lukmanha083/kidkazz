@@ -4,6 +4,9 @@
 
 # Don't use set -e, we handle errors manually
 
+# Set API URL to deployed service
+export E2E_API_URL="${E2E_API_URL:-https://accounting-service.tesla-hakim.workers.dev}"
+
 # Colors for output
 GREEN='\033[0;32m'
 RED='\033[0;31m'
