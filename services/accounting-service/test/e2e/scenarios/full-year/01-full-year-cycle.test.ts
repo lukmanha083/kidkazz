@@ -457,7 +457,7 @@ describe('E2E: Full 12-Month Accounting Cycle', () => {
         await apiClient.calculatePeriodBalances(FISCAL_YEAR, month);
 
         // Close the period
-        const closeResponse = await apiClient.closeFiscalPeriod(FISCAL_YEAR, month, 'e2e-test');
+        const closeResponse = await apiClient.closeFiscalPeriodByYearMonth(FISCAL_YEAR, month, 'e2e-test');
 
         // Period may already be closed from previous run
         if (closeResponse.ok) {

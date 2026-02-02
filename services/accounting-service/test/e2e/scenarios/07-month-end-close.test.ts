@@ -188,7 +188,7 @@ describe('E2E Scenario 07: Month-End Close', () => {
   describe('Close Fiscal Period', () => {
     it('should close the fiscal period (optional - may fail if already closed)', async () => {
       // Note: This might fail if period is already closed or if there are other constraints
-      const response = await apiClient.closeFiscalPeriod(FISCAL_YEAR, FISCAL_MONTH, 'e2e-test');
+      const response = await apiClient.closeFiscalPeriodByYearMonth(FISCAL_YEAR, FISCAL_MONTH, 'e2e-test');
 
       // We accept either success or a specific error indicating it's already closed
       if (!response.ok) {

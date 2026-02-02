@@ -117,11 +117,15 @@ export class AccountingApiClient {
     return this.request('GET', `/api/v1/fiscal-periods/period/${year}/${month}`);
   }
 
-  async listFiscalPeriods(): Promise<ApiResponse<unknown[]>> {
+  async listFiscalPeriods(): Promise<ApiResponse<Array<{ id: string; year: number; month: number; status: string; [key: string]: unknown }>>> {
     return this.request('GET', '/api/v1/fiscal-periods');
   }
 
-  async closeFiscalPeriod(year: number, month: number, closedBy: string): Promise<ApiResponse<void>> {
+  async closeFiscalPeriod(periodId: string): Promise<ApiResponse<{ id: string; year: number; month: number; status: string; [key: string]: unknown }>> {
+    return this.request('POST', `/api/v1/fiscal-periods/${periodId}/close`);
+  }
+
+  async closeFiscalPeriodByYearMonth(year: number, month: number, closedBy: string): Promise<ApiResponse<void>> {
     // First get the period ID by year/month
     const periodResponse = await this.getFiscalPeriod(year, month);
     if (!periodResponse.ok || !periodResponse.data) {
@@ -199,12 +203,16 @@ export class AccountingApiClient {
     endDate?: string;
     status?: string;
     entryType?: string;
-  }): Promise<ApiResponse<unknown[]>> {
+    limit?: number;
+    offset?: number;
+  }): Promise<ApiResponse<Array<{ id: string; entryNumber: string; [key: string]: unknown }>>> {
     const searchParams = new URLSearchParams();
     if (params?.startDate) searchParams.set('startDate', params.startDate);
     if (params?.endDate) searchParams.set('endDate', params.endDate);
     if (params?.status) searchParams.set('status', params.status);
     if (params?.entryType) searchParams.set('entryType', params.entryType);
+    if (params?.limit) searchParams.set('limit', params.limit.toString());
+    if (params?.offset) searchParams.set('offset', params.offset.toString());
     const query = searchParams.toString();
     return this.request('GET', `/api/v1/journal-entries${query ? `?${query}` : ''}`);
   }
@@ -794,7 +802,12 @@ export class AccountingApiClient {
   /**
    * List all reconciliations
    */
-  async listReconciliations(): Promise<ApiResponse<Array<{
+  async listReconciliations(params?: {
+    bankAccountId?: string;
+    fiscalYear?: number;
+    fiscalMonth?: number;
+    status?: string;
+  }): Promise<ApiResponse<Array<{
     id: string;
     bankAccountId: string;
     fiscalYear: number;
@@ -803,7 +816,13 @@ export class AccountingApiClient {
     completedAt?: string;
     approvedAt?: string;
   }>>> {
-    return this.request('GET', '/api/v1/reconciliations');
+    const queryParams = new URLSearchParams();
+    if (params?.bankAccountId) queryParams.append('bankAccountId', params.bankAccountId);
+    if (params?.fiscalYear) queryParams.append('fiscalYear', params.fiscalYear.toString());
+    if (params?.fiscalMonth) queryParams.append('fiscalMonth', params.fiscalMonth.toString());
+    if (params?.status) queryParams.append('status', params.status);
+    const qs = queryParams.toString();
+    return this.request('GET', `/api/v1/reconciliations${qs ? `?${qs}` : ''}`);
   }
 
   /**
