@@ -1706,6 +1706,219 @@ export class AccountingApiClient {
   }>> {
     return this.request('POST', '/api/v1/audit/archive/execute', data);
   }
+
+  // ============ Asset Maintenance ============
+
+  /**
+   * Maintenance record response type
+   */
+  private maintenanceResponseType(): {
+    id: string;
+    assetId: string;
+    assetName: string;
+    maintenanceType: string;
+    description: string;
+    status: string;
+    scheduledDate: string | null;
+    performedDate: string | null;
+    cost: number;
+    actualCost: number | null;
+    isCapitalized: boolean;
+    extendsUsefulLifeMonths: number | null;
+    vendorId: string | null;
+    vendorName: string | null;
+    invoiceNumber: string | null;
+    notes: string | null;
+    createdAt: string;
+    updatedAt: string;
+  } {
+    // Type helper method - not actually called
+    return {} as never;
+  }
+
+  /**
+   * List scheduled maintenance
+   */
+  async listScheduledMaintenance(): Promise<ApiResponse<Array<{
+    id: string;
+    assetId: string;
+    assetName: string;
+    maintenanceType: string;
+    description: string;
+    status: string;
+    scheduledDate: string | null;
+    cost: number;
+    vendorName: string | null;
+  }>>> {
+    return this.request('GET', '/api/v1/maintenance/scheduled');
+  }
+
+  /**
+   * List overdue maintenance
+   */
+  async listOverdueMaintenance(): Promise<ApiResponse<Array<{
+    id: string;
+    assetId: string;
+    assetName: string;
+    maintenanceType: string;
+    description: string;
+    status: string;
+    scheduledDate: string | null;
+    cost: number;
+    vendorName: string | null;
+    daysOverdue: number;
+  }>>> {
+    return this.request('GET', '/api/v1/maintenance/overdue');
+  }
+
+  /**
+   * List maintenance for specific asset
+   */
+  async listAssetMaintenance(assetId: string): Promise<ApiResponse<Array<{
+    id: string;
+    assetId: string;
+    assetName: string;
+    maintenanceType: string;
+    description: string;
+    status: string;
+    scheduledDate: string | null;
+    performedDate: string | null;
+    cost: number;
+    actualCost: number | null;
+  }>>> {
+    return this.request('GET', `/api/v1/maintenance/asset/${assetId}`);
+  }
+
+  /**
+   * Get maintenance by ID
+   */
+  async getMaintenance(id: string): Promise<ApiResponse<{
+    id: string;
+    assetId: string;
+    assetName: string;
+    maintenanceType: string;
+    description: string;
+    status: string;
+    scheduledDate: string | null;
+    performedDate: string | null;
+    cost: number;
+    actualCost: number | null;
+    isCapitalized: boolean;
+    extendsUsefulLifeMonths: number | null;
+    vendorId: string | null;
+    vendorName: string | null;
+    invoiceNumber: string | null;
+    notes: string | null;
+    createdAt: string;
+    updatedAt: string;
+  }>> {
+    return this.request('GET', `/api/v1/maintenance/${id}`);
+  }
+
+  /**
+   * Create maintenance record
+   */
+  async createMaintenance(data: {
+    assetId: string;
+    maintenanceType: 'PREVENTIVE' | 'CORRECTIVE' | 'INSPECTION' | 'UPGRADE' | 'OVERHAUL';
+    description: string;
+    scheduledDate?: string;
+    cost?: number;
+    isCapitalized?: boolean;
+    extendsUsefulLifeMonths?: number;
+    vendorId?: string;
+    vendorName?: string;
+    notes?: string;
+  }): Promise<ApiResponse<{
+    id: string;
+    assetId: string;
+    maintenanceType: string;
+    description: string;
+    status: string;
+    scheduledDate: string | null;
+    cost: number;
+  }>> {
+    return this.request('POST', '/api/v1/maintenance', data);
+  }
+
+  /**
+   * Update maintenance record
+   */
+  async updateMaintenance(id: string, data: {
+    description?: string;
+    scheduledDate?: string;
+    cost?: number;
+    isCapitalized?: boolean;
+    extendsUsefulLifeMonths?: number;
+    vendorId?: string;
+    vendorName?: string;
+    invoiceNumber?: string;
+    notes?: string;
+  }): Promise<ApiResponse<{
+    id: string;
+    assetId: string;
+    maintenanceType: string;
+    description: string;
+    status: string;
+    scheduledDate: string | null;
+    cost: number;
+    vendorName: string | null;
+    notes: string | null;
+  }>> {
+    return this.request('PUT', `/api/v1/maintenance/${id}`, data);
+  }
+
+  /**
+   * Start maintenance
+   */
+  async startMaintenance(id: string): Promise<ApiResponse<{
+    id: string;
+    status: string;
+    startedAt: string;
+  }>> {
+    return this.request('POST', `/api/v1/maintenance/${id}/start`);
+  }
+
+  /**
+   * Complete maintenance
+   */
+  async completeMaintenance(id: string, data: {
+    performedDate: string;
+    actualCost?: number;
+    nextScheduledDate?: string;
+    notes?: string;
+  }): Promise<ApiResponse<{
+    id: string;
+    status: string;
+    performedDate: string;
+    actualCost: number | null;
+    completedAt: string;
+  }>> {
+    return this.request('POST', `/api/v1/maintenance/${id}/complete`, data);
+  }
+
+  /**
+   * Cancel maintenance
+   */
+  async cancelMaintenance(id: string, data: {
+    reason: string;
+  }): Promise<ApiResponse<{
+    id: string;
+    status: string;
+    cancelledAt: string;
+    cancellationReason: string;
+  }>> {
+    return this.request('POST', `/api/v1/maintenance/${id}/cancel`, data);
+  }
+
+  /**
+   * Delete maintenance record
+   */
+  async deleteMaintenance(id: string): Promise<ApiResponse<{
+    message: string;
+  }>> {
+    return this.request('DELETE', `/api/v1/maintenance/${id}`);
+  }
 }
 
 // Singleton instance for convenience
