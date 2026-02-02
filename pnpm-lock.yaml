@@ -305,8 +305,8 @@ importers:
   services/business-partner-service:
     dependencies:
       '@hono/zod-validator':
-        specifier: ^0.2.2
-        version: 0.2.2(hono@4.11.7)(zod@3.25.76)
+        specifier: ^0.7.0
+        version: 0.7.6(hono@4.11.7)(zod@3.25.76)
       '@kidkazz/ddd-core':
         specifier: workspace:*
         version: link:../../packages/ddd-core
@@ -348,8 +348,8 @@ importers:
   services/inventory-service:
     dependencies:
       '@hono/zod-validator':
-        specifier: ^0.2.2
-        version: 0.2.2(hono@4.11.7)(zod@3.25.76)
+        specifier: ^0.7.0
+        version: 0.7.6(hono@4.11.7)(zod@3.25.76)
       '@kidkazz/ddd-core':
         specifier: workspace:*
         version: link:../../packages/ddd-core
@@ -412,8 +412,8 @@ importers:
   services/order-service:
     dependencies:
       '@hono/zod-validator':
-        specifier: ^0.2.2
-        version: 0.2.2(hono@4.11.7)(zod@3.25.76)
+        specifier: ^0.7.0
+        version: 0.7.6(hono@4.11.7)(zod@3.25.76)
       '@kidkazz/domain-events':
         specifier: workspace:*
         version: link:../../shared/domain-events
@@ -452,8 +452,8 @@ importers:
   services/payment-service:
     dependencies:
       '@hono/zod-validator':
-        specifier: ^0.2.2
-        version: 0.2.2(hono@4.11.7)(zod@3.25.76)
+        specifier: ^0.7.0
+        version: 0.7.6(hono@4.11.7)(zod@3.25.76)
       '@kidkazz/domain-events':
         specifier: workspace:*
         version: link:../../shared/domain-events
@@ -492,8 +492,8 @@ importers:
   services/product-service:
     dependencies:
       '@hono/zod-validator':
-        specifier: ^0.2.2
-        version: 0.2.2(hono@4.11.7)(zod@3.25.76)
+        specifier: ^0.7.0
+        version: 0.7.6(hono@4.11.7)(zod@3.25.76)
       '@kidkazz/ddd-core':
         specifier: workspace:*
         version: link:../../packages/ddd-core
@@ -547,8 +547,8 @@ importers:
   services/shipping-service:
     dependencies:
       '@hono/zod-validator':
-        specifier: ^0.2.2
-        version: 0.2.2(hono@4.11.7)(zod@3.25.76)
+        specifier: ^0.7.0
+        version: 0.7.6(hono@4.11.7)(zod@3.25.76)
       '@kidkazz/domain-events':
         specifier: workspace:*
         version: link:../../shared/domain-events
@@ -1167,12 +1167,6 @@ packages:
     engines: {node: '>=18.14.1'}
     peerDependencies:
       hono: ^4
-
-  '@hono/zod-validator@0.2.2':
-    resolution: {integrity: sha512-dSDxaPV70Py8wuIU2QNpoVEIOSzSXZ/6/B/h4xA7eOMz7+AarKTSGV8E6QwrdcCbBLkpqfJ4Q2TmBO0eP1tCBQ==}
-    peerDependencies:
-      hono: '>=3.9.0'
-      zod: ^3.25.76
 
   '@hono/zod-validator@0.7.6':
     resolution: {integrity: sha512-Io1B6d011Gj1KknV4rXYz4le5+5EubcWEU/speUjuw9XMMIaP3n78yXLhjd2A3PXaXaUwEAluOiAyLqhBEJgsw==}
@@ -5229,11 +5223,6 @@ snapshots:
   '@hono/node-server@1.19.9(hono@4.11.7)':
     dependencies:
       hono: 4.11.7
-
-  '@hono/zod-validator@0.2.2(hono@4.11.7)(zod@3.25.76)':
-    dependencies:
-      hono: 4.11.7
-      zod: 3.25.76
 
   '@hono/zod-validator@0.7.6(hono@4.11.7)(zod@3.25.76)':
     dependencies:
