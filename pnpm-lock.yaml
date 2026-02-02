@@ -546,8 +546,8 @@ importers:
   services/shipping-service:
     dependencies:
       '@hono/zod-validator':
-        specifier: ^0.2.2
-        version: 0.2.2(hono@4.11.7)(zod@3.25.76)
+        specifier: ^0.7.6
+        version: 0.7.6(hono@4.11.7)(zod@3.25.76)
       '@kidkazz/domain-events':
         specifier: workspace:*
         version: link:../../shared/domain-events
@@ -6603,7 +6603,7 @@ snapshots:
       std-env: 3.10.0
       test-exclude: 7.0.1
       tinyrainbow: 1.2.0
-      vitest: 2.1.9(@types/node@22.19.7)(@vitest/ui@2.1.9)(jsdom@23.2.0)(msw@2.12.7(@types/node@22.19.7)(typescript@5.9.3))(terser@5.44.1)
+      vitest: 2.1.9(@types/node@24.10.9)(@vitest/ui@2.1.9)(jsdom@23.2.0)(msw@2.12.7(@types/node@24.10.9)(typescript@5.9.3))(terser@5.44.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -6614,14 +6614,14 @@ snapshots:
       chai: 5.3.3
       tinyrainbow: 1.2.0
 
-  '@vitest/mocker@2.1.9(msw@2.12.7(@types/node@22.19.7)(typescript@5.9.3))(vite@5.4.21(@types/node@22.19.7)(terser@5.44.1))':
+  '@vitest/mocker@2.1.9(msw@2.12.7(@types/node@22.19.7)(typescript@5.9.3))(vite@5.4.21(@types/node@24.10.9)(terser@5.44.1))':
     dependencies:
       '@vitest/spy': 2.1.9
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
       msw: 2.12.7(@types/node@22.19.7)(typescript@5.9.3)
-      vite: 5.4.21(@types/node@22.19.7)(terser@5.44.1)
+      vite: 5.4.21(@types/node@24.10.9)(terser@5.44.1)
 
   '@vitest/mocker@2.1.9(msw@2.12.7(@types/node@24.10.9)(typescript@5.9.3))(vite@5.4.21(@types/node@24.10.9)(terser@5.44.1))':
     dependencies:
@@ -6675,7 +6675,7 @@ snapshots:
       sirv: 3.0.2
       tinyglobby: 0.2.15
       tinyrainbow: 1.2.0
-      vitest: 2.1.9(@types/node@22.19.7)(@vitest/ui@2.1.9)(jsdom@23.2.0)(msw@2.12.7(@types/node@22.19.7)(typescript@5.9.3))(terser@5.44.1)
+      vitest: 2.1.9(@types/node@24.10.9)(@vitest/ui@2.1.9)(jsdom@23.2.0)(msw@2.12.7(@types/node@24.10.9)(typescript@5.9.3))(terser@5.44.1)
 
   '@vitest/utils@2.1.9':
     dependencies:
@@ -9101,7 +9101,7 @@ snapshots:
   vitest@2.1.9(@types/node@22.19.7)(@vitest/ui@2.1.9)(jsdom@23.2.0)(msw@2.12.7(@types/node@22.19.7)(typescript@5.9.3))(terser@5.44.1):
     dependencies:
       '@vitest/expect': 2.1.9
-      '@vitest/mocker': 2.1.9(msw@2.12.7(@types/node@22.19.7)(typescript@5.9.3))(vite@5.4.21(@types/node@22.19.7)(terser@5.44.1))
+      '@vitest/mocker': 2.1.9(msw@2.12.7(@types/node@22.19.7)(typescript@5.9.3))(vite@5.4.21(@types/node@24.10.9)(terser@5.44.1))
       '@vitest/pretty-format': 2.1.9
       '@vitest/runner': 2.1.9
       '@vitest/snapshot': 2.1.9
