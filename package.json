@@ -22,6 +22,9 @@
     "clean": "pnpm -r clean",
     "generate:service-graph": "npx tsx scripts/generate-service-graph.ts",
     "validate:service-graph": "npx tsx scripts/generate-service-graph.ts --validate",
+    "generate:frontend-graph": "npx tsx scripts/generate-frontend-graph.ts",
+    "validate:frontend-graph": "npx tsx scripts/generate-frontend-graph.ts --validate",
+    "generate:graphs": "pnpm generate:service-graph && pnpm generate:frontend-graph",
     "update:claude-md": "npx tsx scripts/update-claude-md.ts"
   },
   "keywords": [

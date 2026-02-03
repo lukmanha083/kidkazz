@@ -1,0 +1,125 @@
+# FRONTEND_GRAPH.yaml
+# Auto-generated frontend applications index
+#
+# This file provides:
+# - Index of all frontend applications
+# - Shared service connections and environment variables
+# - Cross-app data flows
+# - Shared patterns and conventions
+#
+# For detailed per-app information, see: apps/{app}/APP_GRAPH.yaml
+#
+# Generator: scripts/generate-frontend-graph.ts
+#
+# DO NOT EDIT MANUALLY - Run: pnpm generate:frontend-graph
+
+generated: auto
+generator: scripts/generate-frontend-graph.ts
+description: Frontend applications index and shared service connections
+apps:
+  erp-dashboard:
+    path: apps/erp-dashboard
+    status: implemented
+    framework: React + TanStack Router + TanStack Query
+    description: KidKazz Real Time ERP Dashboard
+    services: [product-service, inventory-service, accounting-service, business-partner-service]
+    graphFile: apps/erp-dashboard/APP_GRAPH.yaml
+  pos:
+    path: apps/pos
+    status: planned
+    description: Point of Sale application for retail transactions
+    services: [product-service, inventory-service, business-partner-service, payment-service]
+  website:
+    path: apps/website
+    status: planned
+    description: Customer-facing e-commerce website
+    services: [product-service, inventory-service, business-partner-service, order-service]
+  mobile-app:
+    path: apps/mobile-app
+    status: planned
+    description: Mobile application (React Native/Expo)
+    services: [product-service, inventory-service, business-partner-service, order-service]
+serviceConnections:
+  product-service:
+    envVar: VITE_PRODUCT_SERVICE_URL
+    basePath: /api
+    features: [products, categories, variants, uoms, bundles, images, videos]
+  inventory-service:
+    envVar: VITE_INVENTORY_SERVICE_URL
+    basePath: /api
+    features: [inventory, warehouses, batches, stock-movements, transfers]
+    realtime:
+      protocol: WebSocket
+      events: [inventory_adjusted, inventory_updated, stock_low, warehouse_created, warehouse_updated, warehouse_deleted]
+  accounting-service:
+    envVar: VITE_ACCOUNTING_SERVICE_URL
+    basePath: /api
+    features: [accounts, journal-entries, reports, fiscal-periods, assets, depreciation]
+  business-partner-service:
+    envVar: VITE_BUSINESS_PARTNER_SERVICE_URL
+    basePath: /api
+    features: [customers, suppliers, employees, addresses, documents]
+  order-service:
+    envVar: VITE_ORDER_SERVICE_URL
+    basePath: /api
+    features: [orders, order-items, order-status]
+  payment-service:
+    envVar: VITE_PAYMENT_SERVICE_URL
+    basePath: /api
+    features: [payments, refunds, payment-methods]
+sharedPatterns:
+  stateManagement: TanStack Query (React Query) for server state
+  apiClient: Fetch-based API client with service URL switching
+  realtime: WebSocket with auto-reconnect and query invalidation
+  formValidation: TanStack Form + Zod schemas
+  uiLibrary: ShadCN UI (Radix Primitives) + Tailwind CSS
+crossAppFlows:
+  product-lookup:
+    description: Scan barcode to lookup product across POS and ERP
+    apps: [pos, erp-dashboard]
+    services: [product-service, inventory-service]
+  inventory-sync:
+    description: Real-time inventory updates across all apps
+    apps: [pos, erp-dashboard, website]
+    services: [inventory-service]
+  customer-orders:
+    description: Customer places order, tracked across apps
+    apps: [website, pos, erp-dashboard]
+    services: [order-service, business-partner-service, inventory-service]
+environmentVariables:
+  VITE_API_GATEWAY_URL:
+    description: API Gateway URL (deployed)
+    required: false
+    example: "https://api-gateway.tesla-hakim.workers.dev"
+  VITE_ACCOUNTING_SERVICE_URL:
+    description: Accounting Service API URL (deployed)
+    required: true
+    example: "https://accounting-service.tesla-hakim.workers.dev"
+  VITE_PRODUCT_SERVICE_URL:
+    description: Product Service API URL (deployed)
+    required: true
+    example: "https://product-service.tesla-hakim.workers.dev"
+  VITE_INVENTORY_SERVICE_URL:
+    description: Inventory Service API URL (deployed)
+    required: true
+    example: "https://inventory-service.tesla-hakim.workers.dev"
+  VITE_BUSINESS_PARTNER_SERVICE_URL:
+    description: Business Partner Service API URL (deployed)
+    required: true
+    example: "https://business-partner-service.tesla-hakim.workers.dev"
+  VITE_ORDER_SERVICE_URL:
+    description: Order Service API URL (deployed)
+    required: true
+    example: "https://order-service.tesla-hakim.workers.dev"
+  VITE_PAYMENT_SERVICE_URL:
+    description: Payment Service API URL (deployed)
+    required: true
+    example: "https://payment-service.tesla-hakim.workers.dev"
+  VITE_SHIPPING_SERVICE_URL:
+    description: Shipping Service API URL (deployed)
+    required: false
+    example: "https://shipping-service.tesla-hakim.workers.dev"
+  VITE_WEBSOCKET_URL:
+    description: WebSocket server URL for real-time updates (Inventory Service)
+    required: false
+    example: "wss://inventory-service.tesla-hakim.workers.dev/ws"

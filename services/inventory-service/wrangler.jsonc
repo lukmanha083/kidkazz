@@ -26,14 +26,8 @@
         "queue": "inventory-events-queue",
         "binding": "INVENTORY_EVENTS_QUEUE"
       }
-    ],
-    "consumers": [
-      {
-        "queue": "inventory-events-queue",
-        "max_batch_size": 10,
-        "max_batch_timeout": 30
-      }
     ]
+    // Note: consumers removed until queue handler is implemented
   },
 
   // Service binding to Product Service
@@ -49,16 +43,22 @@
     "bindings": [
       {
         "name": "INVENTORY_UPDATES",
-        "class_name": "InventoryUpdatesBroadcaster",
-        "script_name": "inventory-service"
+        "class_name": "InventoryUpdatesBroadcaster"
       },
       {
         "name": "WAREHOUSE_UPDATES",
-        "class_name": "WarehouseUpdatesBroadcaster",
-        "script_name": "inventory-service"
+        "class_name": "WarehouseUpdatesBroadcaster"
       }
     ]
   },
+
+  // Durable Object migrations (required for first deployment)
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_classes": ["InventoryUpdatesBroadcaster", "WarehouseUpdatesBroadcaster"]
+    }
+  ],
 
   // Development settings
   "dev": {

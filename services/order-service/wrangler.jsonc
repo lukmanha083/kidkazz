@@ -26,14 +26,8 @@
         "queue": "order-events-queue",
         "binding": "ORDER_EVENTS_QUEUE"
       }
-    ],
-    "consumers": [
-      {
-        "queue": "order-events-queue",
-        "max_batch_size": 10,
-        "max_batch_timeout": 30
-      }
     ]
+    // Note: consumers removed until queue handler is implemented
   },
 
   // Service bindings to other services

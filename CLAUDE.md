@@ -8,24 +8,28 @@
 
 ## IMPORTANT: Always Read First
 
-**Before planning or implementing ANY task, read `SERVICE_GRAPH.yaml`:**
+**Before planning or implementing ANY task, read the graph files:**
 ```bash
-cat SERVICE_GRAPH.yaml
+cat SERVICE_GRAPH.yaml      # Backend services
+cat FRONTEND_GRAPH.yaml     # Frontend apps index
 ```
 
-This file is the **single source of truth** for:
+These files are the **single source of truth** for:
 - Service relationships and dependencies
 - Event flows between bounded contexts
 - API contracts and endpoint mappings
+- Frontend-to-backend connections
 - Domain entity relationships across services
 
 ---
 
 ## Essential Reading Order
 
-1. **SERVICE_GRAPH.yaml** - Codebase knowledge graph (auto-updated) **← READ THIS FIRST**
-2. **docs/ddd/BUSINESS_RULES.md** - Domain constraints (source of truth)
-3. **docs/bounded-contexts/{context}/** - Service-specific docs
+1. **SERVICE_GRAPH.yaml** - Backend services knowledge graph **← READ THIS FIRST**
+2. **FRONTEND_GRAPH.yaml** - Frontend apps index and service connections
+3. **apps/{app}/APP_GRAPH.yaml** - Per-app detailed graphs
+4. **docs/ddd/BUSINESS_RULES.md** - Domain constraints (source of truth)
+5. **docs/bounded-contexts/{context}/** - Service-specific docs
 
 ---
 
@@ -39,6 +43,37 @@ This file is the **single source of truth** for:
 | Accounting | Double-entry bookkeeping, assets, depreciation |
 | Payment | Midtrans, QRIS, EDC integration |
 | Chatbot | AI customer service (Grok + Vercel AI SDK) |
+
+---
+
+## Service Endpoints
+
+| Service | Production URL | Local Port | Status |
+|---------|---------------|------------|--------|
+| API Gateway | `https://api-gateway.tesla-hakim.workers.dev` | 8787 | Deployed |
+| Accounting | `https://accounting-service.tesla-hakim.workers.dev` | 8794 | Deployed |
+| Product | `https://product-service.tesla-hakim.workers.dev` | 8788 | Deployed |
+| Inventory | `https://inventory-service.tesla-hakim.workers.dev` | 8792 | Deployed |
+| Business Partner | `https://business-partner-service.tesla-hakim.workers.dev` | 8793 | Deployed |
+| Order | `https://order-service.tesla-hakim.workers.dev` | 8789 | Deployed |
+| Payment | `https://payment-service.tesla-hakim.workers.dev` | 8790 | Deployed |
+| Shipping | `https://shipping-service.tesla-hakim.workers.dev` | 8791 | Deployed |
+
+**Frontend Environment Variables:**
+```bash
+# Production (all services deployed)
+VITE_API_GATEWAY_URL=https://api-gateway.tesla-hakim.workers.dev
+VITE_ACCOUNTING_SERVICE_URL=https://accounting-service.tesla-hakim.workers.dev
+VITE_PRODUCT_SERVICE_URL=https://product-service.tesla-hakim.workers.dev
+VITE_INVENTORY_SERVICE_URL=https://inventory-service.tesla-hakim.workers.dev
+VITE_BUSINESS_PARTNER_SERVICE_URL=https://business-partner-service.tesla-hakim.workers.dev
+VITE_ORDER_SERVICE_URL=https://order-service.tesla-hakim.workers.dev
+VITE_PAYMENT_SERVICE_URL=https://payment-service.tesla-hakim.workers.dev
+VITE_SHIPPING_SERVICE_URL=https://shipping-service.tesla-hakim.workers.dev
+
+# WebSocket for real-time inventory updates
+VITE_WEBSOCKET_URL=wss://inventory-service.tesla-hakim.workers.dev/ws
+```
 
 ---
 
@@ -97,9 +132,15 @@ gh pr merge <num> --squash --delete-branch # Merge PR
 ## Quick Commands
 
 ```bash
-# SERVICE_GRAPH
-pnpm generate:service-graph  # Regenerate
-cat SERVICE_GRAPH.yaml       # View
+# Graph Generation
+pnpm generate:service-graph   # Backend services graph
+pnpm generate:frontend-graph  # Frontend apps graphs
+pnpm generate:graphs          # Both graphs
+
+# View Graphs
+cat SERVICE_GRAPH.yaml
+cat FRONTEND_GRAPH.yaml
+cat apps/erp-dashboard/APP_GRAPH.yaml
 
 # Migrations (SQLite/D1)
 wrangler d1 execute db --local --file=migrations/000X.sql
@@ -160,4 +201,4 @@ const form = useForm({
 
 ---
 
-**Last Updated**: 2026-02-02
+**Last Updated**: 2026-02-03

@@ -1,4 +1,4 @@
-name: Update Service Graph and Documentation
+name: Update Service and Frontend Graphs
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
       - 'apps/**'
       - 'docs/**'
       - 'scripts/generate-service-graph.ts'
+      - 'scripts/generate-frontend-graph.ts'
       - 'scripts/update-claude-md.ts'
   pull_request:
     branches: [main]
@@ -16,10 +17,11 @@ on:
       - 'apps/**'
       - 'docs/**'
       - 'scripts/generate-service-graph.ts'
+      - 'scripts/generate-frontend-graph.ts'
       - 'scripts/update-claude-md.ts'
 
 jobs:
-  update-graph:
+  update-graphs:
     runs-on: ubuntu-latest
     # Skip Dependabot PRs (they only change package.json, not service code)
     if: github.actor != 'dependabot[bot]'
@@ -49,6 +51,9 @@ jobs:
       - name: Generate Service Graph
         run: pnpm generate:service-graph
 
+      - name: Generate Frontend Graph
+        run: pnpm generate:frontend-graph
+
       - name: Update CLAUDE.md
         run: pnpm update:claude-md
 
@@ -57,18 +62,34 @@ jobs:
         run: |
           # Check SERVICE_GRAPH.yaml
           if git diff --quiet SERVICE_GRAPH.yaml; then
-            echo "graph_changed=false" >> $GITHUB_OUTPUT
+            echo "service_graph_changed=false" >> $GITHUB_OUTPUT
           else
-            echo "graph_changed=true" >> $GITHUB_OUTPUT
+            echo "service_graph_changed=true" >> $GITHUB_OUTPUT
           fi
+
+          # Check FRONTEND_GRAPH.yaml
+          if git diff --quiet FRONTEND_GRAPH.yaml; then
+            echo "frontend_graph_changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "frontend_graph_changed=true" >> $GITHUB_OUTPUT
+          fi
+
+          # Check APP_GRAPH.yaml files
+          if git diff --quiet 'apps/*/APP_GRAPH.yaml'; then
+            echo "app_graphs_changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "app_graphs_changed=true" >> $GITHUB_OUTPUT
+          fi
+
           # Check CLAUDE.md
           if git diff --quiet CLAUDE.md; then
             echo "claude_changed=false" >> $GITHUB_OUTPUT
           else
             echo "claude_changed=true" >> $GITHUB_OUTPUT
           fi
+
           # Check if any changed
-          if git diff --quiet SERVICE_GRAPH.yaml CLAUDE.md; then
+          if git diff --quiet SERVICE_GRAPH.yaml FRONTEND_GRAPH.yaml CLAUDE.md 'apps/*/APP_GRAPH.yaml' 2>/dev/null; then
             echo "changed=false" >> $GITHUB_OUTPUT
           else
             echo "changed=true" >> $GITHUB_OUTPUT
@@ -79,8 +100,8 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add SERVICE_GRAPH.yaml CLAUDE.md
-          git commit -m "chore: auto-update SERVICE_GRAPH.yaml and CLAUDE.md [skip ci]"
+          git add SERVICE_GRAPH.yaml FRONTEND_GRAPH.yaml CLAUDE.md 'apps/*/APP_GRAPH.yaml' 2>/dev/null || true
+          git commit -m "chore: auto-update graphs and documentation [skip ci]"
           git push
 
       - name: Commit changes (PR)
@@ -88,8 +109,8 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add SERVICE_GRAPH.yaml CLAUDE.md
-          git commit -m "chore: auto-update SERVICE_GRAPH.yaml and CLAUDE.md"
+          git add SERVICE_GRAPH.yaml FRONTEND_GRAPH.yaml CLAUDE.md 'apps/*/APP_GRAPH.yaml' 2>/dev/null || true
+          git commit -m "chore: auto-update graphs and documentation"
           git push
 
       - name: Add PR comment
@@ -98,8 +119,14 @@ jobs:
         with:
           script: |
             let body = '📄 **Auto-updated documentation:**\n';
-            if ('${{ steps.changes.outputs.graph_changed }}' === 'true') {
+            if ('${{ steps.changes.outputs.service_graph_changed }}' === 'true') {
               body += '- 📊 SERVICE_GRAPH.yaml\n';
+            }
+            if ('${{ steps.changes.outputs.frontend_graph_changed }}' === 'true') {
+              body += '- 🖥️ FRONTEND_GRAPH.yaml\n';
+            }
+            if ('${{ steps.changes.outputs.app_graphs_changed }}' === 'true') {
+              body += '- 📱 apps/*/APP_GRAPH.yaml\n';
             }
             if ('${{ steps.changes.outputs.claude_changed }}' === 'true') {
               body += '- 📝 CLAUDE.md\n';

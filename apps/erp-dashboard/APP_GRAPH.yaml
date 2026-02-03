@@ -1,0 +1,649 @@
+# APP_GRAPH.yaml - erp-dashboard
+# Auto-generated application graph
+#
+# This file maps:
+# - Application framework and dependencies
+# - Routes and their service connections
+# - Query/mutation hooks
+# - Components and data flows
+#
+# Generator: scripts/generate-frontend-graph.ts
+#
+# DO NOT EDIT MANUALLY - Run: pnpm generate:frontend-graph
+
+generated: auto
+generator: scripts/generate-frontend-graph.ts
+app: erp-dashboard
+path: apps/erp-dashboard
+framework:
+  core: React 18.3.1
+  router: TanStack Router 1.157.18
+  stateManagement: TanStack Query 5.90.20
+  formLibrary: TanStack Form 1.27.4
+  uiLibrary: ShadCN UI (Radix Primitives)
+  styling: Tailwind CSS 4.1.18
+  buildTool: Vite 5.4.21
+  testFramework: Vitest 2.1.9
+docs:
+  audit-trail: docs/bounded-contexts/erp-dashboard/AUDIT_TRAIL.md
+  dashboard-structure: docs/bounded-contexts/erp-dashboard/DASHBOARD_STRUCTURE.md
+  readme: docs/bounded-contexts/erp-dashboard/README.md
+  testing-workflow: docs/bounded-contexts/erp-dashboard/TESTING_WORKFLOW.md
+  virtual-scrolling-guide: docs/bounded-contexts/erp-dashboard/VIRTUAL_SCROLLING_GUIDE.md
+  frontend-architecture: docs/bounded-contexts/frontend/FRONTEND_ARCHITECTURE.md
+  ui-guidelines: docs/guides/UI_DESIGN_GUIDELINE.md
+entryPoints:
+  main: src/main.tsx
+  apiClient: src/lib/api.ts
+  queryClient: src/lib/query-client.ts
+  routes: src/routes/
+services:
+  consumed: [product-service, inventory-service, accounting-service, business-partner-service]
+  connections:
+    product-service:
+      envVar: VITE_PRODUCT_SERVICE_URL
+      endpoints: [/api/categories, /api/categories/active, /api/categories/${id}, "/api/products${queryParams ? ", /api/products/${id}, /api/products/sku/${sku}, /api/products, /api/products/${id}/price, /api/products/${id}/stock, /api/products/${id}/uom-warehouse-stock]
+    inventory-service:
+      envVar: VITE_INVENTORY_SERVICE_URL
+      endpoints: []
+    accounting-service:
+      envVar: VITE_ACCOUNTING_SERVICE_URL
+      endpoints: ["/api/accounting/accounts${queryParams ? ", /api/accounting/accounts/active, /api/accounting/accounts/${id}, /api/accounting/accounts, "/api/accounting/journal-entries${queryParams ? ", /api/accounting/journal-entries/${id}, /api/accounting/journal-entries, /api/accounting/journal-entries/${id}/post, /api/accounting/journal-entries/${id}/void, /api/accounting/reports/income-statement?from=${from}&to=${to}]
+    business-partner-service:
+      envVar: VITE_BUSINESS_PARTNER_SERVICE_URL
+      endpoints: []
+routes:
+  root:
+    path: /
+    file: src/routes/__root.tsx
+    layout: true
+  dashboard-accounting-balance-sheet:
+    path: /dashboard/accounting/balance-sheet
+    file: src/routes/dashboard/accounting/balance-sheet.tsx
+  dashboard-accounting-chart-of-accounts:
+    path: /dashboard/accounting/chart-of-accounts
+    file: src/routes/dashboard/accounting/chart-of-accounts.tsx
+  dashboard-accounting-general-ledger:
+    path: /dashboard/accounting/general-ledger
+    file: src/routes/dashboard/accounting/general-ledger.tsx
+  dashboard-accounting-income-statement:
+    path: /dashboard/accounting/income-statement
+    file: src/routes/dashboard/accounting/income-statement.tsx
+  dashboard-accounting-index:
+    path: /dashboard/accounting
+    file: src/routes/dashboard/accounting/index.tsx
+  dashboard-accounting-journal-entry:
+    path: /dashboard/accounting/journal-entry
+    file: src/routes/dashboard/accounting/journal-entry.tsx
+  dashboard-accounting-reports-sales-by-person:
+    path: /dashboard/accounting/reports/sales-by-person
+    file: src/routes/dashboard/accounting/reports/sales-by-person.tsx
+  dashboard-accounting-reports-sales-by-warehouse:
+    path: /dashboard/accounting/reports/sales-by-warehouse
+    file: src/routes/dashboard/accounting/reports/sales-by-warehouse.tsx
+  dashboard-business-partner-customers:
+    path: /dashboard/business-partner/customers
+    file: src/routes/dashboard/business-partner/customers.tsx
+    services: [business-partner-service]
+  dashboard-business-partner-employees:
+    path: /dashboard/business-partner/employees
+    file: src/routes/dashboard/business-partner/employees.tsx
+  dashboard-business-partner-index:
+    path: /dashboard/business-partner
+    file: src/routes/dashboard/business-partner/index.tsx
+    services: [business-partner-service]
+  dashboard-business-partner-suppliers:
+    path: /dashboard/business-partner/suppliers
+    file: src/routes/dashboard/business-partner/suppliers.tsx
+    services: [business-partner-service]
+  dashboard-customers:
+    path: /dashboard/customers
+    file: src/routes/dashboard/customers.tsx
+  dashboard-index:
+    path: /dashboard
+    file: src/routes/dashboard/index.tsx
+  dashboard-inventory-batches:
+    path: /dashboard/inventory/batches
+    file: src/routes/dashboard/inventory/batches.tsx
+  dashboard-inventory-expired-stock:
+    path: /dashboard/inventory/expired-stock
+    file: src/routes/dashboard/inventory/expired-stock.tsx
+    services: [inventory-service]
+  dashboard-inventory-index:
+    path: /dashboard/inventory
+    file: src/routes/dashboard/inventory/index.tsx
+    services: [inventory-service]
+    queries: [useInventory]
+  dashboard-inventory-low-stock:
+    path: /dashboard/inventory/low-stock
+    file: src/routes/dashboard/inventory/low-stock.tsx
+    services: [inventory-service]
+  dashboard-inventory-product-locations:
+    path: /dashboard/inventory/product-locations
+    file: src/routes/dashboard/inventory/product-locations.tsx
+    services: [inventory-service]
+  dashboard-inventory-transfer-stock:
+    path: /dashboard/inventory/transfer-stock
+    file: src/routes/dashboard/inventory/transfer-stock.tsx
+    services: [inventory-service]
+  dashboard-inventory-uom-conversion:
+    path: /dashboard/inventory/uom-conversion
+    file: src/routes/dashboard/inventory/uom-conversion.tsx
+    services: [product-service, inventory-service]
+  dashboard-inventory-warehouse:
+    path: /dashboard/inventory/warehouse
+    file: src/routes/dashboard/inventory/warehouse.tsx
+    services: [inventory-service]
+  dashboard-orders:
+    path: /dashboard/orders
+    file: src/routes/dashboard/orders.tsx
+  dashboard-products-all:
+    path: /dashboard/products/all
+    file: src/routes/dashboard/products/all.tsx
+    services: [product-service, inventory-service]
+  dashboard-products-bundle:
+    path: /dashboard/products/bundle
+    file: src/routes/dashboard/products/bundle.tsx
+    services: [product-service, inventory-service]
+  dashboard-products-category:
+    path: /dashboard/products/category
+    file: src/routes/dashboard/products/category.tsx
+    services: [product-service]
+  dashboard-products-index:
+    path: /dashboard/products
+    file: src/routes/dashboard/products/index.tsx
+    services: [product-service, inventory-service]
+  dashboard-products-uom:
+    path: /dashboard/products/uom
+    file: src/routes/dashboard/products/uom.tsx
+    services: [product-service]
+  dashboard-products-variant:
+    path: /dashboard/products/variant
+    file: src/routes/dashboard/products/variant.tsx
+    services: [product-service, inventory-service]
+  dashboard-settings:
+    path: /dashboard/settings
+    file: src/routes/dashboard/settings.tsx
+  dashboard:
+    path: /dashboard
+    file: src/routes/dashboard.tsx
+    layout: true
+  index:
+    path: 
+    file: src/routes/index.tsx
+queryHooks:
+  useBatches:
+    file: src/hooks/queries/useBatches.ts
+    service: inventory-service
+    queryKey: [batches]
+  useBatch:
+    file: src/hooks/queries/useBatches.ts
+    queryKey: [batch]
+  useExpiringBatches:
+    file: src/hooks/queries/useBatches.ts
+    service: inventory-service
+    queryKey: [expiringbatches]
+  useExpiredBatches:
+    file: src/hooks/queries/useBatches.ts
+    service: inventory-service
+    queryKey: [expiredbatches]
+  useCreateBatch:
+    file: src/hooks/queries/useBatches.ts
+    queryKey: [createbatch]
+  useAdjustBatch:
+    file: src/hooks/queries/useBatches.ts
+    queryKey: [adjustbatch]
+  useUpdateBatchStatus:
+    file: src/hooks/queries/useBatches.ts
+    queryKey: [updatebatchstatus]
+  useDeleteBatch:
+    file: src/hooks/queries/useBatches.ts
+    queryKey: [deletebatch]
+  useBundles:
+    file: src/hooks/queries/useBundles.ts
+    service: product-service
+    queryKey: [bundles]
+  useBundle:
+    file: src/hooks/queries/useBundles.ts
+    queryKey: [bundle]
+  useBundleAvailableStock:
+    file: src/hooks/queries/useBundles.ts
+    queryKey: [bundleavailablestock]
+  useCreateBundle:
+    file: src/hooks/queries/useBundles.ts
+    queryKey: [createbundle]
+  useUpdateBundle:
+    file: src/hooks/queries/useBundles.ts
+    queryKey: [updatebundle]
+  useUpdateBundleItems:
+    file: src/hooks/queries/useBundles.ts
+    queryKey: [updatebundleitems]
+  useUpdateBundleStock:
+    file: src/hooks/queries/useBundles.ts
+    queryKey: [updatebundlestock]
+  useDeleteBundle:
+    file: src/hooks/queries/useBundles.ts
+    queryKey: [deletebundle]
+  useCategories:
+    file: src/hooks/queries/useCategories.ts
+    service: product-service
+    queryKey: [categories]
+  useActiveCategories:
+    file: src/hooks/queries/useCategories.ts
+    service: product-service
+    queryKey: [activecategories]
+  useCategory:
+    file: src/hooks/queries/useCategories.ts
+    queryKey: [category]
+  useCreateCategory:
+    file: src/hooks/queries/useCategories.ts
+    queryKey: [createcategory]
+  useUpdateCategory:
+    file: src/hooks/queries/useCategories.ts
+    queryKey: [updatecategory]
+  useDeleteCategory:
+    file: src/hooks/queries/useCategories.ts
+    queryKey: [deletecategory]
+  useInventory:
+    file: src/hooks/queries/useInventory.ts
+    service: inventory-service
+    queryKey: [inventory]
+    realtime: true
+  useProductInventory:
+    file: src/hooks/queries/useInventory.ts
+    service: inventory-service
+    queryKey: [productinventory]
+    realtime: true
+  useProductWarehouseInventory:
+    file: src/hooks/queries/useInventory.ts
+    service: inventory-service
+    queryKey: [productwarehouseinventory]
+    realtime: true
+  useInventoryMovements:
+    file: src/hooks/queries/useInventory.ts
+    service: inventory-service
+    queryKey: [inventorymovements]
+    realtime: true
+  useAdjustInventory:
+    file: src/hooks/queries/useInventory.ts
+    service: inventory-service
+    queryKey: [adjustinventory]
+    realtime: true
+  useSetMinimumStock:
+    file: src/hooks/queries/useInventory.ts
+    queryKey: [setminimumstock]
+    realtime: true
+  useProducts:
+    file: src/hooks/queries/useProducts.ts
+    service: product-service
+    queryKey: [products]
+  useProductsWithInventory:
+    file: src/hooks/queries/useProducts.ts
+    service: product-service
+    queryKey: [productswithinventory]
+  useProduct:
+    file: src/hooks/queries/useProducts.ts
+    queryKey: [product]
+  useProductWithInventory:
+    file: src/hooks/queries/useProducts.ts
+    service: inventory-service
+    queryKey: [productwithinventory]
+  useProductStock:
+    file: src/hooks/queries/useProducts.ts
+    queryKey: [productstock]
+  useProductLowStockStatus:
+    file: src/hooks/queries/useProducts.ts
+    queryKey: [productlowstockstatus]
+  useCreateProduct:
+    file: src/hooks/queries/useProducts.ts
+    queryKey: [createproduct]
+  useUpdateProduct:
+    file: src/hooks/queries/useProducts.ts
+    queryKey: [updateproduct]
+  useUpdateProductPrice:
+    file: src/hooks/queries/useProducts.ts
+    queryKey: [updateproductprice]
+  useDeleteProduct:
+    file: src/hooks/queries/useProducts.ts
+    queryKey: [deleteproduct]
+  useProductBySKU:
+    file: src/hooks/queries/useProducts.ts
+    queryKey: [productbysku]
+  useVariants:
+    file: src/hooks/queries/useVariants.ts
+    service: product-service
+    queryKey: [variants]
+  useVariantsWithInventory:
+    file: src/hooks/queries/useVariants.ts
+    service: product-service
+    queryKey: [variantswithinventory]
+  useVariant:
+    file: src/hooks/queries/useVariants.ts
+    queryKey: [variant]
+  useCreateVariant:
+    file: src/hooks/queries/useVariants.ts
+    queryKey: [createvariant]
+  useUpdateVariant:
+    file: src/hooks/queries/useVariants.ts
+    queryKey: [updatevariant]
+  useDeleteVariant:
+    file: src/hooks/queries/useVariants.ts
+    queryKey: [deletevariant]
+  useWarehouses:
+    file: src/hooks/queries/useWarehouses.ts
+    service: inventory-service
+    queryKey: [warehouses]
+    realtime: true
+  useActiveWarehouses:
+    file: src/hooks/queries/useWarehouses.ts
+    service: inventory-service
+    queryKey: [activewarehouses]
+    realtime: true
+  useWarehouse:
+    file: src/hooks/queries/useWarehouses.ts
+    queryKey: [warehouse]
+    realtime: true
+  useCreateWarehouse:
+    file: src/hooks/queries/useWarehouses.ts
+    queryKey: [createwarehouse]
+    realtime: true
+  useUpdateWarehouse:
+    file: src/hooks/queries/useWarehouses.ts
+    queryKey: [updatewarehouse]
+    realtime: true
+  useDeleteWarehouse:
+    file: src/hooks/queries/useWarehouses.ts
+    queryKey: [deletewarehouse]
+    realtime: true
+mutationHooks:
+  useCreateBatch:
+    file: src/hooks/queries/useBatches.ts
+    service: inventory-service
+    endpoint: POST /api/...
+    invalidates:
+      - [batch]
+    optimisticUpdate: true
+  useAdjustBatch:
+    file: src/hooks/queries/useBatches.ts
+    service: inventory-service
+    endpoint: PATCH /api/...
+    invalidates:
+      - [batch]
+    optimisticUpdate: true
+  useUpdateBatchStatus:
+    file: src/hooks/queries/useBatches.ts
+    service: inventory-service
+    endpoint: PUT /api/...
+    invalidates:
+      - [batchstatus]
+    optimisticUpdate: true
+  useDeleteBatch:
+    file: src/hooks/queries/useBatches.ts
+    service: inventory-service
+    endpoint: DELETE /api/...
+    invalidates:
+      - [batch]
+    optimisticUpdate: true
+  useCreateBundle:
+    file: src/hooks/queries/useBundles.ts
+    service: product-service
+    endpoint: POST /api/...
+    invalidates:
+      - [bundle]
+    optimisticUpdate: true
+  useUpdateBundle:
+    file: src/hooks/queries/useBundles.ts
+    service: product-service
+    endpoint: PUT /api/...
+    invalidates:
+      - [bundle]
+    optimisticUpdate: true
+  useUpdateBundleItems:
+    file: src/hooks/queries/useBundles.ts
+    service: product-service
+    endpoint: PUT /api/...
+    invalidates:
+      - [bundleitems]
+    optimisticUpdate: true
+  useUpdateBundleStock:
+    file: src/hooks/queries/useBundles.ts
+    service: product-service
+    endpoint: PUT /api/...
+    invalidates:
+      - [bundlestock]
+    optimisticUpdate: true
+  useDeleteBundle:
+    file: src/hooks/queries/useBundles.ts
+    service: product-service
+    endpoint: DELETE /api/...
+    invalidates:
+      - [bundle]
+    optimisticUpdate: true
+  useCreateCategory:
+    file: src/hooks/queries/useCategories.ts
+    service: product-service
+    endpoint: POST /api/...
+    invalidates:
+      - [category]
+    optimisticUpdate: true
+  useUpdateCategory:
+    file: src/hooks/queries/useCategories.ts
+    service: product-service
+    endpoint: PUT /api/...
+    invalidates:
+      - [category]
+    optimisticUpdate: true
+  useDeleteCategory:
+    file: src/hooks/queries/useCategories.ts
+    service: product-service
+    endpoint: DELETE /api/...
+    invalidates:
+      - [category]
+    optimisticUpdate: true
+  useAdjustInventory:
+    file: src/hooks/queries/useInventory.ts
+    service: inventory-service
+    endpoint: PATCH /api/...
+    invalidates:
+      - [inventory]
+    optimisticUpdate: true
+  useSetMinimumStock:
+    file: src/hooks/queries/useInventory.ts
+    service: product-service
+    endpoint: PUT /api/...
+    invalidates:
+      - [minimumstock]
+    optimisticUpdate: true
+  useCreateProduct:
+    file: src/hooks/queries/useProducts.ts
+    service: product-service
+    endpoint: POST /api/...
+    invalidates:
+      - [product]
+    optimisticUpdate: true
+  useUpdateProduct:
+    file: src/hooks/queries/useProducts.ts
+    service: product-service
+    endpoint: PUT /api/...
+    invalidates:
+      - [product]
+    optimisticUpdate: true
+  useUpdateProductPrice:
+    file: src/hooks/queries/useProducts.ts
+    service: product-service
+    endpoint: PUT /api/...
+    invalidates:
+      - [productprice]
+    optimisticUpdate: true
+  useDeleteProduct:
+    file: src/hooks/queries/useProducts.ts
+    service: product-service
+    endpoint: DELETE /api/...
+    invalidates:
+      - [product]
+    optimisticUpdate: true
+  useCreateVariant:
+    file: src/hooks/queries/useVariants.ts
+    service: product-service
+    endpoint: POST /api/...
+    invalidates:
+      - [variant]
+    optimisticUpdate: true
+  useUpdateVariant:
+    file: src/hooks/queries/useVariants.ts
+    service: product-service
+    endpoint: PUT /api/...
+    invalidates:
+      - [variant]
+    optimisticUpdate: true
+  useDeleteVariant:
+    file: src/hooks/queries/useVariants.ts
+    service: product-service
+    endpoint: DELETE /api/...
+    invalidates:
+      - [variant]
+    optimisticUpdate: true
+  useCreateWarehouse:
+    file: src/hooks/queries/useWarehouses.ts
+    service: inventory-service
+    endpoint: POST /api/...
+    invalidates:
+      - [warehouse]
+    optimisticUpdate: true
+  useUpdateWarehouse:
+    file: src/hooks/queries/useWarehouses.ts
+    service: inventory-service
+    endpoint: PUT /api/...
+    invalidates:
+      - [warehouse]
+    optimisticUpdate: true
+  useDeleteWarehouse:
+    file: src/hooks/queries/useWarehouses.ts
+    service: inventory-service
+    endpoint: DELETE /api/...
+    invalidates:
+      - [warehouse]
+    optimisticUpdate: true
+websocket:
+  hook: src/hooks/useWebSocket.ts
+  config:
+    autoReconnect: true
+    reconnectBackoff: [1000, 2000, 5000, 10000, 30000]
+    heartbeat: 30000
+  messageHandlers:
+    inventory_adjusted:
+      action: invalidateQueries
+      queryKeys:
+        - [inventory]
+        - [products, stock]
+    inventory_updated:
+      action: invalidateQueries
+      queryKeys:
+        - [inventory]
+    stock_low:
+      action: invalidateQueries
+      queryKeys:
+        - [inventory, lowStock]
+    warehouse_created:
+      action: invalidateQueries
+      queryKeys:
+        - [warehouses]
+    warehouse_updated:
+      action: invalidateQueries
+      queryKeys:
+        - [warehouses]
+    warehouse_deleted:
+      action: invalidateQueries
+      queryKeys:
+        - [warehouses]
+        - [inventory]
+components:
+  layout:{}
+  dataTable:
+    DataTableFacetedFilter:
+      file: src/components/ui/data-table/data-table-faceted-filter.tsx
+    DataTablePagination:
+      file: src/components/ui/data-table/data-table-pagination.tsx
+    DataTableRowActions:
+      file: src/components/ui/data-table/data-table-row-actions.tsx
+    DataTableToolbar:
+      file: src/components/ui/data-table/data-table-toolbar.tsx
+    DataTable:
+      file: src/components/ui/data-table/data-table.tsx
+      features: [sorting, filtering, pagination, columnVisibility]
+      dependencies: [@tanstack/react-table]
+    VirtualizedDataTable:
+      file: src/components/ui/data-table/virtualized-data-table.tsx
+      features: [virtualization, large-datasets]
+      dependencies: [@tanstack/react-table, @tanstack/react-virtual]
+  columnDefinitions:
+    batch:
+      file: src/components/ui/data-table/columns/batch-columns.tsx
+    bundle:
+      file: src/components/ui/data-table/columns/bundle-columns.tsx
+    category:
+      file: src/components/ui/data-table/columns/category-columns.tsx
+    customer:
+      file: src/components/ui/data-table/columns/customer-columns.tsx
+    employee:
+      file: src/components/ui/data-table/columns/employee-columns.tsx
+    low-stock:
+      file: src/components/ui/data-table/columns/low-stock-columns.tsx
+    order:
+      file: src/components/ui/data-table/columns/order-columns.tsx
+    product:
+      file: src/components/ui/data-table/columns/product-columns.tsx
+    supplier:
+      file: src/components/ui/data-table/columns/supplier-columns.tsx
+    uom:
+      file: src/components/ui/data-table/columns/uom-columns.tsx
+    variant:
+      file: src/components/ui/data-table/columns/variant-columns.tsx
+    warehouse:
+      file: src/components/ui/data-table/columns/warehouse-columns.tsx
+  forms:{}
+  media:
+    ImageUpload:
+      file: src/components/ImageUpload.tsx
+    VideoUpload:
+      file: src/components/VideoUpload.tsx
+    DocumentUpload:
+      file: src/components/DocumentUpload.tsx
+dataFlows:
+  product-with-inventory:
+    description: Display product with stock from Inventory Service
+    flow:
+      - step: Mount ProductsPage
+      - step: Call useProductsWithInventory hook
+      - step: Fetch products from Product Service
+      - step: Batch fetch stock from Inventory Service
+      - step: Merge and render DataTable
+  real-time-inventory:
+    description: Real-time inventory updates via WebSocket
+    flow:
+      - step: Connect WebSocket on mount
+      - step: Receive inventory_adjusted event
+      - step: Invalidate inventory queries
+      - step: Auto-refetch updated data
+validation:
+  schemas:
+    file: src/lib/form-schemas.ts
+    library: Zod 3.25.76
+    list: [productFormSchema, categoryFormSchema, warehouseFormSchema, batchFormSchema, customerFormSchema, supplierFormSchema, employeeFormSchema]
+  asyncValidation:
+    file: src/hooks/useAsyncValidation.ts
+    validators: [skuUniqueness, codeUniqueness, barcodeUniqueness]
+testing:
+  framework: Vitest 2.1.9
+  files: [src/components/SystemStatus.test.tsx, src/components/ui/data-table/columns/batch-columns.test.tsx, src/components/ui/data-table/columns/bundle-columns.test.tsx, src/components/ui/data-table/columns/order-columns.test.tsx, src/components/ui/data-table/data-table.test.tsx, src/lib/__tests__/form-schemas.test.ts]
+  scripts:
+    test: vitest
+    test:ui: vitest --ui
+    test:coverage: vitest --coverage
+build:
+  tool: Vite 5.4.21
+  output: dist
+  scripts:
+    dev: vite
+    build: vite build
+    preview: vite preview

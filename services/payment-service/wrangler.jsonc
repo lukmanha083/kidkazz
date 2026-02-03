@@ -26,14 +26,8 @@
         "queue": "payment-events-queue",
         "binding": "PAYMENT_EVENTS_QUEUE"
       }
-    ],
-    "consumers": [
-      {
-        "queue": "payment-events-queue",
-        "max_batch_size": 10,
-        "max_batch_timeout": 30
-      }
     ]
+    // Note: consumers removed until queue handler is implemented
   },
 
   // Environment variables (set via wrangler secret)

@@ -15,7 +15,7 @@
 		{
 			"binding": "DB",
 			"database_name": "business-partner-db",
-			"database_id": "placeholder-run-wrangler-d1-create"
+			"database_id": "7d4a4efb-c2d4-492b-8633-ed369397a503"
 		}
 	],
 	// R2 bucket for employee/partner documents (KTP, NPWP, contracts)
