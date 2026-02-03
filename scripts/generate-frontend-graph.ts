@@ -657,40 +657,50 @@ function generateFrontendIndex(): FrontendGraphIndex {
       },
     },
     environmentVariables: {
+      VITE_API_GATEWAY_URL: {
+        description: 'API Gateway URL (deployed)',
+        required: false,
+        example: 'https://api-gateway.tesla-hakim.workers.dev',
+      },
       VITE_ACCOUNTING_SERVICE_URL: {
         description: 'Accounting Service API URL (deployed)',
         required: true,
         example: 'https://accounting-service.tesla-hakim.workers.dev',
       },
       VITE_PRODUCT_SERVICE_URL: {
-        description: 'Product Service API URL (local development)',
+        description: 'Product Service API URL (deployed)',
         required: true,
-        example: 'http://localhost:8788',
+        example: 'https://product-service.tesla-hakim.workers.dev',
       },
       VITE_INVENTORY_SERVICE_URL: {
-        description: 'Inventory Service API URL (local development)',
+        description: 'Inventory Service API URL (deployed)',
         required: true,
-        example: 'http://localhost:8792',
+        example: 'https://inventory-service.tesla-hakim.workers.dev',
       },
       VITE_BUSINESS_PARTNER_SERVICE_URL: {
-        description: 'Business Partner Service API URL (local development)',
+        description: 'Business Partner Service API URL (deployed)',
         required: true,
-        example: 'http://localhost:8793',
+        example: 'https://business-partner-service.tesla-hakim.workers.dev',
       },
       VITE_ORDER_SERVICE_URL: {
-        description: 'Order Service API URL (local development)',
+        description: 'Order Service API URL (deployed)',
         required: true,
-        example: 'http://localhost:8789',
+        example: 'https://order-service.tesla-hakim.workers.dev',
       },
       VITE_PAYMENT_SERVICE_URL: {
-        description: 'Payment Service API URL (planned)',
+        description: 'Payment Service API URL (deployed)',
+        required: true,
+        example: 'https://payment-service.tesla-hakim.workers.dev',
+      },
+      VITE_SHIPPING_SERVICE_URL: {
+        description: 'Shipping Service API URL (deployed)',
         required: false,
-        example: 'http://localhost:8795',
+        example: 'https://shipping-service.tesla-hakim.workers.dev',
       },
       VITE_WEBSOCKET_URL: {
-        description: 'WebSocket server URL for real-time updates',
+        description: 'WebSocket server URL for real-time updates (Inventory Service)',
         required: false,
-        example: 'ws://localhost:8792/ws',
+        example: 'wss://inventory-service.tesla-hakim.workers.dev/ws',
       },
     },
   };
