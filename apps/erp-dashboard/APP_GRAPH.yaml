@@ -22,7 +22,7 @@ framework:
   formLibrary: TanStack Form 1.27.4
   uiLibrary: ShadCN UI (Radix Primitives)
   styling: Tailwind CSS 4.1.18
-  buildTool: Vite 5.4.21
+  buildTool: Vite 7.0.0
   testFramework: Vitest 2.1.9
 docs:
   audit-trail: docs/bounded-contexts/erp-dashboard/AUDIT_TRAIL.md
@@ -641,7 +641,7 @@ testing:
     test:ui: vitest --ui
     test:coverage: vitest --coverage
 build:
-  tool: Vite 5.4.21
+  tool: Vite 7.0.0
   output: dist
   scripts:
     dev: vite
