@@ -103,6 +103,42 @@ Journal entries use `db.batch()` for atomic writes. Header + lines commit togeth
 
 ---
 
+## Current Development Setup (Infancy Phase)
+
+**Project Status:** Early development, no real users yet.
+
+```
+┌─────────────────────────────────────────────────────┐
+│  Frontend: localhost:5173 (pnpm dev)               │
+│      ↓                                              │
+│  Backend: *.tesla-hakim.workers.dev (production)   │
+│      ↓                                              │
+│  Security: IP Whitelist (180.252.172.69)           │
+└─────────────────────────────────────────────────────┘
+```
+
+### Start Development
+```bash
+# Frontend (hot reload)
+cd apps/erp-dashboard
+pnpm dev
+# Opens http://localhost:5173
+
+# Backend (redeploy after changes)
+cd services/accounting-service
+wrangler deploy
+```
+
+### Why No Staging Yet?
+- No real users to protect
+- Only test data in database
+- IP whitelist protects endpoints
+- Simpler = faster iteration
+
+**Add staging when:** Ready for beta users (see `docs/guides/STAGING_DEPLOYMENT_GUIDE.md`)
+
+---
+
 ## Development Workflow
 
 ### TDD (Mandatory)
@@ -179,6 +215,9 @@ pnpm test -- --grep "FeatureName"
 | Frontend/UI | `docs/guides/UI_DESIGN_GUIDELINE.md` |
 | Testing | `docs/testing/DDD_REFACTORING_TESTING_GUIDE.md` |
 | Saga Pattern | `docs/architecture/SAGA_PATTERN_DISTRIBUTED_TRANSACTIONS.md` |
+| Dependency Updates | `docs/guides/DEPENDENCY_MIGRATION_GUIDE.md` |
+| Staging Setup | `docs/guides/STAGING_DEPLOYMENT_GUIDE.md` |
+| IP Whitelist | `docs/bounded-contexts/business-partner/TEMPORARY_IP_WHITELIST.md` |
 
 ### Frontend Form Validation
 ```typescript

@@ -86,17 +86,24 @@ pnpm install
    # Test critical user flows manually
    ```
 
-### Phase 5: Deploy to Staging (REQUIRED for Major Updates)
+### Phase 5: Deploy & Test
 
-Before creating PR, deploy to staging environment:
-
+**Current Phase (Infancy - No Real Users):**
 ```bash
-# Deploy to staging
-cd services/accounting-service && wrangler deploy --env staging
-cd services/product-service && wrangler deploy --env staging
+# Deploy directly to production (IP protected, no real users)
+cd services/accounting-service && wrangler deploy
+cd services/product-service && wrangler deploy
 # ... all affected services
 
+# Test thoroughly - only your IP can access
+```
+
+**Future Phase (Beta - Real Users):**
+```bash
+# Deploy to staging first
+cd services/accounting-service && wrangler deploy --env staging
 # Test on staging for 24-48 hours
+# Then deploy to production
 # See: docs/guides/STAGING_DEPLOYMENT_GUIDE.md
 ```
 
