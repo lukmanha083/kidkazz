@@ -21,7 +21,7 @@ framework:
   stateManagement: TanStack Query 5.90.20
   formLibrary: TanStack Form 1.27.4
   uiLibrary: ShadCN UI (Radix Primitives)
-  styling: Tailwind CSS 4.1.18
+  styling: Tailwind CSS 3.4.19
   buildTool: Vite 5.4.21
   testFramework: Vitest 2.1.9
 docs:
