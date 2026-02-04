@@ -1,4 +1,4 @@
-import { databaseMiddleware, errorMiddleware } from '@/infrastructure/http/middleware';
+import { databaseMiddleware, errorMiddleware, ipWhitelist } from '@/infrastructure/http/middleware';
 import {
   accountBalanceRoutes,
   accountRoutes,
@@ -39,6 +39,7 @@ const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 // Global middleware
 app.use('*', logger());
 app.use('*', cors());
+app.use('*', ipWhitelist()); // TEMPORARY - Remove when auth is implemented
 app.use('*', errorMiddleware);
 app.use('*', databaseMiddleware);
 

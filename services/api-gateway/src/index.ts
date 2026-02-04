@@ -1,6 +1,19 @@
+import type { Context, Next } from 'hono';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
+
+// TEMPORARY IP Whitelist - Remove when auth is implemented
+// See: docs/bounded-contexts/business-partner/TEMPORARY_IP_WHITELIST.md
+const WHITELISTED_IPS = ['180.252.172.69', '127.0.0.1', '::1'];
+const ipWhitelist = () => async (c: Context, next: Next) => {
+  const path = new URL(c.req.url).pathname;
+  if (['/health', '/health/all', '/'].includes(path)) return next();
+  const cfIP = c.req.header('cf-connecting-ip');
+  if (!cfIP) return next(); // Allow internal service-to-service calls
+  if (WHITELISTED_IPS.includes(cfIP)) return next();
+  return c.json({ error: 'Forbidden', ip: cfIP }, 403);
+};
 
 // Type definition for Service Bindings
 type Bindings = {
@@ -24,6 +37,7 @@ app.use(
     allowHeaders: ['Content-Type', 'Authorization'],
   })
 );
+app.use('/*', ipWhitelist()); // TEMPORARY - Remove when auth is implemented
 
 // Health check
 app.get('/health', (c) => {
