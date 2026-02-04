@@ -23,7 +23,7 @@ framework:
   uiLibrary: ShadCN UI (Radix Primitives)
   styling: Tailwind CSS 4.1.18
   buildTool: Vite 5.4.21
-  testFramework: Vitest 2.1.9
+  testFramework: Vitest 4.0.0
 docs:
   audit-trail: docs/bounded-contexts/erp-dashboard/AUDIT_TRAIL.md
   dashboard-structure: docs/bounded-contexts/erp-dashboard/DASHBOARD_STRUCTURE.md
@@ -634,7 +634,7 @@ validation:
     file: src/hooks/useAsyncValidation.ts
     validators: [skuUniqueness, codeUniqueness, barcodeUniqueness]
 testing:
-  framework: Vitest 2.1.9
+  framework: Vitest 4.0.0
   files: [src/components/SystemStatus.test.tsx, src/components/ui/data-table/columns/batch-columns.test.tsx, src/components/ui/data-table/columns/bundle-columns.test.tsx, src/components/ui/data-table/columns/order-columns.test.tsx, src/components/ui/data-table/data-table.test.tsx, src/lib/__tests__/form-schemas.test.ts]
   scripts:
     test: vitest
