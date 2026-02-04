@@ -1101,54 +1101,69 @@ export const accountingApi = {
       accounts: ChartOfAccount[];
     }> => {
       const queryParams = new URLSearchParams(params as any).toString();
-      return apiRequest(
-        `/api/accounting/accounts${queryParams ? `?${queryParams}` : ''}`,
+      // Backend returns { success: true, data: [...] }, transform to { accounts: [...] }
+      const response = await apiRequest<{ success: boolean; data: ChartOfAccount[] }>(
+        `/api/accounts${queryParams ? `?${queryParams}` : ''}`,
         {},
         'accounting'
       );
+      return { accounts: response.data };
     },
 
     getActive: async (): Promise<{ accounts: ChartOfAccount[] }> => {
-      return apiRequest('/api/accounting/accounts/active', {}, 'accounting');
+      const response = await apiRequest<{ success: boolean; data: ChartOfAccount[] }>(
+        '/api/accounts?status=Active',
+        {},
+        'accounting'
+      );
+      return { accounts: response.data };
     },
 
     getById: async (id: string): Promise<{ account: ChartOfAccount }> => {
-      return apiRequest(`/api/accounting/accounts/${id}`, {}, 'accounting');
+      const response = await apiRequest<{ success: boolean; data: ChartOfAccount }>(
+        `/api/accounts/${id}`,
+        {},
+        'accounting'
+      );
+      return { account: response.data };
     },
 
     create: async (data: Partial<ChartOfAccount>): Promise<{ account: ChartOfAccount }> => {
-      return apiRequest(
-        '/api/accounting/accounts',
+      const response = await apiRequest<{ success: boolean; data: ChartOfAccount }>(
+        '/api/accounts',
         {
           method: 'POST',
           body: JSON.stringify(data),
         },
         'accounting'
       );
+      return { account: response.data };
     },
 
     update: async (
       id: string,
       data: Partial<ChartOfAccount>
     ): Promise<{ account: ChartOfAccount }> => {
-      return apiRequest(
-        `/api/accounting/accounts/${id}`,
+      const response = await apiRequest<{ success: boolean; data: ChartOfAccount }>(
+        `/api/accounts/${id}`,
         {
           method: 'PUT',
           body: JSON.stringify(data),
         },
         'accounting'
       );
+      return { account: response.data };
     },
 
     delete: async (id: string): Promise<{ message: string }> => {
-      return apiRequest(
-        `/api/accounting/accounts/${id}`,
+      await apiRequest(
+        `/api/accounts/${id}`,
         {
           method: 'DELETE',
         },
         'accounting'
       );
+      return { message: 'Account deleted successfully' };
     },
   },
 
@@ -1162,14 +1177,14 @@ export const accountingApi = {
     }): Promise<{ journalEntries: JournalEntry[] }> => {
       const queryParams = new URLSearchParams(params as any).toString();
       return apiRequest(
-        `/api/accounting/journal-entries${queryParams ? `?${queryParams}` : ''}`,
+        `/api/journal-entries${queryParams ? `?${queryParams}` : ''}`,
         {},
         'accounting'
       );
     },
 
     getById: async (id: string): Promise<{ journalEntry: JournalEntry; lines: JournalLine[] }> => {
-      return apiRequest(`/api/accounting/journal-entries/${id}`, {}, 'accounting');
+      return apiRequest(`/api/journal-entries/${id}`, {}, 'accounting');
     },
 
     create: async (data: {
@@ -1183,7 +1198,7 @@ export const accountingApi = {
       createdBy: string;
     }): Promise<{ journalEntry: JournalEntry; lines: JournalLine[] }> => {
       return apiRequest(
-        '/api/accounting/journal-entries',
+        '/api/journal-entries',
         {
           method: 'POST',
           body: JSON.stringify(data),
@@ -1194,7 +1209,7 @@ export const accountingApi = {
 
     post: async (id: string, postedBy: string): Promise<{ message: string }> => {
       return apiRequest(
-        `/api/accounting/journal-entries/${id}/post`,
+        `/api/journal-entries/${id}/post`,
         {
           method: 'POST',
           body: JSON.stringify({ postedBy }),
@@ -1205,7 +1220,7 @@ export const accountingApi = {
 
     void: async (id: string, voidedBy: string, reason: string): Promise<{ message: string }> => {
       return apiRequest(
-        `/api/accounting/journal-entries/${id}/void`,
+        `/api/journal-entries/${id}/void`,
         {
           method: 'POST',
           body: JSON.stringify({ voidedBy, reason }),
@@ -1226,7 +1241,7 @@ export const accountingApi = {
   }> => {
     const queryParams = new URLSearchParams(params as any).toString();
     return apiRequest(
-      `/api/accounting/ledger/${accountId}${queryParams ? `?${queryParams}` : ''}`,
+      `/api/ledger/${accountId}${queryParams ? `?${queryParams}` : ''}`,
       {},
       'accounting'
     );
@@ -1236,14 +1251,14 @@ export const accountingApi = {
   reports: {
     incomeStatement: async (from: string, to: string): Promise<IncomeStatement> => {
       return apiRequest(
-        `/api/accounting/reports/income-statement?from=${from}&to=${to}`,
+        `/api/reports/income-statement?from=${from}&to=${to}`,
         {},
         'accounting'
       );
     },
 
     balanceSheet: async (asOf: string): Promise<BalanceSheet> => {
-      return apiRequest(`/api/accounting/reports/balance-sheet?asOf=${asOf}`, {}, 'accounting');
+      return apiRequest(`/api/reports/balance-sheet?asOf=${asOf}`, {}, 'accounting');
     },
   },
 };

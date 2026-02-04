@@ -59,23 +59,23 @@ app.get('/health', (c) => {
 });
 
 // API routes
-app.route('/api/v1/accounts', accountRoutes);
-app.route('/api/v1/journal-entries', journalEntryRoutes);
-app.route('/api/v1/asset-categories', assetCategoryRoutes);
-app.route('/api/v1/assets', assetRoutes);
-app.route('/api/v1/depreciation', depreciationRoutes);
-app.route('/api/v1/maintenance', maintenanceRoutes);
-app.route('/api/v1/movements', movementRoutes);
-app.route('/api/v1/fiscal-periods', fiscalPeriodRoutes);
-app.route('/api/v1/reports', reportsRoutes);
-app.route('/api/v1/bank-accounts', bankAccountRoutes);
-app.route('/api/v1/reconciliations', reconciliationRoutes);
-app.route('/api/v1/events', eventRoutes);
-app.route('/api/v1/currencies', currencyRoutes);
-app.route('/api/v1/budgets', budgetRoutes);
-app.route('/api/v1/audit', auditRoutes);
-app.route('/api/v1/account-balances', accountBalanceRoutes);
-app.route('/api/v1/test-utilities', testUtilitiesRoutes);
+app.route('/api/accounts', accountRoutes);
+app.route('/api/journal-entries', journalEntryRoutes);
+app.route('/api/asset-categories', assetCategoryRoutes);
+app.route('/api/assets', assetRoutes);
+app.route('/api/depreciation', depreciationRoutes);
+app.route('/api/maintenance', maintenanceRoutes);
+app.route('/api/movements', movementRoutes);
+app.route('/api/fiscal-periods', fiscalPeriodRoutes);
+app.route('/api/reports', reportsRoutes);
+app.route('/api/bank-accounts', bankAccountRoutes);
+app.route('/api/reconciliations', reconciliationRoutes);
+app.route('/api/events', eventRoutes);
+app.route('/api/currencies', currencyRoutes);
+app.route('/api/budgets', budgetRoutes);
+app.route('/api/audit', auditRoutes);
+app.route('/api/account-balances', accountBalanceRoutes);
+app.route('/api/test-utilities', testUtilitiesRoutes);
 
 // Root endpoint
 app.get('/', (c) => {
@@ -85,22 +85,22 @@ app.get('/', (c) => {
     description: 'Core accounting service for KidKazz ERP',
     endpoints: {
       health: '/health',
-      accounts: '/api/v1/accounts',
-      journalEntries: '/api/v1/journal-entries',
-      assetCategories: '/api/v1/asset-categories',
-      assets: '/api/v1/assets',
-      depreciation: '/api/v1/depreciation',
-      maintenance: '/api/v1/maintenance',
-      movements: '/api/v1/movements',
-      fiscalPeriods: '/api/v1/fiscal-periods',
-      reports: '/api/v1/reports',
-      bankAccounts: '/api/v1/bank-accounts',
-      reconciliations: '/api/v1/reconciliations',
-      events: '/api/v1/events',
-      currencies: '/api/v1/currencies',
-      budgets: '/api/v1/budgets',
-      audit: '/api/v1/audit',
-      accountBalances: '/api/v1/account-balances',
+      accounts: '/api/accounts',
+      journalEntries: '/api/journal-entries',
+      assetCategories: '/api/asset-categories',
+      assets: '/api/assets',
+      depreciation: '/api/depreciation',
+      maintenance: '/api/maintenance',
+      movements: '/api/movements',
+      fiscalPeriods: '/api/fiscal-periods',
+      reports: '/api/reports',
+      bankAccounts: '/api/bank-accounts',
+      reconciliations: '/api/reconciliations',
+      events: '/api/events',
+      currencies: '/api/currencies',
+      budgets: '/api/budgets',
+      audit: '/api/audit',
+      accountBalances: '/api/account-balances',
     },
   });
 });
