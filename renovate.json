@@ -105,6 +105,11 @@
       "description": "Lock Biome at v1 (v2 has config changes)",
       "matchPackageNames": ["@biomejs/biome"],
       "allowedVersions": "<2.0.0"
+    },
+    {
+      "description": "Lock Tailwind at v3 (v4 requires CSS-based config migration)",
+      "matchPackageNames": ["tailwindcss"],
+      "allowedVersions": "<4.0.0"
     }
   ],
   "ignorePaths": ["**/node_modules/**"]
