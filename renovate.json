@@ -4,6 +4,7 @@
     "config:recommended",
     ":dependencyDashboard"
   ],
+  "configMigration": true,
   "labels": ["dependencies"],
 
   "packageRules": [
