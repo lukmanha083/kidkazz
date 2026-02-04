@@ -26,6 +26,12 @@ export const accountStatusOptions = [
   { label: 'Archived', value: 'Archived' },
 ];
 
+export const accountTagOptions = [
+  { label: 'General', value: 'general' },
+  { label: 'Trading', value: 'trading' },
+  { label: 'Restaurant', value: 'restaurant' },
+];
+
 /**
  * Get account type badge styling
  */
@@ -143,6 +149,38 @@ export function getAccountColumns(options: AccountColumnOptions = {}): ColumnDef
       },
       filterFn: (row, id, value) => {
         return value.includes(row.getValue(id));
+      },
+    },
+    {
+      accessorKey: 'tags',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Tags" className="hidden md:table-cell" />
+      ),
+      cell: ({ row }) => {
+        const tags = row.original.tags || [];
+        if (tags.length === 0) return <span className="hidden md:inline text-muted-foreground">-</span>;
+        return (
+          <div className="hidden md:flex flex-wrap gap-1">
+            {tags.slice(0, 2).map((tag) => (
+              <Badge
+                key={tag}
+                variant="outline"
+                className="text-xs px-1.5 py-0"
+              >
+                {tag}
+              </Badge>
+            ))}
+            {tags.length > 2 && (
+              <Badge variant="outline" className="text-xs px-1.5 py-0">
+                +{tags.length - 2}
+              </Badge>
+            )}
+          </div>
+        );
+      },
+      filterFn: (row, _id, value) => {
+        const tags = row.original.tags || [];
+        return tags.some((tag: string) => value.includes(tag));
       },
     },
     {

@@ -1038,6 +1038,7 @@ export interface ChartOfAccount {
   currency?: string;
   normalBalance: 'Debit' | 'Credit';
   financialStatementType?: 'BALANCE_SHEET' | 'INCOME_STATEMENT';
+  tags: string[]; // Industry-specific tags (e.g., 'trading', 'restaurant', 'general')
   createdAt: Date;
   updatedAt: Date;
 }
