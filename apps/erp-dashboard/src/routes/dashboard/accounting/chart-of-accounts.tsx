@@ -613,12 +613,15 @@ function ChartOfAccountsPage() {
               {(field) => (
                 <div className="space-y-2">
                   <Label htmlFor={field.name}>Parent Account</Label>
-                  <Select value={field.state.value} onValueChange={(v) => field.handleChange(v)}>
+                  <Select
+                    value={field.state.value || '__none__'}
+                    onValueChange={(v) => field.handleChange(v === '__none__' ? null : v)}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="None (Top level)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None (Top level)</SelectItem>
+                      <SelectItem value="__none__">None (Top level)</SelectItem>
                       {getParentAccountOptions().map((account) => (
                         <SelectItem key={account.id} value={account.id}>
                           {account.code} - {account.name}
