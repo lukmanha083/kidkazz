@@ -21,7 +21,6 @@ describe('E2E: Asset Maintenance', () => {
 
   const TODAY = new Date().toISOString().split('T')[0];
   const NEXT_MONTH = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-  const LAST_MONTH = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
   beforeAll(async () => {
     apiClient = new AccountingApiClient();

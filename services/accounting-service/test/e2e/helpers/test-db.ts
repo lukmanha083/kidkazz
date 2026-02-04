@@ -29,7 +29,8 @@ export function executeD1(sql: string): D1Result {
   const tempFile = join(tmpdir(), `d1-query-${randomBytes(8).toString('hex')}.sql`);
 
   try {
-    writeFileSync(tempFile, sql, 'utf-8');
+    // Use mode 0o600 (owner read/write only) for security
+    writeFileSync(tempFile, sql, { encoding: 'utf-8', mode: 0o600 });
 
     const result = execSync(
       `npx wrangler d1 execute ${DATABASE_NAME} --remote --file="${tempFile}"`,

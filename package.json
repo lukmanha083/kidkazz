@@ -55,6 +55,7 @@
   },
   "pnpm": {
     "overrides": {
+      "@isaacs/brace-expansion": "^5.0.1",
       "glob@<8": "^10.4.0",
       "esbuild": "^0.27.0",
       "test-exclude": "^7.0.1",
