@@ -251,10 +251,10 @@ export interface FileRoutesByFullPath {
   '/dashboard/products/category': typeof DashboardProductsCategoryRoute
   '/dashboard/products/uom': typeof DashboardProductsUomRoute
   '/dashboard/products/variant': typeof DashboardProductsVariantRoute
-  '/dashboard/accounting': typeof DashboardAccountingIndexRoute
-  '/dashboard/business-partner': typeof DashboardBusinessPartnerIndexRoute
-  '/dashboard/inventory': typeof DashboardInventoryIndexRoute
-  '/dashboard/products': typeof DashboardProductsIndexRoute
+  '/dashboard/accounting/': typeof DashboardAccountingIndexRoute
+  '/dashboard/business-partner/': typeof DashboardBusinessPartnerIndexRoute
+  '/dashboard/inventory/': typeof DashboardInventoryIndexRoute
+  '/dashboard/products/': typeof DashboardProductsIndexRoute
   '/dashboard/accounting/reports/sales-by-person': typeof DashboardAccountingReportsSalesByPersonRoute
   '/dashboard/accounting/reports/sales-by-warehouse': typeof DashboardAccountingReportsSalesByWarehouseRoute
 }
@@ -355,10 +355,10 @@ export interface FileRouteTypes {
     | '/dashboard/products/category'
     | '/dashboard/products/uom'
     | '/dashboard/products/variant'
-    | '/dashboard/accounting'
-    | '/dashboard/business-partner'
-    | '/dashboard/inventory'
-    | '/dashboard/products'
+    | '/dashboard/accounting/'
+    | '/dashboard/business-partner/'
+    | '/dashboard/inventory/'
+    | '/dashboard/products/'
     | '/dashboard/accounting/reports/sales-by-person'
     | '/dashboard/accounting/reports/sales-by-warehouse'
   fileRoutesByTo: FileRoutesByTo
@@ -482,28 +482,28 @@ declare module '@tanstack/react-router' {
     '/dashboard/products/': {
       id: '/dashboard/products/'
       path: '/products'
-      fullPath: '/dashboard/products'
+      fullPath: '/dashboard/products/'
       preLoaderRoute: typeof DashboardProductsIndexRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/inventory/': {
       id: '/dashboard/inventory/'
       path: '/inventory'
-      fullPath: '/dashboard/inventory'
+      fullPath: '/dashboard/inventory/'
       preLoaderRoute: typeof DashboardInventoryIndexRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/business-partner/': {
       id: '/dashboard/business-partner/'
       path: '/business-partner'
-      fullPath: '/dashboard/business-partner'
+      fullPath: '/dashboard/business-partner/'
       preLoaderRoute: typeof DashboardBusinessPartnerIndexRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/accounting/': {
       id: '/dashboard/accounting/'
       path: '/accounting'
-      fullPath: '/dashboard/accounting'
+      fullPath: '/dashboard/accounting/'
       preLoaderRoute: typeof DashboardAccountingIndexRouteImport
       parentRoute: typeof DashboardRoute
     }
