@@ -48,6 +48,7 @@ export interface ListAccountsQuery {
   isDetailAccount?: boolean;
   isSystemAccount?: boolean;
   search?: string;
+  tag?: string;
 }
 
 /**
@@ -76,6 +77,9 @@ export class ListAccountsHandler {
     }
     if (query.search !== undefined) {
       filter.search = query.search;
+    }
+    if (query.tag !== undefined) {
+      filter.tag = query.tag;
     }
 
     return this.accountRepository.findAll(Object.keys(filter).length > 0 ? filter : undefined);

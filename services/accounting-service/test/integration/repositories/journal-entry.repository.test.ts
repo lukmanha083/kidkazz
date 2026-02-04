@@ -22,25 +22,33 @@ describe('DrizzleJournalEntryRepository', () => {
     sqlite = new Database(':memory:');
     db = drizzle(sqlite, { schema });
 
-    // Run migrations manually using raw SQL
-    const migrationPath = join(process.cwd(), 'migrations', '0000_initial_accounting_schema.sql');
-    const migrationSql = readFileSync(migrationPath, 'utf-8');
+    // Run all migrations manually using raw SQL
+    const migrationFiles = [
+      '0000_initial_accounting_schema.sql',
+      '0009_add_tags_to_accounts.sql',
+      '0010_add_store_and_business_unit_segments.sql',
+    ];
 
-    // Split and execute DDL statements only
-    const statements = migrationSql
-      .split(';')
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0 && !s.startsWith('INSERT INTO chart_of_accounts'));
+    for (const migrationFile of migrationFiles) {
+      const migrationPath = join(process.cwd(), 'migrations', migrationFile);
+      const migrationSql = readFileSync(migrationPath, 'utf-8');
 
-    for (const statement of statements) {
-      try {
-        sqlite.exec(statement);
-      } catch (error) {
-        // Only ignore "already exists" errors, rethrow others
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        if (!errorMessage.includes('already exists')) {
-          console.error('Migration error:', errorMessage);
-          throw error;
+      // Split and execute DDL statements only
+      const statements = migrationSql
+        .split(';')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0 && !s.startsWith('INSERT INTO chart_of_accounts'));
+
+      for (const statement of statements) {
+        try {
+          sqlite.exec(statement);
+        } catch (error) {
+          // Only ignore "already exists" errors, rethrow others
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          if (!errorMessage.includes('already exists')) {
+            console.error('Migration error:', errorMessage);
+            throw error;
+          }
         }
       }
     }

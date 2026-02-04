@@ -47,6 +47,7 @@ accountRoutes.get('/', zValidator('query', listAccountsQuerySchema), async (c) =
     isDetailAccount: query.isDetailAccount,
     isSystemAccount: query.isSystemAccount,
     search: query.search,
+    tag: query.tag,
   });
 
   return c.json({

@@ -17,6 +17,12 @@ export enum AccountStatus {
 }
 
 /**
+ * Account tags for industry-specific categorization
+ * Examples: 'general', 'restaurant', 'retail', 'wholesale', 'f&b', 'inventory'
+ */
+export type AccountTag = string;
+
+/**
  * Account creation properties
  */
 export interface AccountProps {
@@ -33,6 +39,7 @@ export interface AccountProps {
   level?: number;
   isDetailAccount: boolean;
   isSystemAccount: boolean;
+  tags?: AccountTag[];
   status?: AccountStatus;
   createdAt?: Date;
   updatedAt?: Date;
@@ -58,6 +65,7 @@ export class Account {
   private _level: number;
   private _isDetailAccount: boolean;
   private _isSystemAccount: boolean;
+  private _tags: AccountTag[];
   private _status: AccountStatus;
   private _hasTransactions: boolean;
   private _createdAt: Date;
@@ -80,6 +88,7 @@ export class Account {
     this._level = props.level ?? 0;
     this._isDetailAccount = props.isDetailAccount;
     this._isSystemAccount = props.isSystemAccount;
+    this._tags = props.tags ?? [];
     this._status = props.status ?? AccountStatus.ACTIVE;
     this._hasTransactions = false;
     this._createdAt = props.createdAt ?? new Date();
@@ -153,6 +162,9 @@ export class Account {
   }
   get isSystemAccount(): boolean {
     return this._isSystemAccount;
+  }
+  get tags(): AccountTag[] {
+    return [...this._tags];
   }
   get status(): AccountStatus {
     return this._status;
@@ -275,6 +287,44 @@ export class Account {
   }
 
   /**
+   * Add a tag to the account
+   */
+  addTag(tag: AccountTag): void {
+    const normalizedTag = tag.toLowerCase().trim();
+    if (!this._tags.includes(normalizedTag)) {
+      this._tags.push(normalizedTag);
+      this._updatedAt = new Date();
+    }
+  }
+
+  /**
+   * Remove a tag from the account
+   */
+  removeTag(tag: AccountTag): void {
+    const normalizedTag = tag.toLowerCase().trim();
+    const index = this._tags.indexOf(normalizedTag);
+    if (index > -1) {
+      this._tags.splice(index, 1);
+      this._updatedAt = new Date();
+    }
+  }
+
+  /**
+   * Check if account has a specific tag
+   */
+  hasTag(tag: AccountTag): boolean {
+    return this._tags.includes(tag.toLowerCase().trim());
+  }
+
+  /**
+   * Set all tags (replaces existing)
+   */
+  setTags(tags: AccountTag[]): void {
+    this._tags = tags.map((t) => t.toLowerCase().trim());
+    this._updatedAt = new Date();
+  }
+
+  /**
    * Serialize to plain object
    */
   toJSON(): Record<string, unknown> {
@@ -292,6 +342,7 @@ export class Account {
       level: this._level,
       isDetailAccount: this._isDetailAccount,
       isSystemAccount: this._isSystemAccount,
+      tags: this._tags,
       status: this._status,
       createdAt: this._createdAt.toISOString(),
       updatedAt: this._updatedAt.toISOString(),

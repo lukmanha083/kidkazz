@@ -18,21 +18,29 @@ describe('DrizzleAccountRepository', () => {
     sqlite = new Database(':memory:');
     db = drizzle(sqlite, { schema });
 
-    // Run migrations manually using raw SQL
-    const migrationPath = join(process.cwd(), 'migrations', '0000_initial_accounting_schema.sql');
-    const migrationSql = readFileSync(migrationPath, 'utf-8');
+    // Run all migrations manually using raw SQL
+    const migrationFiles = [
+      '0000_initial_accounting_schema.sql',
+      '0009_add_tags_to_accounts.sql',
+      '0010_add_store_and_business_unit_segments.sql',
+    ];
 
-    // Split by semicolon and execute each statement (skip empty statements and INSERTs for test setup)
-    const statements = migrationSql
-      .split(';')
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0 && !s.startsWith('INSERT INTO chart_of_accounts'));
+    for (const migrationFile of migrationFiles) {
+      const migrationPath = join(process.cwd(), 'migrations', migrationFile);
+      const migrationSql = readFileSync(migrationPath, 'utf-8');
 
-    for (const statement of statements) {
-      try {
-        sqlite.exec(statement);
-      } catch {
-        // Ignore errors for statements that might fail (like duplicate index creation)
+      // Split by semicolon and execute each statement (skip empty statements and INSERTs for test setup)
+      const statements = migrationSql
+        .split(';')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0 && !s.startsWith('INSERT INTO chart_of_accounts'));
+
+      for (const statement of statements) {
+        try {
+          sqlite.exec(statement);
+        } catch {
+          // Ignore errors for statements that might fail (like duplicate index creation)
+        }
       }
     }
 

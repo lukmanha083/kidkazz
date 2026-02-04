@@ -18,6 +18,7 @@ export interface CreateAccountCommand {
   level?: number;
   isDetailAccount: boolean;
   isSystemAccount: boolean;
+  tags?: string[];
 }
 
 /**
@@ -33,6 +34,7 @@ export interface CreateAccountResult {
   accountCategory?: AccountCategory;
   normalBalance: 'Debit' | 'Credit';
   parentAccountId?: string;
+  tags: string[];
 }
 
 /**
@@ -70,6 +72,7 @@ export class CreateAccountHandler {
       level: command.level,
       isDetailAccount: command.isDetailAccount,
       isSystemAccount: command.isSystemAccount,
+      tags: command.tags,
     });
 
     await this.accountRepository.save(account);
@@ -84,6 +87,7 @@ export class CreateAccountHandler {
       accountCategory: account.accountCategory,
       normalBalance: account.normalBalance,
       parentAccountId: account.parentAccountId || undefined,
+      tags: account.tags,
     };
   }
 }
@@ -97,6 +101,7 @@ export interface UpdateAccountCommand {
   name?: string;
   nameEn?: string;
   description?: string;
+  tags?: string[];
 }
 
 /**
@@ -108,6 +113,7 @@ export interface UpdateAccountResult {
   name: string;
   nameEn?: string;
   description?: string;
+  tags: string[];
 }
 
 /**
@@ -150,6 +156,11 @@ export class UpdateAccountHandler {
       account.updateDescription(command.description);
     }
 
+    // Update tags if provided
+    if (command.tags !== undefined) {
+      account.setTags(command.tags);
+    }
+
     await this.accountRepository.save(account);
 
     return {
@@ -158,6 +169,7 @@ export class UpdateAccountHandler {
       name: account.name,
       nameEn: account.nameEn,
       description: account.description,
+      tags: account.tags,
     };
   }
 }

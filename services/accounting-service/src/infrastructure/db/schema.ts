@@ -43,6 +43,9 @@ export const chartOfAccounts = sqliteTable(
     status: text('status', { enum: ['Active', 'Inactive', 'Archived'] })
       .notNull()
       .default('Active'),
+    // Tags for industry-specific categorization (stored as JSON array)
+    // Examples: ['general'], ['restaurant', 'inventory'], ['retail']
+    tags: text('tags').notNull().default('[]'),
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at').notNull(),
     createdBy: text('created_by'),
@@ -56,6 +59,7 @@ export const chartOfAccounts = sqliteTable(
     statusIdx: index('idx_coa_status').on(table.status),
     levelIdx: index('idx_coa_level').on(table.level),
     financialStatementIdx: index('idx_coa_financial_statement').on(table.financialStatementType),
+    tagsIdx: index('idx_coa_tags').on(table.tags),
   })
 );
 
@@ -138,6 +142,11 @@ export const journalLines = sqliteTable(
     customerId: text('customer_id'),
     vendorId: text('vendor_id'),
     productId: text('product_id'),
+    // Store and Business Unit segmentation
+    storeId: text('store_id'),
+    businessUnit: text('business_unit', {
+      enum: ['Trading', 'Restaurant'],
+    }),
   },
   (table) => ({
     journalEntryIdx: index('idx_jl_journal_entry').on(table.journalEntryId),
@@ -148,6 +157,9 @@ export const journalLines = sqliteTable(
     salesChannelIdx: index('idx_jl_sales_channel').on(table.salesChannel),
     customerIdx: index('idx_jl_customer').on(table.customerId),
     vendorIdx: index('idx_jl_vendor').on(table.vendorId),
+    storeIdx: index('idx_jl_store').on(table.storeId),
+    businessUnitIdx: index('idx_jl_business_unit').on(table.businessUnit),
+    businessUnitStoreIdx: index('idx_jl_bu_store').on(table.businessUnit, table.storeId),
     // Unique constraint on journal_entry_id + line_sequence
     entryLineSeqIdx: uniqueIndex('idx_jl_entry_line_seq').on(
       table.journalEntryId,

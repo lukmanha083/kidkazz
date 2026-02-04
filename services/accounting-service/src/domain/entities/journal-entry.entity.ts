@@ -24,6 +24,14 @@ export enum JournalEntryType {
 /**
  * Journal Line input (for creation)
  */
+/**
+ * Business Unit type for multi-business segmentation
+ */
+export type BusinessUnit = 'Trading' | 'Restaurant';
+
+/**
+ * Journal Line input (for creation)
+ */
 export interface JournalLineInput {
   accountId: string;
   direction: 'Debit' | 'Credit';
@@ -36,6 +44,9 @@ export interface JournalLineInput {
   customerId?: string;
   vendorId?: string;
   productId?: string;
+  // Store and Business Unit segmentation
+  storeId?: string;
+  businessUnit?: BusinessUnit;
 }
 
 /**

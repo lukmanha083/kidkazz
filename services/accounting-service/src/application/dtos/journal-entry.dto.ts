@@ -15,6 +15,8 @@ const journalLineSchema = z.object({
   customerId: z.string().optional(),
   vendorId: z.string().optional(),
   productId: z.string().optional(),
+  storeId: z.string().optional(),
+  businessUnit: z.enum(['Trading', 'Restaurant']).optional(),
 });
 
 /**
@@ -114,6 +116,8 @@ export interface JournalLineResponse {
   customerId?: string;
   vendorId?: string;
   productId?: string;
+  storeId?: string;
+  businessUnit?: 'Trading' | 'Restaurant';
 }
 
 /**
@@ -198,6 +202,8 @@ export function toJournalEntryResponse(entry: {
       customerId: line.customerId,
       vendorId: line.vendorId,
       productId: line.productId,
+      storeId: line.storeId,
+      businessUnit: line.businessUnit,
     })),
     totalDebits: entry.totalDebits,
     totalCredits: entry.totalCredits,

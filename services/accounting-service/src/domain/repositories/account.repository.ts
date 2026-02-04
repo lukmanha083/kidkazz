@@ -11,6 +11,7 @@ export interface AccountFilter {
   isDetailAccount?: boolean;
   isSystemAccount?: boolean;
   search?: string;
+  tag?: string;
 }
 
 /**
