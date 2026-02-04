@@ -5,10 +5,57 @@
     ":dependencyDashboard"
   ],
   "labels": ["dependencies"],
+
   "packageRules": [
     {
+      "description": "Auto-merge patch updates (bug fixes only)",
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "automergeType": "pr",
+      "automergeStrategy": "squash"
+    },
+    {
+      "description": "Group minor updates - review before merge",
+      "matchUpdateTypes": ["minor"],
+      "automerge": false,
+      "groupName": "minor updates"
+    },
+    {
+      "description": "Major updates - separate PRs, manual review required",
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "labels": ["dependencies", "breaking-change"],
+      "prPriority": -1
+    },
+    {
+      "description": "Lock Zod below v4 (breaking changes)",
       "matchPackageNames": ["zod"],
       "allowedVersions": "<4.0.0"
+    },
+    {
+      "description": "Lock React at v18 until we're ready for v19",
+      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"],
+      "allowedVersions": "<19.0.0"
+    },
+    {
+      "description": "Lock Vite at v5 (v6+ has breaking changes)",
+      "matchPackageNames": ["vite"],
+      "allowedVersions": "<6.0.0"
+    },
+    {
+      "description": "Lock Vitest at v2 (v3+ requires Vite 6)",
+      "matchPackageNames": ["vitest", "@vitest/ui", "@vitest/coverage-v8"],
+      "allowedVersions": "<3.0.0"
+    },
+    {
+      "description": "Lock Biome at v1 (v2 has config changes)",
+      "matchPackageNames": ["@biomejs/biome"],
+      "allowedVersions": "<2.0.0"
     }
-  ]
+  ],
+
+  "schedule": ["after 9am and before 5pm on weekdays"],
+  "timezone": "Asia/Jakarta",
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2
 }
