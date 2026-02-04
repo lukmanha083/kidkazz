@@ -1008,20 +1008,36 @@ export const uomApi = {
 // ACCOUNTING API
 // ============================================
 
+export type AccountCategory =
+  | 'CURRENT_ASSET'
+  | 'FIXED_ASSET'
+  | 'OTHER_NON_CURRENT_ASSET'
+  | 'CURRENT_LIABILITY'
+  | 'LONG_TERM_LIABILITY'
+  | 'EQUITY'
+  | 'REVENUE'
+  | 'COGS'
+  | 'OPERATING_EXPENSE'
+  | 'OTHER_INCOME_EXPENSE'
+  | 'TAX';
+
 export interface ChartOfAccount {
   id: string;
   code: string;
   name: string;
+  nameEn?: string;
   accountType: 'Asset' | 'Liability' | 'Equity' | 'Revenue' | 'COGS' | 'Expense';
-  accountSubType?: string;
-  parentAccountId?: string;
+  accountCategory?: AccountCategory; // Auto-derived from code (PSAK-compliant)
+  parentAccountId?: string | null;
   description?: string;
   taxType?: string;
   isSystemAccount: boolean;
   isDetailAccount: boolean;
+  level?: number;
   status: 'Active' | 'Inactive' | 'Archived';
-  currency: string;
+  currency?: string;
   normalBalance: 'Debit' | 'Credit';
+  financialStatementType?: 'BALANCE_SHEET' | 'INCOME_STATEMENT';
   createdAt: Date;
   updatedAt: Date;
 }

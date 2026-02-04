@@ -54,6 +54,45 @@ import { Calculator, Edit, Loader2, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
+/**
+ * Get account category from code (PSAK-compliant)
+ * Mirrors backend logic in AccountCode value object
+ */
+function getAccountCategoryFromCode(code: string): string | null {
+  if (!/^\d{4}$/.test(code)) return null;
+
+  const codeNum = Number.parseInt(code, 10);
+
+  // Assets (1000-1999)
+  if (codeNum >= 1000 && codeNum <= 1399) return 'Current Asset';
+  if (codeNum >= 1400 && codeNum <= 1499) return 'Fixed Asset';
+  if (codeNum >= 1500 && codeNum <= 1999) return 'Other Non-Current Asset';
+
+  // Liabilities (2000-2999)
+  if (codeNum >= 2000 && codeNum <= 2399) return 'Current Liability';
+  if (codeNum >= 2400 && codeNum <= 2999) return 'Long-Term Liability';
+
+  // Equity (3000-3999)
+  if (codeNum >= 3000 && codeNum <= 3999) return 'Equity';
+
+  // Revenue (4000-4299)
+  if (codeNum >= 4000 && codeNum <= 4299) return 'Revenue';
+
+  // COGS (5000-5399)
+  if (codeNum >= 5000 && codeNum <= 5399) return 'Cost of Goods Sold';
+
+  // Operating Expenses (6000-6999)
+  if (codeNum >= 6000 && codeNum <= 6999) return 'Operating Expense';
+
+  // Other Income/Expense (7000-7199)
+  if (codeNum >= 7000 && codeNum <= 7199) return 'Other Income/Expense';
+
+  // Tax (8000-8999)
+  if (codeNum >= 8000 && codeNum <= 8999) return 'Tax';
+
+  return 'Other';
+}
+
 export const Route = createFileRoute('/dashboard/accounting/chart-of-accounts')({
   component: ChartOfAccountsPage,
 });
@@ -101,7 +140,6 @@ function ChartOfAccountsPage() {
       code: '',
       name: '',
       accountType: 'Asset' as AccountFormData['accountType'],
-      accountSubType: '',
       parentAccountId: '',
       description: '',
       taxType: '',
@@ -115,7 +153,6 @@ function ChartOfAccountsPage() {
     onSubmit: async ({ value }) => {
       const submitData = {
         ...value,
-        accountSubType: value.accountSubType || undefined,
         parentAccountId: value.parentAccountId || undefined,
         description: value.description || undefined,
         taxType: value.taxType || undefined,
@@ -162,7 +199,6 @@ function ChartOfAccountsPage() {
     form.setFieldValue('code', account.code);
     form.setFieldValue('name', account.name);
     form.setFieldValue('accountType', account.accountType);
-    form.setFieldValue('accountSubType', account.accountSubType || '');
     form.setFieldValue('parentAccountId', account.parentAccountId || '');
     form.setFieldValue('description', account.description || '');
     form.setFieldValue('taxType', account.taxType || '');
@@ -391,12 +427,23 @@ function ChartOfAccountsPage() {
                 )}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-muted-foreground">Sub-Type</p>
-                    <p className="font-medium">{selectedAccount.accountSubType || '-'}</p>
+                    <p className="text-sm text-muted-foreground">Category</p>
+                    <p className="font-medium">
+                      {selectedAccount.accountCategory
+                        ?.replace(/_/g, ' ')
+                        .toLowerCase()
+                        .replace(/\b\w/g, (c) => c.toUpperCase()) || '-'}
+                    </p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Currency</p>
-                    <p className="font-medium">{selectedAccount.currency}</p>
+                    <p className="text-sm text-muted-foreground">Statement</p>
+                    <p className="font-medium">
+                      {selectedAccount.financialStatementType === 'BALANCE_SHEET'
+                        ? 'Balance Sheet'
+                        : selectedAccount.financialStatementType === 'INCOME_STATEMENT'
+                          ? 'Income Statement'
+                          : '-'}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -593,20 +640,22 @@ function ChartOfAccountsPage() {
                 )}
               </form.Field>
 
-              <form.Field name="accountSubType">
-                {(field) => (
-                  <div className="space-y-2">
-                    <Label htmlFor={field.name}>Sub-Type</Label>
-                    <Input
-                      id={field.name}
-                      placeholder="Current Asset"
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      onBlur={field.handleBlur}
-                    />
-                  </div>
-                )}
-              </form.Field>
+              <form.Subscribe selector={(state) => state.values.code}>
+                {(code) => {
+                  const category = getAccountCategoryFromCode(code);
+                  return (
+                    <div className="space-y-2">
+                      <Label>Category (Auto)</Label>
+                      <div className="px-3 py-2 bg-muted rounded-md text-sm">
+                        {category || 'Enter a valid 4-digit code'}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Auto-derived from account code (PSAK-compliant)
+                      </p>
+                    </div>
+                  );
+                }}
+              </form.Subscribe>
             </div>
 
             <form.Field name="parentAccountId">

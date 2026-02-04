@@ -663,14 +663,15 @@ export type EmployeeFormData = z.infer<typeof employeeFormSchema>;
 export const accountFormSchema = z.object({
   code: z
     .string()
-    .min(1, 'Account code is required')
-    .max(20, 'Code must be less than 20 characters'),
+    .min(4, 'Account code must be 4 digits')
+    .max(4, 'Account code must be 4 digits')
+    .regex(/^\d{4}$/, 'Account code must be exactly 4 digits'),
   name: z
     .string()
     .min(1, 'Account name is required')
     .max(100, 'Name must be less than 100 characters'),
   accountType: z.enum(['Asset', 'Liability', 'Equity', 'Revenue', 'COGS', 'Expense']),
-  accountSubType: z.string().optional(),
+  // Note: accountCategory is auto-derived from code by backend (PSAK-compliant)
   parentAccountId: z.string().optional().nullable(),
   description: z.string().optional(),
   taxType: z.string().optional(),
