@@ -2,34 +2,87 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended",
-    ":dependencyDashboard"
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":timezone(Asia/Jakarta)",
+    "schedule:weekly"
   ],
-  "configMigration": true,
   "labels": ["dependencies"],
-
+  "commitMessagePrefix": "chore(deps):",
+  "configMigration": true,
+  "pnpm": {
+    "enabled": true
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 9am on monday"]
+  },
   "packageRules": [
     {
-      "description": "Auto-merge patch updates (bug fixes only)",
-      "matchUpdateTypes": ["patch"],
+      "description": "Auto-merge minor and patch updates",
+      "matchUpdateTypes": ["minor", "patch"],
       "automerge": true,
       "automergeType": "pr",
-      "automergeStrategy": "squash"
+      "platformAutomerge": true
     },
     {
-      "description": "Group minor updates - review before merge",
-      "matchUpdateTypes": ["minor"],
-      "automerge": false,
-      "groupName": "minor updates"
-    },
-    {
-      "description": "Major updates - separate PRs, manual review required",
+      "description": "Do not automerge major updates",
       "matchUpdateTypes": ["major"],
       "automerge": false,
-      "labels": ["dependencies", "breaking-change"],
-      "prPriority": -1
+      "labels": ["dependencies", "breaking-change"]
     },
     {
-      "description": "Lock Zod below v4 (breaking changes)",
+      "description": "Group Cloudflare packages",
+      "groupName": "cloudflare",
+      "matchPackagePatterns": ["^wrangler", "^@cloudflare/", "^miniflare"]
+    },
+    {
+      "description": "Group Hono packages",
+      "groupName": "hono",
+      "matchPackagePatterns": ["^hono", "^@hono/"]
+    },
+    {
+      "description": "Group TanStack packages",
+      "groupName": "tanstack",
+      "matchPackagePatterns": ["^@tanstack/"]
+    },
+    {
+      "description": "Group Radix UI packages",
+      "groupName": "radix-ui",
+      "matchPackagePatterns": ["^@radix-ui/"]
+    },
+    {
+      "description": "Group Drizzle packages",
+      "groupName": "drizzle",
+      "matchPackagePatterns": ["^drizzle-"]
+    },
+    {
+      "description": "Group React packages",
+      "groupName": "react",
+      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"]
+    },
+    {
+      "description": "Group Vitest packages",
+      "groupName": "vitest",
+      "matchPackagePatterns": ["^vitest", "^@vitest/"]
+    },
+    {
+      "description": "Group Biome packages",
+      "groupName": "biome",
+      "matchPackagePatterns": ["^@biomejs/"]
+    },
+    {
+      "description": "Group Tailwind packages",
+      "groupName": "tailwind",
+      "matchPackagePatterns": ["^tailwindcss", "^@tailwindcss/", "^autoprefixer", "^postcss"]
+    },
+    {
+      "description": "Group GitHub Actions",
+      "groupName": "github-actions",
+      "matchManagers": ["github-actions"]
+    },
+    {
+      "description": "Pin zod to v3.x (v4 has breaking changes)",
       "matchPackageNames": ["zod"],
       "allowedVersions": "<4.0.0"
     },
@@ -54,9 +107,5 @@
       "allowedVersions": "<2.0.0"
     }
   ],
-
-  "schedule": ["after 9am and before 5pm on weekdays"],
-  "timezone": "Asia/Jakarta",
-  "prConcurrentLimit": 5,
-  "prHourlyLimit": 2
+  "ignorePaths": ["**/node_modules/**"]
 }
