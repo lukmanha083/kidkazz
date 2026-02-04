@@ -48,7 +48,7 @@ services:
       endpoints: []
     accounting-service:
       envVar: VITE_ACCOUNTING_SERVICE_URL
-      endpoints: ["/api/accounting/accounts${queryParams ? ", /api/accounting/accounts/active, /api/accounting/accounts/${id}, /api/accounting/accounts, "/api/accounting/journal-entries${queryParams ? ", /api/accounting/journal-entries/${id}, /api/accounting/journal-entries, /api/accounting/journal-entries/${id}/post, /api/accounting/journal-entries/${id}/void, /api/accounting/reports/income-statement?from=${from}&to=${to}]
+      endpoints: ["/api/accounts${queryParams ? ", /api/accounts?status=Active, /api/accounts/${id}, /api/accounts, "/api/journal-entries${queryParams ? ", /api/journal-entries/${id}, /api/journal-entries, /api/journal-entries/${id}/post, /api/journal-entries/${id}/void, /api/reports/income-statement?from=${from}&to=${to}]
     business-partner-service:
       envVar: VITE_BUSINESS_PARTNER_SERVICE_URL
       endpoints: []
