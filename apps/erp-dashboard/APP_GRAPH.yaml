@@ -16,7 +16,7 @@ generator: scripts/generate-frontend-graph.ts
 app: erp-dashboard
 path: apps/erp-dashboard
 framework:
-  core: React 18.3.1
+  core: React 19.0.0
   router: TanStack Router 1.157.18
   stateManagement: TanStack Query 5.90.20
   formLibrary: TanStack Form 1.27.4
