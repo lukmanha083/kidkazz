@@ -19,7 +19,7 @@
     "db:migrate:local": "wrangler d1 migrations apply payment-db --local"
   },
   "dependencies": {
-    "@hono/zod-validator": "^0.2.2",
+    "@hono/zod-validator": "^0.7.0",
     "@kidkazz/domain-events": "workspace:*",
     "@kidkazz/types": "workspace:*",
     "@kidkazz/utils": "workspace:*",
