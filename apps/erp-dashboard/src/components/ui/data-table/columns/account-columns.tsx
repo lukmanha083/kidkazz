@@ -90,14 +90,19 @@ export function getAccountColumns(options: AccountColumnOptions = {}): ColumnDef
       },
     },
     {
-      accessorKey: 'accountSubType',
+      accessorKey: 'accountCategory',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Sub-Type" className="hidden lg:table-cell" />
+        <DataTableColumnHeader column={column} title="Category" className="hidden lg:table-cell" />
       ),
       cell: ({ row }) => {
-        const subType = row.getValue('accountSubType') as string | undefined;
+        const category = row.original.accountCategory;
+        // Format: CURRENT_ASSET -> Current Asset
+        const formatted = category
+          ?.replace(/_/g, ' ')
+          .toLowerCase()
+          .replace(/\b\w/g, (c) => c.toUpperCase());
         return (
-          <span className="hidden lg:inline text-sm text-muted-foreground">{subType || '-'}</span>
+          <span className="hidden lg:inline text-sm text-muted-foreground">{formatted || '-'}</span>
         );
       },
     },
