@@ -55,7 +55,7 @@
   },
   "pnpm": {
     "overrides": {
-      "glob@<8": "^10.4.0",
+      "glob@<8": "^13.0.0",
       "inflight@<2": "npm:@zkochan/inflight@^1.0.0",
       "esbuild": "^0.25.0",
       "test-exclude": "^7.0.1",
