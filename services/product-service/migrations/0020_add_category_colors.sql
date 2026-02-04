@@ -10,8 +10,9 @@
 -- 3. Open the Console tab
 -- 4. Copy and paste this SQL script
 -- 5. Click "Execute"
-
-BEGIN TRANSACTION;
+--
+-- NOTE: D1 handles transactions automatically for migrations.
+-- Do not use BEGIN TRANSACTION/COMMIT statements.
 
 -- Update categories with color based on their names
 -- Baby & Kids categories
@@ -112,8 +113,6 @@ AND id IN (
 
 UPDATE categories SET color = 'teal'
 WHERE color IS NULL;
-
-COMMIT;
 
 -- Verify the updates
 SELECT name, color, status FROM categories ORDER BY name;

@@ -36,17 +36,18 @@ CREATE TABLE IF NOT EXISTS customers_new (
 );
 
 -- Step 2: Copy data from old table (entity_type will use default 'person')
+-- NOTE: deleted_at/deleted_by columns are added in migration 0006, so we don't copy them here
 INSERT OR IGNORE INTO customers_new (
   id, code, name, email, phone, company_name, npwp, customer_type,
   credit_limit, payment_term_days, total_orders, total_spent,
   last_order_date, status, date_of_birth, notes,
-  created_at, updated_at, created_by, updated_by, deleted_at, deleted_by
+  created_at, updated_at, created_by, updated_by
 )
 SELECT
   id, code, name, email, phone, company_name, npwp, customer_type,
   credit_limit, payment_term_days, total_orders, total_spent,
   last_order_date, status, date_of_birth, notes,
-  created_at, updated_at, created_by, updated_by, deleted_at, deleted_by
+  created_at, updated_at, created_by, updated_by
 FROM customers;
 
 -- Step 3: Drop old table and rename
@@ -94,21 +95,20 @@ CREATE TABLE IF NOT EXISTS suppliers_new (
 );
 
 -- Step 2: Copy data from old table
+-- NOTE: deleted_at/deleted_by columns are added in migration 0006, so we don't copy them here
 INSERT OR IGNORE INTO suppliers_new (
   id, code, name, email, phone, company_name, npwp,
   payment_term_days, lead_time_days, minimum_order_amount,
   bank_name, bank_account_number, bank_account_name,
   rating, total_orders, total_purchased,
-  last_order_date, status, notes, created_at, updated_at, created_by, updated_by,
-  deleted_at, deleted_by
+  last_order_date, status, notes, created_at, updated_at, created_by, updated_by
 )
 SELECT
   id, code, name, email, phone, company_name, npwp,
   payment_term_days, lead_time_days, minimum_order_amount,
   bank_name, bank_account_number, bank_account_name,
   rating, total_orders, total_purchased,
-  last_order_date, status, notes, created_at, updated_at, created_by, updated_by,
-  deleted_at, deleted_by
+  last_order_date, status, notes, created_at, updated_at, created_by, updated_by
 FROM suppliers;
 
 -- Step 3: Drop old table and rename
