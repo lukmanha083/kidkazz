@@ -86,7 +86,21 @@ pnpm install
    # Test critical user flows manually
    ```
 
-### Phase 5: Create Pull Request
+### Phase 5: Deploy to Staging (REQUIRED for Major Updates)
+
+Before creating PR, deploy to staging environment:
+
+```bash
+# Deploy to staging
+cd services/accounting-service && wrangler deploy --env staging
+cd services/product-service && wrangler deploy --env staging
+# ... all affected services
+
+# Test on staging for 24-48 hours
+# See: docs/guides/STAGING_DEPLOYMENT_GUIDE.md
+```
+
+### Phase 6: Create Pull Request
 
 ```bash
 git add -A
@@ -99,6 +113,7 @@ Breaking changes addressed:
 Tested:
 - [ ] All tests pass
 - [ ] Type check passes
+- [ ] Staging deployment tested
 - [ ] Manual testing done
 "
 
@@ -106,13 +121,14 @@ git push -u origin chore/migrate-{package}-v{version}
 gh pr create --title "chore: migrate {package} to v{version}" --body "..."
 ```
 
-### Phase 6: Review & Merge
+### Phase 7: Review & Merge
 
 1. **CI must pass** - All tests green
 2. **Code review** - Another developer reviews
-3. **Merge to main**
+3. **Staging tested** - Confirmed working on staging
+4. **Merge to main**
 
-### Phase 7: Deploy & Monitor
+### Phase 8: Deploy & Monitor
 
 1. **Deploy to production**
 2. **Monitor error tracking** (Sentry, LogRocket, etc.)
