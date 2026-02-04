@@ -11,6 +11,13 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { DataTable } from '@/components/ui/data-table';
+import {
+  accountStatusOptions,
+  accountTypeOptions,
+  getAccountColumns,
+} from '@/components/ui/data-table/columns';
 import {
   Drawer,
   DrawerClose,
@@ -31,163 +38,138 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { type ChartOfAccount, accountingApi } from '@/lib/api';
+  useAccounts,
+  useActiveAccounts,
+  useCreateAccount,
+  useDeleteAccount,
+  useUpdateAccount,
+} from '@/hooks/queries';
+import type { ChartOfAccount } from '@/lib/api';
+import { type AccountFormData, accountFormSchema, createFormValidator } from '@/lib/form-schemas';
+import { queryKeys } from '@/lib/query-client';
+import { useForm } from '@tanstack/react-form';
+import { useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import {
-  Calculator,
-  ChevronDown,
-  ChevronRight,
-  Edit,
-  FileText,
-  Folder,
-  FolderOpen,
-  Plus,
-  Search,
-  Trash2,
-} from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { Calculator, Edit, Loader2, Plus } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 export const Route = createFileRoute('/dashboard/accounting/chart-of-accounts')({
   component: ChartOfAccountsPage,
 });
 
-interface AccountNode extends ChartOfAccount {
-  children: AccountNode[];
-  isExpanded?: boolean;
+function getErrorMessage(error: unknown): string {
+  if (typeof error === 'string') return error;
+  if (error && typeof error === 'object') {
+    const errorObj = error as Record<string, unknown>;
+    if ('message' in errorObj) {
+      const msg = errorObj.message;
+      if (typeof msg === 'string') return msg;
+      if (msg && typeof msg === 'object' && 'message' in (msg as object)) {
+        const nestedMsg = (msg as { message: unknown }).message;
+        if (typeof nestedMsg === 'string') return nestedMsg;
+      }
+    }
+  }
+  return 'Validation error';
 }
 
 function ChartOfAccountsPage() {
-  const [accounts, setAccounts] = useState<ChartOfAccount[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<string>('all');
-  const [filterStatus, setFilterStatus] = useState<string>('Active');
+  const queryClient = useQueryClient();
 
   // Drawer states
+  const [viewDrawerOpen, setViewDrawerOpen] = useState(false);
   const [formDrawerOpen, setFormDrawerOpen] = useState(false);
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
   const [selectedAccount, setSelectedAccount] = useState<ChartOfAccount | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [accountToDelete, setAccountToDelete] = useState<ChartOfAccount | null>(null);
 
-  // Expanded accounts tracking
-  const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
+  // React Query hooks
+  const { data: accountsData, isLoading, error } = useAccounts();
+  const { data: activeAccountsData } = useActiveAccounts();
+  const createAccountMutation = useCreateAccount();
+  const updateAccountMutation = useUpdateAccount();
+  const deleteAccountMutation = useDeleteAccount();
 
-  // Form data
-  const [formData, setFormData] = useState({
-    code: '',
-    name: '',
-    accountType: 'Asset' as ChartOfAccount['accountType'],
-    accountSubType: '',
-    parentAccountId: '',
-    description: '',
-    taxType: '',
-    isDetailAccount: true,
-    status: 'Active' as ChartOfAccount['status'],
-    currency: 'IDR',
+  const accounts = accountsData?.accounts || [];
+  const activeAccounts = activeAccountsData?.accounts || [];
+
+  // TanStack Form
+  const form = useForm({
+    defaultValues: {
+      code: '',
+      name: '',
+      accountType: 'Asset' as AccountFormData['accountType'],
+      accountSubType: '',
+      parentAccountId: '',
+      description: '',
+      taxType: '',
+      isDetailAccount: true,
+      status: 'Active' as AccountFormData['status'],
+      currency: 'IDR',
+    },
+    validators: {
+      onChange: createFormValidator(accountFormSchema),
+    },
+    onSubmit: async ({ value }) => {
+      const submitData = {
+        ...value,
+        accountSubType: value.accountSubType || undefined,
+        parentAccountId: value.parentAccountId || undefined,
+        description: value.description || undefined,
+        taxType: value.taxType || undefined,
+      };
+
+      try {
+        if (formMode === 'add') {
+          await createAccountMutation.mutateAsync(submitData);
+          toast.success('Account created successfully');
+        } else if (formMode === 'edit' && selectedAccount) {
+          await updateAccountMutation.mutateAsync({ id: selectedAccount.id, data: submitData });
+          toast.success('Account updated successfully');
+        }
+        setFormDrawerOpen(false);
+        form.reset();
+      } catch (error) {
+        toast.error(formMode === 'add' ? 'Failed to create account' : 'Failed to update account', {
+          description: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    },
   });
 
-  useEffect(() => {
-    loadAccounts();
-  }, []);
-
-  const loadAccounts = async () => {
-    try {
-      setLoading(true);
-      const response = await accountingApi.accounts.getAll();
-      setAccounts(response.accounts);
-
-      // Auto-expand all parent accounts initially
-      const parentIds = new Set(
-        response.accounts.filter((a) => !a.isDetailAccount).map((a) => a.id)
-      );
-      setExpandedAccounts(parentIds);
-    } catch (err) {
-      toast.error('Failed to load accounts');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Build hierarchical tree structure
-  const accountTree = useMemo(() => {
-    const filtered = accounts.filter((account) => {
-      const matchesSearch =
-        account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        account.code.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesType = filterType === 'all' || account.accountType === filterType;
-      const matchesStatus = filterStatus === 'all' || account.status === filterStatus;
-
-      return matchesSearch && matchesType && matchesStatus;
-    });
-
-    const buildTree = (parentId: string | null | undefined): AccountNode[] => {
-      return filtered
-        .filter((account) => account.parentAccountId === parentId)
-        .sort((a, b) => a.code.localeCompare(b.code))
-        .map((account) => ({
-          ...account,
-          children: buildTree(account.id),
-          isExpanded: expandedAccounts.has(account.id),
-        }));
-    };
-
-    return buildTree(null);
-  }, [accounts, searchTerm, filterType, filterStatus, expandedAccounts]);
-
-  const toggleExpand = (accountId: string) => {
-    const newExpanded = new Set(expandedAccounts);
-    if (newExpanded.has(accountId)) {
-      newExpanded.delete(accountId);
-    } else {
-      newExpanded.add(accountId);
-    }
-    setExpandedAccounts(newExpanded);
+  // Handlers
+  const handleViewAccount = (account: ChartOfAccount) => {
+    setSelectedAccount(account);
+    setViewDrawerOpen(true);
   };
 
   const handleAddAccount = (parentId?: string) => {
     setFormMode('add');
-    setFormData({
-      code: '',
-      name: '',
-      accountType: parentId
-        ? accounts.find((a) => a.id === parentId)?.accountType || 'Asset'
-        : 'Asset',
-      accountSubType: '',
-      parentAccountId: parentId || '',
-      description: '',
-      taxType: '',
-      isDetailAccount: true,
-      status: 'Active',
-      currency: 'IDR',
-    });
+    const parentAccount = parentId ? accounts.find((a) => a.id === parentId) : null;
+    form.reset();
+    if (parentAccount) {
+      form.setFieldValue('accountType', parentAccount.accountType);
+      form.setFieldValue('parentAccountId', parentId || '');
+    }
     setFormDrawerOpen(true);
   };
 
   const handleEditAccount = (account: ChartOfAccount) => {
     setFormMode('edit');
     setSelectedAccount(account);
-    setFormData({
-      code: account.code,
-      name: account.name,
-      accountType: account.accountType,
-      accountSubType: account.accountSubType || '',
-      parentAccountId: account.parentAccountId || '',
-      description: account.description || '',
-      taxType: account.taxType || '',
-      isDetailAccount: account.isDetailAccount,
-      status: account.status,
-      currency: account.currency,
-    });
+    form.setFieldValue('code', account.code);
+    form.setFieldValue('name', account.name);
+    form.setFieldValue('accountType', account.accountType);
+    form.setFieldValue('accountSubType', account.accountSubType || '');
+    form.setFieldValue('parentAccountId', account.parentAccountId || '');
+    form.setFieldValue('description', account.description || '');
+    form.setFieldValue('taxType', account.taxType || '');
+    form.setFieldValue('isDetailAccount', account.isDetailAccount);
+    form.setFieldValue('status', account.status);
+    form.setFieldValue('currency', account.currency);
+    setViewDrawerOpen(false);
     setFormDrawerOpen(true);
   };
 
@@ -196,166 +178,27 @@ function ChartOfAccountsPage() {
     setDeleteDialogOpen(true);
   };
 
-  const confirmDelete = async () => {
-    if (!accountToDelete) return;
-
-    try {
-      await accountingApi.accounts.delete(accountToDelete.id);
-      setAccounts(accounts.filter((a) => a.id !== accountToDelete.id));
-      toast.success('Account deleted successfully');
-      setDeleteDialogOpen(false);
-      setAccountToDelete(null);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to delete account');
+  const confirmDelete = () => {
+    if (accountToDelete) {
+      deleteAccountMutation.mutate(accountToDelete.id, {
+        onSuccess: () => {
+          toast.success('Account deleted successfully');
+          setDeleteDialogOpen(false);
+          setAccountToDelete(null);
+        },
+        onError: (error) => {
+          toast.error('Failed to delete account', { description: error.message });
+        },
+      });
     }
   };
 
-  const handleSubmitForm = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-      if (formMode === 'add') {
-        const response = await accountingApi.accounts.create(formData);
-        setAccounts([...accounts, response.account]);
-        toast.success('Account created successfully');
-      } else if (formMode === 'edit' && selectedAccount) {
-        const response = await accountingApi.accounts.update(selectedAccount.id, formData);
-        setAccounts(accounts.map((a) => (a.id === selectedAccount.id ? response.account : a)));
-        toast.success('Account updated successfully');
-      }
-      setFormDrawerOpen(false);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Operation failed');
-    }
-  };
-
-  // Get account type badge color
-  const getAccountTypeBadge = (type: string) => {
-    const colors = {
-      Asset: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-      Liability: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-      Equity: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-      Revenue: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-      COGS: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-      Expense: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-    };
-    return colors[type as keyof typeof colors] || '';
-  };
-
-  // Render account row with hierarchy
-  const renderAccountRow = (account: AccountNode, level = 0) => {
-    const hasChildren = account.children.length > 0;
-    const isExpanded = account.isExpanded;
-    const indent = level * 24;
-
-    return (
-      <>
-        <TableRow key={account.id} className="hover:bg-muted/50">
-          <TableCell>
-            <div className="flex items-center" style={{ paddingLeft: `${indent}px` }}>
-              {hasChildren ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0 mr-2"
-                  onClick={() => toggleExpand(account.id)}
-                >
-                  {isExpanded ? (
-                    <ChevronDown className="h-4 w-4" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4" />
-                  )}
-                </Button>
-              ) : (
-                <div className="w-6 mr-2" />
-              )}
-
-              {hasChildren ? (
-                isExpanded ? (
-                  <FolderOpen className="h-4 w-4 mr-2 text-muted-foreground" />
-                ) : (
-                  <Folder className="h-4 w-4 mr-2 text-muted-foreground" />
-                )
-              ) : (
-                <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
-              )}
-
-              <div>
-                <div className="font-medium">{account.name}</div>
-                {account.description && (
-                  <div className="text-xs text-muted-foreground">{account.description}</div>
-                )}
-              </div>
-            </div>
-          </TableCell>
-          <TableCell className="font-mono text-sm">{account.code}</TableCell>
-          <TableCell>
-            <Badge className={getAccountTypeBadge(account.accountType)}>
-              {account.accountType}
-            </Badge>
-          </TableCell>
-          <TableCell className="text-sm text-muted-foreground">
-            {account.accountSubType || '-'}
-          </TableCell>
-          <TableCell>
-            <Badge variant={account.isDetailAccount ? 'default' : 'secondary'}>
-              {account.isDetailAccount ? 'Detail' : 'Header'}
-            </Badge>
-          </TableCell>
-          <TableCell>
-            <Badge
-              variant={account.status === 'Active' ? 'default' : 'secondary'}
-              className={
-                account.status === 'Active'
-                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-500'
-                  : ''
-              }
-            >
-              {account.status}
-            </Badge>
-          </TableCell>
-          <TableCell className="text-right">
-            <div className="flex items-center justify-end gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => handleAddAccount(account.id)}
-                title="Add sub-account"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => handleEditAccount(account)}
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-              {!account.isSystemAccount && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-destructive hover:text-destructive"
-                  onClick={() => handleDeleteAccount(account)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-          </TableCell>
-        </TableRow>
-
-        {isExpanded && account.children.map((child) => renderAccountRow(child, level + 1))}
-      </>
-    );
-  };
-
-  // Get parent account options (excluding descendants to prevent circular references)
+  // Get parent account options (excluding descendants for edit mode)
   const getParentAccountOptions = (): ChartOfAccount[] => {
+    const headerAccounts = activeAccounts.filter((a) => !a.isDetailAccount);
+
     if (formMode === 'add') {
-      return accounts.filter((a) => !a.isDetailAccount && a.status === 'Active');
+      return headerAccounts;
     }
 
     // For edit mode, exclude the account itself and its descendants
@@ -365,18 +208,64 @@ function ChartOfAccountsPage() {
     };
 
     const excludeIds = selectedAccount ? getDescendantIds(selectedAccount.id) : [];
-    return accounts.filter(
-      (a) => !a.isDetailAccount && a.status === 'Active' && !excludeIds.includes(a.id)
-    );
+    return headerAccounts.filter((a) => !excludeIds.includes(a.id));
   };
 
-  if (loading) {
+  // Column definitions with handlers
+  // biome-ignore lint/correctness/useExhaustiveDependencies: callbacks are stable
+  const columns = useMemo(
+    () =>
+      getAccountColumns({
+        onView: handleViewAccount,
+        onEdit: handleEditAccount,
+        onDelete: handleDeleteAccount,
+      }),
+    []
+  );
+
+  // Stats calculations
+  const totalAccounts = accounts.length;
+  const assetAccounts = accounts.filter((a) => a.accountType === 'Asset').length;
+  const revenueAccounts = accounts.filter((a) => a.accountType === 'Revenue').length;
+  const expenseAccounts = accounts.filter((a) => a.accountType === 'Expense').length;
+
+  // Get account type badge styling
+  const getAccountTypeBadgeClass = (type: string): string => {
+    const colors: Record<string, string> = {
+      Asset: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+      Liability: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+      Equity: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+      Revenue: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+      COGS: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+      Expense: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+    };
+    return colors[type] || '';
+  };
+
+  // Error state
+  if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <Calculator className="h-12 w-12 mx-auto text-muted-foreground animate-pulse" />
-          <p className="mt-2 text-sm text-muted-foreground">Loading chart of accounts...</p>
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Chart of Accounts</h1>
+            <p className="text-muted-foreground mt-1">Manage account hierarchy and structure</p>
+          </div>
         </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center py-12">
+              <p className="text-destructive font-medium">Error loading accounts</p>
+              <p className="text-sm text-muted-foreground mt-2">{error.message}</p>
+              <Button
+                onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.accounts.all })}
+                className="mt-4"
+              >
+                Retry
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -384,12 +273,12 @@ function ChartOfAccountsPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Chart of Accounts</h1>
           <p className="text-muted-foreground mt-1">Manage your account hierarchy and structure</p>
         </div>
-        <Button onClick={() => handleAddAccount()} className="gap-2">
+        <Button onClick={() => handleAddAccount()} className="gap-2 self-start sm:self-auto">
           <Plus className="h-4 w-4" />
           Add Account
         </Button>
@@ -403,7 +292,7 @@ function ChartOfAccountsPage() {
             <Calculator className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{accounts.length}</div>
+            <div className="text-2xl font-bold">{totalAccounts}</div>
             <p className="text-xs text-muted-foreground">All account types</p>
           </CardContent>
         </Card>
@@ -414,9 +303,7 @@ function ChartOfAccountsPage() {
             <div className="h-3 w-3 rounded-full bg-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {accounts.filter((a) => a.accountType === 'Asset').length}
-            </div>
+            <div className="text-2xl font-bold">{assetAccounts}</div>
             <p className="text-xs text-muted-foreground">Asset accounts</p>
           </CardContent>
         </Card>
@@ -427,9 +314,7 @@ function ChartOfAccountsPage() {
             <div className="h-3 w-3 rounded-full bg-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {accounts.filter((a) => a.accountType === 'Revenue').length}
-            </div>
+            <div className="text-2xl font-bold">{revenueAccounts}</div>
             <p className="text-xs text-muted-foreground">Revenue accounts</p>
           </CardContent>
         </Card>
@@ -440,9 +325,7 @@ function ChartOfAccountsPage() {
             <div className="h-3 w-3 rounded-full bg-yellow-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {accounts.filter((a) => a.accountType === 'Expense').length}
-            </div>
+            <div className="text-2xl font-bold">{expenseAccounts}</div>
             <p className="text-xs text-muted-foreground">Expense accounts</p>
           </CardContent>
         </Card>
@@ -451,100 +334,158 @@ function ChartOfAccountsPage() {
       {/* Accounts Table */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>All Accounts</CardTitle>
-              <CardDescription>
-                {accountTree.reduce((sum, node) => {
-                  const countNodes = (n: AccountNode): number =>
-                    1 + n.children.reduce((s, c) => s + countNodes(c), 0);
-                  return sum + countNodes(node);
-                }, 0)}{' '}
-                accounts in hierarchy
-              </CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              {/* Type Filter */}
-              <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger className="w-[150px] h-9">
-                  <SelectValue placeholder="All Types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="Asset">Asset</SelectItem>
-                  <SelectItem value="Liability">Liability</SelectItem>
-                  <SelectItem value="Equity">Equity</SelectItem>
-                  <SelectItem value="Revenue">Revenue</SelectItem>
-                  <SelectItem value="COGS">COGS</SelectItem>
-                  <SelectItem value="Expense">Expense</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Status Filter */}
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-[120px] h-9">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Inactive">Inactive</SelectItem>
-                  <SelectItem value="Archived">Archived</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Search */}
-              <div className="relative w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search accounts..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 h-9"
-                />
-              </div>
-            </div>
-          </div>
+          <CardTitle>All Accounts</CardTitle>
+          <CardDescription>View and manage chart of accounts</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[400px]">Account Name</TableHead>
-                  <TableHead className="w-[120px]">Code</TableHead>
-                  <TableHead className="w-[120px]">Type</TableHead>
-                  <TableHead className="w-[150px]">Sub-Type</TableHead>
-                  <TableHead className="w-[100px]">Level</TableHead>
-                  <TableHead className="w-[100px]">Status</TableHead>
-                  <TableHead className="w-[140px] text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {accountTree.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                      No accounts found. Click "Add Account" to create one.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  accountTree.map((account) => renderAccountRow(account, 0))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          <DataTable
+            columns={columns}
+            data={accounts}
+            searchKey="name"
+            searchPlaceholder="Search by name, code..."
+            isLoading={isLoading}
+            onRowClick={handleViewAccount}
+            filterableColumns={[
+              { id: 'accountType', title: 'Type', options: accountTypeOptions },
+              { id: 'status', title: 'Status', options: accountStatusOptions },
+            ]}
+          />
         </CardContent>
       </Card>
 
-      {/* Add/Edit Account Form Drawer */}
+      {/* View Drawer (Right) */}
+      <Drawer open={viewDrawerOpen} onOpenChange={setViewDrawerOpen}>
+        <DrawerContent side="right">
+          <DrawerHeader>
+            <DrawerTitle>{selectedAccount?.name}</DrawerTitle>
+            <DrawerDescription>Account Details</DrawerDescription>
+          </DrawerHeader>
+
+          {selectedAccount && (
+            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+              <div className="space-y-4">
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase">
+                  Basic Information
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Code</p>
+                    <p className="font-mono font-medium">{selectedAccount.code}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Type</p>
+                    <Badge className={getAccountTypeBadgeClass(selectedAccount.accountType)}>
+                      {selectedAccount.accountType}
+                    </Badge>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Name</p>
+                  <p className="font-medium">{selectedAccount.name}</p>
+                </div>
+                {selectedAccount.description && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Description</p>
+                    <p className="text-sm">{selectedAccount.description}</p>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Sub-Type</p>
+                    <p className="font-medium">{selectedAccount.accountSubType || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Currency</p>
+                    <p className="font-medium">{selectedAccount.currency}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4 border-t pt-4">
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase">
+                  Account Settings
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Level</p>
+                    <Badge variant={selectedAccount.isDetailAccount ? 'default' : 'secondary'}>
+                      {selectedAccount.isDetailAccount ? 'Detail' : 'Header'}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Normal Balance</p>
+                    <p className="font-medium">{selectedAccount.normalBalance}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Status</p>
+                    <Badge
+                      variant={
+                        selectedAccount.status === 'Active'
+                          ? 'default'
+                          : selectedAccount.status === 'Archived'
+                            ? 'outline'
+                            : 'secondary'
+                      }
+                      className={
+                        selectedAccount.status === 'Active'
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-500'
+                          : ''
+                      }
+                    >
+                      {selectedAccount.status}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">System Account</p>
+                    <p className="font-medium">{selectedAccount.isSystemAccount ? 'Yes' : 'No'}</p>
+                  </div>
+                </div>
+                {selectedAccount.parentAccountId && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Parent Account</p>
+                    <p className="font-medium">
+                      {accounts.find((a) => a.id === selectedAccount.parentAccountId)?.name ||
+                        selectedAccount.parentAccountId}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <DrawerFooter>
+            <div className="flex flex-col sm:flex-row gap-2 w-full">
+              <Button
+                onClick={() => selectedAccount && handleEditAccount(selectedAccount)}
+                className="w-full sm:w-auto"
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => selectedAccount && handleAddAccount(selectedAccount.id)}
+                className="w-full sm:w-auto"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Sub-Account
+              </Button>
+              <DrawerClose asChild>
+                <Button variant="outline" className="w-full sm:w-auto">
+                  Close
+                </Button>
+              </DrawerClose>
+            </div>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Form Drawer (Left) */}
       <Drawer open={formDrawerOpen} onOpenChange={setFormDrawerOpen}>
         <DrawerContent side="left">
-          <DrawerHeader className="relative">
-            <DrawerClose asChild>
-              <Button variant="ghost" size="icon" className="absolute right-0 top-0 h-8 w-8">
-                <X className="h-4 w-4" />
-              </Button>
-            </DrawerClose>
+          <DrawerHeader>
             <DrawerTitle>{formMode === 'add' ? 'Add New Account' : 'Edit Account'}</DrawerTitle>
             <DrawerDescription>
               {formMode === 'add'
@@ -553,162 +494,230 @@ function ChartOfAccountsPage() {
             </DrawerDescription>
           </DrawerHeader>
 
-          <form onSubmit={handleSubmitForm} className="flex-1 overflow-y-auto p-4 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="code">Account Code *</Label>
-                <Input
-                  id="code"
-                  placeholder="1000"
-                  value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                  disabled={formMode === 'edit'}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  4-digit code (e.g., 1000-1999 for Assets)
-                </p>
-              </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              form.handleSubmit();
+            }}
+            className="flex-1 overflow-y-auto p-4 space-y-4"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <form.Field name="code">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>Account Code *</Label>
+                    <Input
+                      id={field.name}
+                      placeholder="1000"
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                      disabled={formMode === 'edit'}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      4-digit code (e.g., 1000-1999 for Assets)
+                    </p>
+                    {field.state.meta.errors.length > 0 && (
+                      <p className="text-sm text-destructive">
+                        {field.state.meta.errors.map(getErrorMessage).join(', ')}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </form.Field>
 
-              <div className="space-y-2">
-                <Label htmlFor="currency">Currency</Label>
-                <Input
-                  id="currency"
-                  value={formData.currency}
-                  onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                  disabled
-                />
-              </div>
+              <form.Field name="currency">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>Currency</Label>
+                    <Input
+                      id={field.name}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      disabled
+                    />
+                  </div>
+                )}
+              </form.Field>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="name">Account Name *</Label>
-              <Input
-                id="name"
-                placeholder="Cash and Cash Equivalents"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-              />
+            <form.Field name="name">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor={field.name}>Account Name *</Label>
+                  <Input
+                    id={field.name}
+                    placeholder="Cash and Cash Equivalents"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                  {field.state.meta.errors.length > 0 && (
+                    <p className="text-sm text-destructive">
+                      {field.state.meta.errors.map(getErrorMessage).join(', ')}
+                    </p>
+                  )}
+                </div>
+              )}
+            </form.Field>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <form.Field name="accountType">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>Account Type *</Label>
+                    <Select
+                      value={field.state.value}
+                      onValueChange={(v) => field.handleChange(v as AccountFormData['accountType'])}
+                      disabled={formMode === 'edit'}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Asset">Asset</SelectItem>
+                        <SelectItem value="Liability">Liability</SelectItem>
+                        <SelectItem value="Equity">Equity</SelectItem>
+                        <SelectItem value="Revenue">Revenue</SelectItem>
+                        <SelectItem value="COGS">Cost of Goods Sold</SelectItem>
+                        <SelectItem value="Expense">Expense</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {formMode === 'edit' && (
+                      <p className="text-xs text-muted-foreground">
+                        Account type cannot be changed after creation
+                      </p>
+                    )}
+                  </div>
+                )}
+              </form.Field>
+
+              <form.Field name="accountSubType">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>Sub-Type</Label>
+                    <Input
+                      id={field.name}
+                      placeholder="Current Asset"
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                    />
+                  </div>
+                )}
+              </form.Field>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="accountType">Account Type *</Label>
-                <Select
-                  value={formData.accountType}
-                  onValueChange={(value: any) => setFormData({ ...formData, accountType: value })}
-                  disabled={formMode === 'edit'}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Asset">Asset</SelectItem>
-                    <SelectItem value="Liability">Liability</SelectItem>
-                    <SelectItem value="Equity">Equity</SelectItem>
-                    <SelectItem value="Revenue">Revenue</SelectItem>
-                    <SelectItem value="COGS">Cost of Goods Sold</SelectItem>
-                    <SelectItem value="Expense">Expense</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <form.Field name="parentAccountId">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor={field.name}>Parent Account</Label>
+                  <Select value={field.state.value} onValueChange={(v) => field.handleChange(v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="None (Top level)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None (Top level)</SelectItem>
+                      {getParentAccountOptions().map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.code} - {account.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Optional: Make this a sub-account of another account
+                  </p>
+                </div>
+              )}
+            </form.Field>
 
-              <div className="space-y-2">
-                <Label htmlFor="accountSubType">Sub-Type</Label>
-                <Input
-                  id="accountSubType"
-                  placeholder="Current Asset"
-                  value={formData.accountSubType}
-                  onChange={(e) => setFormData({ ...formData, accountSubType: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="parentAccountId">Parent Account</Label>
-              <Select
-                value={formData.parentAccountId}
-                onValueChange={(value) => setFormData({ ...formData, parentAccountId: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="None (Top level)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">None (Top level)</SelectItem>
-                  {getParentAccountOptions().map((account) => (
-                    <SelectItem key={account.id} value={account.id}>
-                      {account.code} - {account.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Optional: Make this a sub-account of another account
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Input
-                id="description"
-                placeholder="Account description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              />
-            </div>
+            <form.Field name="description">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor={field.name}>Description</Label>
+                  <Input
+                    id={field.name}
+                    placeholder="Account description"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                </div>
+              )}
+            </form.Field>
 
             <Separator />
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Account Level</Label>
-                <div className="flex items-center gap-2 pt-2">
-                  <input
-                    type="checkbox"
-                    id="isDetailAccount"
-                    checked={formData.isDetailAccount}
-                    onChange={(e) =>
-                      setFormData({ ...formData, isDetailAccount: e.target.checked })
-                    }
-                    className="h-4 w-4 rounded border-input"
-                  />
-                  <Label htmlFor="isDetailAccount" className="font-normal">
-                    Detail Account
-                  </Label>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Only detail accounts can have transactions
-                </p>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <form.Field name="isDetailAccount">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label>Account Level</Label>
+                    <div className="flex items-center gap-2 pt-2">
+                      <Checkbox
+                        id="isDetailAccount"
+                        checked={field.state.value}
+                        onCheckedChange={(checked) => field.handleChange(checked === true)}
+                      />
+                      <Label htmlFor="isDetailAccount" className="font-normal">
+                        Detail Account
+                      </Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Only detail accounts can have transactions
+                    </p>
+                  </div>
+                )}
+              </form.Field>
 
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value: any) => setFormData({ ...formData, status: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Active">Active</SelectItem>
-                    <SelectItem value="Inactive">Inactive</SelectItem>
-                    <SelectItem value="Archived">Archived</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <form.Field name="status">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>Status</Label>
+                    <Select
+                      value={field.state.value}
+                      onValueChange={(v) => field.handleChange(v as AccountFormData['status'])}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Active">Active</SelectItem>
+                        <SelectItem value="Inactive">Inactive</SelectItem>
+                        <SelectItem value="Archived">Archived</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </form.Field>
             </div>
 
             <DrawerFooter className="px-0">
-              <Button type="submit" className="w-full">
-                {formMode === 'add' ? 'Create Account' : 'Update Account'}
-              </Button>
-              <DrawerClose asChild>
-                <Button type="button" variant="outline" className="w-full">
-                  Cancel
+              <div className="flex flex-col sm:flex-row gap-2 w-full">
+                <Button
+                  type="submit"
+                  className="w-full sm:w-auto"
+                  disabled={form.state.isSubmitting || !form.state.canSubmit}
+                >
+                  {form.state.isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      {formMode === 'add' ? 'Creating...' : 'Updating...'}
+                    </>
+                  ) : formMode === 'add' ? (
+                    'Create Account'
+                  ) : (
+                    'Update Account'
+                  )}
                 </Button>
-              </DrawerClose>
+                <DrawerClose asChild>
+                  <Button type="button" variant="outline" className="w-full sm:w-auto">
+                    Cancel
+                  </Button>
+                </DrawerClose>
+              </div>
             </DrawerFooter>
           </form>
         </DrawerContent>
@@ -726,19 +735,26 @@ function ChartOfAccountsPage() {
                   ({accountToDelete.code})?
                   <br />
                   <br />
-                  This action cannot be undone. This will permanently delete the account and all its
-                  data. Accounts with transactions cannot be deleted.
+                  This action cannot be undone. Accounts with transactions cannot be deleted.
                 </>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteAccountMutation.isPending}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
+              disabled={deleteAccountMutation.isPending}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {deleteAccountMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

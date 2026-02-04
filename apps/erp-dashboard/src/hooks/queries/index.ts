@@ -48,3 +48,13 @@ export {
   useUpdateBundleStock,
   useDeleteBundle,
 } from './useBundles';
+
+// Account hooks (Chart of Accounts)
+export {
+  useAccounts,
+  useActiveAccounts,
+  useAccount,
+  useCreateAccount,
+  useUpdateAccount,
+  useDeleteAccount,
+} from './useAccounts';

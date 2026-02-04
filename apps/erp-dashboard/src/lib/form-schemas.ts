@@ -657,6 +657,31 @@ export const employeeFormSchema = z.object({
 export type EmployeeFormData = z.infer<typeof employeeFormSchema>;
 
 // ============================================================================
+// ACCOUNTING - CHART OF ACCOUNTS FORM SCHEMA
+// ============================================================================
+
+export const accountFormSchema = z.object({
+  code: z
+    .string()
+    .min(1, 'Account code is required')
+    .max(20, 'Code must be less than 20 characters'),
+  name: z
+    .string()
+    .min(1, 'Account name is required')
+    .max(100, 'Name must be less than 100 characters'),
+  accountType: z.enum(['Asset', 'Liability', 'Equity', 'Revenue', 'COGS', 'Expense']),
+  accountSubType: z.string().optional(),
+  parentAccountId: z.string().optional().nullable(),
+  description: z.string().optional(),
+  taxType: z.string().optional(),
+  isDetailAccount: z.boolean().default(true),
+  status: z.enum(['Active', 'Inactive', 'Archived']).default('Active'),
+  currency: z.string().default('IDR'),
+});
+
+export type AccountFormData = z.infer<typeof accountFormSchema>;
+
+// ============================================================================
 // FORM VALIDATION HELPER
 // ============================================================================
 

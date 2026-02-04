@@ -97,6 +97,22 @@ export class Product extends AggregateRoot {
       physicalAttributes = PhysicalAttributes.create(input.physicalAttributes);
     }
 
+    // Determine availability flags
+    const availableForRetail = input.availableForRetail !== false;
+    const availableForWholesale = input.availableForWholesale || false;
+
+    // Derive status from availability flags
+    let status: ProductStatus;
+    if (availableForRetail && availableForWholesale) {
+      status = 'omnichannel sales';
+    } else if (availableForRetail) {
+      status = 'online sales';
+    } else if (availableForWholesale) {
+      status = 'offline sales';
+    } else {
+      status = 'inactive';
+    }
+
     const product = new Product({
       id,
       barcode: input.barcode,
@@ -113,12 +129,12 @@ export class Product extends AggregateRoot {
       wholesaleThreshold: input.wholesaleThreshold || 10,
       minimumOrderQuantity: input.minimumOrderQuantity || 1,
       minimumStock: input.minimumStock,
-      physicalAttributes, // NEW
+      physicalAttributes,
       rating: 0,
       reviews: 0,
-      availableForRetail: input.availableForRetail !== false,
-      availableForWholesale: input.availableForWholesale || false,
-      status: 'offline sales', // Default to offline sales
+      availableForRetail,
+      availableForWholesale,
+      status,
       isBundle: false,
       createdAt: now,
       updatedAt: now,

@@ -7,3 +7,4 @@ export { getVariantColumns, variantTypeOptions, variantStatusOptions } from './v
 export { getCustomerColumns, customerStatusOptions, customerTypeOptions } from './customer-columns';
 export { getSupplierColumns, supplierStatusOptions } from './supplier-columns';
 export { getEmployeeColumns, employeeStatusOptions } from './employee-columns';
+export { getAccountColumns, accountTypeOptions, accountStatusOptions } from './account-columns';
