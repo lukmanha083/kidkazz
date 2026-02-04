@@ -34,27 +34,27 @@
     {
       "description": "Group Cloudflare packages",
       "groupName": "cloudflare",
-      "matchPackagePatterns": ["^wrangler", "^@cloudflare/", "^miniflare"]
+      "matchPackageNames": ["/^wrangler/", "/^@cloudflare\\//", "/^miniflare/"]
     },
     {
       "description": "Group Hono packages",
       "groupName": "hono",
-      "matchPackagePatterns": ["^hono", "^@hono/"]
+      "matchPackageNames": ["/^hono/", "/^@hono\\//"]
     },
     {
       "description": "Group TanStack packages",
       "groupName": "tanstack",
-      "matchPackagePatterns": ["^@tanstack/"]
+      "matchPackageNames": ["/^@tanstack\\//"]
     },
     {
       "description": "Group Radix UI packages",
       "groupName": "radix-ui",
-      "matchPackagePatterns": ["^@radix-ui/"]
+      "matchPackageNames": ["/^@radix-ui\\//"]
     },
     {
       "description": "Group Drizzle packages",
       "groupName": "drizzle",
-      "matchPackagePatterns": ["^drizzle-"]
+      "matchPackageNames": ["/^drizzle-/"]
     },
     {
       "description": "Group React packages",
@@ -64,17 +64,17 @@
     {
       "description": "Group Vitest packages",
       "groupName": "vitest",
-      "matchPackagePatterns": ["^vitest", "^@vitest/"]
+      "matchPackageNames": ["/^vitest/", "/^@vitest\\//"]
     },
     {
       "description": "Group Biome packages",
       "groupName": "biome",
-      "matchPackagePatterns": ["^@biomejs/"]
+      "matchPackageNames": ["/^@biomejs\\//"]
     },
     {
       "description": "Group Tailwind packages",
       "groupName": "tailwind",
-      "matchPackagePatterns": ["^tailwindcss", "^@tailwindcss/", "^autoprefixer", "^postcss"]
+      "matchPackageNames": ["/^tailwindcss/", "/^@tailwindcss\\//", "/^autoprefixer/", "/^postcss/"]
     },
     {
       "description": "Group GitHub Actions",
