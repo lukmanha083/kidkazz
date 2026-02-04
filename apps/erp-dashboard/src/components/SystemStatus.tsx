@@ -33,7 +33,7 @@ const DEFAULT_SERVICES: Service[] = [
 ];
 
 // API Gateway URL - configure this based on your environment
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787';
+const API_BASE_URL = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8787';
 
 /**
  * Displays current system health and per-service statuses in a dropdown with manual and automatic refresh.
