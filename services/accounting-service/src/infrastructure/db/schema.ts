@@ -142,8 +142,7 @@ export const journalLines = sqliteTable(
     customerId: text('customer_id'),
     vendorId: text('vendor_id'),
     productId: text('product_id'),
-    // Store and Business Unit segmentation
-    storeId: text('store_id'),
+    // Business Unit segmentation (warehouseId already handles location)
     businessUnit: text('business_unit', {
       enum: ['Trading', 'Restaurant'],
     }),
@@ -157,9 +156,7 @@ export const journalLines = sqliteTable(
     salesChannelIdx: index('idx_jl_sales_channel').on(table.salesChannel),
     customerIdx: index('idx_jl_customer').on(table.customerId),
     vendorIdx: index('idx_jl_vendor').on(table.vendorId),
-    storeIdx: index('idx_jl_store').on(table.storeId),
     businessUnitIdx: index('idx_jl_business_unit').on(table.businessUnit),
-    businessUnitStoreIdx: index('idx_jl_bu_store').on(table.businessUnit, table.storeId),
     // Unique constraint on journal_entry_id + line_sequence
     entryLineSeqIdx: uniqueIndex('idx_jl_entry_line_seq').on(
       table.journalEntryId,

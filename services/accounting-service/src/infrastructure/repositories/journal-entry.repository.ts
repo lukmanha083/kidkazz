@@ -358,7 +358,6 @@ export class DrizzleJournalEntryRepository implements IJournalEntryRepository {
           customerId: line.customerId || null,
           vendorId: line.vendorId || null,
           productId: line.productId || null,
-          storeId: line.storeId || null,
           businessUnit: line.businessUnit || null,
         })
       );
@@ -482,7 +481,6 @@ export class DrizzleJournalEntryRepository implements IJournalEntryRepository {
         customerId: line.customerId || undefined,
         vendorId: line.vendorId || undefined,
         productId: line.productId || undefined,
-        storeId: line.storeId || undefined,
         businessUnit: line.businessUnit as JournalLine['businessUnit'],
       })),
     });

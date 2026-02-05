@@ -44,8 +44,7 @@ export interface JournalLineInput {
   customerId?: string;
   vendorId?: string;
   productId?: string;
-  // Store and Business Unit segmentation
-  storeId?: string;
+  // Business Unit segmentation (warehouseId handles location)
   businessUnit?: BusinessUnit;
 }
 
