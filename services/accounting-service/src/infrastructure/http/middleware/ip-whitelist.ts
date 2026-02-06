@@ -1,23 +1,19 @@
 /**
- * TEMPORARY IP Whitelist Middleware
+ * TEMPORARY Country-based IP Filter Middleware
  *
  * ⚠️ REMOVE THIS FILE when proper authentication is implemented
  * See: docs/bounded-contexts/business-partner/TEMPORARY_IP_WHITELIST.md
  *
  * This middleware:
- * - Blocks external requests from non-whitelisted IPs
+ * - Uses Cloudflare's cf-ipcountry header to allow only Indonesian IPs
  * - ALLOWS internal service-to-service calls (no cf-connecting-ip header)
  * - ALLOWS tRPC and service binding requests
  */
 
 import type { Context, Next } from 'hono';
 
-// Whitelisted IPs - Development only
-const WHITELISTED_IPS = [
-  '180.252.172.69', // Development laptop
-  '127.0.0.1',
-  '::1',
-];
+// Allowed countries - Indonesia only (for development)
+const ALLOWED_COUNTRIES = ['ID'];
 
 const BYPASS_PATHS = ['/health', '/favicon.ico', '/'];
 
@@ -35,10 +31,11 @@ export function ipWhitelist() {
       return next();
     }
 
-    // External request - check whitelist
-    if (WHITELISTED_IPS.includes(cfConnectingIP)) return next();
+    // External request - check country
+    const country = c.req.header('cf-ipcountry');
+    if (country && ALLOWED_COUNTRIES.includes(country)) return next();
 
-    console.warn(`[IP-BLOCKED] ${cfConnectingIP} -> ${path}`);
-    return c.json({ error: 'Forbidden', message: 'IP not whitelisted', ip: cfConnectingIP }, 403);
+    console.warn(`[BLOCKED] IP: ${cfConnectingIP}, Country: ${country || 'unknown'} -> ${path}`);
+    return c.json({ error: 'Forbidden', country: country || 'unknown' }, 403);
   };
 }

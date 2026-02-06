@@ -1,22 +1,22 @@
-# Temporary IP Whitelist Security
+# Temporary Country-based IP Filter
 
 > ⚠️ **TEMPORARY MEASURE** - Remove when proper authentication is implemented
 
 ## Overview
 
-This document describes the temporary IP-based access control implemented to protect our deployed endpoints during development before proper authentication (JWT/OAuth) is in place.
+This document describes the temporary country-based access control implemented to protect our deployed endpoints during development before proper authentication (JWT/OAuth) is in place.
 
 ## Current Configuration
 
-**Whitelisted IPs:**
-- `180.252.172.69` - Development laptop
-- `127.0.0.1` - Localhost
-- `::1` - Localhost IPv6
+**Allowed Countries:**
+- `ID` - Indonesia
+
+Uses Cloudflare's `cf-ipcountry` header for geo-location filtering.
 
 ## How It Works
 
-The IP whitelist middleware:
-1. **Allows** requests from whitelisted IPs (external requests)
+The IP filter middleware:
+1. **Allows** requests from Indonesian IPs (external requests with country code `ID`)
 2. **Allows** all internal service-to-service calls (no `cf-connecting-ip` header)
 3. **Blocks** all other external requests with 403 Forbidden
 
@@ -31,7 +31,8 @@ When services communicate via Cloudflare Service Bindings:
 
 When users/browsers access endpoints:
 - Cloudflare adds `cf-connecting-ip` header with real client IP
-- Only whitelisted IPs can access protected endpoints
+- Cloudflare adds `cf-ipcountry` header with 2-letter country code
+- Only requests from Indonesia (`ID`) can access protected endpoints
 - `/health` and `/` endpoints are always accessible
 
 ## Affected Services
@@ -46,18 +47,24 @@ All services have this middleware:
 - `business-partner-service`
 - `api-gateway`
 
-## How to Update Whitelisted IPs
+## How to Add More Countries
 
-1. Find your public IP: `curl ifconfig.me`
-2. Update `WHITELISTED_IPS` array in each service's `index.ts`
-3. Redeploy affected services
+If you need to allow access from other countries:
+
+1. Update `ALLOWED_COUNTRIES` array in each service's `index.ts`:
+   ```typescript
+   const ALLOWED_COUNTRIES = ['ID', 'SG', 'MY']; // Add country codes
+   ```
+2. Redeploy affected services
+
+**Country codes**: Use ISO 3166-1 alpha-2 codes (e.g., `ID`=Indonesia, `SG`=Singapore, `MY`=Malaysia)
 
 ## How to Remove (When Auth is Ready)
 
 When proper authentication is implemented:
 
 1. **Remove from each service's `index.ts`:**
-   - Delete the `WHITELISTED_IPS` constant
+   - Delete the `ALLOWED_COUNTRIES` constant
    - Delete the `ipWhitelist` function
    - Remove `app.use('/*', ipWhitelist());` line
    - Remove `import type { Context, Next } from 'hono';` if no longer needed
@@ -96,5 +103,6 @@ See `EMPLOYEE_AUTH_RBAC_PLAN.md` for the planned authentication system:
 ---
 
 **Created**: 2026-02-04
+**Updated**: 2026-02-06 (Changed from IP whitelist to country-based filtering)
 **Status**: Active (Temporary)
 **Remove When**: Authentication system is implemented
