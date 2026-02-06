@@ -6,11 +6,15 @@ import { logger } from 'hono/logger';
 // TEMPORARY Country-based IP Filter - Remove when auth is implemented
 // See: docs/bounded-contexts/business-partner/TEMPORARY_IP_WHITELIST.md
 // Uses Cloudflare's cf-ipcountry header to allow only Indonesian IPs
+// Supports CI bypass with X-CI-Bypass header when CI_BYPASS_SECRET env is set
 const ALLOWED_COUNTRIES = ['ID']; // Indonesia
 const BYPASS_PATHS = ['/health', '/', '/webhooks/xendit']; // Webhooks use token auth
 const ipWhitelist = () => async (c: Context, next: Next) => {
   const path = new URL(c.req.url).pathname;
   if (BYPASS_PATHS.includes(path)) return next(); // Allow health, root, and webhooks
+  // Check CI bypass header for E2E testing
+  const ciBypassSecret = (c.env as { CI_BYPASS_SECRET?: string })?.CI_BYPASS_SECRET;
+  if (ciBypassSecret && c.req.header('x-ci-bypass') === ciBypassSecret) return next();
   const cfIP = c.req.header('cf-connecting-ip');
   if (!cfIP) return next(); // Allow internal service-to-service calls
   const country = c.req.header('cf-ipcountry');

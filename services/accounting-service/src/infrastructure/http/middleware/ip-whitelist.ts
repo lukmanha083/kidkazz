@@ -8,6 +8,7 @@
  * - Uses Cloudflare's cf-ipcountry header to allow only Indonesian IPs
  * - ALLOWS internal service-to-service calls (no cf-connecting-ip header)
  * - ALLOWS tRPC and service binding requests
+ * - ALLOWS CI/E2E testing with X-CI-Bypass header (when CI_BYPASS_SECRET env is set)
  */
 
 import type { Context, Next } from 'hono';
@@ -21,6 +22,16 @@ export function ipWhitelist() {
   return async (c: Context, next: Next) => {
     const path = new URL(c.req.url).pathname;
     if (BYPASS_PATHS.some((p) => path === p)) return next();
+
+    // Check CI bypass header for E2E testing in GitHub Actions
+    // The secret is read from environment variable CI_BYPASS_SECRET
+    const ciBypassSecret = (c.env as { CI_BYPASS_SECRET?: string })?.CI_BYPASS_SECRET;
+    if (ciBypassSecret) {
+      const bypassHeader = c.req.header('x-ci-bypass');
+      if (bypassHeader === ciBypassSecret) {
+        return next();
+      }
+    }
 
     // Check if this is an internal service-to-service request
     // Service bindings don't have cf-connecting-ip header

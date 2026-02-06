@@ -1,18 +1,46 @@
-import { test, expect, request, type APIRequestContext } from '@playwright/test';
+import { test, expect, request } from '@playwright/test';
 
 // Track created accounts for teardown
 const createdAccountIds: string[] = [];
+
+/**
+ * TEMPORARY: CI bypass secret for E2E testing in GitHub Actions
+ *
+ * This bypasses the country-based IP filter on backend services.
+ * ⚠️ REMOVE THIS when proper authentication is implemented on backend.
+ *
+ * See: docs/guides/CI_BYPASS_HEADER.md
+ */
+const CI_BYPASS_SECRET = process.env.CI_BYPASS_SECRET;
 
 // Helper to get accounting service URL
 const getAccountingServiceUrl = () =>
   process.env.VITE_ACCOUNTING_SERVICE_URL || 'https://accounting-service.tesla-hakim.workers.dev';
 
+// Backend service domains that need CI bypass header
+const BACKEND_DOMAINS = [
+  'accounting-service.tesla-hakim.workers.dev',
+  'product-service.tesla-hakim.workers.dev',
+  'inventory-service.tesla-hakim.workers.dev',
+  'business-partner-service.tesla-hakim.workers.dev',
+  'order-service.tesla-hakim.workers.dev',
+  'payment-service.tesla-hakim.workers.dev',
+  'shipping-service.tesla-hakim.workers.dev',
+  'api-gateway.tesla-hakim.workers.dev',
+];
+
 // Teardown: delete all created accounts after tests
 test.afterAll(async () => {
   if (createdAccountIds.length === 0) return;
 
+  const headers: Record<string, string> = {};
+  if (CI_BYPASS_SECRET) {
+    headers['x-ci-bypass'] = CI_BYPASS_SECRET;
+  }
+
   const apiContext = await request.newContext({
     baseURL: getAccountingServiceUrl(),
+    extraHTTPHeaders: headers,
   });
 
   for (const accountId of createdAccountIds) {
@@ -29,6 +57,20 @@ test.afterAll(async () => {
 
 test.describe('Chart of Accounts', () => {
   test.beforeEach(async ({ page }) => {
+    // Intercept backend API requests and add CI bypass header
+    if (CI_BYPASS_SECRET) {
+      await page.route(
+        (url) => BACKEND_DOMAINS.some((domain) => url.hostname.includes(domain)),
+        async (route) => {
+          const headers = {
+            ...route.request().headers(),
+            'x-ci-bypass': CI_BYPASS_SECRET,
+          };
+          await route.continue({ headers });
+        }
+      );
+    }
+
     await page.goto('/dashboard/accounting/chart-of-accounts');
     // Wait for page to load by checking the heading
     await expect(page.getByRole('heading', { name: 'Chart of Accounts' })).toBeVisible({ timeout: 15000 });
