@@ -7,9 +7,10 @@ import { logger } from 'hono/logger';
 // See: docs/bounded-contexts/business-partner/TEMPORARY_IP_WHITELIST.md
 // Uses Cloudflare's cf-ipcountry header to allow only Indonesian IPs
 const ALLOWED_COUNTRIES = ['ID']; // Indonesia
+const BYPASS_PATHS = ['/health', '/', '/webhooks/xendit']; // Webhooks use token auth
 const ipWhitelist = () => async (c: Context, next: Next) => {
   const path = new URL(c.req.url).pathname;
-  if (['/health', '/'].includes(path)) return next();
+  if (BYPASS_PATHS.includes(path)) return next(); // Allow health, root, and webhooks
   const cfIP = c.req.header('cf-connecting-ip');
   if (!cfIP) return next(); // Allow internal service-to-service calls
   const country = c.req.header('cf-ipcountry');

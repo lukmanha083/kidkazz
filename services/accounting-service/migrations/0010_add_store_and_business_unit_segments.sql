@@ -1,5 +1,9 @@
 -- Migration: Add storeId and businessUnit segments to journal_lines
 -- Supports multi-location (store/branch) and multi-business unit (Trading/Restaurant) reporting
+--
+-- NOTE: D1 migrations are tracked and only run once. If you need to re-run,
+-- use: wrangler d1 migrations apply DB --local (for local) or without --local (for remote)
+-- The migration system prevents duplicate runs.
 
 -- Add storeId column for physical store/branch tracking
 ALTER TABLE journal_lines ADD COLUMN store_id TEXT;

@@ -82,12 +82,12 @@ UPDATE chart_of_accounts SET tags = '["restaurant"]' WHERE code IN (
 -- STEP 2: Add restaurant-specific accounts
 -- =====================================================
 
--- Restaurant Inventory accounts
+-- Restaurant Inventory accounts (under acc-1200 Inventory, not acc-1300 Prepaid Expenses)
 INSERT OR IGNORE INTO chart_of_accounts (id, code, name, name_en, description, account_type, account_category, normal_balance, parent_account_id, level, is_detail_account, is_system_account, financial_statement_type, status, tags, created_at, updated_at) VALUES
-('acc-1370', '1370', 'Persediaan Bahan Makanan', 'Food Inventory', 'Raw food ingredients inventory', 'Asset', 'CURRENT_ASSET', 'Debit', 'acc-1300', 1, 1, 0, 'BALANCE_SHEET', 'Active', '["restaurant"]', datetime('now'), datetime('now')),
-('acc-1371', '1371', 'Persediaan Bahan Minuman', 'Beverage Inventory', 'Beverage ingredients inventory', 'Asset', 'CURRENT_ASSET', 'Debit', 'acc-1300', 1, 1, 0, 'BALANCE_SHEET', 'Active', '["restaurant"]', datetime('now'), datetime('now')),
-('acc-1372', '1372', 'Persediaan Kemasan & Packaging', 'Packaging Supplies', 'Food containers, bags, etc.', 'Asset', 'CURRENT_ASSET', 'Debit', 'acc-1300', 1, 1, 0, 'BALANCE_SHEET', 'Active', '["restaurant"]', datetime('now'), datetime('now')),
-('acc-1375', '1375', 'Perlengkapan Dapur', 'Kitchen Supplies', 'Consumable kitchen supplies', 'Asset', 'CURRENT_ASSET', 'Debit', 'acc-1300', 1, 1, 0, 'BALANCE_SHEET', 'Active', '["restaurant"]', datetime('now'), datetime('now'));
+('acc-1370', '1370', 'Persediaan Bahan Makanan', 'Food Inventory', 'Raw food ingredients inventory', 'Asset', 'CURRENT_ASSET', 'Debit', 'acc-1200', 1, 1, 0, 'BALANCE_SHEET', 'Active', '["restaurant"]', datetime('now'), datetime('now')),
+('acc-1371', '1371', 'Persediaan Bahan Minuman', 'Beverage Inventory', 'Beverage ingredients inventory', 'Asset', 'CURRENT_ASSET', 'Debit', 'acc-1200', 1, 1, 0, 'BALANCE_SHEET', 'Active', '["restaurant"]', datetime('now'), datetime('now')),
+('acc-1372', '1372', 'Persediaan Kemasan & Packaging', 'Packaging Supplies', 'Food containers, bags, etc.', 'Asset', 'CURRENT_ASSET', 'Debit', 'acc-1200', 1, 1, 0, 'BALANCE_SHEET', 'Active', '["restaurant"]', datetime('now'), datetime('now')),
+('acc-1375', '1375', 'Perlengkapan Dapur', 'Kitchen Supplies', 'Consumable kitchen supplies', 'Asset', 'CURRENT_ASSET', 'Debit', 'acc-1200', 1, 1, 0, 'BALANCE_SHEET', 'Active', '["restaurant"]', datetime('now'), datetime('now'));
 
 -- Restaurant Fixed Assets
 INSERT OR IGNORE INTO chart_of_accounts (id, code, name, name_en, description, account_type, account_category, normal_balance, parent_account_id, level, is_detail_account, is_system_account, financial_statement_type, status, tags, created_at, updated_at) VALUES

@@ -22,9 +22,6 @@ export enum JournalEntryType {
 }
 
 /**
- * Journal Line input (for creation)
- */
-/**
  * Business Unit type for multi-business segmentation
  */
 export type BusinessUnit = 'Trading' | 'Restaurant';

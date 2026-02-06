@@ -92,22 +92,24 @@ export class DrizzleAccountRepository implements IAccountRepository {
     }
 
     if (filter?.search) {
-      // Escape LIKE wildcards to prevent injection
-      // Must escape backslashes first, then LIKE wildcards
-      const escapedSearch = filter.search.replace(/\\/g, '\\\\').replace(/[%_]/g, '\\$&');
-      conditions.push(like(chartOfAccounts.name, `%${escapedSearch}%`));
+      // Escape LIKE wildcards with explicit ESCAPE clause for SQLite
+      const escapedSearch = filter.search
+        .replace(/\\/g, '\\\\')
+        .replace(/%/g, '\\%')
+        .replace(/_/g, '\\_');
+      const pattern = `%${escapedSearch}%`;
+      conditions.push(sql`${chartOfAccounts.name} LIKE ${pattern} ESCAPE '\\'`);
     }
 
     if (filter?.tag) {
-      // Filter by tag using LIKE on JSON array
+      // Filter by tag using LIKE on JSON array with explicit ESCAPE clause
       // e.g., tags = '["general", "restaurant"]' LIKE '%"restaurant"%'
-      // Escape special characters to prevent LIKE injection
       const escapedTag = filter.tag
         .replace(/\\/g, '\\\\')
         .replace(/%/g, '\\%')
-        .replace(/_/g, '\\_')
-        .replace(/"/g, '\\"');
-      conditions.push(like(chartOfAccounts.tags, `%"${escapedTag}"%`));
+        .replace(/_/g, '\\_');
+      const pattern = `%"${escapedTag}"%`;
+      conditions.push(sql`${chartOfAccounts.tags} LIKE ${pattern} ESCAPE '\\'`);
     }
 
     const query =

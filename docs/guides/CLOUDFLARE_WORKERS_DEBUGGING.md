@@ -241,18 +241,24 @@ curl -s "https://<service>.tesla-hakim.workers.dev/"
 npx wrangler deployments list
 ```
 
-### 2. IP Whitelist Blocked
+### 2. Country-Based Filtering Blocked
 
-**Symptoms:** Request blocked or unauthorized
+**Symptoms:** Request blocked with 403 Forbidden, "country: unknown" in response
+
+**Note:** IP whitelist has been replaced with country-based filtering using Cloudflare's `cf-ipcountry` header. Only Indonesian IPs (country code "ID") are allowed.
 
 **Debug Steps:**
 ```bash
-# Check your IP
+# Check your current IP and country
 curl -s ifconfig.me
+curl -s ipinfo.io/country
 
-# Test with correct IP header
+# Test with CF-IPCountry header (simulates Indonesian IP)
 curl -s "https://<service>.tesla-hakim.workers.dev/api/endpoint" \
-  -H "X-Forwarded-For: 180.252.172.69"
+  -H "CF-IPCountry: ID"
+
+# If you're outside Indonesia, use a VPN with Indonesian servers
+# or the CF-IPCountry header for testing
 ```
 
 ### 3. Database Query Errors
@@ -285,12 +291,25 @@ app.use('*', cors());
 
 ### Check Request Duration
 
-Use `wrangler tail` with JSON format and analyze:
+**Note:** `wrangler tail` does not provide request duration directly. Duration metrics require enabling Trace Events in Cloudflare Workers.
+
+For basic timing, use console timing in your code:
+
+```typescript
+// In your route handler
+const start = Date.now();
+// ... your logic
+console.log(`Request took ${Date.now() - start}ms`);
+```
+
+Then view in logs:
 
 ```bash
 npx wrangler tail accounting-service --format json | \
-  jq 'select(.outcome == "ok") | {url: .event.request.url, duration: .eventTimestamp}'
+  jq 'select(.outcome == "ok") | {url: .event.request.url, logs: .logs}'
 ```
+
+For production metrics, use Cloudflare Workers Analytics or enable Trace Events for `WallTimeMs`/`CPUTimeMs`.
 
 ### D1 Query Performance
 

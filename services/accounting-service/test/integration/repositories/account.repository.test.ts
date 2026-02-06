@@ -21,6 +21,7 @@ describe('DrizzleAccountRepository', () => {
     // Run all migrations manually using raw SQL
     const migrationFiles = [
       '0000_initial_accounting_schema.sql',
+      '0006_multi_currency_support.sql',
       '0009_add_tags_to_accounts.sql',
       '0010_add_store_and_business_unit_segments.sql',
       '0011_classify_accounts_by_business_unit.sql',

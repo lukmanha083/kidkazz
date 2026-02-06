@@ -698,7 +698,7 @@ export const accountFormSchema = z
         Liability: [2000, 2999],
         Equity: [3000, 3999],
         Revenue: [4000, 4999],
-        COGS: [5000, 5399],
+        COGS: [5000, 5999],
         Expense: [6000, 8999],
       };
 
@@ -707,10 +707,17 @@ export const accountFormSchema = z
 
       return codeNum >= range[0] && codeNum <= range[1];
     },
-    {
-      message: 'Account code must match account type range (e.g., 1000-1999 for Asset)',
+    (data) => ({
+      message: `Account code must be between ${
+        data.accountType === 'Asset' ? '1000-1999' :
+        data.accountType === 'Liability' ? '2000-2999' :
+        data.accountType === 'Equity' ? '3000-3999' :
+        data.accountType === 'Revenue' ? '4000-4999' :
+        data.accountType === 'COGS' ? '5000-5999' :
+        data.accountType === 'Expense' ? '6000-8999' : 'valid range'
+      } for ${data.accountType} accounts`,
       path: ['code'],
-    }
+    })
   );
 
 export type AccountFormData = z.infer<typeof accountFormSchema>;

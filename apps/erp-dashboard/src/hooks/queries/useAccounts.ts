@@ -236,6 +236,7 @@ export function useDeleteAccount() {
       await queryClient.cancelQueries({ queryKey: queryKeys.accounts.all });
 
       const previousAccounts = queryClient.getQueryData(queryKeys.accounts.lists());
+      const previousDetail = queryClient.getQueryData(queryKeys.accounts.detail(id));
 
       // Remove from list cache
       queryClient.setQueryData(
@@ -253,12 +254,15 @@ export function useDeleteAccount() {
         queryKey: queryKeys.accounts.detail(id),
       });
 
-      return { previousAccounts };
+      return { previousAccounts, previousDetail, deletedId: id };
     },
 
     onError: (_err, _id, context) => {
       if (context?.previousAccounts) {
         queryClient.setQueryData(queryKeys.accounts.lists(), context.previousAccounts);
+      }
+      if (context?.previousDetail && context?.deletedId) {
+        queryClient.setQueryData(queryKeys.accounts.detail(context.deletedId), context.previousDetail);
       }
     },
 

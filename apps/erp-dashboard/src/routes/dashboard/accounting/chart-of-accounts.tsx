@@ -904,10 +904,14 @@ function ChartOfAccountsPage() {
                       placeholder="general, trading, restaurant"
                       value={field.state.value.join(', ')}
                       onChange={(e) => {
-                        const tags = e.target.value
-                          .split(',')
-                          .map((t) => t.trim())
-                          .filter((t) => t.length > 0);
+                        const tags = Array.from(
+                          new Set(
+                            e.target.value
+                              .split(',')
+                              .map((t) => t.trim().toLowerCase())
+                              .filter((t) => t.length > 0)
+                          )
+                        );
                         field.handleChange(tags);
                       }}
                       onBlur={field.handleBlur}
@@ -926,7 +930,7 @@ function ChartOfAccountsPage() {
                     )}
                     {field.state.value.length > 0 && (
                       <div className="flex flex-wrap gap-1 pt-1">
-                        {field.state.value.map((tag) => (
+                        {Array.from(new Set(field.state.value)).map((tag) => (
                           <Badge key={tag} variant="secondary" className="text-xs">
                             {tag}
                           </Badge>

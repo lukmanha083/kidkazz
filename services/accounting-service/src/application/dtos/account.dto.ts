@@ -17,7 +17,7 @@ export const createAccountSchema = z.object({
   level: z.number().int().min(0).max(10).optional(),
   isDetailAccount: z.boolean(),
   isSystemAccount: z.boolean().default(false),
-  tags: z.array(z.string().max(50)).max(20).optional(),
+  tags: z.array(z.string().min(1).max(50)).max(20).optional(),
 });
 
 export type CreateAccountRequest = z.infer<typeof createAccountSchema>;
@@ -30,7 +30,7 @@ export const updateAccountSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   nameEn: z.string().max(255).optional(),
   description: z.string().max(1000).optional(),
-  tags: z.array(z.string().max(50)).max(20).optional(),
+  tags: z.array(z.string().min(1).max(50)).max(20).optional(),
 });
 
 export type UpdateAccountRequest = z.infer<typeof updateAccountSchema>;

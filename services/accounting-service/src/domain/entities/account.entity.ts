@@ -294,6 +294,7 @@ export class Account {
    */
   addTag(tag: AccountTag): void {
     const normalizedTag = tag.toLowerCase().trim();
+    if (normalizedTag === '') return; // Guard against empty/whitespace-only tags
     if (!this._tags.includes(normalizedTag)) {
       this._tags.push(normalizedTag);
       this._updatedAt = new Date();

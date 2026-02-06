@@ -19,7 +19,7 @@ Extend the product bundle feature to support restaurant recipes/Bill of Material
 
 ### Use Case: Bumbu Masakan (Spice Mix)
 
-```
+```text
 Recipe: Bumbu Base
 Yield: 20 portions
 
@@ -36,7 +36,7 @@ Food Cost per Portion: Rp 2,950
 
 ### Use Case: Menu Item (Nasi Goreng)
 
-```
+```text
 Recipe: Nasi Goreng Spesial
 Yield: 1 portion
 
@@ -198,7 +198,7 @@ Journal entry flow remains unchanged:
 
 ## API Endpoints (Phase 1)
 
-```
+```text
 # Recipe Bundles
 GET    /api/bundles?type=recipe       # List recipes
 POST   /api/bundles                    # Create recipe (bundleType: 'recipe')
@@ -231,7 +231,7 @@ CREATE INDEX idx_bundles_type ON bundles(bundle_type);
 ## Food Cost Calculation
 
 ```typescript
-function calculateFoodCost(recipe: Bundle): FoodCostResult {
+async function calculateFoodCost(recipe: Bundle): Promise<FoodCostResult> {
   let totalCost = 0;
 
   for (const ingredient of recipe.components) {
