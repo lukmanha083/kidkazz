@@ -1,0 +1,230 @@
+version: 2
+updates:
+  # Root package (monorepo)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      timezone: "Asia/Jakarta"
+    open-pull-requests-limit: 10
+    groups:
+      cloudflare:
+        patterns:
+          - "wrangler*"
+          - "@cloudflare/*"
+          - "miniflare*"
+      hono:
+        patterns:
+          - "hono*"
+          - "@hono/*"
+      drizzle:
+        patterns:
+          - "drizzle-*"
+      biome:
+        patterns:
+          - "@biomejs/*"
+      vitest:
+        patterns:
+          - "vitest*"
+          - "@vitest/*"
+    # Version locks - preserve these to avoid breaking changes
+    ignore:
+      - dependency-name: "zod"
+        versions: [">=4.0.0"]
+      - dependency-name: "react"
+        versions: [">=19.0.0"]
+      - dependency-name: "react-dom"
+        versions: [">=19.0.0"]
+      - dependency-name: "@types/react"
+        versions: [">=19.0.0"]
+      - dependency-name: "@types/react-dom"
+        versions: [">=19.0.0"]
+      - dependency-name: "vite"
+        versions: [">=6.0.0"]
+      - dependency-name: "vitest"
+        versions: [">=3.0.0"]
+      - dependency-name: "@vitest/ui"
+        versions: [">=3.0.0"]
+      - dependency-name: "@vitest/coverage-v8"
+        versions: [">=3.0.0"]
+      - dependency-name: "@biomejs/biome"
+        versions: [">=2.0.0"]
+      - dependency-name: "tailwindcss"
+        versions: [">=4.0.0"]
+
+  # ERP Dashboard
+  - package-ecosystem: "npm"
+    directory: "/apps/erp-dashboard"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      timezone: "Asia/Jakarta"
+    open-pull-requests-limit: 5
+    groups:
+      tanstack:
+        patterns:
+          - "@tanstack/*"
+      radix:
+        patterns:
+          - "@radix-ui/*"
+      testing:
+        patterns:
+          - "@testing-library/*"
+          - "@playwright/*"
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      tailwind:
+        patterns:
+          - "tailwindcss*"
+          - "autoprefixer"
+          - "postcss"
+    ignore:
+      - dependency-name: "zod"
+        versions: [">=4.0.0"]
+      - dependency-name: "react"
+        versions: [">=19.0.0"]
+      - dependency-name: "react-dom"
+        versions: [">=19.0.0"]
+      - dependency-name: "@types/react"
+        versions: [">=19.0.0"]
+      - dependency-name: "@types/react-dom"
+        versions: [">=19.0.0"]
+      - dependency-name: "vite"
+        versions: [">=6.0.0"]
+      - dependency-name: "vitest"
+        versions: [">=3.0.0"]
+      - dependency-name: "@vitest/ui"
+        versions: [">=3.0.0"]
+      - dependency-name: "@biomejs/biome"
+        versions: [">=2.0.0"]
+      - dependency-name: "tailwindcss"
+        versions: [">=4.0.0"]
+
+  # Backend Services
+  - package-ecosystem: "npm"
+    directory: "/services/accounting-service"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      timezone: "Asia/Jakarta"
+    open-pull-requests-limit: 5
+    groups:
+      cloudflare:
+        patterns:
+          - "wrangler*"
+          - "@cloudflare/*"
+      hono:
+        patterns:
+          - "hono*"
+          - "@hono/*"
+      drizzle:
+        patterns:
+          - "drizzle-*"
+    ignore:
+      - dependency-name: "vitest"
+        versions: [">=3.0.0"]
+      - dependency-name: "@vitest/*"
+        versions: [">=3.0.0"]
+
+  - package-ecosystem: "npm"
+    directory: "/services/product-service"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      timezone: "Asia/Jakarta"
+    open-pull-requests-limit: 5
+    groups:
+      cloudflare:
+        patterns:
+          - "wrangler*"
+          - "@cloudflare/*"
+      hono:
+        patterns:
+          - "hono*"
+          - "@hono/*"
+
+  - package-ecosystem: "npm"
+    directory: "/services/inventory-service"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      timezone: "Asia/Jakarta"
+    open-pull-requests-limit: 5
+    groups:
+      cloudflare:
+        patterns:
+          - "wrangler*"
+          - "@cloudflare/*"
+      hono:
+        patterns:
+          - "hono*"
+          - "@hono/*"
+
+  - package-ecosystem: "npm"
+    directory: "/services/order-service"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      timezone: "Asia/Jakarta"
+    open-pull-requests-limit: 5
+    groups:
+      cloudflare:
+        patterns:
+          - "wrangler*"
+          - "@cloudflare/*"
+      hono:
+        patterns:
+          - "hono*"
+          - "@hono/*"
+
+  - package-ecosystem: "npm"
+    directory: "/services/business-partner-service"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      timezone: "Asia/Jakarta"
+    open-pull-requests-limit: 5
+    groups:
+      cloudflare:
+        patterns:
+          - "wrangler*"
+          - "@cloudflare/*"
+      hono:
+        patterns:
+          - "hono*"
+          - "@hono/*"
+
+  - package-ecosystem: "npm"
+    directory: "/services/api-gateway"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      timezone: "Asia/Jakarta"
+    open-pull-requests-limit: 5
+    groups:
+      cloudflare:
+        patterns:
+          - "wrangler*"
+          - "@cloudflare/*"
+      hono:
+        patterns:
+          - "hono*"
+          - "@hono/*"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      timezone: "Asia/Jakarta"
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"
