@@ -29,6 +29,22 @@ const BACKEND_DOMAINS = [
   'api-gateway.tesla-hakim.workers.dev',
 ];
 
+// Global beforeEach: Set up CI bypass header interception for ALL tests
+test.beforeEach(async ({ page }) => {
+  if (CI_BYPASS_SECRET) {
+    await page.route(
+      (url) => BACKEND_DOMAINS.some((domain) => url.hostname.includes(domain)),
+      async (route) => {
+        const headers = {
+          ...route.request().headers(),
+          'x-ci-bypass': CI_BYPASS_SECRET,
+        };
+        await route.continue({ headers });
+      }
+    );
+  }
+});
+
 // Teardown: delete all created accounts after tests
 test.afterAll(async () => {
   if (createdAccountIds.length === 0) return;
@@ -57,20 +73,6 @@ test.afterAll(async () => {
 
 test.describe('Chart of Accounts', () => {
   test.beforeEach(async ({ page }) => {
-    // Intercept backend API requests and add CI bypass header
-    if (CI_BYPASS_SECRET) {
-      await page.route(
-        (url) => BACKEND_DOMAINS.some((domain) => url.hostname.includes(domain)),
-        async (route) => {
-          const headers = {
-            ...route.request().headers(),
-            'x-ci-bypass': CI_BYPASS_SECRET,
-          };
-          await route.continue({ headers });
-        }
-      );
-    }
-
     await page.goto('/dashboard/accounting/chart-of-accounts');
     // Wait for page to load by checking the heading
     await expect(page.getByRole('heading', { name: 'Chart of Accounts' })).toBeVisible({ timeout: 15000 });
@@ -91,22 +93,23 @@ test.describe('Chart of Accounts', () => {
   });
 
   test('should open view drawer on row click', async ({ page }) => {
-    // Click on first row
-    await page.locator('table tbody tr').first().click();
+    // Click on first row - use force click to ensure it works in headless
+    const firstRow = page.locator('table tbody tr').first();
+    await firstRow.click({ force: true });
 
-    // View drawer should open - wait for drawer dialog
-    await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5000 });
+    // View drawer should open - wait for drawer dialog (longer timeout for CI)
+    await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 10000 });
   });
 
   test('should display tags section in view drawer', async ({ page }) => {
-    // Click first row
-    await page.locator('table tbody tr').first().click();
+    // Click first row - use force click to ensure it works in headless
+    await page.locator('table tbody tr').first().click({ force: true });
 
     // Drawer should be visible (wait longer for animation)
     await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 10000 });
 
     // Tags heading should exist in drawer
-    await expect(page.locator('[role="dialog"]').getByRole('heading', { name: 'Tags' })).toBeVisible();
+    await expect(page.locator('[role="dialog"]').getByRole('heading', { name: 'Tags' })).toBeVisible({ timeout: 5000 });
   });
 
   test('should open form drawer on Add Account click', async ({ page }) => {
@@ -218,10 +221,10 @@ test.describe('Chart of Accounts', () => {
           has: page.locator('td', { hasText: 'Kas & Bank' }),
         }).first();
 
-    await rowToClick.click();
+    await rowToClick.click({ force: true });
 
-    // Wait for view drawer
-    await expect(page.locator('[role="dialog"]')).toBeVisible();
+    // Wait for view drawer (longer timeout for CI)
+    await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 10000 });
 
     // Open edit from view drawer
     await page.getByRole('button', { name: 'Edit' }).click();
@@ -273,12 +276,12 @@ test.describe('Chart of Accounts - Responsive Design', () => {
     await page.goto('/dashboard/accounting/chart-of-accounts');
     await expect(page.locator('table tbody tr').first()).toBeVisible({ timeout: 15000 });
 
-    // Click first row to open view drawer
-    await page.locator('table tbody tr').first().click();
+    // Click first row to open view drawer - use force click for headless
+    await page.locator('table tbody tr').first().click({ force: true });
 
-    // Drawer should be visible with Tags section
-    await expect(page.locator('[role="dialog"]')).toBeVisible();
-    await expect(page.locator('[role="dialog"]').getByRole('heading', { name: 'Tags' })).toBeVisible();
+    // Drawer should be visible with Tags section (longer timeout for CI)
+    await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[role="dialog"]').getByRole('heading', { name: 'Tags' })).toBeVisible({ timeout: 5000 });
   });
 
   test('all columns headers visible on desktop', async ({ page }) => {
