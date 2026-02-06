@@ -44,13 +44,15 @@ import {
   useDeleteAccount,
   useUpdateAccount,
 } from '@/hooks/queries';
+import { useAsyncValidation } from '@/hooks/useAsyncValidation';
 import type { ChartOfAccount } from '@/lib/api';
 import { type AccountFormData, accountFormSchema, createFormValidator } from '@/lib/form-schemas';
 import { queryKeys } from '@/lib/query-client';
+import { validationApi } from '@/lib/validation-api';
 import { useForm } from '@tanstack/react-form';
 import { useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { Calculator, Edit, Loader2, Plus } from 'lucide-react';
+import { Calculator, Check, Edit, Loader2, Plus, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -75,8 +77,8 @@ function getAccountCategoryFromCode(code: string): string | null {
   // Equity (3000-3999)
   if (codeNum >= 3000 && codeNum <= 3999) return 'Equity';
 
-  // Revenue (4000-4299)
-  if (codeNum >= 4000 && codeNum <= 4299) return 'Revenue';
+  // Revenue (4000-4999)
+  if (codeNum >= 4000 && codeNum <= 4999) return 'Revenue';
 
   // COGS (5000-5399)
   if (codeNum >= 5000 && codeNum <= 5399) return 'Cost of Goods Sold';
@@ -131,6 +133,9 @@ function ChartOfAccountsPage() {
   const updateAccountMutation = useUpdateAccount();
   const deleteAccountMutation = useDeleteAccount();
 
+  // Async validation for account code uniqueness
+  const codeValidation = useAsyncValidation(validationApi.checkAccountCodeUnique);
+
   const accounts = accountsData?.accounts || [];
   const activeAccounts = activeAccountsData?.accounts || [];
 
@@ -146,11 +151,21 @@ function ChartOfAccountsPage() {
       isDetailAccount: true,
       status: 'Active' as AccountFormData['status'],
       currency: 'IDR',
+      tags: [] as string[],
     },
     validators: {
       onChange: createFormValidator(accountFormSchema),
+      onBlur: createFormValidator(accountFormSchema),
     },
     onSubmit: async ({ value }) => {
+      // Check async validation for code uniqueness in add mode
+      if (formMode === 'add' && codeValidation.isValid === false) {
+        toast.error('Account code already exists', {
+          description: 'Please use a different account code.',
+        });
+        return;
+      }
+
       const submitData = {
         ...value,
         parentAccountId: value.parentAccountId || undefined,
@@ -168,6 +183,7 @@ function ChartOfAccountsPage() {
         }
         setFormDrawerOpen(false);
         form.reset();
+        codeValidation.reset();
       } catch (error) {
         toast.error(formMode === 'add' ? 'Failed to create account' : 'Failed to update account', {
           description: error instanceof Error ? error.message : 'Unknown error',
@@ -186,6 +202,7 @@ function ChartOfAccountsPage() {
     setFormMode('add');
     const parentAccount = parentId ? accounts.find((a) => a.id === parentId) : null;
     form.reset();
+    codeValidation.reset(); // Reset async validation state
     if (parentAccount) {
       form.setFieldValue('accountType', parentAccount.accountType);
       form.setFieldValue('parentAccountId', parentId || '');
@@ -196,6 +213,7 @@ function ChartOfAccountsPage() {
   const handleEditAccount = (account: ChartOfAccount) => {
     setFormMode('edit');
     setSelectedAccount(account);
+    codeValidation.reset(); // Reset async validation state
     form.setFieldValue('code', account.code);
     form.setFieldValue('name', account.name);
     form.setFieldValue('accountType', account.accountType);
@@ -204,7 +222,8 @@ function ChartOfAccountsPage() {
     form.setFieldValue('taxType', account.taxType || '');
     form.setFieldValue('isDetailAccount', account.isDetailAccount);
     form.setFieldValue('status', account.status);
-    form.setFieldValue('currency', account.currency);
+    form.setFieldValue('currency', account.currency || 'IDR');
+    form.setFieldValue('tags', account.tags || []);
     setViewDrawerOpen(false);
     setFormDrawerOpen(true);
   };
@@ -499,6 +518,22 @@ function ChartOfAccountsPage() {
                   </div>
                 )}
               </div>
+
+              {/* Tags Section */}
+              <div className="space-y-4 border-t pt-4">
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase">Tags</h3>
+                {selectedAccount.tags && selectedAccount.tags.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedAccount.tags.map((tag) => (
+                      <Badge key={tag} variant="outline" className="text-sm">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No tags assigned</p>
+                )}
+              </div>
             </div>
           )}
 
@@ -551,27 +586,80 @@ function ChartOfAccountsPage() {
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <form.Field name="code">
-                {(field) => (
-                  <div className="space-y-2">
-                    <Label htmlFor={field.name}>Account Code *</Label>
-                    <Input
-                      id={field.name}
-                      placeholder="1000"
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      onBlur={field.handleBlur}
-                      disabled={formMode === 'edit'}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      4-digit code (e.g., 1000-1999 for Assets)
-                    </p>
-                    {field.state.meta.errors.length > 0 && (
-                      <p className="text-sm text-destructive">
-                        {field.state.meta.errors.map(getErrorMessage).join(', ')}
-                      </p>
-                    )}
-                  </div>
-                )}
+                {(field) => {
+                  const hasError = field.state.meta.isTouched && field.state.meta.errors.length > 0;
+                  const showUniqueError =
+                    formMode === 'add' && codeValidation.isValid === false && !hasError;
+                  const showUniqueSuccess =
+                    formMode === 'add' &&
+                    codeValidation.isValid === true &&
+                    field.state.value.length === 4;
+
+                  return (
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor={field.name}
+                        className={hasError || showUniqueError ? 'text-destructive' : ''}
+                      >
+                        Account Code *
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id={field.name}
+                          placeholder="1000"
+                          value={field.state.value}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            field.handleChange(value);
+                            // Trigger async validation for add mode when code is 4 digits
+                            if (formMode === 'add' && /^\d{4}$/.test(value)) {
+                              codeValidation.validate(value);
+                            } else if (formMode === 'add') {
+                              codeValidation.reset();
+                            }
+                          }}
+                          onBlur={field.handleBlur}
+                          disabled={formMode === 'edit'}
+                          className={`pr-10 ${
+                            hasError || showUniqueError
+                              ? 'border-destructive focus-visible:ring-destructive'
+                              : showUniqueSuccess
+                                ? 'border-green-500 focus-visible:ring-green-500'
+                                : ''
+                          }`}
+                          aria-invalid={hasError || showUniqueError}
+                        />
+                        {/* Validation status icon */}
+                        {formMode === 'add' && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            {codeValidation.isValidating && (
+                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                            )}
+                            {showUniqueSuccess && <Check className="h-4 w-4 text-green-500" />}
+                            {showUniqueError && <X className="h-4 w-4 text-destructive" />}
+                          </div>
+                        )}
+                      </div>
+                      {/* Helper text */}
+                      {showUniqueError ? (
+                        <p className="text-sm text-destructive">
+                          Account code already exists. Please use a different code.
+                        </p>
+                      ) : showUniqueSuccess ? (
+                        <p className="text-sm text-green-600">Account code is available</p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          4-digit code (e.g., 1000-1999 for Assets)
+                        </p>
+                      )}
+                      {hasError && (
+                        <p className="text-sm text-destructive">
+                          {field.state.meta.errors.map(getErrorMessage).join(', ')}
+                        </p>
+                      )}
+                    </div>
+                  );
+                }}
               </form.Field>
 
               <form.Field name="currency">
@@ -584,60 +672,85 @@ function ChartOfAccountsPage() {
                       onChange={(e) => field.handleChange(e.target.value)}
                       disabled
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Default currency for this account
+                    </p>
                   </div>
                 )}
               </form.Field>
             </div>
 
             <form.Field name="name">
-              {(field) => (
-                <div className="space-y-2">
-                  <Label htmlFor={field.name}>Account Name *</Label>
-                  <Input
-                    id={field.name}
-                    placeholder="Cash and Cash Equivalents"
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                  />
-                  {field.state.meta.errors.length > 0 && (
-                    <p className="text-sm text-destructive">
-                      {field.state.meta.errors.map(getErrorMessage).join(', ')}
-                    </p>
-                  )}
-                </div>
-              )}
+              {(field) => {
+                const hasError = field.state.meta.isTouched && field.state.meta.errors.length > 0;
+                return (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name} className={hasError ? 'text-destructive' : ''}>
+                      Account Name *
+                    </Label>
+                    <Input
+                      id={field.name}
+                      placeholder="Cash and Cash Equivalents"
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                      className={
+                        hasError ? 'border-destructive focus-visible:ring-destructive' : ''
+                      }
+                      aria-invalid={hasError}
+                    />
+                    {hasError && (
+                      <p className="text-sm text-destructive">
+                        {field.state.meta.errors.map(getErrorMessage).join(', ')}
+                      </p>
+                    )}
+                  </div>
+                );
+              }}
             </form.Field>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <form.Field name="accountType">
-                {(field) => (
-                  <div className="space-y-2">
-                    <Label htmlFor={field.name}>Account Type *</Label>
-                    <Select
-                      value={field.state.value}
-                      onValueChange={(v) => field.handleChange(v as AccountFormData['accountType'])}
-                      disabled={formMode === 'edit'}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Asset">Asset</SelectItem>
-                        <SelectItem value="Liability">Liability</SelectItem>
-                        <SelectItem value="Equity">Equity</SelectItem>
-                        <SelectItem value="Revenue">Revenue</SelectItem>
-                        <SelectItem value="COGS">Cost of Goods Sold</SelectItem>
-                        <SelectItem value="Expense">Expense</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {formMode === 'edit' && (
-                      <p className="text-xs text-muted-foreground">
-                        Account type cannot be changed after creation
-                      </p>
-                    )}
-                  </div>
-                )}
+                {(field) => {
+                  const hasError = field.state.meta.isTouched && field.state.meta.errors.length > 0;
+                  return (
+                    <div className="space-y-2">
+                      <Label htmlFor={field.name} className={hasError ? 'text-destructive' : ''}>
+                        Account Type *
+                      </Label>
+                      <Select
+                        value={field.state.value}
+                        onValueChange={(v) =>
+                          field.handleChange(v as AccountFormData['accountType'])
+                        }
+                        disabled={formMode === 'edit'}
+                      >
+                        <SelectTrigger
+                          className={hasError ? 'border-destructive focus:ring-destructive' : ''}
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Asset">Asset</SelectItem>
+                          <SelectItem value="Liability">Liability</SelectItem>
+                          <SelectItem value="Equity">Equity</SelectItem>
+                          <SelectItem value="Revenue">Revenue</SelectItem>
+                          <SelectItem value="COGS">Cost of Goods Sold</SelectItem>
+                          <SelectItem value="Expense">Expense</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {formMode === 'edit' ? (
+                        <p className="text-xs text-muted-foreground">
+                          Account type cannot be changed after creation
+                        </p>
+                      ) : hasError ? (
+                        <p className="text-sm text-destructive">
+                          {field.state.meta.errors.map(getErrorMessage).join(', ')}
+                        </p>
+                      ) : null}
+                    </div>
+                  );
+                }}
               </form.Field>
 
               <form.Subscribe selector={(state) => state.values.code}>
@@ -664,7 +777,7 @@ function ChartOfAccountsPage() {
                   <Label htmlFor={field.name}>Parent Account</Label>
                   <Select
                     value={field.state.value || '__none__'}
-                    onValueChange={(v) => field.handleChange(v === '__none__' ? null : v)}
+                    onValueChange={(v) => field.handleChange(v === '__none__' ? '' : v)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="None (Top level)" />
@@ -686,72 +799,151 @@ function ChartOfAccountsPage() {
             </form.Field>
 
             <form.Field name="description">
-              {(field) => (
-                <div className="space-y-2">
-                  <Label htmlFor={field.name}>Description</Label>
-                  <Input
-                    id={field.name}
-                    placeholder="Account description"
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                  />
-                </div>
-              )}
+              {(field) => {
+                const hasError = field.state.meta.isTouched && field.state.meta.errors.length > 0;
+                return (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name}>Description</Label>
+                    <Input
+                      id={field.name}
+                      placeholder="Account description (optional)"
+                      value={field.state.value || ''}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                      className={
+                        hasError ? 'border-destructive focus-visible:ring-destructive' : ''
+                      }
+                      aria-invalid={hasError}
+                    />
+                    {hasError && (
+                      <p className="text-sm text-destructive">
+                        {field.state.meta.errors.map(getErrorMessage).join(', ')}
+                      </p>
+                    )}
+                  </div>
+                );
+              }}
             </form.Field>
 
             <Separator />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <form.Field name="isDetailAccount">
-                {(field) => (
-                  <div className="space-y-2">
-                    <Label>Account Level</Label>
-                    <div className="flex items-center gap-2 pt-2">
-                      <Checkbox
-                        id="isDetailAccount"
-                        checked={field.state.value}
-                        onCheckedChange={(checked) => field.handleChange(checked === true)}
-                      />
-                      <Label htmlFor="isDetailAccount" className="font-normal">
-                        Detail Account
-                      </Label>
+                {(field) => {
+                  const hasError = field.state.meta.isTouched && field.state.meta.errors.length > 0;
+                  return (
+                    <div className="space-y-2">
+                      <Label className={hasError ? 'text-destructive' : ''}>Account Level *</Label>
+                      <div className="flex items-center gap-2 pt-2">
+                        <Checkbox
+                          id="isDetailAccount"
+                          checked={field.state.value}
+                          onCheckedChange={(checked) => field.handleChange(checked === true)}
+                        />
+                        <Label htmlFor="isDetailAccount" className="font-normal">
+                          Detail Account
+                        </Label>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Only detail accounts can have transactions
+                      </p>
+                      {hasError && (
+                        <p className="text-sm text-destructive">
+                          {field.state.meta.errors.map(getErrorMessage).join(', ')}
+                        </p>
+                      )}
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Only detail accounts can have transactions
-                    </p>
-                  </div>
-                )}
+                  );
+                }}
               </form.Field>
 
               <form.Field name="status">
-                {(field) => (
-                  <div className="space-y-2">
-                    <Label htmlFor={field.name}>Status</Label>
-                    <Select
-                      value={field.state.value}
-                      onValueChange={(v) => field.handleChange(v as AccountFormData['status'])}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Active">Active</SelectItem>
-                        <SelectItem value="Inactive">Inactive</SelectItem>
-                        <SelectItem value="Archived">Archived</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+                {(field) => {
+                  const hasError = field.state.meta.isTouched && field.state.meta.errors.length > 0;
+                  return (
+                    <div className="space-y-2">
+                      <Label htmlFor={field.name} className={hasError ? 'text-destructive' : ''}>
+                        Status *
+                      </Label>
+                      <Select
+                        value={field.state.value}
+                        onValueChange={(v) => field.handleChange(v as AccountFormData['status'])}
+                      >
+                        <SelectTrigger
+                          className={hasError ? 'border-destructive focus:ring-destructive' : ''}
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Active">Active</SelectItem>
+                          <SelectItem value="Inactive">Inactive</SelectItem>
+                          <SelectItem value="Archived">Archived</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {hasError && (
+                        <p className="text-sm text-destructive">
+                          {field.state.meta.errors.map(getErrorMessage).join(', ')}
+                        </p>
+                      )}
+                    </div>
+                  );
+                }}
               </form.Field>
             </div>
+
+            <form.Field name="tags">
+              {(field) => {
+                const hasError = field.state.meta.isTouched && field.state.meta.errors.length > 0;
+                return (
+                  <div className="space-y-2">
+                    <Label htmlFor={field.name} className={hasError ? 'text-destructive' : ''}>
+                      Tags
+                    </Label>
+                    <Input
+                      id={field.name}
+                      placeholder="general, trading, restaurant"
+                      value={field.state.value.join(', ')}
+                      onChange={(e) => {
+                        const tags = e.target.value
+                          .split(',')
+                          .map((t) => t.trim())
+                          .filter((t) => t.length > 0);
+                        field.handleChange(tags);
+                      }}
+                      onBlur={field.handleBlur}
+                      className={
+                        hasError ? 'border-destructive focus-visible:ring-destructive' : ''
+                      }
+                      aria-invalid={hasError}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Comma-separated tags for categorization (e.g., general, trading, restaurant)
+                    </p>
+                    {hasError && (
+                      <p className="text-sm text-destructive">
+                        {field.state.meta.errors.map(getErrorMessage).join(', ')}
+                      </p>
+                    )}
+                    {field.state.value.length > 0 && (
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {field.state.value.map((tag) => (
+                          <Badge key={tag} variant="secondary" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              }}
+            </form.Field>
 
             <DrawerFooter className="px-0">
               <div className="flex flex-col sm:flex-row gap-2 w-full">
                 <Button
                   type="submit"
                   className="w-full sm:w-auto"
-                  disabled={form.state.isSubmitting || !form.state.canSubmit}
+                  disabled={form.state.isSubmitting}
                 >
                   {form.state.isSubmitting ? (
                     <>

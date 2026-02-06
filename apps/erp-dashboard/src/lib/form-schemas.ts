@@ -660,25 +660,58 @@ export type EmployeeFormData = z.infer<typeof employeeFormSchema>;
 // ACCOUNTING - CHART OF ACCOUNTS FORM SCHEMA
 // ============================================================================
 
-export const accountFormSchema = z.object({
-  code: z
-    .string()
-    .min(4, 'Account code must be 4 digits')
-    .max(4, 'Account code must be 4 digits')
-    .regex(/^\d{4}$/, 'Account code must be exactly 4 digits'),
-  name: z
-    .string()
-    .min(1, 'Account name is required')
-    .max(100, 'Name must be less than 100 characters'),
-  accountType: z.enum(['Asset', 'Liability', 'Equity', 'Revenue', 'COGS', 'Expense']),
-  // Note: accountCategory is auto-derived from code by backend (PSAK-compliant)
-  parentAccountId: z.string().optional().nullable(),
-  description: z.string().optional(),
-  taxType: z.string().optional(),
-  isDetailAccount: z.boolean().default(true),
-  status: z.enum(['Active', 'Inactive', 'Archived']).default('Active'),
-  currency: z.string().default('IDR'),
-});
+export const accountFormSchema = z
+  .object({
+    code: z
+      .string()
+      .min(4, 'Account code must be 4 digits')
+      .max(4, 'Account code must be 4 digits')
+      .regex(/^\d{4}$/, 'Account code must be exactly 4 digits'),
+    name: z
+      .string()
+      .min(1, 'Account name is required')
+      .min(2, 'Account name must be at least 2 characters')
+      .max(100, 'Name must be less than 100 characters'),
+    accountType: z.enum(['Asset', 'Liability', 'Equity', 'Revenue', 'COGS', 'Expense']),
+    // Note: accountCategory is auto-derived from code by backend (PSAK-compliant)
+    parentAccountId: z.string().optional().nullable(),
+    description: z.string().max(500, 'Description must be less than 500 characters').optional(),
+    taxType: z.string().max(50, 'Tax type must be less than 50 characters').optional(),
+    isDetailAccount: z.boolean().default(true),
+    status: z.enum(['Active', 'Inactive', 'Archived']).default('Active'),
+    currency: z.string().default('IDR'),
+    tags: z
+      .array(
+        z.string().min(1, 'Tag cannot be empty').max(30, 'Tag must be less than 30 characters')
+      )
+      .max(10, 'Maximum 10 tags allowed')
+      .default([]),
+  })
+  // Business Rule: Account code must match account type range (PSAK-compliant)
+  .refine(
+    (data) => {
+      const codeNum = Number.parseInt(data.code, 10);
+      if (Number.isNaN(codeNum)) return true; // Let regex validation handle invalid codes
+
+      const typeRanges: Record<string, [number, number]> = {
+        Asset: [1000, 1999],
+        Liability: [2000, 2999],
+        Equity: [3000, 3999],
+        Revenue: [4000, 4999],
+        COGS: [5000, 5399],
+        Expense: [6000, 8999],
+      };
+
+      const range = typeRanges[data.accountType];
+      if (!range) return true;
+
+      return codeNum >= range[0] && codeNum <= range[1];
+    },
+    {
+      message: 'Account code must match account type range (e.g., 1000-1999 for Asset)',
+      path: ['code'],
+    }
+  );
 
 export type AccountFormData = z.infer<typeof accountFormSchema>;
 

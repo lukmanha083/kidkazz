@@ -114,11 +114,13 @@ export function getAccountColumns(options: AccountColumnOptions = {}): ColumnDef
     },
     {
       accessorKey: 'isDetailAccount',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Level" />,
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Level" className="hidden md:table-cell" />
+      ),
       cell: ({ row }) => {
         const isDetail = row.getValue('isDetailAccount') as boolean;
         return (
-          <Badge variant={isDetail ? 'default' : 'secondary'}>
+          <Badge variant={isDetail ? 'default' : 'secondary'} className="hidden md:inline-flex">
             {isDetail ? 'Detail' : 'Header'}
           </Badge>
         );
@@ -126,7 +128,9 @@ export function getAccountColumns(options: AccountColumnOptions = {}): ColumnDef
     },
     {
       accessorKey: 'status',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Status" className="hidden sm:table-cell" />
+      ),
       cell: ({ row }) => {
         const status = row.getValue('status') as string;
         const variants: Record<string, 'default' | 'secondary' | 'outline'> = {
@@ -137,11 +141,11 @@ export function getAccountColumns(options: AccountColumnOptions = {}): ColumnDef
         return (
           <Badge
             variant={variants[status] || 'secondary'}
-            className={
+            className={`hidden sm:inline-flex ${
               status === 'Active'
                 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-500'
                 : ''
-            }
+            }`}
           >
             {status}
           </Badge>
@@ -154,19 +158,16 @@ export function getAccountColumns(options: AccountColumnOptions = {}): ColumnDef
     {
       accessorKey: 'tags',
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="Tags" className="hidden md:table-cell" />
+        <DataTableColumnHeader column={column} title="Tags" className="hidden xl:table-cell" />
       ),
       cell: ({ row }) => {
         const tags = row.original.tags || [];
-        if (tags.length === 0) return <span className="hidden md:inline text-muted-foreground">-</span>;
+        if (tags.length === 0)
+          return <span className="hidden xl:inline text-muted-foreground">-</span>;
         return (
-          <div className="hidden md:flex flex-wrap gap-1">
+          <div className="hidden xl:flex flex-wrap gap-1">
             {tags.slice(0, 2).map((tag) => (
-              <Badge
-                key={tag}
-                variant="outline"
-                className="text-xs px-1.5 py-0"
-              >
+              <Badge key={tag} variant="outline" className="text-xs px-1.5 py-0">
                 {tag}
               </Badge>
             ))}

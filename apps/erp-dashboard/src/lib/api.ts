@@ -1038,7 +1038,7 @@ export interface ChartOfAccount {
   currency?: string;
   normalBalance: 'Debit' | 'Credit';
   financialStatementType?: 'BALANCE_SHEET' | 'INCOME_STATEMENT';
-  tags: string[]; // Industry-specific tags (e.g., 'trading', 'restaurant', 'general')
+  tags?: string[]; // Industry-specific tags (e.g., 'trading', 'restaurant', 'general')
   createdAt: Date;
   updatedAt: Date;
 }
@@ -1267,11 +1267,7 @@ export const accountingApi = {
   // Reports
   reports: {
     incomeStatement: async (from: string, to: string): Promise<IncomeStatement> => {
-      return apiRequest(
-        `/api/reports/income-statement?from=${from}&to=${to}`,
-        {},
-        'accounting'
-      );
+      return apiRequest(`/api/reports/income-statement?from=${from}&to=${to}`, {}, 'accounting');
     },
 
     balanceSheet: async (asOf: string): Promise<BalanceSheet> => {

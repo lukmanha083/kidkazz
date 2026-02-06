@@ -78,10 +78,19 @@ export function useCreateAccount() {
 
   return useMutation({
     mutationFn: (data: AccountFormData) => {
+      // Derive normalBalance from accountType
+      const normalBalance: 'Debit' | 'Credit' = ['Asset', 'Expense', 'COGS'].includes(
+        data.accountType
+      )
+        ? 'Debit'
+        : 'Credit';
+
       // Convert null parentAccountId to undefined for API compatibility
       const apiData = {
         ...data,
         parentAccountId: data.parentAccountId ?? undefined,
+        normalBalance,
+        isSystemAccount: false,
       };
       return accountingApi.accounts.create(apiData);
     },

@@ -10,6 +10,8 @@
 // API base URLs for microservices
 const PRODUCT_SERVICE_URL = import.meta.env.VITE_PRODUCT_SERVICE_URL || 'http://localhost:8788';
 const INVENTORY_SERVICE_URL = import.meta.env.VITE_INVENTORY_SERVICE_URL || 'http://localhost:8792';
+const ACCOUNTING_SERVICE_URL =
+  import.meta.env.VITE_ACCOUNTING_SERVICE_URL || 'http://localhost:8794';
 
 /**
  * Send a validation GET request to the selected service and return the parsed uniqueness result.
@@ -24,12 +26,13 @@ const INVENTORY_SERVICE_URL = import.meta.env.VITE_INVENTORY_SERVICE_URL || 'htt
 async function validationRequest(
   endpoint: string,
   params: Record<string, string>,
-  service: 'product' | 'inventory' = 'product',
+  service: 'product' | 'inventory' | 'accounting' = 'product',
   signal?: AbortSignal
 ): Promise<{ isUnique: boolean }> {
   const baseUrls = {
     product: PRODUCT_SERVICE_URL,
     inventory: INVENTORY_SERVICE_URL,
+    accounting: ACCOUNTING_SERVICE_URL,
   };
 
   const url = new URL(`${baseUrls[service]}${endpoint}`);
@@ -139,6 +142,26 @@ export const validationApi = {
         excludeId: batchId || '',
       },
       'inventory',
+      signal
+    );
+    return response.isUnique;
+  },
+
+  /**
+   * Check if account code is unique
+   * @param code - The account code to validate
+   * @param accountId - Optional account ID to exclude from check (for edit mode)
+   * @param signal - Optional AbortSignal for request cancellation
+   */
+  checkAccountCodeUnique: async (
+    code: string,
+    accountId?: string,
+    signal?: AbortSignal
+  ): Promise<boolean> => {
+    const response = await validationRequest(
+      '/api/accounts/validate/code',
+      { code, excludeId: accountId || '' },
+      'accounting',
       signal
     );
     return response.isUnique;
