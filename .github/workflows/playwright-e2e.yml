@@ -1,22 +1,28 @@
 name: "Playwright E2E Tests"
 
+# NOTE: These E2E tests require access to production backend services which have
+# country-based IP filtering (Indonesia only). GitHub Actions runners are in the US,
+# so tests will fail unless run with a VPN or the IP filter is disabled.
+#
+# For now, this workflow only runs when manually triggered with workflow_dispatch.
+# Run locally with: cd apps/erp-dashboard && pnpm test:e2e
+
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'apps/erp-dashboard/**'
-      - '.github/workflows/playwright-e2e.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'apps/erp-dashboard/**'
-      - '.github/workflows/playwright-e2e.yml'
+  workflow_dispatch:
+    inputs:
+      run_tests:
+        description: 'Run E2E tests (requires backend access)'
+        required: true
+        default: 'true'
+        type: boolean
 
 jobs:
   e2e-tests:
     name: E2E Tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Only run if manually triggered
+    if: ${{ github.event.inputs.run_tests == 'true' }}
 
     defaults:
       run:
