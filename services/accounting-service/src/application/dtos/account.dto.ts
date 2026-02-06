@@ -113,7 +113,7 @@ export function toAccountResponse(account: {
     level: account.level,
     isDetailAccount: account.isDetailAccount,
     isSystemAccount: account.isSystemAccount,
-    tags: account.tags,
+    tags: account.tags ?? [],
     status: account.status,
     createdAt: account.createdAt.toISOString(),
     updatedAt: account.updatedAt.toISOString(),

@@ -74,6 +74,25 @@ accountRoutes.get('/tree', async (c) => {
 });
 
 /**
+ * GET /accounts/validate/code - Check if account code is unique
+ * Returns { isUnique: boolean } for real-time form validation
+ */
+accountRoutes.get('/validate/code', async (c) => {
+  const db = c.get('db');
+  const code = c.req.query('code');
+  const excludeId = c.req.query('excludeId');
+
+  if (!code) {
+    return c.json({ isUnique: true }); // Empty code is "unique" (will fail other validation)
+  }
+
+  const repository = new DrizzleAccountRepository(db);
+  const exists = await repository.codeExists(code, excludeId);
+
+  return c.json({ isUnique: !exists });
+});
+
+/**
  * GET /accounts/code/:code - Get account by code
  * NOTE: Must be registered BEFORE /:id to avoid route shadowing
  */

@@ -88,7 +88,10 @@ export class Account {
     this._level = props.level ?? 0;
     this._isDetailAccount = props.isDetailAccount;
     this._isSystemAccount = props.isSystemAccount;
-    this._tags = props.tags ?? [];
+    // Normalize tags: lowercase, trim, filter empty, deduplicate
+    this._tags = props.tags
+      ? [...new Set(props.tags.map((t) => t.toLowerCase().trim()).filter((t) => t.length > 0))]
+      : [];
     this._status = props.status ?? AccountStatus.ACTIVE;
     this._hasTransactions = false;
     this._createdAt = props.createdAt ?? new Date();
@@ -318,9 +321,10 @@ export class Account {
 
   /**
    * Set all tags (replaces existing)
+   * Normalizes: lowercase, trim, filter empty, deduplicate
    */
   setTags(tags: AccountTag[]): void {
-    this._tags = tags.map((t) => t.toLowerCase().trim());
+    this._tags = [...new Set(tags.map((t) => t.toLowerCase().trim()).filter((t) => t.length > 0))];
     this._updatedAt = new Date();
   }
 

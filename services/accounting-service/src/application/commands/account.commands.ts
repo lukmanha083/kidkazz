@@ -118,6 +118,13 @@ export interface UpdateAccountResult {
 
 /**
  * Update Account Handler
+ *
+ * With immutable journals, certain fields cannot be changed once transactions exist:
+ * - Account code: Journal entries reference this, changing would break audit trail
+ * - Account type: Affects debit/credit behavior (not editable via this command anyway)
+ *
+ * Fields that CAN be changed even with transactions:
+ * - Name, description, tags (cosmetic/metadata changes)
  */
 export class UpdateAccountHandler {
   constructor(private readonly accountRepository: IAccountRepository) {}
@@ -134,6 +141,16 @@ export class UpdateAccountHandler {
       if (account.isSystemAccount) {
         throw new Error('Cannot change code of system account');
       }
+
+      // CRITICAL: Cannot change code if account has transactions (immutable journal integrity)
+      const hasTransactions = await this.accountRepository.hasTransactions(account.id);
+      if (hasTransactions) {
+        throw new Error(
+          'Cannot change account code: account has existing transactions. ' +
+            'With immutable journals, changing the code would break the audit trail.'
+        );
+      }
+
       const codeExists = await this.accountRepository.codeExists(command.code, account.id);
       if (codeExists) {
         throw new Error(`Account code ${command.code} already exists`);

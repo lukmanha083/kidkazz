@@ -101,7 +101,13 @@ export class DrizzleAccountRepository implements IAccountRepository {
     if (filter?.tag) {
       // Filter by tag using LIKE on JSON array
       // e.g., tags = '["general", "restaurant"]' LIKE '%"restaurant"%'
-      conditions.push(like(chartOfAccounts.tags, `%"${filter.tag}"%`));
+      // Escape special characters to prevent LIKE injection
+      const escapedTag = filter.tag
+        .replace(/\\/g, '\\\\')
+        .replace(/%/g, '\\%')
+        .replace(/_/g, '\\_')
+        .replace(/"/g, '\\"');
+      conditions.push(like(chartOfAccounts.tags, `%"${escapedTag}"%`));
     }
 
     const query =
