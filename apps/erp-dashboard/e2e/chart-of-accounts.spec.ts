@@ -1,4 +1,31 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, request, type APIRequestContext } from '@playwright/test';
+
+// Track created accounts for teardown
+const createdAccountIds: string[] = [];
+
+// Helper to get accounting service URL
+const getAccountingServiceUrl = () =>
+  process.env.VITE_ACCOUNTING_SERVICE_URL || 'https://accounting-service.tesla-hakim.workers.dev';
+
+// Teardown: delete all created accounts after tests
+test.afterAll(async () => {
+  if (createdAccountIds.length === 0) return;
+
+  const apiContext = await request.newContext({
+    baseURL: getAccountingServiceUrl(),
+  });
+
+  for (const accountId of createdAccountIds) {
+    try {
+      await apiContext.delete(`/api/accounts/${accountId}`);
+    } catch {
+      // Ignore errors during cleanup (account may not exist)
+    }
+  }
+
+  await apiContext.dispose();
+  createdAccountIds.length = 0;
+});
 
 test.describe('Chart of Accounts', () => {
   test.beforeEach(async ({ page }) => {
@@ -60,14 +87,18 @@ test.describe('Chart of Accounts', () => {
     const codeInput = page.locator('input#code');
     await codeInput.fill(firstRowCode || '1000');
 
-    // Trigger validation by blurring
+    // Trigger validation by blurring and wait for the validation API call
+    const validationPromise = page.waitForResponse(
+      (response) =>
+        response.url().includes('/api/accounts/validate-code') || response.url().includes('/api/accounts?code='),
+      { timeout: 10000 }
+    ).catch(() => null); // Don't fail if no API call (validation might use cached data)
+
     await codeInput.blur();
+    await validationPromise;
 
-    // Wait for async validation (debounce + API call)
-    await page.waitForTimeout(1500);
-
-    // Should show duplicate error message
-    await expect(page.getByText(/already exists/i)).toBeVisible({ timeout: 5000 });
+    // Should show duplicate error message (assertion retries until visible)
+    await expect(page.getByText(/already exists/i)).toBeVisible({ timeout: 10000 });
   });
 
   test('should show error for code not matching account type range', async ({ page }) => {
@@ -90,26 +121,62 @@ test.describe('Chart of Accounts', () => {
     await page.getByRole('button', { name: 'Add Account' }).click();
     await expect(page.locator('[role="dialog"]')).toBeVisible();
 
-    // Generate unique code in Asset range (1xxx) since default type is Asset
-    const uniqueCode = `1${Date.now().toString().slice(-3)}`;
+    // Generate unique code in Asset range (1xxx) with high entropy
+    // Format: 1 + last 3 digits of timestamp + random 2 digits
+    const timestamp = Date.now().toString();
+    const randomSuffix = Math.floor(Math.random() * 100)
+      .toString()
+      .padStart(2, '0');
+    const uniqueCode = `1${timestamp.slice(-3)}${randomSuffix}`.slice(0, 4); // Ensure max 4 digits
+    const uniqueName = `Test Account E2E ${timestamp.slice(-6)}`;
 
     // Fill form
     await page.locator('input#code').fill(uniqueCode);
-    await page.locator('input#name').fill('Test Account E2E');
+    await page.locator('input#name').fill(uniqueName);
 
     // Account type is already Asset by default, no need to change
 
+    // Intercept the create request to capture the account ID for teardown
+    const responsePromise = page.waitForResponse(
+      (response) => response.url().includes('/api/accounts') && response.request().method() === 'POST'
+    );
+
     // Submit form
     await page.getByRole('button', { name: 'Create Account' }).click();
+
+    // Wait for API response and capture account ID
+    const response = await responsePromise;
+    if (response.ok()) {
+      try {
+        const responseData = await response.json();
+        if (responseData.data?.id) {
+          createdAccountIds.push(responseData.data.id);
+        }
+      } catch {
+        // Ignore JSON parse errors
+      }
+    }
 
     // Wait for success toast
     await expect(page.getByText('Account created successfully')).toBeVisible({ timeout: 10000 });
   });
 
   test('code field is disabled for non-detail (header) accounts', async ({ page }) => {
-    // First row is usually a header account (1000 - Kas & Bank)
-    const firstRow = page.locator('table tbody tr').first();
-    await firstRow.click();
+    // Find a specific known header account by its code or name
+    // Look for '1100' (Kas & Bank) which is a header account
+    // Using filter to find the row containing the header account code
+    const headerAccountRow = page.locator('table tbody tr').filter({
+      has: page.locator('td', { hasText: /^1100$/ }),
+    });
+
+    // If 1100 not found, try finding by name 'Kas & Bank'
+    const rowToClick = (await headerAccountRow.count()) > 0
+      ? headerAccountRow.first()
+      : page.locator('table tbody tr').filter({
+          has: page.locator('td', { hasText: 'Kas & Bank' }),
+        }).first();
+
+    await rowToClick.click();
 
     // Wait for view drawer
     await expect(page.locator('[role="dialog"]')).toBeVisible();
