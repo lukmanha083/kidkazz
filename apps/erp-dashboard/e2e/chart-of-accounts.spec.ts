@@ -93,17 +93,17 @@ test.describe('Chart of Accounts', () => {
   });
 
   test('should open view drawer on row click', async ({ page }) => {
-    // Click on first row - use force click to ensure it works in headless
-    const firstRow = page.locator('table tbody tr').first();
-    await firstRow.click({ force: true });
+    // Click on first row's name cell (first td) to avoid hitting actions button
+    const firstRowNameCell = page.locator('table tbody tr').first().locator('td').first();
+    await firstRowNameCell.click();
 
     // View drawer should open - wait for drawer dialog (longer timeout for CI)
     await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 10000 });
   });
 
   test('should display tags section in view drawer', async ({ page }) => {
-    // Click first row - use force click to ensure it works in headless
-    await page.locator('table tbody tr').first().click({ force: true });
+    // Click first row's name cell to avoid hitting actions button
+    await page.locator('table tbody tr').first().locator('td').first().click();
 
     // Drawer should be visible (wait longer for animation)
     await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 10000 });
@@ -221,7 +221,8 @@ test.describe('Chart of Accounts', () => {
           has: page.locator('td', { hasText: 'Kas & Bank' }),
         }).first();
 
-    await rowToClick.click({ force: true });
+    // Click on the name cell to avoid hitting actions button
+    await rowToClick.locator('td').first().click();
 
     // Wait for view drawer (longer timeout for CI)
     await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 10000 });
@@ -276,8 +277,8 @@ test.describe('Chart of Accounts - Responsive Design', () => {
     await page.goto('/dashboard/accounting/chart-of-accounts');
     await expect(page.locator('table tbody tr').first()).toBeVisible({ timeout: 15000 });
 
-    // Click first row to open view drawer - use force click for headless
-    await page.locator('table tbody tr').first().click({ force: true });
+    // Click first row's name cell to avoid hitting actions button
+    await page.locator('table tbody tr').first().locator('td').first().click();
 
     // Drawer should be visible with Tags section (longer timeout for CI)
     await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 10000 });
