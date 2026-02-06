@@ -25,6 +25,7 @@ framework:
   buildTool: Vite 5.4.21
   testFramework: Vitest 2.1.9
 docs:
+  async-validation-pattern: docs/bounded-contexts/erp-dashboard/ASYNC_VALIDATION_PATTERN.md
   audit-trail: docs/bounded-contexts/erp-dashboard/AUDIT_TRAIL.md
   dashboard-structure: docs/bounded-contexts/erp-dashboard/DASHBOARD_STRUCTURE.md
   readme: docs/bounded-contexts/erp-dashboard/README.md
@@ -63,6 +64,8 @@ routes:
   dashboard-accounting-chart-of-accounts:
     path: /dashboard/accounting/chart-of-accounts
     file: src/routes/dashboard/accounting/chart-of-accounts.tsx
+    services: [accounting-service]
+    queries: [useAccounts]
   dashboard-accounting-general-ledger:
     path: /dashboard/accounting/general-ledger
     file: src/routes/dashboard/accounting/general-ledger.tsx
@@ -172,6 +175,26 @@ routes:
     path: 
     file: src/routes/index.tsx
 queryHooks:
+  useAccounts:
+    file: src/hooks/queries/useAccounts.ts
+    service: accounting-service
+    queryKey: [accounts]
+  useActiveAccounts:
+    file: src/hooks/queries/useAccounts.ts
+    service: accounting-service
+    queryKey: [activeaccounts]
+  useAccount:
+    file: src/hooks/queries/useAccounts.ts
+    queryKey: [account]
+  useCreateAccount:
+    file: src/hooks/queries/useAccounts.ts
+    queryKey: [createaccount]
+  useUpdateAccount:
+    file: src/hooks/queries/useAccounts.ts
+    queryKey: [updateaccount]
+  useDeleteAccount:
+    file: src/hooks/queries/useAccounts.ts
+    queryKey: [deleteaccount]
   useBatches:
     file: src/hooks/queries/useBatches.ts
     service: inventory-service
@@ -356,6 +379,27 @@ queryHooks:
     queryKey: [deletewarehouse]
     realtime: true
 mutationHooks:
+  useCreateAccount:
+    file: src/hooks/queries/useAccounts.ts
+    service: accounting-service
+    endpoint: POST /api/...
+    invalidates:
+      - [account]
+    optimisticUpdate: true
+  useUpdateAccount:
+    file: src/hooks/queries/useAccounts.ts
+    service: accounting-service
+    endpoint: PUT /api/...
+    invalidates:
+      - [account]
+    optimisticUpdate: true
+  useDeleteAccount:
+    file: src/hooks/queries/useAccounts.ts
+    service: accounting-service
+    endpoint: DELETE /api/...
+    invalidates:
+      - [account]
+    optimisticUpdate: true
   useCreateBatch:
     file: src/hooks/queries/useBatches.ts
     service: inventory-service
@@ -577,6 +621,8 @@ components:
       features: [virtualization, large-datasets]
       dependencies: [@tanstack/react-table, @tanstack/react-virtual]
   columnDefinitions:
+    account:
+      file: src/components/ui/data-table/columns/account-columns.tsx
     batch:
       file: src/components/ui/data-table/columns/batch-columns.tsx
     bundle:
