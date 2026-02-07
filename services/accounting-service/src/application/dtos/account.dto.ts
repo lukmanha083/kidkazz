@@ -49,7 +49,7 @@ export const listAccountsQuerySchema = z.object({
     .transform((v) => v === 'true')
     .optional(),
   search: z.string().optional(),
-  tag: z.string().max(50).optional(),
+  tag: z.string().min(1).max(50).optional(),
 });
 
 export type ListAccountsQueryParams = z.infer<typeof listAccountsQuerySchema>;

@@ -698,7 +698,7 @@ export const accountFormSchema = z
         Liability: [2000, 2999],
         Equity: [3000, 3999],
         Revenue: [4000, 4999],
-        COGS: [5000, 5999],
+        COGS: [5000, 5399],
         Expense: [6000, 8999],
       };
 
@@ -713,7 +713,7 @@ export const accountFormSchema = z
         data.accountType === 'Liability' ? '2000-2999' :
         data.accountType === 'Equity' ? '3000-3999' :
         data.accountType === 'Revenue' ? '4000-4999' :
-        data.accountType === 'COGS' ? '5000-5999' :
+        data.accountType === 'COGS' ? '5000-5399' :
         data.accountType === 'Expense' ? '6000-8999' : 'valid range'
       } for ${data.accountType} accounts`,
       path: ['code'],

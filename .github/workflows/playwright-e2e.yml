@@ -59,16 +59,17 @@ jobs:
           # TEMPORARY: CI bypass secret to bypass country-based IP filtering
           # Remove when backend auth is implemented (see docs/guides/CI_BYPASS_HEADER.md)
           CI_BYPASS_SECRET: ${{ secrets.CI_BYPASS_SECRET }}
-          # Backend service URLs
-          VITE_API_GATEWAY_URL: https://api-gateway.tesla-hakim.workers.dev
-          VITE_ACCOUNTING_SERVICE_URL: https://accounting-service.tesla-hakim.workers.dev
-          VITE_PRODUCT_SERVICE_URL: https://product-service.tesla-hakim.workers.dev
-          VITE_INVENTORY_SERVICE_URL: https://inventory-service.tesla-hakim.workers.dev
-          VITE_BUSINESS_PARTNER_SERVICE_URL: https://business-partner-service.tesla-hakim.workers.dev
-          VITE_ORDER_SERVICE_URL: https://order-service.tesla-hakim.workers.dev
-          VITE_PAYMENT_SERVICE_URL: https://payment-service.tesla-hakim.workers.dev
-          VITE_SHIPPING_SERVICE_URL: https://shipping-service.tesla-hakim.workers.dev
-          VITE_WEBSOCKET_URL: wss://inventory-service.tesla-hakim.workers.dev/ws
+          # Backend service URLs (use secrets so staging/test URLs can be swapped without code changes)
+          # Set these in GitHub Settings > Secrets > Actions. Falls back to production if not set.
+          VITE_API_GATEWAY_URL: ${{ secrets.VITE_API_GATEWAY_URL || 'https://api-gateway.tesla-hakim.workers.dev' }}
+          VITE_ACCOUNTING_SERVICE_URL: ${{ secrets.VITE_ACCOUNTING_SERVICE_URL || 'https://accounting-service.tesla-hakim.workers.dev' }}
+          VITE_PRODUCT_SERVICE_URL: ${{ secrets.VITE_PRODUCT_SERVICE_URL || 'https://product-service.tesla-hakim.workers.dev' }}
+          VITE_INVENTORY_SERVICE_URL: ${{ secrets.VITE_INVENTORY_SERVICE_URL || 'https://inventory-service.tesla-hakim.workers.dev' }}
+          VITE_BUSINESS_PARTNER_SERVICE_URL: ${{ secrets.VITE_BUSINESS_PARTNER_SERVICE_URL || 'https://business-partner-service.tesla-hakim.workers.dev' }}
+          VITE_ORDER_SERVICE_URL: ${{ secrets.VITE_ORDER_SERVICE_URL || 'https://order-service.tesla-hakim.workers.dev' }}
+          VITE_PAYMENT_SERVICE_URL: ${{ secrets.VITE_PAYMENT_SERVICE_URL || 'https://payment-service.tesla-hakim.workers.dev' }}
+          VITE_SHIPPING_SERVICE_URL: ${{ secrets.VITE_SHIPPING_SERVICE_URL || 'https://shipping-service.tesla-hakim.workers.dev' }}
+          VITE_WEBSOCKET_URL: ${{ secrets.VITE_WEBSOCKET_URL || 'wss://inventory-service.tesla-hakim.workers.dev/ws' }}
           CI: true
 
       - name: Upload Playwright report

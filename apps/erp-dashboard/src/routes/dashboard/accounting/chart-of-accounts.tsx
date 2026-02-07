@@ -158,6 +158,14 @@ function ChartOfAccountsPage() {
       onBlur: createFormValidator(accountFormSchema),
     },
     onSubmit: async ({ value }) => {
+      // Block submit if async code validation is still in-flight
+      if (formMode === 'add' && codeValidation.isValidating) {
+        toast.error('Validation in progress', {
+          description: 'Please wait for code validation to complete.',
+        });
+        return;
+      }
+
       // Check async validation for code uniqueness in add mode
       if (formMode === 'add' && codeValidation.isValid === false) {
         toast.error('Account code already exists', {
@@ -947,12 +955,12 @@ function ChartOfAccountsPage() {
                 <Button
                   type="submit"
                   className="w-full sm:w-auto"
-                  disabled={form.state.isSubmitting}
+                  disabled={form.state.isSubmitting || codeValidation.isValidating}
                 >
-                  {form.state.isSubmitting ? (
+                  {form.state.isSubmitting || codeValidation.isValidating ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      {formMode === 'add' ? 'Creating...' : 'Updating...'}
+                      {codeValidation.isValidating ? 'Validating...' : formMode === 'add' ? 'Creating...' : 'Updating...'}
                     </>
                   ) : formMode === 'add' ? (
                     'Create Account'

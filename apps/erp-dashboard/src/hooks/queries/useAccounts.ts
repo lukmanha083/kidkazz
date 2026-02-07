@@ -99,36 +99,50 @@ export function useCreateAccount() {
     onMutate: async (newAccount) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.accounts.all });
 
-      const previousData = queryClient.getQueryData<{ accounts: ChartOfAccount[] }>(
-        queryKeys.accounts.lists()
-      );
+      // Snapshot all matching list queries for rollback
+      const previousQueries = queryClient.getQueriesData<{ accounts: ChartOfAccount[] }>({
+        queryKey: queryKeys.accounts.lists(),
+      });
 
-      // Create optimistic account with temporary ID
+      // Create optimistic account with all required ChartOfAccount fields
       const optimisticAccount: ChartOfAccount = {
-        ...newAccount,
         id: `temp-${Date.now()}`,
+        code: newAccount.code,
+        name: newAccount.name,
+        accountType: newAccount.accountType,
+        parentAccountId: newAccount.parentAccountId || null,
+        description: newAccount.description,
+        taxType: newAccount.taxType,
         isSystemAccount: false,
+        isDetailAccount: newAccount.isDetailAccount,
+        level: 1,
+        status: newAccount.status,
+        currency: newAccount.currency,
         normalBalance: ['Asset', 'Expense', 'COGS'].includes(newAccount.accountType)
           ? 'Debit'
           : 'Credit',
+        financialStatementType: ['Asset', 'Liability', 'Equity'].includes(newAccount.accountType)
+          ? 'BALANCE_SHEET'
+          : 'INCOME_STATEMENT',
+        tags: newAccount.tags || [],
         createdAt: new Date(),
         updatedAt: new Date(),
-      } as ChartOfAccount;
+      };
 
-      // Update cache
-      queryClient.setQueryData<{ accounts: ChartOfAccount[] }>(
-        queryKeys.accounts.lists(),
+      // Update all matching list cache entries (filtered and unfiltered)
+      queryClient.setQueriesData<{ accounts: ChartOfAccount[] }>(
+        { queryKey: queryKeys.accounts.lists() },
         (old) => {
           if (!old) return { accounts: [optimisticAccount] };
-          return {
-            accounts: [...old.accounts, optimisticAccount],
-          };
+          return { accounts: [...old.accounts, optimisticAccount] };
         }
       );
 
       return {
         rollback: () => {
-          queryClient.setQueryData(queryKeys.accounts.lists(), previousData);
+          for (const [key, data] of previousQueries) {
+            queryClient.setQueryData(key, data);
+          }
         },
       };
     },
@@ -171,13 +185,16 @@ export function useUpdateAccount() {
     onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.accounts.all });
 
-      const previousAccounts = queryClient.getQueryData(queryKeys.accounts.lists());
+      // Snapshot all matching list queries for rollback
+      const previousQueries = queryClient.getQueriesData<{ accounts: ChartOfAccount[] }>({
+        queryKey: queryKeys.accounts.lists(),
+      });
       const previousAccount = queryClient.getQueryData(queryKeys.accounts.detail(id));
 
-      // Update list cache
-      queryClient.setQueryData(
-        queryKeys.accounts.lists(),
-        (old: { accounts: ChartOfAccount[] } | undefined) => {
+      // Update all matching list cache entries
+      queryClient.setQueriesData<{ accounts: ChartOfAccount[] }>(
+        { queryKey: queryKeys.accounts.lists() },
+        (old) => {
           if (!old) return old;
           return {
             accounts: old.accounts.map((a) =>
@@ -196,12 +213,14 @@ export function useUpdateAccount() {
         }
       );
 
-      return { previousAccounts, previousAccount };
+      return { previousQueries, previousAccount };
     },
 
     onError: (_err, { id }, context) => {
-      if (context?.previousAccounts) {
-        queryClient.setQueryData(queryKeys.accounts.lists(), context.previousAccounts);
+      if (context?.previousQueries) {
+        for (const [key, data] of context.previousQueries) {
+          queryClient.setQueryData(key, data);
+        }
       }
       if (context?.previousAccount) {
         queryClient.setQueryData(queryKeys.accounts.detail(id), context.previousAccount);
@@ -235,13 +254,16 @@ export function useDeleteAccount() {
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: queryKeys.accounts.all });
 
-      const previousAccounts = queryClient.getQueryData(queryKeys.accounts.lists());
+      // Snapshot all matching list queries for rollback
+      const previousQueries = queryClient.getQueriesData<{ accounts: ChartOfAccount[] }>({
+        queryKey: queryKeys.accounts.lists(),
+      });
       const previousDetail = queryClient.getQueryData(queryKeys.accounts.detail(id));
 
-      // Remove from list cache
-      queryClient.setQueryData(
-        queryKeys.accounts.lists(),
-        (old: { accounts: ChartOfAccount[] } | undefined) => {
+      // Remove from all matching list cache entries
+      queryClient.setQueriesData<{ accounts: ChartOfAccount[] }>(
+        { queryKey: queryKeys.accounts.lists() },
+        (old) => {
           if (!old) return old;
           return {
             accounts: old.accounts.filter((a) => a.id !== id),
@@ -254,12 +276,14 @@ export function useDeleteAccount() {
         queryKey: queryKeys.accounts.detail(id),
       });
 
-      return { previousAccounts, previousDetail, deletedId: id };
+      return { previousQueries, previousDetail, deletedId: id };
     },
 
     onError: (_err, _id, context) => {
-      if (context?.previousAccounts) {
-        queryClient.setQueryData(queryKeys.accounts.lists(), context.previousAccounts);
+      if (context?.previousQueries) {
+        for (const [key, data] of context.previousQueries) {
+          queryClient.setQueryData(key, data);
+        }
       }
       if (context?.previousDetail && context?.deletedId) {
         queryClient.setQueryData(queryKeys.accounts.detail(context.deletedId), context.previousDetail);

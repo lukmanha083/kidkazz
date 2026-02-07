@@ -49,7 +49,9 @@ test.beforeEach(async ({ page }) => {
 test.afterAll(async () => {
   if (createdAccountIds.length === 0) return;
 
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = {
+    'cf-ipcountry': 'ID', // Required by backend IP filter
+  };
   if (CI_BYPASS_SECRET) {
     headers['x-ci-bypass'] = CI_BYPASS_SECRET;
   }
