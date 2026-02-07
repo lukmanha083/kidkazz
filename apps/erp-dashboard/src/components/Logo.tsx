@@ -33,23 +33,22 @@ export function Logo({
         aria-label="Kidkazz logo"
         role="img"
       >
-        {/* Black background - no border */}
-        <rect width="80" height="80" fill="#000000" rx="0" />
+        {/* Transparent background - K letter uses currentColor for theme support */}
 
         {/* Left vertical bar */}
-        <rect x="8" y="8" width="11" height="64" fill="white" />
+        <rect x="8" y="8" width="11" height="64" fill="currentColor" />
 
         {/* Top arm */}
-        <rect x="21" y="8" width="51" height="11" fill="white" />
+        <rect x="21" y="8" width="51" height="11" fill="currentColor" />
 
         {/* Middle connecting piece */}
-        <rect x="21" y="31" width="20" height="11" fill="white" />
+        <rect x="21" y="31" width="20" height="11" fill="currentColor" />
 
         {/* Bottom arm lower part */}
-        <rect x="43" y="61" width="29" height="11" fill="white" />
+        <rect x="43" y="61" width="29" height="11" fill="currentColor" />
 
         {/* Bottom arm upper part */}
-        <rect x="43" y="43" width="20" height="16" fill="white" />
+        <rect x="43" y="43" width="20" height="16" fill="currentColor" />
       </svg>
 
       {/* Brand Text */}
@@ -82,23 +81,22 @@ export function LogoIcon({ size = 32, className = '' }: { size?: number; classNa
       aria-label="Kidkazz logo"
       role="img"
     >
-      {/* Black background - no border */}
-      <rect width="80" height="80" fill="#000000" rx="0" />
+      {/* Transparent background - K letter uses currentColor for theme support */}
 
       {/* Left vertical bar */}
-      <rect x="8" y="8" width="11" height="64" fill="white" />
+      <rect x="8" y="8" width="11" height="64" fill="currentColor" />
 
       {/* Top arm */}
-      <rect x="21" y="8" width="51" height="11" fill="white" />
+      <rect x="21" y="8" width="51" height="11" fill="currentColor" />
 
       {/* Middle connecting piece */}
-      <rect x="21" y="31" width="20" height="11" fill="white" />
+      <rect x="21" y="31" width="20" height="11" fill="currentColor" />
 
       {/* Bottom arm lower part */}
-      <rect x="43" y="61" width="29" height="11" fill="white" />
+      <rect x="43" y="61" width="29" height="11" fill="currentColor" />
 
       {/* Bottom arm upper part */}
-      <rect x="43" y="43" width="20" height="16" fill="white" />
+      <rect x="43" y="43" width="20" height="16" fill="currentColor" />
     </svg>
   );
 }
