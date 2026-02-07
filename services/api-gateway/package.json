@@ -15,7 +15,7 @@
     "check:fix": "biome check --write ."
   },
   "dependencies": {
-    "hono": "^4.11.7"
+    "hono": "^4.11.8"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260131.0",
