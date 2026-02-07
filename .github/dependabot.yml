@@ -28,6 +28,10 @@ updates:
         patterns:
           - "vitest*"
           - "@vitest/*"
+      shadcn:
+        patterns:
+          - "shadcn*"
+          - "@modelcontextprotocol/*"
     # Version locks - preserve these to avoid breaking changes
     ignore:
       - dependency-name: "zod"
