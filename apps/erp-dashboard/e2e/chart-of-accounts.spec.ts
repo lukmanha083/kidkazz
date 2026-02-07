@@ -93,17 +93,16 @@ test.describe('Chart of Accounts', () => {
   });
 
   test('should open view drawer on row click', async ({ page }) => {
-    // Click on first row's name cell (first td) to avoid hitting actions button
-    const firstRowNameCell = page.locator('table tbody tr').first().locator('td').first();
-    await firstRowNameCell.click();
+    // Click on the account name text directly (more reliable than positional td)
+    await page.locator('table tbody tr').first().getByText('Kas & Bank').click();
 
     // View drawer should open - wait for drawer dialog (longer timeout for CI)
     await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 10000 });
   });
 
   test('should display tags section in view drawer', async ({ page }) => {
-    // Click first row's name cell to avoid hitting actions button
-    await page.locator('table tbody tr').first().locator('td').first().click();
+    // Click on the account name text directly
+    await page.locator('table tbody tr').first().getByText('Kas & Bank').click();
 
     // Drawer should be visible (wait longer for animation)
     await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 10000 });
@@ -157,8 +156,8 @@ test.describe('Chart of Accounts', () => {
     await codeInput.fill('2001');
     await codeInput.blur();
 
-    // Should show range error (message: "Account code must match account type range")
-    await expect(page.getByText(/must match account type range/i)).toBeVisible({ timeout: 5000 });
+    // Should show range error (message: "Account code must be between 1000-1999 for Asset accounts")
+    await expect(page.getByText(/must be between.*for Asset/i)).toBeVisible({ timeout: 5000 });
   });
 
   test('should create account successfully', async ({ page }) => {
@@ -207,22 +206,10 @@ test.describe('Chart of Accounts', () => {
   });
 
   test('code field is disabled for non-detail (header) accounts', async ({ page }) => {
-    // Find a specific known header account by its code or name
-    // Look for '1100' (Kas & Bank) which is a header account
-    // Using filter to find the row containing the header account code
-    const headerAccountRow = page.locator('table tbody tr').filter({
-      has: page.locator('td', { hasText: /^1100$/ }),
-    });
-
-    // If 1100 not found, try finding by name 'Kas & Bank'
-    const rowToClick = (await headerAccountRow.count()) > 0
-      ? headerAccountRow.first()
-      : page.locator('table tbody tr').filter({
-          has: page.locator('td', { hasText: 'Kas & Bank' }),
-        }).first();
-
-    // Click on the name cell to avoid hitting actions button
-    await rowToClick.locator('td').first().click();
+    // Click on a known header account (Kas & Bank, code 1000) by its name text
+    await page.locator('table tbody tr').filter({
+      hasText: 'Kas & Bank',
+    }).first().getByText('Kas & Bank').click();
 
     // Wait for view drawer (longer timeout for CI)
     await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 10000 });
@@ -277,8 +264,8 @@ test.describe('Chart of Accounts - Responsive Design', () => {
     await page.goto('/dashboard/accounting/chart-of-accounts');
     await expect(page.locator('table tbody tr').first()).toBeVisible({ timeout: 15000 });
 
-    // Click first row's name cell to avoid hitting actions button
-    await page.locator('table tbody tr').first().locator('td').first().click();
+    // Click on the account name text directly
+    await page.locator('table tbody tr').first().getByText('Kas & Bank').click();
 
     // Drawer should be visible with Tags section (longer timeout for CI)
     await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 10000 });
