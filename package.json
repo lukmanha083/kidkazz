@@ -44,7 +44,7 @@
     "@vitest/coverage-v8": "^2.1.9",
     "better-sqlite3": "^12.6.2",
     "drizzle-orm": "^0.45.1",
-    "shadcn": "^3.8.2",
+    "shadcn": "^3.8.4",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^2.1.9"
