@@ -167,13 +167,13 @@ test.describe('Chart of Accounts', () => {
     await page.getByRole('button', { name: 'Add Account' }).click();
     await expect(page.locator('[role="dialog"]')).toBeVisible();
 
-    // Generate unique code in Asset range (1xxx) with high entropy
-    // Format: 1 + last 3 digits of timestamp + random 2 digits
+    // Generate unique 4-digit code in Asset range (1xxx)
+    // Format: 1 + 1 timestamp digit + 2 random digits
     const timestamp = Date.now().toString();
     const randomSuffix = Math.floor(Math.random() * 100)
       .toString()
       .padStart(2, '0');
-    const uniqueCode = `1${timestamp.slice(-3)}${randomSuffix}`.slice(0, 4); // Ensure max 4 digits
+    const uniqueCode = `1${timestamp.slice(-1)}${randomSuffix}`;
     const uniqueName = `Test Account E2E ${timestamp.slice(-6)}`;
 
     // Fill form
