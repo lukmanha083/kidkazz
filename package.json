@@ -40,7 +40,7 @@
   ],
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
-    "@types/node": "^24.10.9",
+    "@types/node": "^22.19.9",
     "@vitest/coverage-v8": "^2.1.9",
     "better-sqlite3": "^12.6.2",
     "drizzle-orm": "^0.45.1",
