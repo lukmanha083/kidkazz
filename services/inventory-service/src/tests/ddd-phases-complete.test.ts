@@ -12,7 +12,7 @@
  * Phase 6: Testing & Validation
  */
 
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   db,

@@ -191,4 +191,15 @@ export const queryKeys = {
     details: () => [...queryKeys.employees.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.employees.details(), id] as const,
   },
+
+  // Accounting - Chart of Accounts
+  accounts: {
+    all: ['accounts'] as const,
+    lists: () => [...queryKeys.accounts.all, 'list'] as const,
+    list: (filters?: { type?: string; status?: string }) =>
+      [...queryKeys.accounts.lists(), filters] as const,
+    active: () => [...queryKeys.accounts.all, 'active'] as const,
+    details: () => [...queryKeys.accounts.all, 'detail'] as const,
+    detail: (id: string) => [...queryKeys.accounts.details(), id] as const,
+  },
 } as const;

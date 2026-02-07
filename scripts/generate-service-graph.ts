@@ -524,7 +524,6 @@ function generateServiceGraph(): ServiceGraph {
   // ============================================================================
 
   const allDocs = findDocs(DOCS_DIR);
-  graph.docIndex.total = allDocs.length;
 
   for (const doc of allDocs) {
     const relativePath = path.relative(ROOT_DIR, doc);
@@ -542,6 +541,12 @@ function generateServiceGraph(): ServiceGraph {
       graph.docIndex.byTopic.testing.push(relativePath);
     }
   }
+
+  // Count unique docs across all topic arrays
+  const uniqueDocs = new Set(
+    Object.values(graph.docIndex.byTopic).flat()
+  );
+  graph.docIndex.total = uniqueDocs.size;
 
   return graph;
 }

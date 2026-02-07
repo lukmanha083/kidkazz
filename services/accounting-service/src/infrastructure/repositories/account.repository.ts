@@ -92,10 +92,24 @@ export class DrizzleAccountRepository implements IAccountRepository {
     }
 
     if (filter?.search) {
-      // Escape LIKE wildcards to prevent injection
-      // Must escape backslashes first, then LIKE wildcards
-      const escapedSearch = filter.search.replace(/\\/g, '\\\\').replace(/[%_]/g, '\\$&');
-      conditions.push(like(chartOfAccounts.name, `%${escapedSearch}%`));
+      // Escape LIKE wildcards with explicit ESCAPE clause for SQLite
+      const escapedSearch = filter.search
+        .replace(/\\/g, '\\\\')
+        .replace(/%/g, '\\%')
+        .replace(/_/g, '\\_');
+      const pattern = `%${escapedSearch}%`;
+      conditions.push(sql`${chartOfAccounts.name} LIKE ${pattern} ESCAPE '\\'`);
+    }
+
+    if (filter?.tag) {
+      // Filter by tag using LIKE on JSON array with explicit ESCAPE clause
+      // e.g., tags = '["general", "restaurant"]' LIKE '%"restaurant"%'
+      const escapedTag = filter.tag
+        .replace(/\\/g, '\\\\')
+        .replace(/%/g, '\\%')
+        .replace(/_/g, '\\_');
+      const pattern = `%"${escapedTag}"%`;
+      conditions.push(sql`${chartOfAccounts.tags} LIKE ${pattern} ESCAPE '\\'`);
     }
 
     const query =
@@ -141,6 +155,9 @@ export class DrizzleAccountRepository implements IAccountRepository {
       .where(eq(chartOfAccounts.id, account.id))
       .limit(1);
 
+    // Serialize tags to JSON
+    const tagsJson = JSON.stringify(account.tags);
+
     if (existing.length > 0) {
       // Update
       await this.db
@@ -158,6 +175,7 @@ export class DrizzleAccountRepository implements IAccountRepository {
           level: account.level,
           isDetailAccount: account.isDetailAccount,
           isSystemAccount: account.isSystemAccount,
+          tags: tagsJson,
           status: account.status,
           updatedAt: now,
           updatedBy: account.updatedBy || null,
@@ -179,6 +197,7 @@ export class DrizzleAccountRepository implements IAccountRepository {
         level: account.level,
         isDetailAccount: account.isDetailAccount,
         isSystemAccount: account.isSystemAccount,
+        tags: tagsJson,
         status: account.status,
         createdAt: now,
         updatedAt: now,
@@ -222,6 +241,14 @@ export class DrizzleAccountRepository implements IAccountRepository {
    * Convert database record to domain entity
    */
   private toDomain(row: typeof chartOfAccounts.$inferSelect): Account {
+    // Parse tags from JSON string
+    let tags: string[] = [];
+    try {
+      tags = row.tags ? JSON.parse(row.tags) : [];
+    } catch {
+      tags = [];
+    }
+
     return Account.fromPersistence({
       id: row.id,
       code: row.code,
@@ -236,6 +263,7 @@ export class DrizzleAccountRepository implements IAccountRepository {
       level: row.level,
       isDetailAccount: row.isDetailAccount,
       isSystemAccount: row.isSystemAccount,
+      tags,
       status: row.status as AccountStatus,
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.updatedAt),

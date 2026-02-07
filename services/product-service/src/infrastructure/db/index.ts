@@ -52,6 +52,8 @@ sqlite.exec(`
     gl_segment1 TEXT,
     gl_segment2 TEXT,
     gl_segment3 TEXT,
+    deleted_at INTEGER,
+    deleted_by TEXT,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
     created_by TEXT,

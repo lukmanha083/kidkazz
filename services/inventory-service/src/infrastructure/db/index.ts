@@ -113,6 +113,8 @@ sqlite.exec(`
     recall_reason TEXT,
     version INTEGER DEFAULT 1,
     last_modified_at TEXT,
+    deleted_at INTEGER,
+    deleted_by TEXT,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
     created_by TEXT,

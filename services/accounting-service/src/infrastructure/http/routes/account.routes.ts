@@ -47,6 +47,7 @@ accountRoutes.get('/', zValidator('query', listAccountsQuerySchema), async (c) =
     isDetailAccount: query.isDetailAccount,
     isSystemAccount: query.isSystemAccount,
     search: query.search,
+    tag: query.tag,
   });
 
   return c.json({
@@ -70,6 +71,25 @@ accountRoutes.get('/tree', async (c) => {
     success: true,
     data: accounts.map(toAccountResponse),
   });
+});
+
+/**
+ * GET /accounts/validate/code - Check if account code is unique
+ * Returns { isUnique: boolean } for real-time form validation
+ */
+accountRoutes.get('/validate/code', async (c) => {
+  const db = c.get('db');
+  const code = c.req.query('code');
+  const excludeId = c.req.query('excludeId');
+
+  if (!code) {
+    return c.json({ isUnique: true }); // Empty code is "unique" (will fail other validation)
+  }
+
+  const repository = new DrizzleAccountRepository(db);
+  const exists = await repository.codeExists(code, excludeId);
+
+  return c.json({ isUnique: !exists });
 });
 
 /**

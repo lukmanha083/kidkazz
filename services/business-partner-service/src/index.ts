@@ -11,16 +11,23 @@ import employeesRoutes from './routes/employees';
 import geospatialRoutes from './routes/geospatial';
 import suppliersRoutes from './routes/suppliers';
 
-// TEMPORARY IP Whitelist - Remove when auth is implemented
+// TEMPORARY Country-based IP Filter - Remove when auth is implemented
 // See: docs/bounded-contexts/business-partner/TEMPORARY_IP_WHITELIST.md
-const WHITELISTED_IPS = ['180.252.172.69', '127.0.0.1', '::1'];
+// Uses Cloudflare's cf-ipcountry header to allow only Indonesian IPs
+// Supports CI bypass with X-CI-Bypass header when CI_BYPASS_SECRET env is set
+const ALLOWED_COUNTRIES = ['ID']; // Indonesia
 const ipWhitelist = () => async (c: Context, next: Next) => {
   const path = new URL(c.req.url).pathname;
   if (['/health', '/'].includes(path)) return next();
+  // Check CI bypass header for E2E testing
+  const ciBypassSecret = (c.env as { CI_BYPASS_SECRET?: string })?.CI_BYPASS_SECRET;
+  if (ciBypassSecret && c.req.header('x-ci-bypass') === ciBypassSecret) return next();
   const cfIP = c.req.header('cf-connecting-ip');
   if (!cfIP) return next(); // Allow internal service-to-service calls
-  if (WHITELISTED_IPS.includes(cfIP)) return next();
-  return c.json({ error: 'Forbidden', ip: cfIP }, 403);
+  const country = c.req.header('cf-ipcountry');
+  if (country && ALLOWED_COUNTRIES.includes(country)) return next();
+  console.warn(`[BLOCKED] IP: ${cfIP}, Country: ${country || 'unknown'}`);
+  return c.json({ error: 'Forbidden', country: country || 'unknown' }, 403);
 };
 
 type Bindings = {

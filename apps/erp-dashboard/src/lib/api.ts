@@ -1008,20 +1008,37 @@ export const uomApi = {
 // ACCOUNTING API
 // ============================================
 
+export type AccountCategory =
+  | 'CURRENT_ASSET'
+  | 'FIXED_ASSET'
+  | 'OTHER_NON_CURRENT_ASSET'
+  | 'CURRENT_LIABILITY'
+  | 'LONG_TERM_LIABILITY'
+  | 'EQUITY'
+  | 'REVENUE'
+  | 'COGS'
+  | 'OPERATING_EXPENSE'
+  | 'OTHER_INCOME_EXPENSE'
+  | 'TAX';
+
 export interface ChartOfAccount {
   id: string;
   code: string;
   name: string;
+  nameEn?: string;
   accountType: 'Asset' | 'Liability' | 'Equity' | 'Revenue' | 'COGS' | 'Expense';
-  accountSubType?: string;
-  parentAccountId?: string;
+  accountCategory?: AccountCategory; // Auto-derived from code (PSAK-compliant)
+  parentAccountId?: string | null;
   description?: string;
   taxType?: string;
   isSystemAccount: boolean;
   isDetailAccount: boolean;
+  level?: number;
   status: 'Active' | 'Inactive' | 'Archived';
-  currency: string;
+  currency?: string;
   normalBalance: 'Debit' | 'Credit';
+  financialStatementType?: 'BALANCE_SHEET' | 'INCOME_STATEMENT';
+  tags?: string[]; // Industry-specific tags (e.g., 'trading', 'restaurant', 'general')
   createdAt: Date;
   updatedAt: Date;
 }
@@ -1250,11 +1267,7 @@ export const accountingApi = {
   // Reports
   reports: {
     incomeStatement: async (from: string, to: string): Promise<IncomeStatement> => {
-      return apiRequest(
-        `/api/reports/income-statement?from=${from}&to=${to}`,
-        {},
-        'accounting'
-      );
+      return apiRequest(`/api/reports/income-statement?from=${from}&to=${to}`, {}, 'accounting');
     },
 
     balanceSheet: async (asOf: string): Promise<BalanceSheet> => {

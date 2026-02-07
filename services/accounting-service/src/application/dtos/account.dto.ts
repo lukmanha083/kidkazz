@@ -17,6 +17,7 @@ export const createAccountSchema = z.object({
   level: z.number().int().min(0).max(10).optional(),
   isDetailAccount: z.boolean(),
   isSystemAccount: z.boolean().default(false),
+  tags: z.array(z.string().min(1).max(50)).max(20).optional(),
 });
 
 export type CreateAccountRequest = z.infer<typeof createAccountSchema>;
@@ -29,6 +30,7 @@ export const updateAccountSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   nameEn: z.string().max(255).optional(),
   description: z.string().max(1000).optional(),
+  tags: z.array(z.string().min(1).max(50)).max(20).optional(),
 });
 
 export type UpdateAccountRequest = z.infer<typeof updateAccountSchema>;
@@ -47,6 +49,7 @@ export const listAccountsQuerySchema = z.object({
     .transform((v) => v === 'true')
     .optional(),
   search: z.string().optional(),
+  tag: z.string().min(1).max(50).optional(),
 });
 
 export type ListAccountsQueryParams = z.infer<typeof listAccountsQuerySchema>;
@@ -68,6 +71,7 @@ export interface AccountResponse {
   level: number;
   isDetailAccount: boolean;
   isSystemAccount: boolean;
+  tags: string[];
   status: string;
   createdAt: string;
   updatedAt: string;
@@ -90,6 +94,7 @@ export function toAccountResponse(account: {
   level: number;
   isDetailAccount: boolean;
   isSystemAccount: boolean;
+  tags: string[];
   status: string;
   createdAt: Date;
   updatedAt: Date;
@@ -108,6 +113,7 @@ export function toAccountResponse(account: {
     level: account.level,
     isDetailAccount: account.isDetailAccount,
     isSystemAccount: account.isSystemAccount,
+    tags: account.tags ?? [],
     status: account.status,
     createdAt: account.createdAt.toISOString(),
     updatedAt: account.updatedAt.toISOString(),

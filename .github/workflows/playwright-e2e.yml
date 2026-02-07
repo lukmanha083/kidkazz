@@ -1,0 +1,89 @@
+name: "Playwright E2E Tests"
+
+# TEMPORARY: Uses CI_BYPASS_SECRET to bypass country-based IP filtering
+# Remove this bypass when proper backend authentication is implemented
+# See: docs/guides/CI_BYPASS_HEADER.md
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/erp-dashboard/**'
+      - '.github/workflows/playwright-e2e.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/erp-dashboard/**'
+      - '.github/workflows/playwright-e2e.yml'
+  workflow_dispatch:
+    inputs:
+      run_tests:
+        description: 'Run E2E tests'
+        required: true
+        default: 'true'
+        type: boolean
+
+jobs:
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    defaults:
+      run:
+        working-directory: apps/erp-dashboard
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        # Version is read from package.json packageManager field
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright E2E tests
+        run: pnpm test:e2e --project=chromium
+        env:
+          # TEMPORARY: CI bypass secret to bypass country-based IP filtering
+          # Remove when backend auth is implemented (see docs/guides/CI_BYPASS_HEADER.md)
+          CI_BYPASS_SECRET: ${{ secrets.CI_BYPASS_SECRET }}
+          # Backend service URLs (use secrets so staging/test URLs can be swapped without code changes)
+          # Set these in GitHub Settings > Secrets > Actions. Falls back to production if not set.
+          VITE_API_GATEWAY_URL: ${{ secrets.VITE_API_GATEWAY_URL || 'https://api-gateway.tesla-hakim.workers.dev' }}
+          VITE_ACCOUNTING_SERVICE_URL: ${{ secrets.VITE_ACCOUNTING_SERVICE_URL || 'https://accounting-service.tesla-hakim.workers.dev' }}
+          VITE_PRODUCT_SERVICE_URL: ${{ secrets.VITE_PRODUCT_SERVICE_URL || 'https://product-service.tesla-hakim.workers.dev' }}
+          VITE_INVENTORY_SERVICE_URL: ${{ secrets.VITE_INVENTORY_SERVICE_URL || 'https://inventory-service.tesla-hakim.workers.dev' }}
+          VITE_BUSINESS_PARTNER_SERVICE_URL: ${{ secrets.VITE_BUSINESS_PARTNER_SERVICE_URL || 'https://business-partner-service.tesla-hakim.workers.dev' }}
+          VITE_ORDER_SERVICE_URL: ${{ secrets.VITE_ORDER_SERVICE_URL || 'https://order-service.tesla-hakim.workers.dev' }}
+          VITE_PAYMENT_SERVICE_URL: ${{ secrets.VITE_PAYMENT_SERVICE_URL || 'https://payment-service.tesla-hakim.workers.dev' }}
+          VITE_SHIPPING_SERVICE_URL: ${{ secrets.VITE_SHIPPING_SERVICE_URL || 'https://shipping-service.tesla-hakim.workers.dev' }}
+          VITE_WEBSOCKET_URL: ${{ secrets.VITE_WEBSOCKET_URL || 'wss://inventory-service.tesla-hakim.workers.dev/ws' }}
+          CI: true
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: apps/erp-dashboard/playwright-report/
+          retention-days: 7
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-test-results
+          path: apps/erp-dashboard/test-results/
+          retention-days: 7
