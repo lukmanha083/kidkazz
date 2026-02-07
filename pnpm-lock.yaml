@@ -34,7 +34,7 @@ importers:
         version: 0.45.1(@cloudflare/workers-types@4.20260131.0)(@types/better-sqlite3@7.6.13)(better-sqlite3@12.6.2)
       shadcn:
         specifier: ^3.8.2
-        version: 3.8.2(@types/node@24.10.9)(hono@4.11.7)(typescript@5.9.3)
+        version: 3.8.2(@types/node@24.10.9)(hono@4.11.8)(typescript@5.9.3)
       tsx:
         specifier: ^4.21.0
         version: 4.21.0
@@ -292,8 +292,8 @@ importers:
   services/api-gateway:
     dependencies:
       hono:
-        specifier: ^4.11.7
-        version: 4.11.7
+        specifier: ^4.11.8
+        version: 4.11.8
     devDependencies:
       '@cloudflare/workers-types':
         specifier: ^4.20260131.0
@@ -3352,6 +3352,10 @@ packages:
     resolution: {integrity: sha512-l7qMiNee7t82bH3SeyUCt9UF15EVmaBvsppY2zQtrbIhl/yzBTny+YUxsVjSjQ6gaqaeVtZmGocom8TzBlA4Yw==}
     engines: {node: '>=16.9.0'}
 
+  hono@4.11.8:
+    resolution: {integrity: sha512-eVkB/CYCCei7K2WElZW9yYQFWssG0DhaDhVvr7wy5jJ22K+ck8fWW0EsLpB0sITUTvPnc97+rrbQqIr5iqiy9Q==}
+    engines: {node: '>=16.9.0'}
+
   html-encoding-sniffer@4.0.0:
     resolution: {integrity: sha512-Y22oTqIU4uuPgEemfz7NDJz6OeKf12Lsu+QC+s3BVpda64lTiMYCyGwg5ki4vFxkMwQdeZDl2adZoqUgdFuTgQ==}
     engines: {node: '>=18'}
@@ -5555,9 +5559,9 @@ snapshots:
 
   '@floating-ui/utils@0.2.10': {}
 
-  '@hono/node-server@1.19.9(hono@4.11.7)':
+  '@hono/node-server@1.19.9(hono@4.11.8)':
     dependencies:
-      hono: 4.11.7
+      hono: 4.11.8
 
   '@hono/zod-validator@0.7.6(hono@4.11.7)(zod@3.25.76)':
     dependencies:
@@ -5762,9 +5766,9 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@modelcontextprotocol/sdk@1.25.3(hono@4.11.7)(zod@3.25.76)':
+  '@modelcontextprotocol/sdk@1.25.3(hono@4.11.8)(zod@3.25.76)':
     dependencies:
-      '@hono/node-server': 1.19.9(hono@4.11.7)
+      '@hono/node-server': 1.19.9(hono@4.11.8)
       ajv: 8.17.1
       ajv-formats: 3.0.1(ajv@8.17.1)
       content-type: 1.0.5
@@ -6718,14 +6722,14 @@ snapshots:
       chai: 5.3.3
       tinyrainbow: 1.2.0
 
-  '@vitest/mocker@2.1.9(msw@2.12.7(@types/node@22.19.7)(typescript@5.9.3))(vite@5.4.21(@types/node@22.19.7)(lightningcss@1.30.2)(terser@5.44.1))':
+  '@vitest/mocker@2.1.9(msw@2.12.7(@types/node@22.19.7)(typescript@5.9.3))(vite@5.4.21(@types/node@24.10.9)(lightningcss@1.30.2)(terser@5.44.1))':
     dependencies:
       '@vitest/spy': 2.1.9
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
       msw: 2.12.7(@types/node@22.19.7)(typescript@5.9.3)
-      vite: 5.4.21(@types/node@22.19.7)(lightningcss@1.30.2)(terser@5.44.1)
+      vite: 5.4.21(@types/node@24.10.9)(lightningcss@1.30.2)(terser@5.44.1)
 
   '@vitest/mocker@2.1.9(msw@2.12.7(@types/node@24.10.9)(typescript@5.9.3))(vite@5.4.21(@types/node@24.10.9)(lightningcss@1.30.2)(terser@5.44.1))':
     dependencies:
@@ -7635,6 +7639,8 @@ snapshots:
   headers-polyfill@4.0.3: {}
 
   hono@4.11.7: {}
+
+  hono@4.11.8: {}
 
   html-encoding-sniffer@4.0.0:
     dependencies:
@@ -8691,7 +8697,7 @@ snapshots:
 
   setprototypeof@1.2.0: {}
 
-  shadcn@3.8.2(@types/node@24.10.9)(hono@4.11.7)(typescript@5.9.3):
+  shadcn@3.8.2(@types/node@24.10.9)(hono@4.11.8)(typescript@5.9.3):
     dependencies:
       '@antfu/ni': 25.0.0
       '@babel/core': 7.29.0
@@ -8699,7 +8705,7 @@ snapshots:
       '@babel/plugin-transform-typescript': 7.28.6(@babel/core@7.29.0)
       '@babel/preset-typescript': 7.28.5(@babel/core@7.29.0)
       '@dotenvx/dotenvx': 1.52.0
-      '@modelcontextprotocol/sdk': 1.25.3(hono@4.11.7)(zod@3.25.76)
+      '@modelcontextprotocol/sdk': 1.25.3(hono@4.11.8)(zod@3.25.76)
       '@types/validate-npm-package-name': 4.0.2
       browserslist: 4.28.1
       commander: 14.0.3
@@ -9233,7 +9239,7 @@ snapshots:
   vitest@2.1.9(@types/node@22.19.7)(@vitest/ui@2.1.9)(jsdom@23.2.0)(lightningcss@1.30.2)(msw@2.12.7(@types/node@22.19.7)(typescript@5.9.3))(terser@5.44.1):
     dependencies:
       '@vitest/expect': 2.1.9
-      '@vitest/mocker': 2.1.9(msw@2.12.7(@types/node@22.19.7)(typescript@5.9.3))(vite@5.4.21(@types/node@22.19.7)(lightningcss@1.30.2)(terser@5.44.1))
+      '@vitest/mocker': 2.1.9(msw@2.12.7(@types/node@22.19.7)(typescript@5.9.3))(vite@5.4.21(@types/node@24.10.9)(lightningcss@1.30.2)(terser@5.44.1))
       '@vitest/pretty-format': 2.1.9
       '@vitest/runner': 2.1.9
       '@vitest/snapshot': 2.1.9
