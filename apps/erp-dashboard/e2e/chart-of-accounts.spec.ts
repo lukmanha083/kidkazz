@@ -136,7 +136,7 @@ test.describe('Chart of Accounts', () => {
     // Trigger validation by blurring and wait for the validation API call
     const validationPromise = page.waitForResponse(
       (response) =>
-        response.url().includes('/api/accounts/validate-code') || response.url().includes('/api/accounts?code='),
+        response.url().includes('/api/accounts/validate/code') || response.url().includes('/api/accounts?code='),
       { timeout: 10000 }
     ).catch(() => null); // Don't fail if no API call (validation might use cached data)
 
