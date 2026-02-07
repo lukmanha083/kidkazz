@@ -56,6 +56,10 @@ updates:
         versions: [">=2.0.0"]
       - dependency-name: "tailwindcss"
         versions: [">=4.0.0"]
+      - dependency-name: "jsdom"
+        versions: [">=24.0.0"]
+      - dependency-name: "@types/node"
+        versions: [">=23.0.0"]
 
   # ERP Dashboard
   - package-ecosystem: "npm"
@@ -110,6 +114,8 @@ updates:
         versions: [">=2.0.0"]
       - dependency-name: "tailwindcss"
         versions: [">=4.0.0"]
+      - dependency-name: "jsdom"
+        versions: [">=24.0.0"]
 
   # Backend Services
   - package-ecosystem: "npm"
@@ -132,10 +138,16 @@ updates:
         patterns:
           - "drizzle-*"
     ignore:
+      - dependency-name: "zod"
+        versions: [">=4.0.0"]
       - dependency-name: "vitest"
         versions: [">=3.0.0"]
       - dependency-name: "@vitest/*"
         versions: [">=3.0.0"]
+      - dependency-name: "@biomejs/biome"
+        versions: [">=2.0.0"]
+      - dependency-name: "@types/node"
+        versions: [">=23.0.0"]
 
   - package-ecosystem: "npm"
     directory: "/services/product-service"
@@ -153,6 +165,13 @@ updates:
         patterns:
           - "hono*"
           - "@hono/*"
+    ignore:
+      - dependency-name: "zod"
+        versions: [">=4.0.0"]
+      - dependency-name: "vitest"
+        versions: [">=3.0.0"]
+      - dependency-name: "@vitest/*"
+        versions: [">=3.0.0"]
 
   - package-ecosystem: "npm"
     directory: "/services/inventory-service"
